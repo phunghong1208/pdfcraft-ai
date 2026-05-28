@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import '@/app/globals.css';
 
 export const metadata: Metadata = {
-  title: 'PDFCraft - Professional PDF Tools',
-  description: 'Free online PDF tools for merging, splitting, compressing, and converting PDF files. All processing happens in your browser for maximum privacy.',
+  title: 'PDFPilot AI - AI PDF Workspace',
+  description: 'Edit PDF, summarize with AI, translate, chat with PDF, and run smart OCR from one workspace.',
   icons: {
     icon: '/favicon.svg',
     shortcut: '/favicon.svg',

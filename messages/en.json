@@ -1,8 +1,8 @@
 {
   "metadata": {
     "home": {
-      "title": "PDFCraft - Professional PDF Tools",
-      "description": "Free, Private & Browser-Based. Merge, edit, and edit PDF files online without uploading to servers."
+      "title": "PDFPilot AI - AI PDF Workspace",
+      "description": "AI-powered PDF workspace for editing, summary, translation, chat with PDF, and smart OCR."
     },
     "tools": {
       "title": "All PDF Tools",
@@ -35,8 +35,8 @@
     }
   },
   "common": {
-    "brand": "PDFCraft",
-    "tagline": "Professional PDF Tools - Free & Private",
+    "brand": "PDFPilot AI",
+    "tagline": "AI PDF Workspace for modern teams",
     "navigation": {
       "home": "Home",
       "tools": "Tools",
@@ -84,7 +84,7 @@
     },
     "footer": {
       "footer": "© 2025 PDFCraft. All rights reserved.",
-      "copyright": "© {year} PDFCraft. All rights reserved.",
+      "copyright": "© {year} PDFPilot AI. All rights reserved.",
       "privacyBadge": "100% Private - Files never leave your device",
       "madeWith": "Made with <Heart /> and <Nextjs />"
     },
@@ -167,6 +167,24 @@
       "auto": "Auto",
       "portrait": "Portrait",
       "landscape": "Landscape"
+    },
+    "ai": {
+      "menu": {
+        "aiAssistant": "AI Assistant",
+        "pdfTools": "PDF Tools",
+        "workspace": "Workspace",
+        "summarizePdf": "Summarize PDF",
+        "translatePdf": "Translate PDF",
+        "chatWithPdf": "Chat with PDF",
+        "smartOcr": "Smart OCR",
+        "voiceReader": "Voice Reader",
+        "editPdf": "Edit PDF",
+        "mergePdf": "Merge PDF",
+        "splitPdf": "Split PDF",
+        "compressPdf": "Compress PDF",
+        "pdfToWord": "PDF to Word",
+        "ocrPdf": "OCR PDF"
+      }
     }
   },
   "toolsPage": {
@@ -2302,6 +2320,83 @@
       "pagesWithMatches": "Pages with matches:",
       "selectedMatch": "Selected",
       "unselectedMatch": "Not selected"
+    }
+  },
+  "ai": {
+    "home": {
+      "badge": "AI-first PDF Workspace",
+      "title": "Your AI Workspace for PDFs",
+      "titleHighlight": "What do you want to do?",
+      "subtitle": "Upload your document and let AI help you instantly.",
+      "dropzone": {
+        "title": "Drop PDF here",
+        "subtitle": "Start with upload and get AI suggestions right away.",
+        "cta": "Upload to start"
+      },
+      "suggestions": {
+        "title": "AI Suggestions",
+        "hint": "Goal-first actions"
+      },
+      "actions": {
+        "summarize": {
+          "label": "Summarize",
+          "desc": "Get concise key points quickly"
+        },
+        "translate": {
+          "label": "Translate",
+          "desc": "Translate while preserving context"
+        },
+        "chat": {
+          "label": "Chat",
+          "desc": "Ask questions directly from the PDF"
+        },
+        "edit": {
+          "label": "Edit",
+          "desc": "Edit, annotate, and mark up pages"
+        },
+        "ocr": {
+          "label": "OCR",
+          "desc": "Extract text from scanned documents"
+        },
+        "voice": {
+          "label": "Read aloud",
+          "desc": "Convert PDF content to audio"
+        }
+      },
+      "core": {
+        "title": "Core PDF Tools",
+        "mergePdf": "Merge PDF",
+        "splitPdf": "Split PDF",
+        "compressPdf": "Compress PDF",
+        "pdfToWord": "PDF to Word"
+      }
+    },
+    "pages": {
+      "summary": {
+        "title": "AI Summary",
+        "description": "Upload a PDF and get a concise AI-generated summary.",
+        "action": "Generate summary"
+      },
+      "translate": {
+        "title": "AI Translate",
+        "description": "Upload a PDF and translate content with your AI server.",
+        "action": "Translate document"
+      },
+      "chat": {
+        "title": "Chat with PDF",
+        "description": "Upload a PDF and ask your AI server questions.",
+        "action": "Start chat analysis"
+      },
+      "smartOcr": {
+        "title": "Smart OCR",
+        "description": "Run OCR with AI post-processing for better structure and accuracy.",
+        "action": "Run smart OCR"
+      },
+      "voice": {
+        "title": "Voice Reader",
+        "description": "Convert PDF content to audio using your AI voice pipeline.",
+        "action": "Generate audio"
+      }
     }
   }
 }

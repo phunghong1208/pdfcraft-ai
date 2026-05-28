@@ -1,294 +1,192 @@
 'use client';
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
-import { Search, X, Filter, Star } from 'lucide-react';
+import Link from 'next/link';
+import { Search, X, Sparkles, Languages, MessagesSquare, ScanText, Volume2, Table2, Bot, PencilLine, FileCog, Zap, ShieldCheck } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { ToolGrid } from '@/components/tools/ToolGrid';
-import { ToolCard } from '@/components/tools/ToolCard';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { getAllTools, getToolsByCategory, getToolById } from '@/config/tools';
+import { getAllTools } from '@/config/tools';
 import { toolMatchesQuery } from '@/lib/utils/search';
 import { type Locale } from '@/lib/i18n/config';
-import { CATEGORY_INFO, type ToolCategory } from '@/types/tool';
-import { useFavorites } from '@/hooks/useFavorites';
 
-type CategoryFilter = ToolCategory | 'all' | 'favorites';
+type ToolTab = 'ai' | 'edit' | 'convert' | 'optimize' | 'security';
 
 interface ToolsPageClientProps {
   locale: Locale;
   localizedToolContent?: Record<string, { title: string; description: string }>;
 }
 
+const TAB_TOOL_IDS: Record<Exclude<ToolTab, 'ai'>, string[]> = {
+  edit: ['edit-pdf', 'merge-pdf', 'split-pdf', 'delete-pages', 'organize-pdf', 'crop-pdf', 'add-watermark', 'header-footer'],
+  convert: ['pdf-to-docx', 'word-to-pdf', 'pdf-to-jpg', 'jpg-to-pdf', 'pdf-to-pptx', 'pdf-to-excel', 'image-to-pdf'],
+  optimize: ['compress-pdf', 'repair-pdf', 'linearize-pdf', 'deskew-pdf', 'ocr-pdf', 'pdf-to-pdfa'],
+  security: ['encrypt-pdf', 'decrypt-pdf', 'find-and-redact', 'remove-metadata', 'change-permissions', 'pdf-to-pdfa'],
+};
+
+const AI_ACTIONS = [
+  { icon: Sparkles, label: 'Summarize', href: '/ai-summary' },
+  { icon: Languages, label: 'Translate', href: '/ai-translate' },
+  { icon: MessagesSquare, label: 'Chat PDF', href: '/chat-pdf' },
+  { icon: ScanText, label: 'OCR', href: '/smart-ocr' },
+  { icon: Volume2, label: 'Voice Reader', href: '/voice-reader' },
+  { icon: Table2, label: 'Extract Tables', href: '/chat-pdf' },
+  { icon: Bot, label: 'Explain Terms', href: '/chat-pdf' },
+];
+
 export default function ToolsPageClient({ locale, localizedToolContent }: ToolsPageClientProps) {
   const t = useTranslations();
   const searchParams = useSearchParams();
   const allTools = getAllTools();
-  const { favorites, isLoaded: favoritesLoaded, favoritesCount } = useFavorites();
-
-  const categoryTranslationKeys: Record<ToolCategory, string> = {
-    'edit-annotate': 'editAnnotate',
-    'convert-to-pdf': 'convertToPdf',
-    'convert-from-pdf': 'convertFromPdf',
-    'organize-manage': 'organizeManage',
-    'optimize-repair': 'optimizeRepair',
-    'secure-pdf': 'securePdf',
-  };
-
-  // Read initial values from URL search params (client-side)
-  const initialCategory = searchParams.get('category') || 'all';
+  const initialTab = (searchParams.get('tab') as ToolTab) || 'ai';
   const initialQuery = searchParams.get('q') || '';
 
   const [searchQuery, setSearchQuery] = useState(initialQuery);
-  const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>(
-    (initialCategory as ToolCategory) || 'all'
-  );
+  const [activeTab, setActiveTab] = useState<ToolTab>(initialTab);
 
-  // Sync state with URL params when they change
   useEffect(() => {
-    const category = searchParams.get('category') || 'all';
+    const tab = (searchParams.get('tab') as ToolTab) || 'ai';
     const query = searchParams.get('q') || '';
-    setSelectedCategory(category as CategoryFilter);
+    setActiveTab(tab);
     setSearchQuery(query);
   }, [searchParams]);
-  const [showFilters, setShowFilters] = useState(false);
 
-  // Filter tools based on search and category
-  const filteredTools = useMemo(() => {
-    let tools = allTools;
+  const visibleTools = useMemo(() => {
+    if (activeTab === 'ai') return [];
+    const ids = new Set(TAB_TOOL_IDS[activeTab]);
+    const tools = allTools.filter((tool) => ids.has(tool.id));
 
-    // Filter by category
-    if (selectedCategory === 'favorites') {
-      // Filter to only show favorite tools
-      tools = favorites
-        .map(id => getToolById(id))
-        .filter((tool): tool is NonNullable<typeof tool> => tool !== undefined);
-    } else if (selectedCategory !== 'all') {
-      tools = getToolsByCategory(selectedCategory as ToolCategory);
-    }
+    if (!searchQuery.trim()) return tools;
 
-    // Filter by search query (supports current language search)
-    if (searchQuery.trim()) {
-      tools = tools.filter(tool =>
-        toolMatchesQuery(tool, searchQuery, localizedToolContent?.[tool.id])
-      );
-    }
+    return tools.filter((tool) =>
+      toolMatchesQuery(tool, searchQuery, localizedToolContent?.[tool.id]),
+    );
+  }, [activeTab, allTools, searchQuery, localizedToolContent]);
 
-    return tools;
-  }, [allTools, selectedCategory, searchQuery, favorites]);
-
-  // Category options
-  const categories: { value: CategoryFilter; label: string; icon?: React.ReactNode }[] = [
-    { value: 'all', label: t('toolsPage.allTools') },
-    {
-      value: 'favorites',
-      label: t('tools.favorite.title'),
-      icon: <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-    },
-    { value: 'edit-annotate', label: t('home.categories.editAnnotate') },
-    { value: 'convert-to-pdf', label: t('home.categories.convertToPdf') },
-    { value: 'convert-from-pdf', label: t('home.categories.convertFromPdf') },
-    { value: 'organize-manage', label: t('home.categories.organizeManage') },
-    { value: 'optimize-repair', label: t('home.categories.optimizeRepair') },
-    { value: 'secure-pdf', label: t('home.categories.securePdf') },
+  const tabs: Array<{ id: ToolTab; label: string; icon: typeof Sparkles }> = [
+    { id: 'ai', label: 'AI Assistant', icon: Sparkles },
+    { id: 'edit', label: 'Edit & Organize', icon: PencilLine },
+    { id: 'convert', label: 'Convert', icon: FileCog },
+    { id: 'optimize', label: 'Optimize', icon: Zap },
+    { id: 'security', label: 'Security', icon: ShieldCheck },
   ];
 
-  const handleClearSearch = useCallback(() => {
-    setSearchQuery('');
-  }, []);
+  const contextualSuggestions = [
+    { icon: ScanText, label: 'OCR this document' },
+    { icon: Languages, label: 'Translate scanned pages' },
+    { icon: FileCog, label: 'Extract text' },
+    { icon: Zap, label: 'Compress large file' },
+    { icon: Table2, label: 'Extract invoice tables' },
+  ];
 
-  const handleClearFilters = useCallback(() => {
-    setSearchQuery('');
-    setSelectedCategory('all');
-  }, []);
+  const handleClearSearch = useCallback(() => setSearchQuery(''), []);
 
   return (
     <div className="min-h-screen flex flex-col bg-[hsl(var(--color-background))]">
       <Header locale={locale} />
 
-      <main className="flex-1">
-        {/* Page Header */}
-        <section className="relative pt-36 pb-20 overflow-hidden">
-          {/* Animated Background Blobs (Subtle) */}
-          <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none -z-10">
-            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[hsl(var(--color-primary)/0.05)] rounded-full mix-blend-multiply filter blur-3xl opacity-50" />
-            <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-[hsl(var(--color-accent)/0.05)] rounded-full mix-blend-multiply filter blur-3xl opacity-50" />
-          </div>
-
-          <div className="container mx-auto px-4 relative z-10">
-            <div className="max-w-3xl mx-auto text-center">
-              <h1 className="text-4xl md:text-5xl font-bold text-[hsl(var(--color-foreground))] mb-6">
-                <span className="text-gradient">{t('toolsPage.title')}</span>
-              </h1>
-              <p className="text-lg text-[hsl(var(--color-muted-foreground))] mb-10 leading-relaxed">
-                {t('toolsPage.subtitle', { count: allTools.length })}
+      <main className="flex-1 pt-28 pb-12">
+        <section className="container mx-auto px-4">
+          <div className="max-w-6xl mx-auto">
+            <div className="mb-8 text-center">
+              <h1 className="text-3xl md:text-4xl font-bold">{t('common.brand')} Tools</h1>
+              <p className="mt-3 text-[hsl(var(--color-muted-foreground))]">
+                Search-first tools. AI-first workflow. Use full toolbox contextually in workspace.
               </p>
-
-              {/* Search Bar */}
-              <div className="relative max-w-2xl mx-auto">
-                <div className="relative group">
-                  <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-[hsl(var(--color-primary))] group-focus-within:text-[hsl(var(--color-primary))] transition-colors z-10" aria-hidden="true" />
-                  <input
-                    type="search"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={t('tools.search.placeholder')}
-                    className="w-full pl-14 pr-12 py-4 text-lg rounded-2xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-card))] dark:bg-[hsl(var(--color-card))] text-[hsl(var(--color-foreground))] placeholder:text-[hsl(var(--color-muted-foreground))] shadow-md focus:outline-none focus:ring-4 focus:ring-[hsl(var(--color-primary)/0.15)] focus:border-[hsl(var(--color-primary))] transition-all"
-                    aria-label="Search tools"
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={handleClearSearch}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 p-2 hover:bg-[hsl(var(--color-muted))] rounded-full transition-colors"
-                      aria-label="Clear search"
-                    >
-                      <X className="h-5 w-5 text-[hsl(var(--color-muted-foreground))]" aria-hidden="true" />
-                    </button>
-                  )}
-                </div>
-              </div>
             </div>
-          </div>
-        </section>
 
-        {/* Filters and Tools */}
-        <section className="py-8 bg-[hsl(var(--color-muted)/0.3)] min-h-[500px]">
-          <div className="container mx-auto px-4">
-            {/* Filter Bar */}
-            <div className="flex flex-col md:flex-row items-center gap-6 mb-10 sticky top-20 z-40 py-4 px-6 rounded-2xl glass-card transition-all">
-              {/* Mobile Filter Toggle */}
-              <Button
-                variant="outline"
-                className="md:hidden w-full"
-                onClick={() => setShowFilters(!showFilters)}
-                aria-expanded={showFilters}
-                aria-controls="category-filters"
-              >
-                <Filter className="h-4 w-4 mr-2" aria-hidden="true" />
-                {t('toolsPage.filters')}
-              </Button>
-
-              {/* Category Filters */}
-              <div
-                className={`flex flex-wrap gap-2 ${showFilters ? 'block w-full' : 'hidden md:flex flex-1'}`}
-                role="group"
-                aria-label="Filter by category"
-              >
-                {categories.map((cat) => (
-                  <button
-                    key={cat.value}
-                    onClick={() => setSelectedCategory(cat.value)}
-                    aria-pressed={selectedCategory === cat.value}
-                    className={`
-                      px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center gap-1.5
-                      ${selectedCategory === cat.value
-                        ? cat.value === 'favorites'
-                          ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 shadow-md'
-                          : 'bg-[hsl(var(--color-primary))] text-white shadow-md shadow-primary/25'
-                        : 'bg-transparent text-[hsl(var(--color-muted-foreground))] hover:bg-[hsl(var(--color-muted))] hover:text-[hsl(var(--color-foreground))]'
-                      }
-                    `}
-                  >
-                    {cat.icon}
-                    {cat.label}
-                    {cat.value === 'favorites' && favoritesLoaded && (
-                      <span className={`ml-0.5 text-xs ${selectedCategory === cat.value ? 'opacity-100' : 'opacity-60'}`}>
-                        ({favoritesCount})
-                      </span>
-                    )}
-                    {cat.value !== 'all' && cat.value !== 'favorites' && (
-                      <span className={`ml-0.5 text-xs ${selectedCategory === cat.value ? 'opacity-100' : 'opacity-60'}`}>
-                        ({getToolsByCategory(cat.value as ToolCategory).length})
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-
-              {/* Clear Filters */}
-              {(searchQuery || selectedCategory !== 'all') && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleClearFilters}
-                  className="ml-auto text-sm text-[hsl(var(--color-muted-foreground))]"
+            <div className="relative max-w-2xl mx-auto mb-6">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[hsl(var(--color-muted-foreground))]" />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search tools... merge, ocr, pdf to jpg, compress"
+                className="w-full pl-11 pr-10 py-3 rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-card))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--color-primary)/0.25)]"
+              />
+              {searchQuery && (
+                <button
+                  onClick={handleClearSearch}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full hover:bg-[hsl(var(--color-muted))]"
+                  aria-label="Clear search"
                 >
-                  {t('toolsPage.clearAll')}
-                </Button>
+                  <X className="h-4 w-4 text-[hsl(var(--color-muted-foreground))]" />
+                </button>
               )}
             </div>
 
-            {/* Results Count */}
-            <div className="mb-6 px-2">
-              <p className="text-sm text-[hsl(var(--color-muted-foreground))]">
-                {selectedCategory === 'favorites'
-                  ? `${filteredTools.length} ${t('tools.favorite.title').toLowerCase()}`
-                  : filteredTools.length === allTools.length
-                    ? t('toolsPage.showingAll', { count: allTools.length })
-                    : t('toolsPage.showingFiltered', { filtered: filteredTools.length, total: allTools.length })}
-                {searchQuery && ` ${t('toolsPage.forQuery', { query: searchQuery })}`}
-                {selectedCategory !== 'all' && selectedCategory !== 'favorites' && ` ${t('toolsPage.inCategory', { category: t(`home.categories.${categoryTranslationKeys[selectedCategory as ToolCategory]}`) })}`}
-              </p>
+            <div className="flex flex-wrap gap-2 justify-center mb-6">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    activeTab === tab.id
+                      ? 'bg-[hsl(var(--color-primary))] text-white'
+                      : 'border border-[hsl(var(--color-border))] text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))]'
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <tab.icon className="h-[18px] w-[18px] text-blue-400" strokeWidth={1.75} />
+                    {tab.label}
+                  </span>
+                </button>
+              ))}
             </div>
 
-            {/* Tools Grid */}
-            {filteredTools.length > 0 ? (
-              selectedCategory === 'all' && !searchQuery ? (
-                // Show grouped by category when no filters
-                <ToolGrid
-                  tools={filteredTools}
-                  locale={locale}
-                  localizedToolContent={localizedToolContent}
-                  showCategoryHeaders
-                />
-              ) : (
-                // Show flat grid when filtered
-                <ToolGrid
-                  tools={filteredTools}
-                  locale={locale}
-                  localizedToolContent={localizedToolContent}
-                />
-              )
-            ) : selectedCategory === 'favorites' ? (
-              // Empty favorites state
-              <Card className="p-16 text-center glass-card border-dashed border-2">
-                <div className="max-w-md mx-auto flex flex-col items-center">
-                  <div className="w-20 h-20 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-6">
-                    <Star className="h-10 w-10 text-amber-500" aria-hidden="true" />
+            {activeTab === 'ai' ? (
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
+                <Card className="p-5 border border-[hsl(var(--color-border)/0.75)]">
+                  <h2 className="text-lg font-semibold mb-3">AI Assistant</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {AI_ACTIONS.map((action) => (
+                      <Link
+                        key={action.label}
+                        href={`/${locale}${action.href}`}
+                        className="rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 hover:bg-white/[0.06] transition-colors"
+                      >
+                        <span className="text-sm font-medium inline-flex items-center gap-2.5">
+                          <span className="h-8 w-8 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                            <action.icon className="h-[18px] w-[18px] text-blue-400" strokeWidth={1.75} />
+                          </span>
+                          {action.label}
+                        </span>
+                      </Link>
+                    ))}
                   </div>
-                  <h3 className="text-xl font-bold text-[hsl(var(--color-foreground))] mb-2">
-                    {t('tools.favorite.empty')}
-                  </h3>
-                  <p className="text-[hsl(var(--color-muted-foreground))] mb-8">
-                    {t('tools.favorite.hint')}
-                  </p>
-                  <Button variant="outline" onClick={() => setSelectedCategory('all')} className="px-8">
-                    {t('toolsPage.allTools')}
-                  </Button>
-                </div>
-              </Card>
+                </Card>
+
+                <Card className="p-5 border border-[hsl(var(--color-border)/0.75)]">
+                  <h3 className="text-sm font-semibold mb-3">Contextual suggestions</h3>
+                  <ul className="space-y-2 text-sm text-[hsl(var(--color-muted-foreground))]">
+                    {contextualSuggestions.map((item) => (
+                      <li key={item.label} className="inline-flex items-center gap-2">
+                        <item.icon className="h-4 w-4 text-blue-400" strokeWidth={1.75} />
+                        {item.label}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href={`/${locale}/workspace`} className="inline-block mt-4">
+                    <Button size="sm">Open Document Workspace</Button>
+                  </Link>
+                </Card>
+              </div>
+            ) : visibleTools.length > 0 ? (
+              <ToolGrid tools={visibleTools} locale={locale} localizedToolContent={localizedToolContent} />
             ) : (
-              // No results
-              <Card className="p-16 text-center glass-card border-dashed border-2">
-                <div className="max-w-md mx-auto flex flex-col items-center">
-                  <div className="w-20 h-20 bg-[hsl(var(--color-muted))] rounded-full flex items-center justify-center mb-6">
-                    <Search className="h-10 w-10 text-[hsl(var(--color-muted-foreground))]" aria-hidden="true" />
-                  </div>
-                  <h3 className="text-xl font-bold text-[hsl(var(--color-foreground))] mb-2">
-                    {t('toolsPage.noToolsFound')}
-                  </h3>
-                  <p className="text-[hsl(var(--color-muted-foreground))] mb-8">
-                    {t('tools.search.noResults', { query: searchQuery })}
-                  </p>
-                  <Button variant="outline" onClick={handleClearFilters} className="px-8">
-                    {t('toolsPage.clearFilters')}
-                  </Button>
-                </div>
+              <Card className="p-12 text-center border-dashed border-2">
+                <p className="text-[hsl(var(--color-muted-foreground))] mb-4">No tools found for this tab and query.</p>
+                <Button variant="outline" onClick={handleClearSearch}>Clear search</Button>
               </Card>
             )}
+
+            <div className="mt-8 text-center text-sm text-[hsl(var(--color-muted-foreground))]">
+              Full tools are organized here. Homepage stays AI-first and lightweight.
+            </div>
           </div>
         </section>
       </main>

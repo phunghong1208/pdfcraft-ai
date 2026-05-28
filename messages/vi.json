@@ -1,8 +1,8 @@
 {
   "metadata": {
     "home": {
-      "title": "PDFCraft - Công cụ PDF Chuyên nghiệp",
-      "description": "Miễn phí, Riêng tư & Hoàn toàn trên Trình duyệt. Hợp nhất, chỉnh sửa PDF trực tuyến mà không cần tải lên máy chủ."
+      "title": "PDFPilot AI - Không gian làm việc PDF AI",
+      "description": "Nền tảng PDF tích hợp AI: chỉnh sửa PDF, tóm tắt, dịch thuật, chat với PDF và Smart OCR."
     },
     "tools": {
       "title": "Tất cả Công cụ PDF",
@@ -35,8 +35,8 @@
     }
   },
   "common": {
-    "brand": "PDFCraft",
-    "tagline": "Công cụ PDF Chuyên nghiệp - Miễn phí & Riêng tư",
+    "brand": "PDFPilot AI",
+    "tagline": "Nền tảng PDF AI cho đội nhóm hiện đại",
     "navigation": {
       "home": "Trang chủ",
       "tools": "Công cụ",
@@ -84,7 +84,7 @@
     },
     "footer": {
       "footer": "© 2025 PDFCraft. Bảo lưu mọi quyền.",
-      "copyright": "© {year} PDFCraft. Bảo lưu mọi quyền.",
+      "copyright": "© {year} PDFPilot AI. Bảo lưu mọi quyền.",
       "privacyBadge": "100% Riêng tư - Tệp không bao giờ rời khỏi thiết bị",
       "madeWith": "Được tạo bởi <Heart /> và <Nextjs />"
     },
@@ -161,6 +161,24 @@
       "auto": "Tự động",
       "portrait": "Dọc",
       "landscape": "Ngang"
+    },
+    "ai": {
+      "menu": {
+        "aiAssistant": "Trợ lý AI",
+        "pdfTools": "Công cụ PDF",
+        "workspace": "Không gian làm việc",
+        "summarizePdf": "Tóm tắt PDF",
+        "translatePdf": "Dịch PDF",
+        "chatWithPdf": "Chat với PDF",
+        "smartOcr": "Smart OCR",
+        "voiceReader": "Đọc bằng giọng nói",
+        "editPdf": "Chỉnh sửa PDF",
+        "mergePdf": "Gộp PDF",
+        "splitPdf": "Tách PDF",
+        "compressPdf": "Nén PDF",
+        "pdfToWord": "PDF sang Word",
+        "ocrPdf": "OCR PDF"
+      }
     }
   },
   "toolsPage": {
@@ -2077,5 +2095,82 @@
   "pdfReader": {
     "uploadLabel": "Mở Tệp PDF",
     "uploadDescription": "Mở tệp PDF để đọc và xem."
+  },
+  "ai": {
+    "home": {
+      "badge": "Không gian PDF ưu tiên AI",
+      "title": "Không gian AI cho PDF của bạn",
+      "titleHighlight": "Bạn muốn làm gì với tài liệu?",
+      "subtitle": "Tải tài liệu lên và để AI hỗ trợ bạn ngay.",
+      "dropzone": {
+        "title": "Kéo PDF vào đây",
+        "subtitle": "Bắt đầu bằng tải file để nhận gợi ý AI ngay.",
+        "cta": "Tải lên để bắt đầu"
+      },
+      "suggestions": {
+        "title": "Gợi ý AI",
+        "hint": "Hành động theo mục tiêu"
+      },
+      "actions": {
+        "summarize": {
+          "label": "Summarize",
+          "desc": "Tóm tắt nhanh ý chính tài liệu"
+        },
+        "translate": {
+          "label": "Translate",
+          "desc": "Dịch tài liệu và giữ đúng ngữ cảnh"
+        },
+        "chat": {
+          "label": "Chat",
+          "desc": "Hỏi đáp trực tiếp với nội dung PDF"
+        },
+        "edit": {
+          "label": "Edit",
+          "desc": "Chỉnh sửa, chú thích và đánh dấu tài liệu"
+        },
+        "ocr": {
+          "label": "OCR",
+          "desc": "Nhận diện chữ từ tài liệu scan"
+        },
+        "voice": {
+          "label": "Read aloud",
+          "desc": "Chuyển nội dung PDF thành âm thanh"
+        }
+      },
+      "core": {
+        "title": "Công cụ PDF cốt lõi",
+        "mergePdf": "Gộp PDF",
+        "splitPdf": "Tách PDF",
+        "compressPdf": "Nén PDF",
+        "pdfToWord": "PDF sang Word"
+      }
+    },
+    "pages": {
+      "summary": {
+        "title": "AI Tóm tắt",
+        "description": "Tải PDF để nhận bản tóm tắt do AI tạo.",
+        "action": "Tạo tóm tắt"
+      },
+      "translate": {
+        "title": "AI Dịch thuật",
+        "description": "Tải PDF và dịch nội dung qua AI server của bạn.",
+        "action": "Dịch tài liệu"
+      },
+      "chat": {
+        "title": "Chat với PDF",
+        "description": "Tải PDF và đặt câu hỏi cho AI server.",
+        "action": "Bắt đầu phân tích chat"
+      },
+      "smartOcr": {
+        "title": "Smart OCR",
+        "description": "Chạy OCR kết hợp AI để tăng độ chính xác và cấu trúc.",
+        "action": "Chạy Smart OCR"
+      },
+      "voice": {
+        "title": "Đọc bằng giọng nói",
+        "description": "Chuyển PDF thành âm thanh qua pipeline giọng nói AI.",
+        "action": "Tạo audio"
+      }
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { getToolById, getAllTools } from '@/config/tools';
 import { getToolContent, type Locale } from '@/config/tool-content';
@@ -179,6 +179,11 @@ export default async function ToolPageRoute({ params }: ToolPageParams) {
 
   if (!tool) {
     notFound();
+  }
+
+  // Keep edit flow in one immersive route to avoid landing on generic tool wrapper.
+  if (tool.id === 'edit-pdf') {
+    redirect(`/${locale}/editor`);
   }
 
   // Get tool content for the locale (falls back to English)

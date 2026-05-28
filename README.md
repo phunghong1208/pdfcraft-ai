@@ -1,13 +1,13 @@
-# PDFCraft
+# PDFPilot AI
 
 <div align="center">
-  <img src="public/images/logo.png" alt="PDFCraft Logo" width="120" height="120" />
-  <h1>Professional PDF Tools</h1>
+  <img src="public/images/logo.png" alt="PDFPilot AI Logo" width="120" height="120" />
+  <h1>AI PDF Workspace</h1>
   <p>
-    <strong>Free, Private & Browser-Based</strong>
+    <strong>Edit, summarize, translate, chat, and OCR your PDFs</strong>
   </p>
   <p>
-    Merge, split, compress, convert, and edit PDF files online without uploading to servers.
+    Built on PDFCraft foundation with AI server integration for advanced document workflows.
   </p>
 </div>
 

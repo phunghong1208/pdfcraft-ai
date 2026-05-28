@@ -5,9 +5,11 @@ import { useTranslations } from 'next-intl';
 import { FileUploader } from '../FileUploader';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { peekUploadedPdf } from '@/lib/document-session';
 
 export interface EditPDFToolProps {
   className?: string;
+  immersive?: boolean;
 }
 
 /**
@@ -17,7 +19,7 @@ export interface EditPDFToolProps {
  * Users can add text, draw, highlight, and add images to PDFs.
  * The PDF.js viewer has built-in save functionality (export button in toolbar).
  */
-export function EditPDFTool({ className = '' }: EditPDFToolProps) {
+export function EditPDFTool({ className = '', immersive = false }: EditPDFToolProps) {
   const t = useTranslations('common');
   const tTools = useTranslations('tools.editPdf');
   
@@ -39,6 +41,18 @@ export function EditPDFTool({ className = '' }: EditPDFToolProps) {
 
   const handleUploadError = useCallback((errorMessage: string) => {
     setError(errorMessage);
+  }, []);
+
+  useEffect(() => {
+    const sessionFile = peekUploadedPdf();
+    if (!sessionFile) return;
+
+    setFile(sessionFile);
+    setError(null);
+    setPdfUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(sessionFile);
+    });
   }, []);
 
   useEffect(() => {
@@ -72,7 +86,44 @@ export function EditPDFTool({ className = '' }: EditPDFToolProps) {
                 (btn as HTMLElement).style.display = 'none';
               }
             });
-          }          // 3. Inject PDFCraft Enrichment Script
+          }
+
+          // 3. In immersive mode, visually blend plugin toolbar with app shell.
+          if (immersive) {
+            const immersiveStyle = doc.createElement('style');
+            immersiveStyle.textContent = `
+              #toolbarContainer {
+                background: rgba(20, 24, 32, 0.92) !important;
+                border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+                backdrop-filter: blur(8px) !important;
+              }
+              #toolbarViewer {
+                min-height: 40px !important;
+                padding: 2px 8px !important;
+              }
+              #viewerContainer {
+                background: #1f2128 !important;
+              }
+              #mainContainer {
+                background: #1f2128 !important;
+              }
+              .CustomToolbar {
+                margin: 4px 8px !important;
+                border-radius: 8px !important;
+                background: rgba(17, 24, 39, 0.82) !important;
+                border: 1px solid rgba(255,255,255,0.08) !important;
+                box-shadow: 0 8px 28px rgba(0,0,0,0.3) !important;
+              }
+              .CustomToolbar li,
+              .CustomToolbar button,
+              .toolbarButton {
+                border-radius: 6px !important;
+              }
+            `;
+            doc.head.appendChild(immersiveStyle);
+          }
+
+          // 4. Inject PDFCraft Enrichment Script
           const patchScript = doc.createElement('script');
           patchScript.textContent = `
             (function() {
@@ -449,7 +500,7 @@ export function EditPDFTool({ className = '' }: EditPDFToolProps) {
         console.warn('Could not access iframe content to inject patches', e);
       }
     }, 1000);
-  }, []);
+  }, [immersive]);
 
   const handleClear = useCallback(() => {
     if (pdfUrl) URL.revokeObjectURL(pdfUrl);
@@ -460,17 +511,19 @@ export function EditPDFTool({ className = '' }: EditPDFToolProps) {
   }, [pdfUrl]);
 
   return (
-    <div className={`space-y-6 ${className}`.trim()}>
+    <div className={`${immersive ? 'h-full' : 'space-y-6'} ${className}`.trim()}>
       {!file && (
-        <FileUploader
-          accept={['application/pdf', '.pdf']}
-          multiple={false}
-          maxFiles={1}
-          onFilesSelected={handleFilesSelected}
-          onError={handleUploadError}
-          label={tTools('uploadLabel')}
-          description={tTools('uploadDescription')}
-        />
+        <div className={immersive ? 'h-full flex items-center justify-center' : ''}>
+          <FileUploader
+            accept={['application/pdf', '.pdf']}
+            multiple={false}
+            maxFiles={1}
+            onFilesSelected={handleFilesSelected}
+            onError={handleUploadError}
+            label={tTools('uploadLabel')}
+            description={tTools('uploadDescription')}
+          />
+        </div>
       )}
 
       {error && (
@@ -480,33 +533,35 @@ export function EditPDFTool({ className = '' }: EditPDFToolProps) {
       )}
 
       {file && pdfUrl && (
-        <div className="space-y-4">
-          <Card variant="outlined" size="sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <svg className="w-8 h-8 text-red-500" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
-                  <path d="M14 2v6h6" fill="white" />
-                </svg>
-                <div>
-                  <p className="text-sm font-medium text-[hsl(var(--color-foreground))]">{file.name}</p>
-                  <p className="text-xs text-[hsl(var(--color-muted-foreground))]">
-                    {(file.size / (1024 * 1024)).toFixed(2)} MB
-                  </p>
+        <div className={immersive ? 'h-full' : 'space-y-4'}>
+          {!immersive && (
+            <Card variant="outlined" size="sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <svg className="w-8 h-8 text-red-500" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
+                    <path d="M14 2v6h6" fill="white" />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-medium text-[hsl(var(--color-foreground))]">{file.name}</p>
+                    <p className="text-xs text-[hsl(var(--color-muted-foreground))]">
+                      {(file.size / (1024 * 1024)).toFixed(2)} MB
+                    </p>
+                  </div>
                 </div>
+                <Button variant="ghost" size="sm" onClick={handleClear}>
+                  {t('buttons.clear') || 'Clear'}
+                </Button>
               </div>
-              <Button variant="ghost" size="sm" onClick={handleClear}>
-                {t('buttons.clear') || 'Clear'}
-              </Button>
-            </div>
-          </Card>
+            </Card>
+          )}
 
           {/* PDF Viewer iframe */}
-          <div className="relative border border-[hsl(var(--color-border))] rounded-[var(--radius-md)] overflow-hidden bg-gray-100">
+          <div className={`relative overflow-hidden ${immersive ? 'h-full rounded-lg border border-white/10 bg-[#1d1f24]' : 'border border-[hsl(var(--color-border))] rounded-[var(--radius-md)] bg-gray-100'}`}>
             <iframe
               ref={iframeRef}
               src={`/pdfjs-annotation-viewer/web/viewer.html?file=${encodeURIComponent(pdfUrl)}`}
-              className="w-full h-[700px] border-0"
+              className={`w-full border-0 ${immersive ? 'h-full' : 'h-[700px]'}`}
               title="PDF Editor"
               sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"
               onLoad={handleIframeLoad}

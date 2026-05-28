@@ -1,303 +1,171 @@
 'use client';
 
+import { useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { ArrowRight, Zap, Wrench, Lock, Sparkles, Edit, FileImage, FolderOpen, Settings, ShieldCheck, Star } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Upload, Sparkles, Languages, MessagesSquare, ScanText, Volume2, PencilLine, Minimize2, GitMerge, FileCog, ArrowRight } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { ToolGrid } from '@/components/tools/ToolGrid';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { getAllTools, getToolsByCategory, getPopularTools } from '@/config/tools';
 import { type Locale } from '@/lib/i18n/config';
-import { CATEGORY_INFO, type ToolCategory } from '@/types/tool';
+import { setUploadedPdf } from '@/lib/document-session';
 
 interface HomePageClientProps {
   locale: Locale;
   localizedToolContent?: Record<string, { title: string; description: string }>;
 }
 
-// ... (previous imports)
-
-// ... (props interface)
-
-// ... (previous imports)
-
-// ... (props interface)
-
-export default function HomePageClient({ locale, localizedToolContent }: HomePageClientProps) {
+export default function HomePageClient({ locale }: HomePageClientProps) {
   const t = useTranslations();
-  const allTools = getAllTools();
-  const popularTools = getPopularTools();
+  const isVi = locale === 'vi';
+  const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [isPreparing, setIsPreparing] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
 
-  // Feature highlights (same as before)
-  const features = [
-    {
-      icon: ShieldCheck,
-      titleKey: 'home.features.privacy.title',
-      descriptionKey: 'home.features.privacy.description',
-      color: 'text-green-500',
-    },
-    {
-      icon: Zap,
-      titleKey: 'home.features.free.title',
-      descriptionKey: 'home.features.free.description',
-      color: 'text-yellow-500',
-    },
-    {
-      icon: Wrench,
-      titleKey: 'home.features.powerful.title',
-      descriptionKey: 'home.features.powerful.description',
-      color: 'text-blue-500',
-    },
+  const aiActions = [
+    { href: `/${locale}/ai-summary`, label: isVi ? 'Tóm tắt' : 'Summarize', icon: Sparkles },
+    { href: `/${locale}/ai-translate`, label: isVi ? 'Dịch tài liệu' : 'Translate', icon: Languages },
+    { href: `/${locale}/chat-pdf`, label: isVi ? 'Chat với PDF' : 'Chat with PDF', icon: MessagesSquare },
+    { href: `/${locale}/smart-ocr`, label: isVi ? 'OCR Scan' : 'OCR Scan', icon: ScanText },
+    { href: `/${locale}/voice-reader`, label: isVi ? 'Voice Reader' : 'Voice Reader', icon: Volume2 },
   ];
 
-  // Category icons mapping
-  const categoryIcons: Record<ToolCategory, typeof Edit> = {
-    'edit-annotate': Edit,
-    'convert-to-pdf': FileImage,
-    'convert-from-pdf': FileImage,
-    'organize-manage': FolderOpen,
-    'optimize-repair': Settings,
-    'secure-pdf': ShieldCheck,
-  };
-
-  const categoryTranslationKeys: Record<ToolCategory, string> = {
-    'edit-annotate': 'editAnnotate',
-    'convert-to-pdf': 'convertToPdf',
-    'convert-from-pdf': 'convertFromPdf',
-    'organize-manage': 'organizeManage',
-    'optimize-repair': 'optimizeRepair',
-    'secure-pdf': 'securePdf',
-  };
-
-  // Category sections to display
-  const categoryOrder: ToolCategory[] = [
-    'edit-annotate',
-    'convert-to-pdf',
-    'convert-from-pdf',
-    'organize-manage',
-    'optimize-repair',
-    'secure-pdf',
+  const pdfActions = [
+    { href: `/${locale}/tools?tab=edit`, label: isVi ? 'Edit' : 'Edit', icon: PencilLine },
+    { href: `/${locale}/tools?tab=optimize`, label: isVi ? 'Compress' : 'Compress', icon: Minimize2 },
+    { href: `/${locale}/tools?tab=edit`, label: isVi ? 'Merge' : 'Merge', icon: GitMerge },
+    { href: `/${locale}/tools?tab=convert`, label: isVi ? 'Convert' : 'Convert', icon: FileCog },
   ];
+
+  function startUpload() {
+    inputRef.current?.click();
+  }
+
+  function handleSelectedFile(file: File | null) {
+    if (!file) return;
+    setUploadedPdf(file);
+    setIsPreparing(true);
+    setLoadingStep(0);
+
+    setTimeout(() => setLoadingStep(1), 650);
+    setTimeout(() => setLoadingStep(2), 1300);
+    setTimeout(() => router.push(`/${locale}/workspace`), 1900);
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-[hsl(var(--color-background))]">
       <Header locale={locale} />
 
-      <main id="main-content" className="flex-1 relative" tabIndex={-1}>
-        {/* Hero Section */}
-        <section
-          className="relative overflow-hidden pt-16 pb-20 lg:pt-24 lg:pb-28"
-          aria-labelledby="hero-title"
-        >
-          {/* Animated Background Blobs */}
-          <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none -z-10">
-            <div className="absolute top-0 left-1/4 w-96 h-96 bg-[hsl(var(--color-primary)/0.2)] rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob" />
-            <div className="absolute top-0 right-1/4 w-96 h-96 bg-[hsl(var(--color-accent)/0.2)] rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000" />
-            <div className="absolute -bottom-32 left-1/2 w-96 h-96 bg-[hsl(var(--color-secondary)/0.3)] rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-4000" />
+      <main id="main-content" className="flex-1 pt-24" tabIndex={-1}>
+        <section className="py-8 md:py-10 relative overflow-hidden">
+          <div className="pointer-events-none absolute inset-0 -z-10">
+            <div className="absolute -top-24 left-1/2 -translate-x-1/2 h-56 w-[38rem] rounded-full bg-[hsl(var(--color-primary)/0.12)] blur-3xl animate-pulse" />
           </div>
-
-          <div className="container mx-auto px-4 relative z-10">
+          <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto text-center">
-              {/* Brand Badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 rounded-full bg-[hsl(var(--color-background)/0.8)] border border-[hsl(var(--color-primary)/0.2)] shadow-sm backdrop-blur-md transition-all hover:bg-[hsl(var(--color-background))]">
-                <Sparkles className="h-4 w-4 text-[hsl(var(--color-primary))]" aria-hidden="true" />
-                <span className="text-sm font-medium text-[hsl(var(--color-primary))]">
-                  {t('common.brand')}
-                </span>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.35)] mb-4">
+                <Sparkles className="h-4 w-4 text-[hsl(var(--color-primary))]" />
+                <span className="text-sm font-medium">{t('common.brand')} • {isVi ? 'AI PDF Workspace' : 'AI PDF Workspace'}</span>
               </div>
-
-              {/* Hero Title */}
-              <h1 id="hero-title" className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-                <span className="text-[hsl(var(--color-foreground))]">{t('home.hero.title')} </span>
-                <span className="text-gradient block mt-1 pb-2">{t('home.hero.highlight')}</span>
+              <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-[hsl(var(--color-foreground))]">
+                {locale === 'vi' ? 'Hiểu mọi tài liệu PDF với AI' : 'Understand Any PDF with AI'}
               </h1>
-
-              {/* Hero Subtitle */}
-              <p className="text-lg text-[hsl(var(--color-muted-foreground))] mb-8 max-w-2xl mx-auto leading-relaxed">
-                {t('home.hero.subtitle')}
+              <p className="mt-4 text-lg text-[hsl(var(--color-muted-foreground))]">
+                {locale === 'vi'
+                  ? 'Tóm tắt, dịch, chat và chỉnh sửa tài liệu trong vài giây.'
+                  : 'Summarize, translate, chat, and edit documents instantly.'}
               </p>
+            </div>
+          </div>
+        </section>
 
-              {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <Link href={`/${locale}/tools`}>
-                  <Button variant="primary" size="lg" className="h-11 px-8 text-base shadow-lg hover:shadow-primary/25 transition-all hover:-translate-y-0.5">
-                    {t('home.hero.cta')}
-                    <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
+        <section className="pb-6">
+          <div className="container mx-auto px-4 max-w-4xl">
+            <Card className="p-5 md:p-8 border border-[hsl(var(--color-border)/0.8)] shadow-sm">
+              <div className="rounded-2xl border-2 border-dashed border-[hsl(var(--color-border))] px-5 py-7 text-center bg-[hsl(var(--color-muted)/0.18)]">
+                <div className="mx-auto mb-3 h-12 w-12 rounded-full bg-[hsl(var(--color-primary)/0.15)] flex items-center justify-center shadow-[0_0_24px_hsl(var(--color-primary)/0.2)] animate-pulse">
+                  <Upload className="h-7 w-7 text-[hsl(var(--color-primary))]" />
+                </div>
+                <h2 className="text-2xl font-semibold">{isVi ? 'Upload tài liệu để bắt đầu' : 'Upload document to start'}</h2>
+                <p className="mt-2 text-sm text-[hsl(var(--color-muted-foreground))]">{isVi ? 'Mở Document Workspace và thao tác bằng AI theo ngữ cảnh.' : 'Open Document Workspace and use contextual AI actions.'}</p>
+                <div className="inline-block mt-5">
+                  <Button variant="primary" size="lg" onClick={startUpload} className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-500 hover:to-indigo-600 shadow-[0_8px_24px_rgba(59,130,246,0.28)] hover:scale-[1.01] transition-all">
+                    {isVi ? 'Upload to Workspace' : 'Upload to Workspace'}
                   </Button>
+                </div>
+                <input
+                  ref={inputRef}
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  className="hidden"
+                  onChange={(e) => handleSelectedFile(e.target.files?.[0] ?? null)}
+                />
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-xs text-[hsl(var(--color-muted-foreground))]">
+                  <span>✓ Secure processing</span>
+                  <span>✓ AI-powered OCR</span>
+                  <span>✓ Supports 100+ languages</span>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </section>
+
+        <section className="py-6">
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold">{isVi ? 'AI Actions' : 'AI Actions'}</h2>
+                <Link href={`/${locale}/workspace`} className="text-sm text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))]">
+                  {isVi ? 'Dùng trong Workspace' : 'Use in Workspace'}
                 </Link>
-                <div className="flex items-center gap-2 text-sm text-[hsl(var(--color-muted-foreground))] bg-[hsl(var(--color-background)/0.5)] px-4 py-2 rounded-full border border-[hsl(var(--color-border))] backdrop-blur-sm">
-                  <Lock className="h-4 w-4 text-green-500" aria-hidden="true" />
-                  <span>{t('common.footer.privacyBadge')}</span>
-                </div>
               </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Features Section */}
-        <section className="py-12 relative z-20" aria-label="Features">
-          <div className="container mx-auto px-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {features.map((feature, index) => {
-                const Icon = feature.icon;
-                return (
-                  <Card key={index} className="p-6 text-center glass-card border-0 hover:-translate-y-1 transition-transform duration-300" hover={false}>
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[hsl(var(--color-primary)/0.1)] mb-4 text-[hsl(var(--color-primary))]">
-                      <Icon className={`h-6 w-6 ${feature.color}`} aria-hidden="true" />
-                    </div>
-                    <h3 className="text-lg font-bold text-[hsl(var(--color-foreground))] mb-2">
-                      {t(feature.titleKey)}
-                    </h3>
-                    <p className="text-sm text-[hsl(var(--color-muted-foreground))] leading-relaxed">
-                      {t(feature.descriptionKey)}
-                    </p>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {/* Popular Tools Section */}
-        <section className="py-16 bg-[hsl(var(--color-muted)/0.5)]" aria-labelledby="popular-tools-heading">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-10">
-              <div className="inline-flex items-center gap-2 px-3 py-1 mb-3 rounded-full bg-[hsl(var(--color-primary)/0.1)] border border-[hsl(var(--color-primary)/0.2)]">
-                <Star className="h-4 w-4 text-[hsl(var(--color-primary))]" aria-hidden="true" />
-                <span className="text-sm font-medium text-[hsl(var(--color-primary))]">
-                  {t('home.popularTools.badge')}
-                </span>
-              </div>
-              <h2 id="popular-tools-heading" className="text-3xl font-bold text-[hsl(var(--color-foreground))] mb-3">
-                {t('home.popularTools.title')}
-              </h2>
-              <p className="text-[hsl(var(--color-muted-foreground))] max-w-2xl mx-auto text-base">
-                {t('home.popularTools.description')}
-              </p>
-            </div>
-            <ToolGrid
-              tools={popularTools}
-              locale={locale}
-              localizedToolContent={localizedToolContent}
-            />
-          </div>
-        </section>
-
-        <section className="py-16" aria-labelledby="featured-tools-heading">
-          <div className="container mx-auto px-4">
-            <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
-              <div className="max-w-2xl">
-                <h2 id="featured-tools-heading" className="text-2xl font-bold text-[hsl(var(--color-foreground))] mb-2">
-                  {t(`home.categories.${categoryTranslationKeys['organize-manage']}`)}
-                </h2>
-                <p className="text-[hsl(var(--color-muted-foreground))] text-base">
-                  {t(`home.categoriesDescription.${categoryTranslationKeys['organize-manage']}`)}
-                </p>
-              </div>
-              <Link href={`/${locale}/tools`}>
-                <Button variant="outline" size="sm" className="group">
-                  {t('common.navigation.tools')}
-                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
-                </Button>
-              </Link>
-            </div>
-            <ToolGrid
-              tools={getToolsByCategory('organize-manage').slice(0, 8)}
-              locale={locale}
-              localizedToolContent={localizedToolContent}
-            />
-          </div>
-        </section>
-
-        {/* Tool Categories Section */}
-        <section className="py-16 bg-[hsl(var(--color-muted)/0.3)]" aria-labelledby="categories-heading">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-10">
-              <h2 id="categories-heading" className="text-3xl font-bold text-[hsl(var(--color-foreground))] mb-3">
-                {t('home.categoriesSection.title')}
-              </h2>
-              <p className="text-[hsl(var(--color-muted-foreground))] max-w-2xl mx-auto text-base">
-                {t('home.categoriesSection.description', { count: allTools.length })}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {categoryOrder.map((category) => {
-                const categoryTools = getToolsByCategory(category);
-                const Icon = categoryIcons[category];
-                const categoryName = t(`home.categories.${categoryTranslationKeys[category]}`);
-                const categoryDescription = t(`home.categoriesDescription.${categoryTranslationKeys[category]}`);
-
-                return (
-                  <Link
-                    key={category}
-                    href={`/${locale}/tools?category=${category}`}
-                    className="group"
-                  >
-                    <Card className="p-5 h-full glass-card hover:bg-white/80 dark:hover:bg-slate-800/80 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-[hsl(var(--color-border)/0.6)]">
-                      <div className="flex items-start gap-4">
-                        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[hsl(var(--color-primary)/0.1)] flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                          <Icon className="h-5 w-5 text-[hsl(var(--color-primary))]" aria-hidden="true" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                {aiActions.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Link key={item.href} href={item.href} className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 hover:bg-white/[0.06] transition-all">
+                      <div className="flex items-center gap-2.5">
+                        <div className="h-8 w-8 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                          <Icon className="h-[18px] w-[18px] text-blue-400" strokeWidth={1.75} />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-base text-[hsl(var(--color-foreground))] mb-1 group-hover:text-[hsl(var(--color-primary))] transition-colors">
-                            {categoryName}
-                          </h3>
-                          <p className="text-xs text-[hsl(var(--color-muted-foreground))] line-clamp-2 mb-2">
-                            {categoryDescription}
-                          </p>
-                          <div className="flex items-center text-xs font-medium text-[hsl(var(--color-primary))]">
-                            <span className="bg-[hsl(var(--color-primary)/0.1)] px-2 py-0.5 rounded-md">
-                              {t('home.categoriesSection.toolsCount', { count: categoryTools.length })}
-                            </span>
-                          </div>
-                        </div>
+                        <div className="text-sm font-medium">{item.label}</div>
                       </div>
-                    </Card>
-                  </Link>
-                );
-              })}
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </section>
 
-        {/* Stats Section */}
-        <section className="py-16" aria-label="Statistics">
+        <section className="pb-10">
           <div className="container mx-auto px-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center divide-x divide-[hsl(var(--color-border))]">
-              <div className="p-4">
-                <div className="text-3xl lg:text-4xl font-bold text-gradient mb-1">
-                  {allTools.length}+
-                </div>
-                <div className="text-xs font-medium text-[hsl(var(--color-muted-foreground))] uppercase tracking-wider">
-                  {t('home.stats.pdfTools')}
-                </div>
+            <div className="max-w-4xl mx-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold">{isVi ? 'Core PDF Actions' : 'Core PDF Actions'}</h2>
+                <Link href={`/${locale}/tools`} className="text-sm text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))]">
+                  {isVi ? 'Xem tất cả tools' : 'View all tools'}
+                </Link>
               </div>
-              <div className="p-4">
-                <div className="text-3xl lg:text-4xl font-bold text-gradient mb-1">
-                  100%
-                </div>
-                <div className="text-xs font-medium text-[hsl(var(--color-muted-foreground))] uppercase tracking-wider">
-                  {t('home.stats.freeToUse')}
-                </div>
-              </div>
-              <div className="p-4">
-                <div className="text-3xl lg:text-4xl font-bold text-gradient mb-1">
-                  9
-                </div>
-                <div className="text-xs font-medium text-[hsl(var(--color-muted-foreground))] uppercase tracking-wider">
-                  {t('home.stats.languages')}
-                </div>
-              </div>
-              <div className="p-4">
-                <div className="text-3xl lg:text-4xl font-bold text-gradient mb-1">
-                  0
-                </div>
-                <div className="text-xs font-medium text-[hsl(var(--color-muted-foreground))] uppercase tracking-wider">
-                  {t('home.stats.filesUploaded')}
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {pdfActions.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                  <Link key={`${item.href}-${item.label}`} href={item.href} className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 hover:bg-white/[0.06] transition-all">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="h-8 w-8 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                          <Icon className="h-[18px] w-[18px] text-blue-400" strokeWidth={1.75} />
+                        </div>
+                        <span className="text-sm font-medium">{item.label}</span>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-[hsl(var(--color-muted-foreground))]" />
+                    </div>
+                  </Link>
+                )})}
               </div>
             </div>
           </div>
@@ -305,6 +173,20 @@ export default function HomePageClient({ locale, localizedToolContent }: HomePag
       </main>
 
       <Footer locale={locale} />
+
+      {isPreparing && (
+        <div className="fixed inset-0 z-[100] bg-black/65 backdrop-blur-sm flex items-center justify-center px-4">
+          <Card className="w-full max-w-md p-6 border border-white/15 bg-[hsl(var(--color-card))]">
+            <div className="h-9 w-9 rounded-full border-2 border-blue-400 border-t-transparent animate-spin mb-4" />
+            <h3 className="text-lg font-semibold mb-3">{isVi ? 'Đang chuẩn bị tài liệu...' : 'Preparing document...'}</h3>
+            <ul className="space-y-2 text-sm text-[hsl(var(--color-muted-foreground))]">
+              <li className={loadingStep >= 0 ? 'text-[hsl(var(--color-foreground))]' : ''}>Uploading...</li>
+              <li className={loadingStep >= 1 ? 'text-[hsl(var(--color-foreground))]' : ''}>Analyzing document...</li>
+              <li className={loadingStep >= 2 ? 'text-[hsl(var(--color-foreground))]' : ''}>Preparing AI workspace...</li>
+            </ul>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

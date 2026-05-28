@@ -2,15 +2,15 @@
  * Site configuration
  */
 export const siteConfig = {
-  name: 'PDFCraft',
-  description: 'Professional PDF Tools - Free, Private & Browser-Based. Merge, split, compress, convert, and edit PDF files online without uploading to servers.',
-  url: 'https://pdfcraft.devtoolcafe.com',
+  name: 'PDFPilot AI',
+  description: 'AI-powered PDF workspace for editing, summarizing, translating, OCR, and chat with PDF.',
+  url: 'https://pdfpilot-ai.com',
   ogImage: '/images/og-image.png',
   links: {
     github: 'https://github.com/PDFCraftTool/pdfcraft',
-    twitter: 'https://twitter.com/pdfcraft',
+    twitter: 'https://twitter.com/pdfpilotai',
   },
-  creator: 'PDFCraft Team',
+  creator: 'PDFPilot AI Team',
   keywords: [
     'PDF tools',
     'PDF editor',
@@ -25,9 +25,9 @@ export const siteConfig = {
   ],
   // SEO-related settings
   seo: {
-    titleTemplate: '%s | PDFCraft',
-    defaultTitle: 'PDFCraft - Professional PDF Tools',
-    twitterHandle: '@pdfcraft',
+    titleTemplate: '%s | PDFPilot AI',
+    defaultTitle: 'PDFPilot AI - AI PDF Workspace',
+    twitterHandle: '@pdfpilotai',
     locale: 'en_US',
   },
 };

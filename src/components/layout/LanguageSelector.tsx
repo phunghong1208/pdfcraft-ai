@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 
 export interface LanguageSelectorProps {
   currentLocale: Locale;
+  compact?: boolean;
 }
 
 // Storage key for language preference
@@ -36,7 +37,7 @@ export function getLanguagePreference(): Locale | null {
   return null;
 }
 
-export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ currentLocale }) => {
+export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ currentLocale, compact = false }) => {
   const t = useTranslations('common.buttons');
   const router = useRouter();
   const pathname = usePathname();
@@ -46,6 +47,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ currentLocal
   const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const currentConfig = localeConfig[currentLocale];
+  const compactLabel = currentLocale.toUpperCase();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -161,10 +163,14 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ currentLocal
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-label={t('selectLanguage')}
-        className="flex items-center gap-1.5"
+        className="flex items-center gap-1.5 hover:bg-[hsl(var(--color-muted))/0.6] transition-colors whitespace-nowrap"
       >
-        <Globe className="h-4 w-4" aria-hidden="true" />
-        <span className="hidden sm:inline text-sm">{currentConfig.nativeName}</span>
+        {!compact && <Globe className="h-4 w-4" aria-hidden="true" />}
+        {compact ? (
+          <span className="text-xs font-medium uppercase tracking-wide whitespace-nowrap text-[hsl(var(--color-muted-foreground))]">{compactLabel}</span>
+        ) : (
+          <span className="hidden sm:inline text-base font-semibold">{currentConfig.nativeName}</span>
+        )}
         <ChevronDown 
           className={`h-3 w-3 transition-transform ${isOpen ? 'rotate-180' : ''}`}
           aria-hidden="true"
@@ -174,7 +180,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ currentLocal
       {/* Dropdown */}
       {isOpen && (
         <div
-          className="absolute top-full right-0 mt-1 w-48 py-1 bg-[hsl(var(--color-background))] border border-[hsl(var(--color-border))] rounded-[var(--radius-lg)] shadow-lg z-50"
+          className="absolute top-full right-0 mt-2 w-56 py-1 bg-[hsl(var(--color-background))] border border-[hsl(var(--color-border))] rounded-xl shadow-xl z-50"
           role="listbox"
           aria-label={t('selectLanguage')}
           aria-activedescendant={focusedIndex >= 0 ? `language-option-${locales[focusedIndex]}` : undefined}
@@ -191,10 +197,10 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ currentLocal
                 onClick={() => handleLanguageSelect(locale)}
                 onKeyDown={(e) => handleOptionKeyDown(e, locale, index)}
                 className={`
-                  flex items-center justify-between w-full px-3 py-2 text-sm text-left
+                  flex items-center justify-between w-full px-3 py-2 text-sm text-left whitespace-nowrap
                   transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--color-ring))]
-                  ${isSelected 
-                    ? 'bg-[hsl(var(--color-primary)/0.1)] text-[hsl(var(--color-primary))]' 
+                  ${isSelected
+                    ? 'bg-[hsl(var(--color-primary)/0.1)] text-[hsl(var(--color-primary))]'
                     : 'text-[hsl(var(--color-foreground))] hover:bg-[hsl(var(--color-muted))] focus:bg-[hsl(var(--color-muted))]'
                   }
                 `}
@@ -202,16 +208,13 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ currentLocal
                 aria-selected={isSelected}
                 tabIndex={focusedIndex === index ? 0 : -1}
                 dir={config.direction}
+                title={config.name}
               >
-                <span className="flex items-center gap-2">
-                  <span>{config.nativeName}</span>
-                  <span className="text-xs text-[hsl(var(--color-muted-foreground))]">
-                    ({config.name})
-                  </span>
+                <span className="flex items-center gap-2 min-w-0">
+                  <span className="truncate">{config.nativeName}</span>
+                  <span className="text-xs text-[hsl(var(--color-muted-foreground))]">({config.name})</span>
                 </span>
-                {isSelected && (
-                  <Check className="h-4 w-4" aria-hidden="true" />
-                )}
+                {isSelected && <Check className="h-4 w-4 shrink-0" aria-hidden="true" />}
               </button>
             );
           })}

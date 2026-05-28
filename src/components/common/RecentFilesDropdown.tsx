@@ -17,6 +17,7 @@ import { type Locale } from '@/lib/i18n/config';
 
 export interface RecentFilesDropdownProps {
   locale: Locale;
+  showLabel?: boolean;
   translations: {
     title: string;
     empty: string;
@@ -27,6 +28,7 @@ export interface RecentFilesDropdownProps {
 
 export const RecentFilesDropdown: React.FC<RecentFilesDropdownProps> = ({
   locale,
+  showLabel = false,
   translations,
 }) => {
   const { recentFiles, removeFile, clearAll, isLoading } = useRecentFiles();
@@ -133,9 +135,12 @@ export const RecentFilesDropdown: React.FC<RecentFilesDropdownProps> = ({
         aria-label={translations.title}
         aria-expanded={isOpen}
         aria-haspopup="true"
-        className="flex items-center gap-1"
+        className="flex items-center gap-1.5 hover:bg-[hsl(var(--color-muted))/0.6] transition-colors"
       >
         <Clock className="h-4 w-4" aria-hidden="true" />
+        {showLabel && (
+          <span className="hidden lg:inline text-sm font-semibold">Recent</span>
+        )}
         {recentFiles.length > 0 && (
           <span className="text-xs bg-[hsl(var(--color-primary))] text-white rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
             {recentFiles.length}
