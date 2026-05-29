@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Upload, Bot, ScanText, PenSquare, ZoomIn, ZoomOut, Download, Maximize2, Minimize2, Eye, Highlighter, PanelRightOpen, PanelRightClose, ArrowLeft, Save, Share2, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -118,7 +118,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
   return (
     <section
       className="min-h-screen text-white"
-      style={{ background: 'radial-gradient(circle at top, #2c2f36 0%, #1d1f25 100%)' }}
+      style={{ background: 'linear-gradient(135deg, #1a1d24 0%, #13151a 50%, #1a1d24 100%)' }}
     >
       <div className="mx-auto max-w-[1800px] px-4 py-4">
         {isBootstrapping ? (
@@ -128,28 +128,28 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
           </div>
         ) : (
           <>
-            <div className="h-11 flex items-center justify-between border-b border-white/10 mb-3 text-xs">
+            <div className="h-12 flex items-center justify-between border-b border-white/[0.06] mb-4 text-xs backdrop-blur-sm">
               <div className="flex items-center gap-3 min-w-0">
                 <button
                   type="button"
                   onClick={() => router.push(`/${locale}`)}
-                  className="inline-flex items-center gap-1.5 text-white/75 hover:text-white transition-colors"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/[0.06] transition-all"
                 >
-                  <ArrowLeft className="h-4 w-4" />
+                  <ArrowLeft className="h-3.5 w-3.5" />
                   Workspace
                 </button>
-                <div className="text-white/30">|</div>
-                <div className="truncate text-sm text-white/90">{file?.name || 'DIEUKHOAN.pdf'}</div>
+                <div className="w-px h-4 bg-white/10" />
+                <div className="truncate text-sm font-medium text-white/90">{file?.name || 'DIEUKHOAN.pdf'}</div>
               </div>
-              <div className="flex items-center gap-2">
-                <button className="inline-flex items-center gap-1.5 px-2 py-1 text-white/75 hover:text-white"><Save className="h-4 w-4" />Save</button>
-                <button className="inline-flex items-center gap-1.5 px-2 py-1 text-white/75 hover:text-white"><FileDown className="h-4 w-4" />Export</button>
-                <button className="inline-flex items-center gap-1.5 px-2 py-1 text-white/75 hover:text-white"><Share2 className="h-4 w-4" />Share</button>
+              <div className="flex items-center gap-1">
+                <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/[0.06] transition-all"><Save className="h-3.5 w-3.5" />Save</button>
+                <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/[0.06] transition-all"><FileDown className="h-3.5 w-3.5" />Export</button>
+                <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/[0.06] transition-all"><Share2 className="h-3.5 w-3.5" />Share</button>
               </div>
             </div>
 
-            <div className="h-11 flex items-end justify-between border-b border-white/10 mb-3 px-1">
-              <div className="flex items-end gap-5 overflow-x-auto">
+            <div className="flex items-center justify-between mb-4 px-1">
+              <div className="inline-flex items-center gap-0.5 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
                 {modeItems.map((mode) => {
                   const Icon = mode.icon;
                   const active = workspaceMode === mode.key;
@@ -161,47 +161,50 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
                         if (file) setUploadedPdf(file);
                         setWorkspaceMode(mode.key);
                       }}
-                      className={`inline-flex items-center gap-1.5 pb-2 text-xs whitespace-nowrap border-b-2 transition-colors ${
-                        active ? 'border-blue-400 text-blue-200' : 'border-transparent text-white/60 hover:text-white/85'
+                      className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs whitespace-nowrap rounded-lg transition-all ${
+                        active
+                          ? 'bg-blue-500/20 text-blue-300 shadow-sm shadow-blue-500/10'
+                          : 'text-white/50 hover:text-white/80 hover:bg-white/[0.04]'
                       }`}
                     >
-                      <Icon className="h-4 w-4" />
+                      <Icon className="h-3.5 w-3.5" />
                       {mode.label}
                     </button>
                   );
                 })}
               </div>
-              <div className="hidden md:flex items-center gap-3 pb-2 text-xs">
+              <div className="hidden md:flex items-center gap-1 text-xs">
                 {!editorActive && (
-                  <>
-                  <button className="inline-flex items-center text-white/70 hover:text-white" onClick={() => setZoom((z) => Math.max(50, z - 10))}>
-                    <ZoomOut className="h-4 w-4" />
-                  </button>
-                  <span className="w-12 text-center text-white/75">{zoom}%</span>
-                  <button className="inline-flex items-center text-white/70 hover:text-white" onClick={() => setZoom((z) => Math.min(200, z + 10))}>
-                    <ZoomIn className="h-4 w-4" />
-                  </button>
-                  <button className="inline-flex items-center text-white/70 hover:text-white"><Download className="h-4 w-4" /></button>
-                  </>
+                  <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-white/[0.04] border border-white/[0.06] mr-2">
+                    <button className="inline-flex items-center p-1.5 rounded-md text-white/50 hover:text-white hover:bg-white/[0.06] transition-all" onClick={() => setZoom((z) => Math.max(50, z - 10))}>
+                      <ZoomOut className="h-3.5 w-3.5" />
+                    </button>
+                    <span className="w-11 text-center text-[11px] text-white/60 tabular-nums">{zoom}%</span>
+                    <button className="inline-flex items-center p-1.5 rounded-md text-white/50 hover:text-white hover:bg-white/[0.06] transition-all" onClick={() => setZoom((z) => Math.min(200, z + 10))}>
+                      <ZoomIn className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 )}
-                <button className="inline-flex items-center text-white/70 hover:text-white" onClick={() => setFocusMode((prev) => !prev)}>
-                  {focusMode ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                <button className="inline-flex items-center p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/[0.06] transition-all" onClick={() => setFocusMode((prev) => !prev)}>
+                  {focusMode ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
                 </button>
-                <button className="inline-flex items-center text-white/70 hover:text-white" onClick={() => setIsRightPanelOpen((prev) => !prev)}>
-                  {showRightPanel ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+                <button className="inline-flex items-center p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/[0.06] transition-all" onClick={() => setIsRightPanelOpen((prev) => !prev)}>
+                  {showRightPanel ? <PanelRightClose className="h-3.5 w-3.5" /> : <PanelRightOpen className="h-3.5 w-3.5" />}
                 </button>
               </div>
             </div>
 
-            <div className={`grid grid-cols-1 gap-4 ${showRightPanel ? 'xl:grid-cols-[72px_minmax(0,1fr)_320px]' : 'xl:grid-cols-[72px_minmax(0,1fr)]'}`}>
+            <div className={`grid grid-cols-1 gap-3 ${showRightPanel ? 'xl:grid-cols-[88px_minmax(0,1fr)_320px]' : 'xl:grid-cols-[88px_minmax(0,1fr)]'}`}>
               {!focusMode && (
-                <aside className="h-[calc(100vh-130px)] py-1 text-[12px] text-white/70 overflow-y-auto scrollbar-thin">
-                  <label className="inline-flex w-full items-center justify-center rounded-md border border-white/15 px-2 py-2 cursor-pointer hover:bg-white/5 transition-colors">
-                    <Upload className="h-4 w-4 text-blue-300" />
-                    <span className="sr-only">New PDF</span>
-                    <input type="file" accept=".pdf,application/pdf" className="hidden" onChange={(e) => handleFileChange(e.target.files?.[0] ?? null)} />
-                  </label>
-                  <div className="mt-4 text-[10px] uppercase tracking-wide text-white/40 text-center">
+                <aside className="h-[calc(100vh-140px)] py-2 text-[12px] text-white/70 overflow-y-auto scrollbar-thin rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                  <div className="px-2">
+                    <label className="inline-flex w-full items-center justify-center rounded-lg border border-dashed border-white/10 px-2 py-2.5 cursor-pointer hover:bg-white/[0.04] hover:border-white/20 transition-all">
+                      <Upload className="h-4 w-4 text-blue-400/80" />
+                      <span className="sr-only">New PDF</span>
+                      <input type="file" accept=".pdf,application/pdf" className="hidden" onChange={(e) => handleFileChange(e.target.files?.[0] ?? null)} />
+                    </label>
+                  </div>
+                  <div className="mt-3 mb-1 text-[9px] uppercase tracking-widest text-white/30 text-center font-medium">
                     Pages{pageCount > 0 && ` (${pageCount})`}
                   </div>
                   {previewUrl && (
@@ -215,11 +218,16 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
                 </aside>
               )}
 
-              <div className="h-[calc(100vh-130px)] flex flex-col min-w-0">
-                <div className="flex-1 min-h-0 px-4 pt-12 pb-4 bg-[#1f2128] overflow-auto rounded-lg">
+              <div className="h-[calc(100vh-140px)] flex flex-col min-w-0">
+                <div className="flex-1 min-h-0 px-6 pt-8 pb-6 bg-[#16181d] overflow-auto rounded-xl border border-white/[0.04]" style={{ backgroundImage: 'radial-gradient(ellipse at center, rgba(255,255,255,0.01) 0%, transparent 70%)' }}>
                   {editorActive ? (
                     <div className="h-full min-h-[60vh]">
-                      <EditPDFTool key={editorKey} className="h-full" immersive />
+                      <EditPDFTool
+                        key={editorKey}
+                        className="h-full"
+                        immersive
+                        onIframeRef={(ref) => { editorIframeRef.current = ref; }}
+                      />
                     </div>
                   ) : (
                     previewUrl && (
@@ -227,8 +235,8 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
                         <iframe
                           src={previewUrl}
                           title="Document preview"
-                          className="h-full w-full max-w-[1240px] bg-white rounded-sm"
-                          style={{ boxShadow: '0 20px 60px rgba(0,0,0,.35)' }}
+                          className="h-full w-full max-w-[1240px] bg-white rounded-md"
+                          style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.25), 0 24px 80px rgba(0,0,0,0.4)' }}
                         />
                       </div>
                     )
@@ -237,9 +245,9 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
               </div>
 
               {showRightPanel && (
-                <aside className="h-[calc(100vh-130px)] border-l border-white/10 pl-4 pr-2 text-[12px]">
-                  <div className="pb-3 border-b border-white/10">
-                    <div className="text-sm text-white/90">AI Assistant</div>
+                <aside className="h-[calc(100vh-140px)] pl-4 pr-2 text-[12px] rounded-xl bg-white/[0.02] border border-white/[0.04] py-3">
+                  <div className="pb-3 border-b border-white/[0.06]">
+                    <div className="text-sm font-medium text-white/90">AI Assistant</div>
                     <div className="mt-2 flex items-center gap-2 text-[11px]">
                       {(['chat', 'summary', 'translate', 'insights'] as const).map((tab) => (
                         <button
@@ -254,16 +262,16 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
                     </div>
                   </div>
 
-                  <div className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3">
+                  <div className="mt-3 rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
                     <div className="text-[11px] text-white/55">Detected context</div>
                     <div className="mt-2 text-[12px] text-white/80">3-page Vietnamese policy document.</div>
                   </div>
 
                   <div className="py-3 space-y-2 text-white/80">
-                    <button className="block w-full rounded-md border border-white/10 px-3 py-2 text-left hover:bg-white/5">Summarize</button>
-                    <button className="block w-full rounded-md border border-white/10 px-3 py-2 text-left hover:bg-white/5">Translate</button>
-                    <button className="block w-full rounded-md border border-white/10 px-3 py-2 text-left hover:bg-white/5">Extract tables</button>
-                    <button className="block w-full rounded-md border border-white/10 px-3 py-2 text-left hover:bg-white/5">OCR</button>
+                    <button className="block w-full rounded-lg border border-white/[0.06] px-3 py-2 text-left hover:bg-white/[0.04] hover:border-white/10 transition-all">Summarize</button>
+                    <button className="block w-full rounded-lg border border-white/[0.06] px-3 py-2 text-left hover:bg-white/[0.04] hover:border-white/10 transition-all">Translate</button>
+                    <button className="block w-full rounded-lg border border-white/[0.06] px-3 py-2 text-left hover:bg-white/[0.04] hover:border-white/10 transition-all">Extract tables</button>
+                    <button className="block w-full rounded-lg border border-white/[0.06] px-3 py-2 text-left hover:bg-white/[0.04] hover:border-white/10 transition-all">OCR</button>
                   </div>
 
                   <div className="h-[calc(100%-170px)] flex flex-col">
@@ -275,12 +283,12 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
                       ))}
                       {isAiThinking && <div className="text-[11px] text-blue-300 animate-pulse">Thinking...</div>}
                     </div>
-                    <div className="pt-2 border-t border-white/10 flex items-center gap-2">
+                    <div className="pt-2 border-t border-white/[0.06] flex items-center gap-2">
                       <input
                         value={chatInput}
                         onChange={(e) => setChatInput(e.target.value)}
                         placeholder="Ask..."
-                        className="flex-1 min-w-0 h-8 rounded border border-white/15 bg-transparent px-2 text-[12px] focus:outline-none focus:ring-1 focus:ring-blue-400/40"
+                        className="flex-1 min-w-0 h-8 rounded-lg border border-white/[0.08] bg-white/[0.03] px-2.5 text-[12px] placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-blue-400/30 focus:border-blue-400/20 transition-all"
                       />
                       <Button size="sm" onClick={handleSendMessage} className="h-8 px-2.5 text-[11px]">
                         Send

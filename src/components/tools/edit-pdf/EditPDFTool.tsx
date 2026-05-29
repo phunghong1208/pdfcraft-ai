@@ -10,6 +10,7 @@ import { peekUploadedPdf } from '@/lib/document-session';
 export interface EditPDFToolProps {
   className?: string;
   immersive?: boolean;
+  onIframeRef?: (iframe: HTMLIFrameElement | null) => void;
 }
 
 /**
@@ -19,7 +20,7 @@ export interface EditPDFToolProps {
  * Users can add text, draw, highlight, and add images to PDFs.
  * The PDF.js viewer has built-in save functionality (export button in toolbar).
  */
-export function EditPDFTool({ className = '', immersive = false }: EditPDFToolProps) {
+export function EditPDFTool({ className = '', immersive = false, onIframeRef }: EditPDFToolProps) {
   const t = useTranslations('common');
   const tTools = useTranslations('tools.editPdf');
   
@@ -61,14 +62,26 @@ export function EditPDFTool({ className = '', immersive = false }: EditPDFToolPr
     };
   }, [pdfUrl]);
 
+  useEffect(() => {
+    onIframeRef?.(iframeRef.current);
+    return () => onIframeRef?.(null);
+  }, [onIframeRef]);
+
   const handleIframeLoad = useCallback(() => {
     setTimeout(() => {
       setIsEditorReady(true);
+      onIframeRef?.(iframeRef.current);
       
       try {
         const iframe = iframeRef.current;
         if (iframe?.contentDocument) {
           const doc = iframe.contentDocument;
+
+          // 0. Hide built-in sidebar (workspace has its own thumbnails panel)
+          const sidebarContainer = doc.getElementById('sidebarContainer');
+          if (sidebarContainer) sidebarContainer.style.display = 'none';
+          const sidebarToggle = doc.getElementById('sidebarToggleButton');
+          if (sidebarToggle) sidebarToggle.style.display = 'none';
 
           // 1. Hide native PDF.js download/save buttons
           const downloadBtn = doc.getElementById('download');
@@ -479,7 +492,7 @@ export function EditPDFTool({ className = '', immersive = false }: EditPDFToolPr
               function updateUndoRedoButtonsState() {
                 const undoBtn = document.querySelector('.pdfcraft-undo-btn button');
                 const redoBtn = document.querySelector('.pdfcraft-redo-btn button');
-                
+
                 if (undoBtn) {
                   const canUndo = undoStack.length > 1;
                   undoBtn.disabled = !canUndo;
@@ -491,6 +504,20 @@ export function EditPDFTool({ className = '', immersive = false }: EditPDFToolPr
                   redoBtn.style.opacity = canRedo ? '1' : '0.5';
                 }
               }
+
+              // E. Page change notifier — posts current page to parent for thumbnail sync
+              (function setupPageChangeNotifier() {
+                let lastPage = -1;
+                setInterval(function() {
+                  try {
+                    var app = window.PDFViewerApplication;
+                    if (app && app.page && app.page !== lastPage) {
+                      lastPage = app.page;
+                      window.parent.postMessage({ type: 'pdfcraft-page-change', page: lastPage }, '*');
+                    }
+                  } catch(e) {}
+                }, 300);
+              })();
             })();
           `;
           doc.body.appendChild(patchScript);
@@ -500,7 +527,7 @@ export function EditPDFTool({ className = '', immersive = false }: EditPDFToolPr
         console.warn('Could not access iframe content to inject patches', e);
       }
     }, 1000);
-  }, [immersive]);
+  }, [immersive, onIframeRef]);
 
   const handleClear = useCallback(() => {
     if (pdfUrl) URL.revokeObjectURL(pdfUrl);
