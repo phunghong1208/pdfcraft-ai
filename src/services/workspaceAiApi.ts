@@ -2,11 +2,49 @@
 const WORKSPACE_AI_PROXY_PATH = '/api/workspace-ai';
 
 export const WORKSPACE_AI_USER_KEY = 'user_001';
+/** API mặc định POST /summary */
 export const WORKSPACE_SUMMARY_DETAIL = '0.2';
 
+export type WorkspacePresetTierId = 'light' | 'balanced' | 'deep';
+
+export type WorkspaceSummaryDetailPreset = {
+  id: WorkspacePresetTierId;
+  /** form-data `detail` — 0 ngắn nhất, 0.2 cân bằng, 1 chi tiết nhất */
+  detail: string;
+};
+
+export type WorkspaceChatTopKPreset = {
+  id: WorkspacePresetTierId;
+  topK: number;
+};
+
+/** POST /summary — tham số `detail` */
+export const WORKSPACE_SUMMARY_DETAIL_PRESETS: WorkspaceSummaryDetailPreset[] = [
+  { id: 'light', detail: '0' },
+  { id: 'balanced', detail: '0.2' },
+  { id: 'deep', detail: '1' },
+];
+
+/** POST /chat — tham số `top_k` */
+export const WORKSPACE_CHAT_TOP_K_PRESETS: WorkspaceChatTopKPreset[] = [
+  { id: 'light', topK: 3 },
+  { id: 'balanced', topK: 5 },
+  { id: 'deep', topK: 10 },
+];
+
+export const WORKSPACE_DEFAULT_PRESET_TIER: WorkspacePresetTierId = 'balanced';
+
+export function getWorkspaceSummaryDetailPreset(id: WorkspacePresetTierId): WorkspaceSummaryDetailPreset {
+  return WORKSPACE_SUMMARY_DETAIL_PRESETS.find((p) => p.id === id) ?? WORKSPACE_SUMMARY_DETAIL_PRESETS[1];
+}
+
+export function getWorkspaceChatTopKPreset(id: WorkspacePresetTierId): WorkspaceChatTopKPreset {
+  return WORKSPACE_CHAT_TOP_K_PRESETS.find((p) => p.id === id) ?? WORKSPACE_CHAT_TOP_K_PRESETS[1];
+}
+
 const DEFAULT_USER_KEY = WORKSPACE_AI_USER_KEY;
-const DEFAULT_TOP_K = 5;
-const DEFAULT_SUMMARY_DETAIL = WORKSPACE_SUMMARY_DETAIL;
+const DEFAULT_TOP_K = getWorkspaceChatTopKPreset(WORKSPACE_DEFAULT_PRESET_TIER).topK;
+const DEFAULT_SUMMARY_DETAIL = getWorkspaceSummaryDetailPreset(WORKSPACE_DEFAULT_PRESET_TIER).detail;
 
 export type WorkspaceChatResponse = {
   answer?: string;

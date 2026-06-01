@@ -134,6 +134,18 @@
     "summaryError": "Summary request failed.",
     "noFile": "Upload a PDF first.",
     "noDocumentId": "Document is not indexed yet. Wait or run Summary first.",
+    "summaryDetail": {
+      "label": "Detail",
+      "light": { "title": "Brief" },
+      "balanced": { "title": "Mid" },
+      "deep": { "title": "Deep" }
+    },
+    "chatContext": {
+      "label": "Chat depth",
+      "light": { "title": "Light" },
+      "balanced": { "title": "Mid" },
+      "deep": { "title": "Deep" }
+    },
     "generateSummary": "Generate summary",
     "summaryPlaceholder": "Run summary to see AI-generated highlights for this PDF.",
     "summaryDone": "Summary is ready. Open the Summary tab to read it.",

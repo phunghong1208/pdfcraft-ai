@@ -134,6 +134,18 @@
     "summaryError": "Yêu cầu tóm tắt thất bại.",
     "noFile": "Hãy tải PDF trước.",
     "noDocumentId": "Tài liệu chưa được lập chỉ mục. Đợi hoặc chạy Tóm tắt trước.",
+    "summaryDetail": {
+      "label": "Độ chi tiết",
+      "light": { "title": "Gọn" },
+      "balanced": { "title": "Vừa" },
+      "deep": { "title": "Sâu" }
+    },
+    "chatContext": {
+      "label": "Độ sâu chat",
+      "light": { "title": "Gọn" },
+      "balanced": { "title": "Vừa" },
+      "deep": { "title": "Sâu" }
+    },
     "generateSummary": "Tạo tóm tắt",
     "summaryPlaceholder": "Chạy tóm tắt để xem nội dung chính do AI tạo cho PDF này.",
     "summaryDone": "Đã tóm tắt xong. Mở tab Tóm tắt để đọc.",

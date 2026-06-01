@@ -2357,6 +2357,30 @@
       "summaryError": "Yêu cầu tóm tắt thất bại.",
       "noFile": "Hãy tải PDF trước.",
       "noDocumentId": "Tài liệu chưa được lập chỉ mục. Đợi hoặc chạy Tóm tắt trước.",
+      "summaryDetail": {
+        "label": "Độ chi tiết",
+        "light": {
+          "title": "Gọn"
+        },
+        "balanced": {
+          "title": "Vừa"
+        },
+        "deep": {
+          "title": "Sâu"
+        }
+      },
+      "chatContext": {
+        "label": "Độ sâu chat",
+        "light": {
+          "title": "Gọn"
+        },
+        "balanced": {
+          "title": "Vừa"
+        },
+        "deep": {
+          "title": "Sâu"
+        }
+      },
       "generateSummary": "Tạo tóm tắt",
       "summaryPlaceholder": "Chạy tóm tắt để xem nội dung chính do AI tạo cho PDF này.",
       "summaryDone": "Đã tóm tắt xong. Mở tab Tóm tắt để đọc.",
@@ -2370,7 +2394,6 @@
       },
       "translateComingSoon": "Dịch tài liệu — sắp ra mắt.",
       "voice": {
-        "title": "Trình đọc PDF",
         "subtitle": "Nghe nội dung tài liệu bằng giọng nói trên trình duyệt",
         "play": "Bắt đầu đọc",
         "pause": "Tạm dừng",
@@ -2381,12 +2404,9 @@
         "statusPlaying": "Đang đọc…",
         "statusPaused": "Đã tạm dừng",
         "nowReading": "Đang phát: {name}",
-        "chars": "≈ {count} ký tự",
         "prepareTitle": "Tài liệu chưa sẵn sàng để đọc",
         "prepareHint": "Cần xử lý PDF một lần (giống bước kích hoạt chat) — khoảng 1–2 phút.",
         "prepareButton": "Xử lý tài liệu",
-        "showScript": "Xem văn bản đọc",
-        "hideScript": "Ẩn văn bản",
         "unsupported": "Trình duyệt không hỗ trợ đọc giọng nói."
       },
       "detected": "Đã nhận diện",

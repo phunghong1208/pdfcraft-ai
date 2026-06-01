@@ -7,8 +7,13 @@ import { Button } from '@/components/ui/Button';
 import {
   chatWithWorkspaceDocument,
   summarizeWorkspaceDocument,
+  WORKSPACE_CHAT_TOP_K_PRESETS,
+  WORKSPACE_DEFAULT_PRESET_TIER,
+  WORKSPACE_SUMMARY_DETAIL_PRESETS,
   WORKSPACE_AI_USER_KEY,
-  WORKSPACE_SUMMARY_DETAIL,
+  getWorkspaceChatTopKPreset,
+  getWorkspaceSummaryDetailPreset,
+  type WorkspacePresetTierId,
 } from '@/services/workspaceAiApi';
 
 export interface WorkspaceAIPanelProps {
@@ -21,9 +26,20 @@ type AiTab = 'chat' | 'summary' | 'translate' | 'voice';
 
 type ChatMessage = { role: 'user' | 'assistant'; text: string };
 
+/** Pill chọn mức — dùng chung Tóm tắt / Chat / Tốc độ đọc */
+const SEGMENT_PILL_BASE =
+  'flex-1 rounded-lg py-1.5 text-[11px] font-medium transition-all disabled:opacity-40';
+const segmentPillClass = (selected: boolean) =>
+  selected
+    ? 'bg-pink-500/25 text-pink-100 ring-1 ring-pink-400/40'
+    : 'bg-white/[0.04] text-white/50 hover:bg-white/[0.08]';
+const SEGMENT_LABEL_CLASS = 'text-[10px] text-white/45 px-0.5';
+
 type PersistedWorkspaceAi = {
   documentId: number;
   summaryText: string;
+  summaryTierId?: WorkspacePresetTierId;
+  chatTierId?: WorkspacePresetTierId;
 };
 
 const WORKSPACE_AI_STORAGE_PREFIX = 'pdfcraft-workspace-ai:';
@@ -217,6 +233,63 @@ function useDocumentSpeech() {
   };
 }
 
+function tierTitle(
+  t: ReturnType<typeof useTranslations<'workspace'>>,
+  mode: 'summaryDetail' | 'chatContext',
+  id: WorkspacePresetTierId,
+): string {
+  if (mode === 'summaryDetail') {
+    if (id === 'light') return t('aiPanel.summaryDetail.light.title');
+    if (id === 'balanced') return t('aiPanel.summaryDetail.balanced.title');
+    return t('aiPanel.summaryDetail.deep.title');
+  }
+  if (id === 'light') return t('aiPanel.chatContext.light.title');
+  if (id === 'balanced') return t('aiPanel.chatContext.balanced.title');
+  return t('aiPanel.chatContext.deep.title');
+}
+
+/** Giống hàng chọn tốc độ tab Đọc file — chỉ label ngắn + 3 nút */
+function TierRadioGroup({
+  mode,
+  presets,
+  value,
+  onChange,
+  disabled,
+}: {
+  mode: 'summaryDetail' | 'chatContext';
+  presets: readonly { id: WorkspacePresetTierId }[];
+  value: WorkspacePresetTierId;
+  onChange: (id: WorkspacePresetTierId) => void;
+  disabled?: boolean;
+}) {
+  const t = useTranslations('workspace');
+  const label =
+    mode === 'summaryDetail' ? t('aiPanel.summaryDetail.label') : t('aiPanel.chatContext.label');
+
+  return (
+    <div className="shrink-0 space-y-1.5 min-w-0">
+      <p className={SEGMENT_LABEL_CLASS}>{label}</p>
+      <div className="flex gap-1.5" role="radiogroup" aria-label={label}>
+        {presets.map((preset) => {
+          const selected = value === preset.id;
+          return (
+            <button
+              key={preset.id}
+              type="button"
+              disabled={disabled}
+              onClick={() => onChange(preset.id)}
+              aria-pressed={selected}
+              className={`${SEGMENT_PILL_BASE} ${segmentPillClass(selected)}`}
+            >
+              {tierTitle(t, mode, preset.id)}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelProps) {
   const t = useTranslations('workspace');
   const [aiTab, setAiTab] = useState<AiTab>('chat');
@@ -229,7 +302,11 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiHint, setAiHint] = useState<string | null>(null);
   const [voiceRate, setVoiceRate] = useState(1);
+  const [summaryTierId, setSummaryTierId] = useState<WorkspacePresetTierId>(WORKSPACE_DEFAULT_PRESET_TIER);
+  const [chatTierId, setChatTierId] = useState<WorkspacePresetTierId>(WORKSPACE_DEFAULT_PRESET_TIER);
   const speech = useDocumentSpeech();
+  const summaryPreset = getWorkspaceSummaryDetailPreset(summaryTierId);
+  const chatPreset = getWorkspaceChatTopKPreset(chatTierId);
 
   const voiceReady = Boolean(summaryText?.trim() && documentId != null);
 
@@ -256,9 +333,13 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
     if (persisted) {
       setDocumentId(persisted.documentId);
       setSummaryText(persisted.summaryText);
+      if (persisted.summaryTierId) setSummaryTierId(persisted.summaryTierId);
+      if (persisted.chatTierId) setChatTierId(persisted.chatTierId);
     } else {
       setSummaryText(null);
       setDocumentId(null);
+      setSummaryTierId(WORKSPACE_DEFAULT_PRESET_TIER);
+      setChatTierId(WORKSPACE_DEFAULT_PRESET_TIER);
     }
   }, [file]);
 
@@ -274,7 +355,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
       setAiHint(null);
       try {
         const { text, documentId: newId } = await summarizeWorkspaceDocument(file, {
-          detail: WORKSPACE_SUMMARY_DETAIL,
+          detail: summaryPreset.detail,
           userKey: WORKSPACE_AI_USER_KEY,
         });
         setSummaryText(text);
@@ -283,7 +364,12 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
           return;
         }
         setDocumentId(newId);
-        savePersistedWorkspaceAi(file, { documentId: newId, summaryText: text });
+        savePersistedWorkspaceAi(file, {
+          documentId: newId,
+          summaryText: text,
+          summaryTierId,
+          chatTierId,
+        });
         if (options?.keepTab) {
           setAiHint(t('aiPanel.chatReady'));
         }
@@ -293,7 +379,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
         setIsSummarizing(false);
       }
     },
-    [file, t],
+    [file, summaryPreset.detail, summaryTierId, chatTierId, t],
   );
 
   const handleSendMessage = useCallback(async () => {
@@ -319,6 +405,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
       const answer = await chatWithWorkspaceDocument({
         question: content,
         documentId,
+        topK: chatPreset.topK,
         userKey: WORKSPACE_AI_USER_KEY,
       });
       setMessages((prev) => [...prev, { role: 'assistant', text: answer }]);
@@ -329,7 +416,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
     } finally {
       setIsAiThinking(false);
     }
-  }, [chatInput, documentId, file, isAiThinking, t]);
+  }, [chatInput, chatPreset.topK, documentId, file, isAiThinking, t]);
 
   const startVoiceReading = useCallback(
     (rate: number) => {
@@ -470,6 +557,13 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
       <div className="flex-1 min-h-0 flex flex-col px-4 pb-4">
         {aiTab === 'summary' && (
           <div className="flex-1 min-h-0 flex flex-col gap-2">
+            <TierRadioGroup
+              mode="summaryDetail"
+              presets={WORKSPACE_SUMMARY_DETAIL_PRESETS}
+              value={summaryTierId}
+              onChange={setSummaryTierId}
+              disabled={isSummarizing}
+            />
             <Button
               size="sm"
               onClick={() => void runSummary()}
@@ -497,7 +591,16 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
 
         {aiTab === 'chat' && (
           <>
-            <div className="flex-1 overflow-auto space-y-3 pr-1 min-h-[200px]">
+            {documentId != null && (
+              <TierRadioGroup
+                mode="chatContext"
+                presets={WORKSPACE_CHAT_TOP_K_PRESETS}
+                value={chatTierId}
+                onChange={setChatTierId}
+                disabled={isAiThinking}
+              />
+            )}
+            <div className="flex-1 overflow-auto space-y-3 pr-1 min-h-0 mt-2">
               {documentId == null && (
                 <div className="rounded-xl border border-blue-500/25 bg-blue-500/[0.08] p-3 space-y-2.5">
                   <p className="text-[11px] leading-relaxed text-white/60">{t('aiPanel.runSummaryForChat')}</p>
@@ -643,19 +746,16 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <p className="text-[10px] text-white/45 px-0.5">{t('aiPanel.voice.speed')}</p>
-                  <div className="flex gap-1.5">
+                <div className="space-y-1.5">
+                  <p className={SEGMENT_LABEL_CLASS}>{t('aiPanel.voice.speed')}</p>
+                  <div className="flex gap-1.5" role="radiogroup" aria-label={t('aiPanel.voice.speed')}>
                     {([0.85, 1, 1.15, 1.3] as const).map((rate) => (
                       <button
                         key={rate}
                         type="button"
                         onClick={() => handleVoiceSpeedChange(rate)}
-                        className={`flex-1 rounded-lg py-1.5 text-[11px] font-medium transition-all ${
-                          voiceRate === rate
-                            ? 'bg-pink-500/25 text-pink-100 ring-1 ring-pink-400/40'
-                            : 'bg-white/[0.04] text-white/50 hover:bg-white/[0.08]'
-                        }`}
+                        aria-pressed={voiceRate === rate}
+                        className={`${SEGMENT_PILL_BASE} ${segmentPillClass(voiceRate === rate)}`}
                       >
                         {rate}×
                       </button>
