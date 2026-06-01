@@ -36,13 +36,51 @@ See https://github.com/adobe-type-tools/cmap-resources
 
   <!-- Note: pdfjs-annotation-extension provides its own toolbar with Save/Export buttons -->
   <style>
-    /* Hide save button from pdfjs-annotation-extension CustomToolbar */
-    /* Only target buttons with data-action="save" attribute */
+    /* PDFCraft workspace: hide native toolbars visually */
+    html.pdfcraft-embedded #toolbarContainer,
+    html.pdfcraft-embedded #toolbarViewer,
+    html.pdfcraft-embedded #secondaryToolbar,
+    html.pdfcraft-embedded #loadingBar,
+    html.pdfcraft-embedded #editorModeButtons,
+    html.pdfcraft-embedded #sidebarContainer,
+    html.pdfcraft-embedded .ant-btn,
+    html.pdfcraft-embedded [class*="ant-btn"] {
+      display: none !important;
+      visibility: hidden !important;
+      height: 0 !important;
+      max-height: 0 !important;
+      width: 0 !important;
+      overflow: hidden !important;
+      pointer-events: none !important;
+      position: absolute !important;
+    }
+    /* CustomToolbar: hidden visually but stays interactive for programmatic tool switching */
+    html.pdfcraft-embedded .CustomToolbar {
+      position: absolute !important;
+      top: -9999px !important;
+      left: -9999px !important;
+      opacity: 0 !important;
+      height: auto !important;
+      width: auto !important;
+      pointer-events: auto !important;
+      overflow: visible !important;
+    }
+    html.pdfcraft-embedded #viewerContainer {
+      top: 0 !important;
+      inset: 0 !important;
+    }
     .CustomToolbar .buttons>li[data-action="save"],
     .CustomToolbar button[data-action="save"] {
       display: none !important;
     }
   </style>
+  <script>
+    (function () {
+      if (/pagemode=none|embedded=1/i.test(location.search + location.hash)) {
+        document.documentElement.classList.add('pdfcraft-embedded');
+      }
+    })();
+  </script>
 
   <script src="viewer.js" type="module"></script>
   <script>
@@ -66,44 +104,51 @@ See https://github.com/adobe-type-tools/cmap-resources
       };
     })();
 
-    // Hide save button after DOM is ready
-    // The pdfjs-annotation-extension adds buttons dynamically
-    function hideSaveButton() {
-      // Hide buttons with text "保存" or "Save" (exact match only)
-      const customToolbar = document.querySelector('.CustomToolbar');
-      if (customToolbar) {
-        const buttons = customToolbar.querySelectorAll('li, button');
-        buttons.forEach(function (btn) {
-          // Get direct text content, not including child elements
-          const text = btn.textContent ? btn.textContent.trim() : '';
-          // Only hide if the text is exactly "保存" or "Save"
-          // Don't hide buttons that contain these words as part of longer text
-          if (text === '保存' || text === 'Save') {
-            btn.style.display = 'none';
-          }
-        });
-      }
+    function isPdfcraftEmbedded() {
+      return document.documentElement.classList.contains('pdfcraft-embedded');
     }
 
-    // Run after page load and periodically to catch dynamically added buttons
-    document.addEventListener('DOMContentLoaded', function () {
-      setTimeout(hideSaveButton, 500);
-      setTimeout(hideSaveButton, 1000);
-      setTimeout(hideSaveButton, 2000);
-    });
-
-    // Also use MutationObserver to catch dynamically added elements
-    document.addEventListener('DOMContentLoaded', function () {
-      const observer = new MutationObserver(function (mutations) {
-        hideSaveButton();
+    function hideEmbeddedChrome() {
+      if (!isPdfcraftEmbedded()) return;
+      ['toolbarContainer', 'toolbarViewer', 'secondaryToolbar', 'loadingBar', 'editorModeButtons', 'sidebarContainer'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) {
+          el.style.display = 'none';
+          el.style.visibility = 'hidden';
+          el.style.height = '0';
+        }
       });
+      // CustomToolbar kept offscreen (not display:none) so programmatic clicks still work
+    }
 
-      // Start observing once the body is available
+    function hideSaveButton() {
+      var customToolbar = document.querySelector('.CustomToolbar');
+      if (!customToolbar) return;
+      customToolbar.querySelectorAll('li, button').forEach(function (btn) {
+        var text = btn.textContent ? btn.textContent.trim() : '';
+        if (text === '保存' || text === 'Save') {
+          btn.style.display = 'none';
+        }
+      });
+    }
+
+    function onDomReady() {
+      hideEmbeddedChrome();
+      hideSaveButton();
+      setTimeout(hideEmbeddedChrome, 0);
+      setTimeout(hideEmbeddedChrome, 300);
+      setTimeout(hideEmbeddedChrome, 1000);
+    }
+
+    document.addEventListener('DOMContentLoaded', onDomReady);
+
+    document.addEventListener('DOMContentLoaded', function () {
       setTimeout(function () {
-        observer.observe(document.body, {
-          childList: true,
-          subtree: true
+        var observer = new MutationObserver(function () {
+          hideEmbeddedChrome();
+          hideSaveButton();
         });
+        observer.observe(document.body, { childList: true, subtree: true });
       }, 100);
     });
 

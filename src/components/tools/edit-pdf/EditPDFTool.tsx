@@ -7,11 +7,16 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { peekUploadedPdf } from '@/lib/document-session';
 
+
 export interface EditPDFToolProps {
   className?: string;
   immersive?: boolean;
   onIframeRef?: (iframe: HTMLIFrameElement | null) => void;
+  /** Khi dùng trong workspace — tránh load lại / màn đen do peek session chậm */
+  sourceFile?: File | null;
+  sourcePdfUrl?: string | null;
 }
+
 
 /**
  * EditPDFTool Component
@@ -20,16 +25,23 @@ export interface EditPDFToolProps {
  * Users can add text, draw, highlight, and add images to PDFs.
  * The PDF.js viewer has built-in save functionality (export button in toolbar).
  */
-export function EditPDFTool({ className = '', immersive = false, onIframeRef }: EditPDFToolProps) {
+export function EditPDFTool({
+  className = '',
+  immersive = false,
+  onIframeRef,
+  sourceFile = null,
+  sourcePdfUrl = null,
+}: EditPDFToolProps) {
   const t = useTranslations('common');
   const tTools = useTranslations('tools.editPdf');
   
-  const [file, setFile] = useState<File | null>(null);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(sourceFile);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(sourcePdfUrl);
   const [error, setError] = useState<string | null>(null);
-  const [isEditorReady, setIsEditorReady] = useState(false);
-  
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const loadedUrlRef = useRef<string | null>(null);
+  const activeFile = sourceFile ?? file;
+  const activeUrl = sourcePdfUrl ?? pdfUrl;
 
   const handleFilesSelected = useCallback((files: File[]) => {
     if (files.length > 0) {
@@ -45,501 +57,135 @@ export function EditPDFTool({ className = '', immersive = false, onIframeRef }: 
   }, []);
 
   useEffect(() => {
+    if (sourceFile && sourcePdfUrl) {
+      setFile(sourceFile);
+      setPdfUrl(sourcePdfUrl);
+      return;
+    }
     const sessionFile = peekUploadedPdf();
     if (!sessionFile) return;
 
     setFile(sessionFile);
     setError(null);
     setPdfUrl((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
+      if (prev && prev !== sourcePdfUrl) URL.revokeObjectURL(prev);
       return URL.createObjectURL(sessionFile);
     });
-  }, []);
+  }, [sourceFile, sourcePdfUrl]);
 
   useEffect(() => {
     return () => {
-      if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+      if (pdfUrl && pdfUrl !== sourcePdfUrl) URL.revokeObjectURL(pdfUrl);
     };
-  }, [pdfUrl]);
+  }, [pdfUrl, sourcePdfUrl]);
 
   useEffect(() => {
     onIframeRef?.(iframeRef.current);
     return () => onIframeRef?.(null);
   }, [onIframeRef]);
 
+  useEffect(() => {
+    if (!activeUrl) {
+      loadedUrlRef.current = null;
+      return;
+    }
+    if (loadedUrlRef.current === activeUrl) return;
+    loadedUrlRef.current = activeUrl;
+  }, [activeUrl]);
+
   const handleIframeLoad = useCallback(() => {
-    setTimeout(() => {
-      setIsEditorReady(true);
-      onIframeRef?.(iframeRef.current);
-      
-      try {
-        const iframe = iframeRef.current;
-        if (iframe?.contentDocument) {
-          const doc = iframe.contentDocument;
+    onIframeRef?.(iframeRef.current);
+    loadedUrlRef.current = activeUrl;
 
-          // 0. Hide built-in sidebar (workspace has its own thumbnails panel)
-          const sidebarContainer = doc.getElementById('sidebarContainer');
-          if (sidebarContainer) sidebarContainer.style.display = 'none';
-          const sidebarToggle = doc.getElementById('sidebarToggleButton');
-          if (sidebarToggle) sidebarToggle.style.display = 'none';
+    try {
+      const iframe = iframeRef.current;
+      const doc = iframe?.contentDocument;
+      if (!doc) return;
 
-          // 1. Hide native PDF.js download/save buttons
-          const downloadBtn = doc.getElementById('download');
-          const secondaryDownloadBtn = doc.getElementById('secondaryDownload');
-          if (downloadBtn) downloadBtn.style.display = 'none';
-          if (secondaryDownloadBtn) secondaryDownloadBtn.style.display = 'none';
-          
-          // 2. Hide save button from CustomToolbar (pdfjs-annotation-extension)
-          const customToolbar = doc.querySelector('.CustomToolbar');
-          if (customToolbar) {
-            const buttons = customToolbar.querySelectorAll('li, button');
-            buttons.forEach((btn: Element) => {
-              const text = btn.textContent?.trim();
-              if (text === '保存' || text === 'Save') {
-                (btn as HTMLElement).style.display = 'none';
-              }
-            });
-          }
+      // Page change notifier for parent workspace
+      const notifierScript = doc.createElement('script');
+      notifierScript.textContent = `(function(){
+        var last=-1,ready=false;
+        setInterval(function(){
+          try{
+            var app=window.PDFViewerApplication;
+            if(app&&app.page){
+              if(!ready){ready=true;window.parent.postMessage({type:'pdfcraft-pages-ready'},'*');}
+              if(app.page!==last){last=app.page;window.parent.postMessage({type:'pdfcraft-page-change',page:app.page},'*');}
+            }
+          }catch(e){}
+        },800);
+        window.pdfcraftUndo=function(){};
+        window.pdfcraftRedo=function(){};
+      })();`;
+      doc.body.appendChild(notifierScript);
 
-          // 3. In immersive mode, visually blend plugin toolbar with app shell.
-          if (immersive) {
-            const immersiveStyle = doc.createElement('style');
-            immersiveStyle.textContent = `
-              #toolbarContainer {
-                background: rgba(20, 24, 32, 0.92) !important;
-                border-bottom: 1px solid rgba(255,255,255,0.08) !important;
-                backdrop-filter: blur(8px) !important;
-              }
-              #toolbarViewer {
-                min-height: 40px !important;
-                padding: 2px 8px !important;
-              }
-              #viewerContainer {
-                background: #1f2128 !important;
-              }
-              #mainContainer {
-                background: #1f2128 !important;
-              }
-              .CustomToolbar {
-                margin: 4px 8px !important;
-                border-radius: 8px !important;
-                background: rgba(17, 24, 39, 0.82) !important;
-                border: 1px solid rgba(255,255,255,0.08) !important;
-                box-shadow: 0 8px 28px rgba(0,0,0,0.3) !important;
-              }
-              .CustomToolbar li,
-              .CustomToolbar button,
-              .toolbarButton {
-                border-radius: 6px !important;
-              }
-            `;
-            doc.head.appendChild(immersiveStyle);
-          }
+      // Tool switching API (no iframe reload): parent can select annotation tools via postMessage.
+      const toolScript = doc.createElement('script');
+      toolScript.textContent = `(function(){
+        var TOOL_ORDER = [
+          'select',
+          'highlight',
+          'strikeout',
+          'underline',
+          'rectangle',
+          'circle',
+          'freehand',
+          'freeHighlight',
+          'freeText',
+          'signature',
+          'stamp',
+          'note',
+          'arrow',
+          'cloud'
+        ];
 
-          // 4. Inject PDFCraft Enrichment Script
-          const patchScript = doc.createElement('script');
-          patchScript.textContent = `
-            (function() {
-              console.log('[PDFCraft Patch] Initializing annotation patches...');
-
-              let undoStack = [];
-              let redoStack = [];
-              let lastStateStr = '';
-              let isDoingUndoRedo = false;
-
-              const toolNameTranslations = {
-                'cloud': '云线',
-                'rectangle': '矩形',
-                'circle': '圆形',
-                'arrow': '箭头',
-                'freehand': '自由绘制',
-                'freeText': '文字',
-                'freeHighlight': '自由高亮',
-                'note': '注解',
-                'signature': '签名',
-                'stamp': '盖章'
-              };
-
-              const initInterval = setInterval(() => {
-                const ext = window.pdfjsAnnotationExtensionInstance;
-                if (ext) {
-                  clearInterval(initInterval);
-                  console.log('[PDFCraft Patch] pdfjsAnnotationExtensionInstance found! Setting up patches...');
-                  setupCloudFix();
-                  setupColorPickerAndStroke();
-                  setupUndoRedoAndAuthorPatch();
-                }
-              }, 200);
-
-              function setupCloudFix() {
-                // Ensure double-click bypasses text layer blocking to complete drawing
-                document.addEventListener('dblclick', function(e) {
-                  const ext = window.pdfjsAnnotationExtensionInstance;
-                  const activeTool = ext?.activeAnnotation?.name;
-                  if (activeTool === 'cloud') {
-                    const konvaContent = document.querySelector('.konvajs-content');
-                    if (konvaContent) {
-                      console.log('[PDFCraft Patch] Intercepted dblclick for cloud tool, dispatching to Konva stage.');
-                      const dblEvent = new MouseEvent('dblclick', {
-                        bubbles: true,
-                        cancelable: true,
-                        view: window,
-                        clientX: e.clientX,
-                        clientY: e.clientY
-                      });
-                      konvaContent.dispatchEvent(dblEvent);
-                    }
-                  }
-                }, true);
-
-                // Add Enter key support to elegantly complete and close polygon drawing
-                document.addEventListener('keydown', function(e) {
-                  if (e.key === 'Enter') {
-                    const ext = window.pdfjsAnnotationExtensionInstance;
-                    const activeTool = ext?.activeAnnotation?.name;
-                    if (activeTool === 'cloud') {
-                      const konvaContent = document.querySelector('.konvajs-content');
-                      if (konvaContent) {
-                        console.log('[PDFCraft Patch] Intercepted Enter key for cloud tool, dispatching dblclick to end drawing.');
-                        const dblEvent = new MouseEvent('dblclick', {
-                          bubbles: true,
-                          cancelable: true,
-                          view: window
-                        });
-                        konvaContent.dispatchEvent(dblEvent);
-                      }
-                    }
-                  }
-                });
-              }
-
-              function setupColorPickerAndStroke() {
-                // Inject picker for Highlight tool
-                const hlColorPicker = document.getElementById('editorHighlightColorPicker');
-                if (hlColorPicker) {
-                  if (!hlColorPicker.querySelector('.pdfcraft-custom-hl-picker')) {
-                    const picker = document.createElement('input');
-                    picker.type = 'color';
-                    picker.className = 'pdfcraft-custom-hl-picker';
-                    picker.style.cssText = 'width:28px; height:28px; border:2px solid #ccc; border-radius:50%; padding:0; cursor:pointer; margin-left:8px; vertical-align:middle; background:none;';
-                    
-                    picker.addEventListener('input', function(e) {
-                      const ext = window.pdfjsAnnotationExtensionInstance;
-                      const selected = ext?.selectedAnnotation;
-                      if (selected) {
-                        ext.updateAnnotationStyle(selected, { color: e.target.value });
-                      }
-                    });
-                    hlColorPicker.appendChild(picker);
-                  }
-                }
-
-                // Dynamically observe CustomAnnotationMenu popups to inject controls
-                const observer = new MutationObserver(function() {
-                  const menu = document.querySelector('.CustomAnnotationMenu');
-                  if (menu && menu.style.display !== 'none') {
-                    injectCustomMenuControls(menu);
-                  }
-                });
-
-                observer.observe(document.body, {
-                  childList: true,
-                  subtree: true,
-                  attributes: true,
-                  attributeFilter: ['style', 'class']
-                });
-              }
-
-              function injectCustomMenuControls(menu) {
-                if (menu.querySelector('.pdfcraft-custom-controls')) return;
-
-                console.log('[PDFCraft Patch] CustomAnnotationMenu opened, injecting custom controls...');
-
-                const container = document.createElement('div');
-                container.className = 'pdfcraft-custom-controls';
-                container.style.cssText = 'border-top:1px solid #ccc; margin-top:8px; padding-top:8px; font-size:12px; display:flex; flex-direction:column; gap:8px; color:var(--toolbar-fg-color, #333);';
-
-                const ext = window.pdfjsAnnotationExtensionInstance;
-                const selected = ext?.selectedAnnotation;
-                if (!selected) return;
-
-                // 1. Custom Stroke Color Picker
-                const colorRow = document.createElement('div');
-                colorRow.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:8px;';
-                
-                const colorLabel = document.createElement('span');
-                colorLabel.textContent = '自定义描边色:';
-                
-                const colorPicker = document.createElement('input');
-                colorPicker.type = 'color';
-                colorPicker.style.cssText = 'width:50px; height:24px; border:1px solid #ccc; border-radius:4px; padding:0; cursor:pointer;';
-                colorPicker.value = selected.style?.color || '#ff0000';
-
-                colorPicker.addEventListener('change', function(e) {
-                  const curSelected = window.pdfjsAnnotationExtensionInstance?.selectedAnnotation;
-                  if (curSelected) {
-                    window.pdfjsAnnotationExtensionInstance.updateAnnotationStyle(curSelected, { color: e.target.value });
-                  }
-                });
-
-                colorRow.appendChild(colorLabel);
-                colorRow.appendChild(colorPicker);
-                container.appendChild(colorRow);
-
-                // 2. Allow stroke width of 0 by adjusting native slider min
-                const nativeSliders = menu.querySelectorAll('input[type="range"]');
-                nativeSliders.forEach(slider => {
-                  if (slider.getAttribute('min') === '1') {
-                    slider.setAttribute('min', '0');
-                    console.log('[PDFCraft Patch] Stroke width slider updated min to 0');
-                  }
-                });
-
-                // 3. Shape Fill support (Rectangle, Circle, Cloud)
-                const allowedFillTools = ['rectangle', 'circle', 'cloud'];
-                if (allowedFillTools.includes(selected.name)) {
-                  const fillRow = document.createElement('div');
-                  fillRow.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:8px;';
-                  
-                  const leftPart = document.createElement('div');
-                  leftPart.style.cssText = 'display:flex; align-items:center; gap:6px;';
-                  
-                  const fillCheckbox = document.createElement('input');
-                  fillCheckbox.type = 'checkbox';
-                  fillCheckbox.id = 'pdfcraft-fill-enabled';
-                  fillCheckbox.style.cssText = 'cursor:pointer;';
-                  fillCheckbox.checked = selected.style?.fillEnabled || false;
-                  
-                  const fillLabel = document.createElement('label');
-                  fillLabel.htmlFor = 'pdfcraft-fill-enabled';
-                  fillLabel.textContent = '启用填充色:';
-                  fillLabel.style.cssText = 'cursor:pointer; user-select:none;';
-
-                  leftPart.appendChild(fillCheckbox);
-                  leftPart.appendChild(fillLabel);
-
-                  const fillColorPicker = document.createElement('input');
-                  fillColorPicker.type = 'color';
-                  fillColorPicker.style.cssText = 'width:50px; height:24px; border:1px solid #ccc; border-radius:4px; padding:0; cursor:pointer;';
-                  fillColorPicker.value = selected.style?.fillColor || '#ffffff';
-                  fillColorPicker.disabled = !fillCheckbox.checked;
-
-                  fillCheckbox.addEventListener('change', function(e) {
-                    fillColorPicker.disabled = !e.target.checked;
-                    const curSelected = window.pdfjsAnnotationExtensionInstance?.selectedAnnotation;
-                    if (curSelected) {
-                      window.pdfjsAnnotationExtensionInstance.updateAnnotationStyle(curSelected, {
-                        fillEnabled: e.target.checked,
-                        fillColor: fillColorPicker.value
-                      });
-                    }
-                  });
-
-                  fillColorPicker.addEventListener('change', function(e) {
-                    const curSelected = window.pdfjsAnnotationExtensionInstance?.selectedAnnotation;
-                    if (curSelected && fillCheckbox.checked) {
-                      window.pdfjsAnnotationExtensionInstance.updateAnnotationStyle(curSelected, {
-                        fillColor: e.target.value
-                      });
-                    }
-                  });
-
-                  fillRow.appendChild(leftPart);
-                  fillRow.appendChild(fillColorPicker);
-                  container.appendChild(fillRow);
-                }
-
-                const styleContainer = menu.querySelector('.styleContainer') || menu;
-                styleContainer.appendChild(container);
-              }
-
-              // D. Undo/Redo & Comment list labels auto-override
-              function getAnnotationsSnapshot() {
-                const ext = window.pdfjsAnnotationExtensionInstance;
-                if (!ext) return null;
-                const store = ext.getAnnotationStore();
-                if (!store) return null;
-                return JSON.stringify(store);
-              }
-
-              function setupUndoRedoAndAuthorPatch() {
-                // Initialize undo stack with initial state
-                const initialState = getAnnotationsSnapshot();
-                if (initialState) {
-                  undoStack.push(initialState);
-                  lastStateStr = initialState;
-                }
-
-                // Periodically check for state changes and update UI elements
-                setInterval(() => {
-                  const ext = window.pdfjsAnnotationExtensionInstance;
-                  if (!ext) return;
-
-                  // Dynamic author override for tool name labels in comments list
-                  const store = ext.getAnnotationStore();
-                  let authorUpdated = false;
-                  if (store && store.annotations) {
-                    store.annotations.forEach(ann => {
-                      const transName = toolNameTranslations[ann.name] || '标注';
-                      const targetAuthor = transName + ' (不具名用户)';
-                      if (ann.author !== targetAuthor && ann.author === '不具名用户') {
-                        ann.author = targetAuthor;
-                        authorUpdated = true;
-                      }
-                    });
-                  }
-
-                  const currentState = getAnnotationsSnapshot();
-                  if (currentState && currentState !== lastStateStr) {
-                    if (!isDoingUndoRedo) {
-                      undoStack.push(currentState);
-                      redoStack = []; // Reset redo stack on new operation
-                      updateUndoRedoButtonsState();
-                    }
-                    lastStateStr = currentState;
-                  }
-                }, 500);
-
-                // Inject Undo/Redo buttons UI
-                injectUndoRedoButtons();
-              }
-
-              function performUndo() {
-                if (undoStack.length <= 1) return;
-                isDoingUndoRedo = true;
-                const current = undoStack.pop();
-                redoStack.push(current);
-                const prev = undoStack[undoStack.length - 1];
-                loadState(prev);
-              }
-
-              function performRedo() {
-                if (redoStack.length === 0) return;
-                isDoingUndoRedo = true;
-                const next = redoStack.pop();
-                undoStack.push(next);
-                loadState(next);
-              }
-
-              function loadState(stateStr) {
-                const ext = window.pdfjsAnnotationExtensionInstance;
-                if (!ext) return;
-
-                try {
-                  const stateObj = JSON.parse(stateStr);
-                  if (typeof ext.resetPdfjsAnnotationStorage === 'function') {
-                    ext.resetPdfjsAnnotationStorage();
-                  }
-                  if (typeof ext.initAnnotations === 'function') {
-                    ext.initAnnotations(stateObj);
-                  }
-                  if (typeof ext.reDrawAnnotation === 'function') {
-                    ext.reDrawAnnotation();
-                  }
-                  lastStateStr = stateStr;
-                  updateUndoRedoButtonsState();
-                } catch (err) {
-                  console.error('[PDFCraft Patch] Failed to load state', err);
-                } finally {
-                  setTimeout(() => {
-                    isDoingUndoRedo = false;
-                  }, 100);
-                }
-              }
-
-              function injectUndoRedoButtons() {
-                const customToolbar = document.querySelector('.CustomToolbar');
-                if (customToolbar) {
-                  if (customToolbar.querySelector('.pdfcraft-undo-btn')) return;
-                  const btnList = customToolbar.querySelector('ul') || customToolbar;
-
-                  const undoLi = document.createElement('li');
-                  undoLi.className = 'pdfcraft-undo-btn';
-                  undoLi.style.cssText = 'display:inline-block; margin-right:8px;';
-
-                  const undoBtn = document.createElement('button');
-                  undoBtn.type = 'button';
-                  undoBtn.innerHTML = '<span style="margin-right:2px; font-weight:bold;">↩</span>撤销';
-                  undoBtn.className = 'toolbarButton';
-                  undoBtn.style.cssText = 'padding:4px 8px; font-size:12px; cursor:pointer; border-radius:4px; opacity:0.5; border:1px solid var(--toolbar-border-color, #ccc); background-color:var(--toolbar-bg-color, #f5f5f5); color:var(--toolbar-fg-color, #333); font-family:inherit;';
-                  undoBtn.disabled = true;
-                  undoBtn.addEventListener('click', performUndo);
-                  undoLi.appendChild(undoBtn);
-
-                  const redoLi = document.createElement('li');
-                  redoLi.className = 'pdfcraft-redo-btn';
-                  redoLi.style.cssText = 'display:inline-block; margin-right:8px;';
-
-                  const redoBtn = document.createElement('button');
-                  redoBtn.type = 'button';
-                  redoBtn.innerHTML = '<span style="margin-right:2px; font-weight:bold;">↪</span>重做';
-                  redoBtn.className = 'toolbarButton';
-                  redoBtn.style.cssText = 'padding:4px 8px; font-size:12px; cursor:pointer; border-radius:4px; opacity:0.5; border:1px solid var(--toolbar-border-color, #ccc); background-color:var(--toolbar-bg-color, #f5f5f5); color:var(--toolbar-fg-color, #333); font-family:inherit;';
-                  redoBtn.disabled = true;
-                  redoBtn.addEventListener('click', performRedo);
-                  redoLi.appendChild(redoBtn);
-
-                  if (btnList.firstChild) {
-                    btnList.insertBefore(undoLi, btnList.firstChild);
-                    btnList.insertBefore(redoLi, undoLi.nextSibling);
-                  } else {
-                    btnList.appendChild(undoLi);
-                    btnList.appendChild(redoLi);
-                  }
-                }
-              }
-
-              function updateUndoRedoButtonsState() {
-                const undoBtn = document.querySelector('.pdfcraft-undo-btn button');
-                const redoBtn = document.querySelector('.pdfcraft-redo-btn button');
-
-                if (undoBtn) {
-                  const canUndo = undoStack.length > 1;
-                  undoBtn.disabled = !canUndo;
-                  undoBtn.style.opacity = canUndo ? '1' : '0.5';
-                }
-                if (redoBtn) {
-                  const canRedo = redoStack.length > 0;
-                  redoBtn.disabled = !canRedo;
-                  redoBtn.style.opacity = canRedo ? '1' : '0.5';
-                }
-              }
-
-              // E. Page change notifier — posts current page to parent for thumbnail sync
-              (function setupPageChangeNotifier() {
-                let lastPage = -1;
-                setInterval(function() {
-                  try {
-                    var app = window.PDFViewerApplication;
-                    if (app && app.page && app.page !== lastPage) {
-                      lastPage = app.page;
-                      window.parent.postMessage({ type: 'pdfcraft-page-change', page: lastPage }, '*');
-                    }
-                  } catch(e) {}
-                }, 300);
-              })();
-            })();
-          `;
-          doc.body.appendChild(patchScript);
-          console.log('[PDFCraft Patch] Enrichment script successfully injected into iframe!');
+        function tryClickTool(toolName){
+          var idx = TOOL_ORDER.indexOf(toolName);
+          if(idx < 0) return false;
+          var toolbar = document.querySelector('.CustomToolbar');
+          if(!toolbar) return false;
+          var items = toolbar.querySelectorAll('.buttons > li');
+          var el = items && items[idx];
+          if(!el) return false;
+          el.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true, view:window }));
+          return true;
         }
-      } catch (e) {
-        console.warn('Could not access iframe content to inject patches', e);
-      }
-    }, 1000);
-  }, [immersive, onIframeRef]);
+
+        function setTool(toolName){
+          try{
+            if(!toolName) return;
+            var ext = window.pdfjsAnnotationExtensionInstance;
+            var cur = ext && ext.activeAnnotation && ext.activeAnnotation.name;
+            var next = (cur === toolName) ? 'select' : toolName;
+            tryClickTool(next);
+          }catch(e){}
+        }
+
+        window.pdfcraftSetAnnotationTool = setTool;
+        window.addEventListener('message', function(evt){
+          var data = evt && evt.data;
+          if(!data || data.type !== 'pdfcraft-set-annotation-tool') return;
+          if(typeof data.tool !== 'string') return;
+          setTool(data.tool);
+        });
+      })();`;
+      doc.body.appendChild(toolScript);
+    } catch (e) {
+      console.warn('Could not access iframe content', e);
+    }
+  }, [activeUrl, onIframeRef]);
 
   const handleClear = useCallback(() => {
     if (pdfUrl) URL.revokeObjectURL(pdfUrl);
     setFile(null);
     setPdfUrl(null);
     setError(null);
-    setIsEditorReady(false);
   }, [pdfUrl]);
 
   return (
-    <div className={`${immersive ? 'h-full' : 'space-y-6'} ${className}`.trim()}>
-      {!file && (
+    <div className={`${immersive ? 'absolute inset-0 h-full w-full' : 'space-y-6'} ${className}`.trim()}>
+      {!activeUrl && (
         <div className={immersive ? 'h-full flex items-center justify-center' : ''}>
           <FileUploader
             accept={['application/pdf', '.pdf']}
@@ -559,8 +205,8 @@ export function EditPDFTool({ className = '', immersive = false, onIframeRef }: 
         </div>
       )}
 
-      {file && pdfUrl && (
-        <div className={immersive ? 'h-full' : 'space-y-4'}>
+      {activeUrl && (
+        <div className={immersive ? 'h-full w-full' : 'space-y-4'}>
           {!immersive && (
             <Card variant="outlined" size="sm">
               <div className="flex items-center justify-between">
@@ -570,9 +216,9 @@ export function EditPDFTool({ className = '', immersive = false, onIframeRef }: 
                     <path d="M14 2v6h6" fill="white" />
                   </svg>
                   <div>
-                    <p className="text-sm font-medium text-[hsl(var(--color-foreground))]">{file.name}</p>
+                    <p className="text-sm font-medium text-[hsl(var(--color-foreground))]">{activeFile?.name}</p>
                     <p className="text-xs text-[hsl(var(--color-muted-foreground))]">
-                      {(file.size / (1024 * 1024)).toFixed(2)} MB
+                      {activeFile ? `${(activeFile.size / (1024 * 1024)).toFixed(2)} MB` : ''}
                     </p>
                   </div>
                 </div>
@@ -584,23 +230,24 @@ export function EditPDFTool({ className = '', immersive = false, onIframeRef }: 
           )}
 
           {/* PDF Viewer iframe */}
-          <div className={`relative overflow-hidden ${immersive ? 'h-full rounded-lg border border-white/10 bg-[#1d1f24]' : 'border border-[hsl(var(--color-border))] rounded-[var(--radius-md)] bg-gray-100'}`}>
+          <div className={`relative overflow-hidden ${immersive ? 'h-full bg-[#16181d]' : 'border border-[hsl(var(--color-border))] rounded-[var(--radius-md)] bg-gray-100'}`}>
             <iframe
               ref={iframeRef}
-              src={`/pdfjs-annotation-viewer/web/viewer.html?file=${encodeURIComponent(pdfUrl)}`}
+              src={`/pdfjs-annotation-viewer/web/viewer.html?file=${encodeURIComponent(activeUrl)}&embedded=1#pagemode=none&zoom=1`}
               className={`w-full border-0 ${immersive ? 'h-full' : 'h-[700px]'}`}
               title="PDF Editor"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"
               onLoad={handleIframeLoad}
             />
-            {!isEditorReady && (
-              <div className="absolute inset-0 flex items-center justify-center bg-white/80">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(var(--color-primary))] mx-auto mb-2"></div>
-                  <p className="text-sm text-[hsl(var(--color-muted-foreground))]">{t('status.loading') || 'Loading...'}</p>
-                </div>
+            <div
+              className="absolute inset-0 z-10 flex items-center justify-center bg-[#16181d] pointer-events-none"
+              style={{ animation: 'pdfcraft-overlay-fade 2.5s ease-in forwards' }}
+            >
+              <style>{`@keyframes pdfcraft-overlay-fade { 0%,60% { opacity:1 } 100% { opacity:0 } }`}</style>
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-3" />
+                <p className="text-sm text-white/50">Loading document...</p>
               </div>
-            )}
+            </div>
           </div>
         </div>
       )}

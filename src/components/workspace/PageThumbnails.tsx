@@ -10,7 +10,7 @@ interface PageThumbnailsProps {
   onPageCountChange?: (count: number) => void;
 }
 
-const THUMB_WIDTH = 68;
+const THUMB_WIDTH = 120;
 
 export function PageThumbnails({ pdfUrl, currentPage, onPageSelect, onPageCountChange }: PageThumbnailsProps) {
   const [thumbnails, setThumbnails] = useState<string[]>([]);
@@ -73,12 +73,12 @@ export function PageThumbnails({ pdfUrl, currentPage, onPageSelect, onPageCountC
   }, [currentPage]);
 
   return (
-    <div ref={containerRef} className="mt-2 space-y-2 px-2">
+    <div ref={containerRef} className="space-y-2">
       {loading && thumbnails.length === 0 && (
         Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="w-full rounded-lg border border-white/[0.06] bg-white/[0.02] p-1.5 text-center">
-            <div className="h-[80px] rounded bg-white/[0.06] animate-pulse" />
-            <div className="mt-1.5 h-3 w-4 mx-auto rounded bg-white/[0.06] animate-pulse" />
+          <div key={i} className="w-full rounded-md border border-white/[0.06] bg-white/[0.02] p-1.5 text-center">
+            <div className="h-[140px] rounded bg-white/[0.06] animate-pulse" />
+            <div className="mt-2 h-3 w-5 mx-auto rounded bg-white/[0.06] animate-pulse" />
           </div>
         ))
       )}
@@ -92,7 +92,7 @@ export function PageThumbnails({ pdfUrl, currentPage, onPageSelect, onPageCountC
             ref={active ? activeRef : undefined}
             type="button"
             onClick={() => onPageSelect(page)}
-            className={`group w-full rounded-lg border p-1.5 text-center transition-all duration-150 ${
+            className={`group w-full rounded-md border p-1.5 text-center transition-all duration-150 ${
               active
                 ? 'border-blue-400/50 bg-blue-500/10 ring-1 ring-blue-400/20'
                 : 'border-white/[0.06] bg-white/[0.02] hover:border-white/15 hover:bg-white/[0.05]'
@@ -104,7 +104,7 @@ export function PageThumbnails({ pdfUrl, currentPage, onPageSelect, onPageCountC
               className="w-full rounded"
               draggable={false}
             />
-            <div className={`mt-1.5 text-[10px] tabular-nums ${active ? 'text-blue-300 font-medium' : 'text-white/40 group-hover:text-white/70'}`}>
+            <div className={`mt-2 text-[11px] tabular-nums ${active ? 'text-blue-300 font-medium' : 'text-white/40 group-hover:text-white/70'}`}>
               {page}
             </div>
           </button>

@@ -34,6 +34,39 @@ See https://github.com/adobe-type-tools/cmap-resources
     <link rel="stylesheet" href="viewer.css">
 
   <script src="viewer.js" type="module"></script>
+
+  <style>
+    /* PDFCraft workspace: hide toolbar + sidebar in embedded mode */
+    html.pdfcraft-embedded #toolbarContainer,
+    html.pdfcraft-embedded #toolbarViewer,
+    html.pdfcraft-embedded #secondaryToolbar,
+    html.pdfcraft-embedded #loadingBar,
+    html.pdfcraft-embedded #editorModeButtons,
+    html.pdfcraft-embedded #sidebarContainer {
+      display: none !important;
+      visibility: hidden !important;
+      height: 0 !important;
+      max-height: 0 !important;
+      overflow: hidden !important;
+      pointer-events: none !important;
+    }
+    html.pdfcraft-embedded #viewerContainer {
+      top: 0 !important;
+      inset: 0 !important;
+    }
+    html.pdfcraft-embedded #outerContainer,
+    html.pdfcraft-embedded #mainContainer,
+    html.pdfcraft-embedded body {
+      background: #16181d !important;
+    }
+  </style>
+  <script>
+    (function () {
+      if (/pagemode=none|embedded=1/i.test(location.search + location.hash)) {
+        document.documentElement.classList.add('pdfcraft-embedded');
+      }
+    })();
+  </script>
   </head>
 
   <body tabindex="0">
