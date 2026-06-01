@@ -6,6 +6,7 @@ import { FileUploader } from '../FileUploader';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { peekUploadedPdf } from '@/lib/document-session';
+import { injectPdfViewerChrome, attachKonvaSeamGuard } from '@/lib/pdf-viewer-chrome';
 
 
 export interface EditPDFToolProps {
@@ -38,6 +39,7 @@ export function EditPDFTool({
   const [file, setFile] = useState<File | null>(sourceFile);
   const [pdfUrl, setPdfUrl] = useState<string | null>(sourcePdfUrl);
   const [error, setError] = useState<string | null>(null);
+  const [viewerReady, setViewerReady] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const loadedUrlRef = useRef<string | null>(null);
   const activeFile = sourceFile ?? file;
@@ -93,6 +95,23 @@ export function EditPDFTool({
     loadedUrlRef.current = activeUrl;
   }, [activeUrl]);
 
+  useEffect(() => {
+    if (!activeUrl) return;
+    setViewerReady(false);
+    const fallback = window.setTimeout(() => setViewerReady(true), 5000);
+    return () => window.clearTimeout(fallback);
+  }, [activeUrl]);
+
+  useEffect(() => {
+    function onMessage(e: MessageEvent) {
+      if (e.data?.type === 'pdfcraft-pages-ready') {
+        setViewerReady(true);
+      }
+    }
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
+
   const handleIframeLoad = useCallback(() => {
     onIframeRef?.(iframeRef.current);
     loadedUrlRef.current = activeUrl;
@@ -101,6 +120,11 @@ export function EditPDFTool({
       const iframe = iframeRef.current;
       const doc = iframe?.contentDocument;
       if (!doc) return;
+
+      if (immersive) {
+        injectPdfViewerChrome(doc);
+        attachKonvaSeamGuard(doc);
+      }
 
       // Page change notifier for parent workspace
       const notifierScript = doc.createElement('script');
@@ -152,12 +176,18 @@ export function EditPDFTool({
           return true;
         }
 
+        function setAnnotating(on){
+          document.documentElement.classList.toggle('pdfcraft-annotating', !!on);
+          try { window.dispatchEvent(new Event('pdfcraft-edge-sync')); } catch(e){}
+        }
+
         function setTool(toolName){
           try{
             if(!toolName) return;
             var ext = window.pdfjsAnnotationExtensionInstance;
             var cur = ext && ext.activeAnnotation && ext.activeAnnotation.name;
             var next = (cur === toolName) ? 'select' : toolName;
+            setAnnotating(next !== 'select');
             tryClickTool(next);
           }catch(e){}
         }
@@ -174,7 +204,7 @@ export function EditPDFTool({
     } catch (e) {
       console.warn('Could not access iframe content', e);
     }
-  }, [activeUrl, onIframeRef]);
+  }, [activeUrl, immersive, onIframeRef]);
 
   const handleClear = useCallback(() => {
     if (pdfUrl) URL.revokeObjectURL(pdfUrl);
@@ -234,20 +264,28 @@ export function EditPDFTool({
             <iframe
               ref={iframeRef}
               src={`/pdfjs-annotation-viewer/web/viewer.html?file=${encodeURIComponent(activeUrl)}&embedded=1#pagemode=none&zoom=1`}
-              className={`w-full border-0 ${immersive ? 'h-full' : 'h-[700px]'}`}
+              className={`w-full border-0 transition-opacity duration-200 ${immersive ? 'h-full' : 'h-[700px]'} ${viewerReady ? 'opacity-100' : 'opacity-0'}`}
               title="PDF Editor"
               onLoad={handleIframeLoad}
             />
+            {!viewerReady && (
             <div
               className="absolute inset-0 z-10 flex items-center justify-center bg-[#16181d] pointer-events-none"
-              style={{ animation: 'pdfcraft-overlay-fade 2.5s ease-in forwards' }}
             >
-              <style>{`@keyframes pdfcraft-overlay-fade { 0%,60% { opacity:1 } 100% { opacity:0 } }`}</style>
               <div className="text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-3" />
                 <p className="text-sm text-white/50">Loading document...</p>
               </div>
             </div>
+            )}
+            {viewerReady && (
+            <div
+              className="absolute inset-0 z-10 flex items-center justify-center bg-[#16181d] pointer-events-none"
+              style={{ animation: 'pdfcraft-overlay-fade 1.2s ease-in forwards' }}
+            >
+              <style>{`@keyframes pdfcraft-overlay-fade { 0%,40% { opacity:1 } 100% { opacity:0 } }`}</style>
+            </div>
+            )}
           </div>
         </div>
       )}

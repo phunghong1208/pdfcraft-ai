@@ -25,6 +25,8 @@ import { peekUploadedPdf, setUploadedPdf } from '@/lib/document-session';
 import {
   coverPageCanvasSeams,
   injectPdfViewerChrome,
+  lockPdfViewerSidebar,
+  attachKonvaSeamGuard,
   snapPdfViewerScale,
   stripPdfViewerSeams,
 } from '@/lib/pdf-viewer-chrome';
@@ -332,6 +334,7 @@ function getRibbonGroups(tab: RibbonTabKey, locale: string): RibbonGroupDef[] {
 
 type PdfViewerApp = {
   initializedPromise?: Promise<void>;
+  pdfSidebar?: { isOpen?: boolean; open?: () => void; toggle?: () => void; close?: () => void };
   pdfViewer?: {
     currentScale: number;
     currentScaleValue: string;
@@ -377,6 +380,7 @@ function patchViewerIframe(
       };
 
       const refreshPages = () => {
+        lockPdfViewerSidebar(doc, app);
         stripPdfViewerSeams(doc);
         pdfViewer.removePageBorders = true;
         doc.querySelector('.pdfViewer')?.classList.add('removePageBorders');
@@ -392,13 +396,28 @@ function patchViewerIframe(
         applyScale100();
         if (app.eventBus) {
           app.eventBus.on('pagesinit', onPagesReady);
+          app.eventBus.on('pagerendered', refreshPages);
+          app.eventBus.on('sidebarviewchanged', () => lockPdfViewerSidebar(doc, app));
         }
         requestAnimationFrame(onPagesReady);
         setTimeout(onPagesReady, 120);
         setTimeout(onPagesReady, 400);
+        setTimeout(onPagesReady, 1200);
+        setTimeout(onPagesReady, 2500);
       } else if (app.eventBus) {
-        app.eventBus.on('pagesinit', () => stripPdfViewerSeams(doc));
+        app.eventBus.on('pagesinit', refreshPages);
+        app.eventBus.on('pagerendered', refreshPages);
+        app.eventBus.on('sidebarviewchanged', () => lockPdfViewerSidebar(doc, app));
       }
+
+      lockPdfViewerSidebar(doc, app);
+      if (app.pdfSidebar) {
+        const sidebar = app.pdfSidebar as { open?: () => void; toggle?: () => void };
+        sidebar.open = () => lockPdfViewerSidebar(doc, app);
+        sidebar.toggle = () => lockPdfViewerSidebar(doc, app);
+      }
+
+      attachKonvaSeamGuard(doc);
 
       const viewerRoot = doc.getElementById('viewer');
       if (viewerRoot && !doc.getElementById('pdfcraft-seam-observer')) {
