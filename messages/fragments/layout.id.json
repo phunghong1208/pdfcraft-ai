@@ -1,0 +1,70 @@
+{
+  "workspaceBadge": "Ruang Kerja PDF AI",
+  "upgrade": "Tingkatkan",
+  "upgradeTitle": "Tingkatkan paket",
+  "search": {
+    "trigger": "Cari PDF...",
+    "placeholderExpanded": "Cari PDF, alat, AI...",
+    "open": "Buka pencarian",
+    "close": "Tutup pencarian"
+  },
+  "footer": {
+    "resources": "Sumber Daya",
+    "security": "Keamanan",
+    "compliance": "Kepatuhan",
+    "gdprCompliant": "Sesuai GDPR",
+    "clientSideProcessing": "Pemrosesan di perangkat",
+    "filesNeverLeave": "File tidak pernah meninggalkan perangkat Anda",
+    "noUploads": "Tanpa unggahan file",
+    "privateSecure": "100% pribadi & aman",
+    "terms": "Ketentuan",
+    "privacyLink": "Privasi",
+    "cookies": "Cookie"
+  },
+  "aiMenu": {
+    "aiAssistant": "Asisten AI",
+    "pdfTools": "Alat PDF",
+    "workspace": "Ruang Kerja",
+    "summarizePdf": "Ringkas PDF",
+    "translatePdf": "Terjemahkan PDF",
+    "chatWithPdf": "Obrolan dengan PDF",
+    "smartOcr": "OCR Cerdas",
+    "voiceReader": "Pembaca Suara",
+    "editPdf": "Edit PDF",
+    "mergePdf": "Gabung PDF",
+    "splitPdf": "Pisah PDF",
+    "compressPdf": "Kompres PDF",
+    "pdfToWord": "PDF ke Word",
+    "ocrPdf": "OCR PDF"
+  },
+  "homePage": {
+    "badge": "Ruang Kerja PDF AI",
+    "heroTitle": "Pahami PDF Apa Pun dengan AI",
+    "heroSubtitle": "Ringkas, terjemahkan, obrolan, dan edit dokumen secara instan.",
+    "uploadTitle": "Unggah dokumen untuk memulai",
+    "uploadDescription": "Buka Ruang Kerja Dokumen dan gunakan tindakan AI kontekstual.",
+    "uploadCta": "Unggah ke Ruang Kerja",
+    "uploadSecure": "Pemrosesan aman",
+    "uploadOcr": "OCR bertenaga AI",
+    "uploadLanguages": "Mendukung 100+ bahasa",
+    "aiActionsTitle": "Tindakan AI",
+    "useInWorkspace": "Gunakan di Ruang Kerja",
+    "coreActionsTitle": "Tindakan PDF Inti",
+    "viewAllTools": "Lihat semua alat",
+    "preparingTitle": "Menyiapkan dokumen...",
+    "preparingUploading": "Mengunggah...",
+    "preparingAnalyzing": "Menganalisis dokumen...",
+    "preparingWorkspace": "Menyiapkan ruang kerja AI...",
+    "actions": {
+      "summarize": "Ringkas",
+      "translate": "Terjemahkan dokumen",
+      "chat": "Obrolan dengan PDF",
+      "ocr": "Pindai OCR",
+      "voice": "Pembaca Suara",
+      "edit": "Edit",
+      "compress": "Kompres",
+      "merge": "Gabung",
+      "convert": "Konversi"
+    }
+  }
+}

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   Upload, Bot, ScanText, ZoomIn, ZoomOut, Maximize2, Minimize2,
   Eye, Highlighter, ArrowLeft, Save, Share2, FileDown,
@@ -19,7 +20,12 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { EditPDFTool } from '@/components/tools/edit-pdf/EditPDFTool';
+import { CompressPDFTool } from '@/components/tools/compress/CompressPDFTool';
+import { OCRPDFTool } from '@/components/tools/ocr/OCRPDFTool';
+import { MergePDFTool } from '@/components/tools/merge/MergePDFTool';
+import { SplitPDFTool } from '@/components/tools/split/SplitPDFTool';
 import { PageThumbnails } from '@/components/workspace/PageThumbnails';
+import { WorkspaceAIPanel } from '@/components/workspace/WorkspaceAIPanel';
 import { type Locale } from '@/lib/i18n/config';
 import { peekUploadedPdf, setUploadedPdf } from '@/lib/document-session';
 import {
@@ -37,6 +43,8 @@ interface DocumentWorkspaceClientProps {
 
 type RibbonTabKey = 'home' | 'edit' | 'page' | 'comment' | 'convert' | 'tool' | 'fillsign' | 'protect' | 'ai';
 
+type WorkspaceInlineTool = 'compress' | 'ocr' | 'merge' | 'split';
+
 type RibbonToolDef = {
   icon: LucideIcon;
   label: string;
@@ -49,7 +57,11 @@ type RibbonGroupDef = {
   tools: RibbonToolDef[];
 };
 
-function getRibbonGroups(tab: RibbonTabKey, locale: string): RibbonGroupDef[] {
+function getRibbonGroups(
+  tab: RibbonTabKey,
+  locale: string,
+  tr: (key: string) => string,
+): RibbonGroupDef[] {
   const TOOL_SLUG_ALIAS: Record<string, string> = {
     compress: 'compress-pdf',
     ocr: 'ocr-pdf',
@@ -74,34 +86,33 @@ function getRibbonGroups(tab: RibbonTabKey, locale: string): RibbonGroupDef[] {
     case 'home':
       return [
         {
-          label: 'View',
+          label: tr('groups.view'),
           tools: [
-            { icon: ZoomIn, label: 'Zoom In', action: 'zoomIn' },
-            { icon: ZoomOut, label: 'Zoom Out', action: 'zoomOut' },
-            { icon: Maximize2, label: 'Fit Page', action: 'fitPage' },
+            { icon: ZoomIn, label: tr('tools.zoomIn'), action: 'zoomIn' },
+            { icon: ZoomOut, label: tr('tools.zoomOut'), action: 'zoomOut' },
+            { icon: Maximize2, label: tr('tools.fitPage'), action: 'fitPage' },
           ],
         },
         {
-          label: 'Edit',
+          label: tr('groups.process'),
           tools: [
-            { icon: PenSquare, label: 'Edit PDF', action: 'switchToEdit' },
-            { icon: Minimize2, label: 'Compress', href: t('compress') },
-            { icon: ScanText, label: 'OCR', href: t('ocr') },
+            { icon: Minimize2, label: tr('tools.compress'), href: t('compress') },
+            { icon: ScanText, label: tr('tools.ocr'), href: t('ocr') },
           ],
         },
         {
-          label: 'Organize',
+          label: tr('groups.organize'),
           tools: [
-            { icon: Layers, label: 'Merge', href: t('merge') },
-            { icon: Scissors, label: 'Split', href: t('split') },
+            { icon: Layers, label: tr('tools.merge'), href: t('merge') },
+            { icon: Scissors, label: tr('tools.split'), href: t('split') },
           ],
         },
         {
-          label: 'Output',
+          label: tr('groups.output'),
           tools: [
-            { icon: Printer, label: 'Print', action: 'print' },
-            { icon: Save, label: 'Save', action: 'save' },
-            { icon: FileDown, label: 'Export', action: 'export' },
+            { icon: Printer, label: tr('tools.print'), action: 'print' },
+            { icon: Save, label: tr('tools.save'), action: 'save' },
+            { icon: FileDown, label: tr('tools.export'), action: 'export' },
           ],
         },
       ];
@@ -109,35 +120,35 @@ function getRibbonGroups(tab: RibbonTabKey, locale: string): RibbonGroupDef[] {
     case 'edit':
       return [
         {
-          label: 'History',
+          label: tr('groups.history'),
           tools: [
-            { icon: Undo2, label: 'Undo', action: 'undo' },
-            { icon: Redo2, label: 'Redo', action: 'redo' },
+            { icon: Undo2, label: tr('tools.undo'), action: 'undo' },
+            { icon: Redo2, label: tr('tools.redo'), action: 'redo' },
           ],
         },
         {
-          label: 'Page',
+          label: tr('groups.page'),
           tools: [
-            { icon: Crop, label: 'Crop Pages', href: t('crop') },
-            { icon: RotateCw, label: 'Rotate', href: t('rotate') },
-            { icon: Plus, label: 'Add Page', href: t('add-blank-page') },
-            { icon: Trash2, label: 'Delete Page', href: t('delete') },
+            { icon: Crop, label: tr('tools.cropPages'), href: t('crop') },
+            { icon: RotateCw, label: tr('tools.rotate'), href: t('rotate') },
+            { icon: Plus, label: tr('tools.addPage'), href: t('add-blank-page') },
+            { icon: Trash2, label: tr('tools.deletePage'), href: t('delete') },
           ],
         },
         {
-          label: 'Insert',
+          label: tr('groups.insert'),
           tools: [
-            { icon: Eye, label: 'Watermark', href: t('watermark') },
-            { icon: Type, label: 'Header/Footer', href: t('header-footer') },
-            { icon: FileType, label: 'Page Numbers', href: t('page-numbers') },
-            { icon: Image, label: 'Background', href: t('background-color') },
+            { icon: Eye, label: tr('tools.watermark'), href: t('watermark') },
+            { icon: Type, label: tr('tools.headerFooter'), href: t('header-footer') },
+            { icon: FileType, label: tr('tools.pageNumbers'), href: t('page-numbers') },
+            { icon: Image, label: tr('tools.background'), href: t('background-color') },
           ],
         },
         {
-          label: 'Save',
+          label: tr('groups.save'),
           tools: [
-            { icon: Save, label: 'Save', action: 'save' },
-            { icon: FileDown, label: 'Export', action: 'export' },
+            { icon: Save, label: tr('tools.save'), action: 'save' },
+            { icon: FileDown, label: tr('tools.export'), action: 'export' },
           ],
         },
       ];
@@ -145,27 +156,27 @@ function getRibbonGroups(tab: RibbonTabKey, locale: string): RibbonGroupDef[] {
     case 'page':
       return [
         {
-          label: 'Pages',
+          label: tr('groups.pages'),
           tools: [
-            { icon: Plus, label: 'Add Page', href: t('add-blank-page') },
-            { icon: Trash2, label: 'Delete', href: t('delete') },
-            { icon: FileDown, label: 'Extract', href: t('extract') },
-            { icon: LayoutGrid, label: 'Organize', href: t('organize') },
+            { icon: Plus, label: tr('tools.addPage'), href: t('add-blank-page') },
+            { icon: Trash2, label: tr('tools.delete'), href: t('delete') },
+            { icon: FileDown, label: tr('tools.extract'), href: t('extract') },
+            { icon: LayoutGrid, label: tr('tools.organize'), href: t('organize') },
           ],
         },
         {
-          label: 'Transform',
+          label: tr('groups.transform'),
           tools: [
-            { icon: RotateCw, label: 'Rotate', href: t('rotate') },
-            { icon: Crop, label: 'Crop', href: t('crop') },
-            { icon: ArrowLeftRight, label: 'Reverse', href: t('reverse') },
+            { icon: RotateCw, label: tr('tools.rotate'), href: t('rotate') },
+            { icon: Crop, label: tr('tools.cropPages'), href: t('crop') },
+            { icon: ArrowLeftRight, label: tr('tools.reverse'), href: t('reverse') },
           ],
         },
         {
-          label: 'Combine',
+          label: tr('groups.combine'),
           tools: [
-            { icon: Layers, label: 'Merge', href: t('merge') },
-            { icon: Scissors, label: 'Split', href: t('split') },
+            { icon: Layers, label: tr('tools.merge'), href: t('merge') },
+            { icon: Scissors, label: tr('tools.split'), href: t('split') },
           ],
         },
       ];
@@ -173,43 +184,43 @@ function getRibbonGroups(tab: RibbonTabKey, locale: string): RibbonGroupDef[] {
     case 'comment':
       return [
         {
-          label: 'History',
+          label: tr('groups.history'),
           tools: [
-            { icon: Undo2, label: 'Undo', action: 'undo' },
-            { icon: Redo2, label: 'Redo', action: 'redo' },
+            { icon: Undo2, label: tr('tools.undo'), action: 'undo' },
+            { icon: Redo2, label: tr('tools.redo'), action: 'redo' },
           ],
         },
         {
-          label: 'Markup',
+          label: tr('groups.markup'),
           tools: [
-            { icon: Highlighter, label: 'Highlight', action: 'annot:highlight' },
-            { icon: Underline, label: 'Underline', action: 'annot:underline' },
-            { icon: Strikethrough, label: 'Strikeout', action: 'annot:strikeout' },
+            { icon: Highlighter, label: tr('tools.highlight'), action: 'annot:highlight' },
+            { icon: Underline, label: tr('tools.underline'), action: 'annot:underline' },
+            { icon: Strikethrough, label: tr('tools.strikeout'), action: 'annot:strikeout' },
           ],
         },
         {
-          label: 'Drawing',
+          label: tr('groups.drawing'),
           tools: [
-            { icon: PenTool, label: 'Freehand', action: 'annot:freehand' },
-            { icon: Square, label: 'Rectangle', action: 'annot:rectangle' },
-            { icon: Circle, label: 'Circle', action: 'annot:circle' },
-            { icon: Type, label: 'Text', action: 'annot:freeText' },
+            { icon: PenTool, label: tr('tools.freehand'), action: 'annot:freehand' },
+            { icon: Square, label: tr('tools.rectangle'), action: 'annot:rectangle' },
+            { icon: Circle, label: tr('tools.circle'), action: 'annot:circle' },
+            { icon: Type, label: tr('tools.text'), action: 'annot:freeText' },
           ],
         },
         {
-          label: 'Objects',
+          label: tr('groups.objects'),
           tools: [
-            { icon: StickyNote, label: 'Note', action: 'annot:note' },
-            { icon: Stamp, label: 'Stamp', action: 'annot:stamp' },
-            { icon: Pen, label: 'Signature', action: 'annot:signature' },
+            { icon: StickyNote, label: tr('tools.note'), action: 'annot:note' },
+            { icon: Stamp, label: tr('tools.stamp'), action: 'annot:stamp' },
+            { icon: Pen, label: tr('tools.signature'), action: 'annot:signature' },
           ],
         },
         {
-          label: 'Manage',
+          label: tr('groups.manage'),
           tools: [
-            { icon: Trash2, label: 'Remove All', href: t('remove-annotations') },
-            { icon: Save, label: 'Save', action: 'save' },
-            { icon: FileDown, label: 'Export', action: 'export' },
+            { icon: Trash2, label: tr('tools.removeAll'), href: t('remove-annotations') },
+            { icon: Save, label: tr('tools.save'), action: 'save' },
+            { icon: FileDown, label: tr('tools.export'), action: 'export' },
           ],
         },
       ];
@@ -217,29 +228,29 @@ function getRibbonGroups(tab: RibbonTabKey, locale: string): RibbonGroupDef[] {
     case 'convert':
       return [
         {
-          label: 'Export',
+          label: tr('groups.export'),
           tools: [
-            { icon: FileText, label: 'PDF to Word', href: t('pdf-to-docx') },
-            { icon: FileSpreadsheet, label: 'PDF to Excel', href: t('pdf-to-excel') },
-            { icon: FileImage, label: 'PDF to PPT', href: t('pdf-to-pptx') },
-            { icon: Image, label: 'PDF to Image', href: t('pdf-to-image') },
-            { icon: FileType, label: 'PDF to TXT', href: t('pdf-to-markdown') },
+            { icon: FileText, label: tr('tools.pdfToWord'), href: t('pdf-to-docx') },
+            { icon: FileSpreadsheet, label: tr('tools.pdfToExcel'), href: t('pdf-to-excel') },
+            { icon: FileImage, label: tr('tools.pdfToPpt'), href: t('pdf-to-pptx') },
+            { icon: Image, label: tr('tools.pdfToImage'), href: t('pdf-to-image') },
+            { icon: FileType, label: tr('tools.pdfToTxt'), href: t('pdf-to-markdown') },
           ],
         },
         {
-          label: 'Import',
+          label: tr('groups.import'),
           tools: [
-            { icon: Image, label: 'Image to PDF', href: t('image-to-pdf') },
-            { icon: FileText, label: 'Word to PDF', href: t('word-to-pdf') },
-            { icon: FileSpreadsheet, label: 'Excel to PDF', href: t('excel-to-pdf') },
+            { icon: Image, label: tr('tools.imageToPdf'), href: t('image-to-pdf') },
+            { icon: FileText, label: tr('tools.wordToPdf'), href: t('word-to-pdf') },
+            { icon: FileSpreadsheet, label: tr('tools.excelToPdf'), href: t('excel-to-pdf') },
           ],
         },
         {
-          label: 'Extract',
+          label: tr('groups.extract'),
           tools: [
-            { icon: Type, label: 'Extract Text', href: t('extract') },
-            { icon: Table, label: 'Extract Tables', href: t('extract-tables') },
-            { icon: Image, label: 'Extract Images', href: t('extract-images') },
+            { icon: Type, label: tr('tools.extractText'), href: t('extract') },
+            { icon: Table, label: tr('tools.extractTables'), href: t('extract-tables') },
+            { icon: Image, label: tr('tools.extractImages'), href: t('extract-images') },
           ],
         },
       ];
@@ -247,26 +258,26 @@ function getRibbonGroups(tab: RibbonTabKey, locale: string): RibbonGroupDef[] {
     case 'tool':
       return [
         {
-          label: 'Process',
+          label: tr('groups.process'),
           tools: [
-            { icon: ScanText, label: 'OCR', href: t('ocr') },
-            { icon: Minimize2, label: 'Compress', href: t('compress') },
-            { icon: Wrench, label: 'Repair', href: t('repair') },
+            { icon: ScanText, label: tr('tools.ocr'), href: t('ocr') },
+            { icon: Minimize2, label: tr('tools.compress'), href: t('compress') },
+            { icon: Wrench, label: tr('tools.repair'), href: t('repair') },
           ],
         },
         {
-          label: 'Watermark',
+          label: tr('groups.watermark'),
           tools: [
-            { icon: Eye, label: 'Watermark', href: t('watermark') },
-            { icon: Stamp, label: 'Stamps', href: t('stamps') },
+            { icon: Eye, label: tr('tools.watermark'), href: t('watermark') },
+            { icon: Stamp, label: tr('tools.stamps'), href: t('stamps') },
           ],
         },
         {
-          label: 'Advanced',
+          label: tr('groups.advanced'),
           tools: [
-            { icon: FileCheck, label: 'Compare', href: t('compare-pdfs') },
-            { icon: Settings, label: 'Metadata', href: t('edit-metadata') },
-            { icon: Layers, label: 'Flatten', href: t('flatten') },
+            { icon: FileCheck, label: tr('tools.compare'), href: t('compare-pdfs') },
+            { icon: Settings, label: tr('tools.metadata'), href: t('edit-metadata') },
+            { icon: Layers, label: tr('tools.flatten'), href: t('flatten') },
           ],
         },
       ];
@@ -274,18 +285,18 @@ function getRibbonGroups(tab: RibbonTabKey, locale: string): RibbonGroupDef[] {
     case 'fillsign':
       return [
         {
-          label: 'Fill',
+          label: tr('groups.fill'),
           tools: [
-            { icon: PenSquare, label: 'Form Filler', href: t('form-filler') },
-            { icon: LayoutGrid, label: 'Form Creator', href: t('form-creator') },
+            { icon: PenSquare, label: tr('tools.formFiller'), href: t('form-filler') },
+            { icon: LayoutGrid, label: tr('tools.formCreator'), href: t('form-creator') },
           ],
         },
         {
-          label: 'Sign',
+          label: tr('groups.sign'),
           tools: [
-            { icon: Pen, label: 'Sign', href: t('sign') },
-            { icon: ShieldCheck, label: 'Digital Sign', href: t('digital-sign') },
-            { icon: FileCheck, label: 'Validate', href: t('validate-signature') },
+            { icon: Pen, label: tr('tools.sign'), href: t('sign') },
+            { icon: ShieldCheck, label: tr('tools.digitalSign'), href: t('digital-sign') },
+            { icon: FileCheck, label: tr('tools.validate'), href: t('validate-signature') },
           ],
         },
       ];
@@ -293,23 +304,23 @@ function getRibbonGroups(tab: RibbonTabKey, locale: string): RibbonGroupDef[] {
     case 'protect':
       return [
         {
-          label: 'Security',
+          label: tr('groups.security'),
           tools: [
-            { icon: Lock, label: 'Encrypt', href: t('encrypt') },
-            { icon: Unlock, label: 'Decrypt', href: t('decrypt') },
+            { icon: Lock, label: tr('tools.encrypt'), href: t('encrypt') },
+            { icon: Unlock, label: tr('tools.decrypt'), href: t('decrypt') },
           ],
         },
         {
-          label: 'Redact',
+          label: tr('groups.redact'),
           tools: [
-            { icon: EyeOff, label: 'Redact', href: t('find-and-redact') },
-            { icon: Trash2, label: 'Remove Metadata', href: t('remove-metadata') },
+            { icon: EyeOff, label: tr('tools.redact'), href: t('find-and-redact') },
+            { icon: Trash2, label: tr('tools.removeMetadata'), href: t('remove-metadata') },
           ],
         },
         {
-          label: 'Permissions',
+          label: tr('groups.permissions'),
           tools: [
-            { icon: Settings, label: 'Permissions', href: t('change-permissions') },
+            { icon: Settings, label: tr('tools.permissions'), href: t('change-permissions') },
           ],
         },
       ];
@@ -317,12 +328,12 @@ function getRibbonGroups(tab: RibbonTabKey, locale: string): RibbonGroupDef[] {
     case 'ai':
       return [
         {
-          label: 'AI Tools',
+          label: tr('groups.aiTools'),
           tools: [
-            { icon: MessageCircle, label: 'Chat PDF', href: `/${locale}/chat-pdf` },
-            { icon: FileText, label: 'Summarize', href: `/${locale}/ai-summary` },
-            { icon: Languages, label: 'Translate', href: `/${locale}/ai-translate` },
-            { icon: ScanText, label: 'Smart OCR', href: `/${locale}/smart-ocr` },
+            { icon: MessageCircle, label: tr('tools.chatPdf'), href: `/${locale}/chat-pdf` },
+            { icon: FileText, label: tr('tools.summarize'), href: `/${locale}/ai-summary` },
+            { icon: Languages, label: tr('tools.translate'), href: `/${locale}/ai-translate` },
+            { icon: ScanText, label: tr('tools.smartOcr'), href: `/${locale}/smart-ocr` },
           ],
         },
       ];
@@ -343,6 +354,10 @@ type PdfViewerApp = {
     update?: () => void;
   };
   eventBus?: { on: (name: string, fn: (e: { scale: number }) => void) => void };
+  download?: (options?: Record<string, unknown>) => void | Promise<void>;
+  save?: (options?: Record<string, unknown>) => void | Promise<void>;
+  downloadOrSave?: (options?: Record<string, unknown>) => void | Promise<void>;
+  triggerPrinting?: () => void;
 };
 
 function getPdfApp(iframe: HTMLIFrameElement | null) {
@@ -456,20 +471,21 @@ function patchViewerIframe(
   }
 }
 
-const TAB_LIST: { key: RibbonTabKey; label: string; icon: LucideIcon }[] = [
-  { key: 'home', label: 'Home', icon: Eye },
-  { key: 'edit', label: 'Edit', icon: PenSquare },
-  { key: 'page', label: 'Page', icon: LayoutGrid },
-  { key: 'comment', label: 'Comment', icon: Highlighter },
-  { key: 'convert', label: 'Convert', icon: ArrowLeftRight },
-  { key: 'tool', label: 'Tool', icon: Wrench },
-  { key: 'fillsign', label: 'Fill & Sign', icon: Pen },
-  { key: 'protect', label: 'Protect', icon: Lock },
-  { key: 'ai', label: 'AI', icon: Bot },
+const TAB_KEYS: { key: RibbonTabKey; icon: LucideIcon }[] = [
+  { key: 'home', icon: Eye },
+  { key: 'edit', icon: PenSquare },
+  { key: 'page', icon: LayoutGrid },
+  { key: 'comment', icon: Highlighter },
+  { key: 'convert', icon: ArrowLeftRight },
+  { key: 'tool', icon: Wrench },
+  { key: 'fillsign', icon: Pen },
+  { key: 'protect', icon: Lock },
+  { key: 'ai', icon: Bot },
 ];
 
 export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps) {
   const router = useRouter();
+  const t = useTranslations('workspace');
   const hasInitialized = useRef(false);
   const [file, setFile] = useState<File | null>(null);
   const [zoom, setZoom] = useState(100);
@@ -480,16 +496,14 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [activeTab, setActiveTab] = useState<RibbonTabKey>('home');
   const [showThumbnails, setShowThumbnails] = useState(true);
-  const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
-
-  const [aiTab, setAiTab] = useState<'chat' | 'summary' | 'translate' | 'insights'>('chat');
-  const [chatInput, setChatInput] = useState('');
-  const [isAiThinking, setIsAiThinking] = useState(false);
-  const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; text: string }>>([
-    { role: 'assistant', text: 'This appears to be a 3-page document. I can summarize, translate, OCR, or extract tables.' },
-  ]);
+  const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
+  const [workspaceTool, setWorkspaceTool] = useState<WorkspaceInlineTool | null>(null);
 
   const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : ''), [file]);
+
+  useEffect(() => {
+    if (file) setIsRightPanelOpen(true);
+  }, [file]);
   /** Chỉ đổi khi file đổi — đổi tab Home/Edit/Convert không reload iframe */
   const viewerInstanceKey = file
     ? `${file.name}-${file.size}-${file.lastModified}`
@@ -538,7 +552,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
 
     const factor = direction === 'in' ? 1.1 : 1 / 1.1;
     const next = Math.max(0.25, Math.min(4, pdfViewer.currentScale * factor));
-    pdfViewer.currentScaleValue = String(next);
+    pdfViewer.currentScale = snapPdfViewerScale(next);
     setZoom(Math.round(pdfViewer.currentScale * 100));
   }, []);
 
@@ -562,12 +576,19 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     viewerFitAppliedRef.current = false;
   }, [previewUrl, viewerInstanceKey]);
 
-  // Keep zoom behavior consistent across ribbon tabs.
-  // User expectation: switching tab should always show 100%.
+  const handleEditorIframeRef = useCallback(
+    (ref: HTMLIFrameElement | null) => {
+      editorIframeRef.current = ref;
+      if (ref) patchViewer(ref);
+    },
+    [patchViewer],
+  );
+
+  // Default zoom when a new document loads (not on every ribbon tab switch).
   useEffect(() => {
     if (!previewUrl) return;
     applyPdfZoom('fit');
-  }, [activeTab, previewUrl, applyPdfZoom]);
+  }, [previewUrl, applyPdfZoom]);
 
   const handlePageSelect = useCallback((page: number) => {
     setCurrentPage(page);
@@ -627,7 +648,12 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
         break;
       case 'print':
         try {
-          editorIframeRef.current?.contentWindow?.print();
+          const app = iframeWin()?.PDFViewerApplication as PdfViewerApp | undefined;
+          if (app?.triggerPrinting) {
+            app.triggerPrinting();
+          } else {
+            editorIframeRef.current?.contentWindow?.print();
+          }
         } catch { window.print(); }
         break;
       case 'rotateCw':
@@ -643,11 +669,25 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
         } catch { /* noop */ }
         break;
       case 'save':
+        try {
+          const app = iframeWin()?.PDFViewerApplication as PdfViewerApp | undefined;
+          if (app?.save) {
+            void app.save();
+          } else if (app?.downloadOrSave) {
+            app.downloadOrSave();
+          } else {
+            app?.download?.();
+          }
+        } catch { /* noop */ }
+        break;
       case 'export':
         try {
-          const win = iframeWin();
-          const app = win?.PDFViewerApplication as { download?: () => void } | undefined;
-          app?.download?.();
+          const app = iframeWin()?.PDFViewerApplication as PdfViewerApp | undefined;
+          if (app?.download) {
+            void app.download();
+          } else if (app?.downloadOrSave) {
+            app.downloadOrSave();
+          }
         } catch { /* noop */ }
         break;
       case 'switchToEdit':
@@ -718,6 +758,26 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
           return;
         }
 
+        if (slug === 'compress-pdf') {
+          setWorkspaceTool('compress');
+          return;
+        }
+
+        if (slug === 'ocr-pdf') {
+          setWorkspaceTool('ocr');
+          return;
+        }
+
+        if (slug === 'merge-pdf') {
+          setWorkspaceTool('merge');
+          return;
+        }
+
+        if (slug === 'split-pdf') {
+          setWorkspaceTool('split');
+          return;
+        }
+
         // For page-level tools, keep user in workspace and open left page panel.
         if ([
           'add-blank-page',
@@ -725,8 +785,6 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
           'extract-pages',
           'organize-pdf',
           'reverse-pages',
-          'merge-pdf',
-          'split-pdf',
         ].includes(slug)) {
           setShowThumbnails(true);
           setActiveTab('page');
@@ -742,29 +800,22 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     }
   }, [file, router, handleRibbonAction]);
 
-  function handleSendMessage() {
-    const content = chatInput.trim();
-    if (!content || isAiThinking) return;
-    setMessages((prev) => [...prev, { role: 'user', text: content }]);
-    setChatInput('');
-    setIsAiThinking(true);
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', text: 'Got it. I am analyzing this page and preparing a concise answer with key points.' },
-      ]);
-      setIsAiThinking(false);
-    }, 900);
-  }
+  const tabList = useMemo(
+    () => TAB_KEYS.map((tab) => ({ ...tab, label: t(`tabs.${tab.key}`) })),
+    [t],
+  );
 
-  const ribbonGroups = useMemo(() => getRibbonGroups(activeTab, locale), [activeTab, locale]);
+  const ribbonGroups = useMemo(
+    () => getRibbonGroups(activeTab, locale, (key) => t(key)),
+    [activeTab, locale, t],
+  );
 
   if (isBootstrapping) {
     return (
       <section className="min-h-screen flex items-center justify-center" style={{ background: '#1e2028' }}>
         <div className="p-6 border border-white/10 rounded-xl max-w-xl text-center bg-black/20">
           <div className="h-8 w-8 rounded-full border-2 border-blue-400 border-t-transparent animate-spin mx-auto mb-3" />
-          <p className="text-sm text-white/70">Opening document workspace...</p>
+          <p className="text-sm text-white/70">{t('opening')}</p>
         </div>
       </section>
     );
@@ -785,13 +836,13 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
         <div className="w-px h-4 bg-white/[0.08] mr-2" />
 
         <span className="text-[12px] font-medium text-white/70 truncate max-w-[180px] mr-3">
-          {file?.name || 'Untitled.pdf'}
+          {file?.name || t('untitled')}
         </span>
 
         <div className="w-px h-4 bg-white/[0.08] mr-1" />
 
         <nav className="flex items-center gap-0 overflow-x-auto">
-          {TAB_LIST.map((tab) => {
+          {tabList.map((tab) => {
             const active = activeTab === tab.key;
             return (
               <button
@@ -824,16 +875,16 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
             className="inline-flex items-center gap-1 px-2 py-1 rounded text-white/50 hover:text-white hover:bg-white/[0.06] transition-all text-[11px]"
             onClick={() => handleRibbonAction('save')}
           >
-            <Save className="h-3 w-3" /> Save
+            <Save className="h-3 w-3" /> {t('header.save')}
           </button>
           <button
             className="inline-flex items-center gap-1 px-2 py-1 rounded text-white/50 hover:text-white hover:bg-white/[0.06] transition-all text-[11px]"
             onClick={() => handleRibbonAction('export')}
           >
-            <FileDown className="h-3 w-3" /> Export
+            <FileDown className="h-3 w-3" /> {t('header.export')}
           </button>
           <button className="inline-flex items-center gap-1 px-2 py-1 rounded text-white/50 hover:text-white hover:bg-white/[0.06] transition-all text-[11px]">
-            <Share2 className="h-3 w-3" /> Share
+            <Share2 className="h-3 w-3" /> {t('header.share')}
           </button>
         </div>
       </div>
@@ -885,14 +936,14 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
             <div className="flex items-center justify-between gap-1.5 px-2 py-2 border-b border-white/[0.06] shrink-0">
               <label className="inline-flex flex-1 items-center justify-center rounded-md border border-dashed border-white/10 p-2 cursor-pointer hover:bg-white/[0.04] hover:border-white/20 transition-all">
                 <Upload className="h-4 w-4 text-blue-400/80" />
-                <span className="sr-only">New PDF</span>
+                <span className="sr-only">{t('sidebar.newPdf')}</span>
                 <input type="file" accept=".pdf,application/pdf" className="hidden" onChange={(e) => handleFileChange(e.target.files?.[0] ?? null)} />
               </label>
               <button
                 type="button"
                 onClick={() => setShowThumbnails(false)}
                 className="p-1 rounded text-white/30 hover:text-white/70 hover:bg-white/[0.06] transition-all"
-                title="Hide pages"
+                title={t('sidebar.hidePages')}
               >
                 <X className="h-3 w-3" />
               </button>
@@ -919,8 +970,8 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
                 <label className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-white/15 bg-white/[0.03] px-8 py-10 text-center cursor-pointer hover:bg-white/[0.05] hover:border-white/25 transition-all">
                   <Upload className="h-8 w-8 text-blue-300/80" />
                   <div>
-                    <div className="text-[13px] font-medium text-white/80">Tải PDF để bắt đầu</div>
-                    <div className="mt-1 text-[11px] text-white/45">Chọn file .pdf (sẽ mở ngay trong workspace)</div>
+                    <div className="text-[13px] font-medium text-white/80">{t('upload.title')}</div>
+                    <div className="mt-1 text-[11px] text-white/45">{t('upload.description')}</div>
                   </div>
                   <input
                     type="file"
@@ -939,89 +990,18 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
                 immersive
                 sourceFile={file}
                 sourcePdfUrl={previewUrl}
-                onIframeRef={(ref) => {
-                  editorIframeRef.current = ref;
-                  if (ref) patchViewer(ref);
-                }}
+                onIframeRef={handleEditorIframeRef}
               />
             )}
           </div>
         </div>
 
-        {/* Right: AI Panel */}
-        {isRightPanelOpen && (
-          <aside className="w-[300px] shrink-0 flex flex-col bg-[#1e2028]">
-            <div className="flex items-center justify-between px-3 py-2 border-b border-white/[0.06] shrink-0">
-              <span className="text-[12px] font-medium text-white/80">AI Assistant</span>
-              <button
-                type="button"
-                onClick={() => setIsRightPanelOpen(false)}
-                className="p-0.5 rounded text-white/30 hover:text-white/70 hover:bg-white/[0.06] transition-all"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </div>
-
-            <div className="px-3 py-2 border-b border-white/[0.06] shrink-0">
-              <div className="flex items-center gap-2 text-[11px]">
-                {(['chat', 'summary', 'translate', 'insights'] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => setAiTab(tab)}
-                    className={`capitalize px-1.5 py-0.5 rounded ${
-                      aiTab === tab ? 'text-blue-300 bg-blue-500/10' : 'text-white/50 hover:text-white/80'
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="px-3 py-2 shrink-0">
-              <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-2.5">
-                <div className="text-[10px] text-white/40">Detected</div>
-                <div className="mt-1 text-[11px] text-white/70">
-                  {pageCount > 0 ? `${pageCount}-page document` : 'Document loaded'}
-                </div>
-              </div>
-            </div>
-
-            <div className="px-3 py-1 space-y-1 shrink-0">
-              {['Summarize', 'Translate', 'Extract tables', 'OCR'].map((label) => (
-                <button
-                  key={label}
-                  className="block w-full rounded-lg border border-white/[0.06] px-2.5 py-1.5 text-left text-[11px] text-white/70 hover:bg-white/[0.04] hover:border-white/10 transition-all"
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex-1 min-h-0 flex flex-col px-3 py-2">
-              <div className="flex-1 overflow-auto space-y-2 pr-1">
-                {messages.map((m, idx) => (
-                  <div key={idx} className={`${m.role === 'assistant' ? 'text-white/70' : 'text-blue-200'} text-[11px]`}>
-                    {m.text}
-                  </div>
-                ))}
-                {isAiThinking && <div className="text-[10px] text-blue-300 animate-pulse">Thinking...</div>}
-              </div>
-              <div className="pt-2 border-t border-white/[0.06] flex items-center gap-2 shrink-0">
-                <input
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                  placeholder="Ask about this document..."
-                  className="flex-1 min-w-0 h-7 rounded-md border border-white/[0.08] bg-white/[0.03] px-2 text-[11px] placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-blue-400/30 transition-all"
-                />
-                <Button size="sm" onClick={handleSendMessage} className="h-7 px-2 text-[10px]">
-                  Send
-                </Button>
-              </div>
-            </div>
-          </aside>
+        {isRightPanelOpen && file && (
+          <WorkspaceAIPanel
+            file={file}
+            pageCount={pageCount}
+            onClose={() => setIsRightPanelOpen(false)}
+          />
         )}
       </div>
 
@@ -1034,7 +1014,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
               type="button"
               onClick={() => setShowThumbnails(true)}
               className="p-0.5 rounded text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-all"
-              title="Show thumbnails"
+              title={t('sidebar.showThumbnails')}
             >
               <LayoutGrid className="h-3.5 w-3.5" />
             </button>
@@ -1094,7 +1074,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
           <button
             className="p-1 rounded text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-all"
             onClick={() => setIsRightPanelOpen((prev) => !prev)}
-            title="AI Assistant"
+            title={t('statusBar.aiAssistant')}
           >
             {isRightPanelOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
           </button>
@@ -1115,6 +1095,37 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
           </div>
         </div>
       </div>
+
+      {workspaceTool && file && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('inlineTools.dialogLabel')}
+        >
+          <div className="relative flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-white/10 bg-[#252830] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3 shrink-0">
+              <h2 className="text-[13px] font-medium text-white/90">
+                {t(`inlineTools.${workspaceTool}`)}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setWorkspaceTool(null)}
+                className="rounded p-1 text-white/40 hover:bg-white/[0.06] hover:text-white/80 transition-all"
+                aria-label={t('inlineTools.close')}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              {workspaceTool === 'compress' && <CompressPDFTool initialFile={file} />}
+              {workspaceTool === 'ocr' && <OCRPDFTool initialFile={file} />}
+              {workspaceTool === 'merge' && <MergePDFTool initialFile={file} />}
+              {workspaceTool === 'split' && <SplitPDFTool initialFile={file} />}
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

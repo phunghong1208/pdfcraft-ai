@@ -243,13 +243,13 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
               {openGroup === 'pdf' && renderGroupDropdown(pdfItems)}
             </div>
 
-            <Link href={`/${locale}/workspace`} className={`px-3.5 py-1.5 text-sm font-medium rounded-full transition-all ${isWorkspaceActive ? 'text-[hsl(var(--color-primary))] bg-[hsl(var(--color-primary)/0.14)]' : 'text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))] hover:bg-white/[0.06]'}`}>Workspace</Link>
+            <Link href={`/${locale}/workspace`} className={`px-3.5 py-1.5 text-sm font-medium rounded-full transition-all ${isWorkspaceActive ? 'text-[hsl(var(--color-primary))] bg-[hsl(var(--color-primary)/0.14)]' : 'text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))] hover:bg-white/[0.06]'}`}>{t('ai.menu.workspace')}</Link>
           </nav>
 
           <div className="hidden lg:flex flex-1 items-center justify-center px-10">
             {showSearch && !isSearchOpen && (
-              <Button variant="ghost" size="sm" onClick={handleSearchToggle} aria-label="Open search" className="h-11 w-[290px] justify-between rounded-xl border border-white/10 bg-white/[0.045] px-3 text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))] hover:bg-white/[0.08] hover:border-blue-400/30 transition-colors focus-visible:ring-2 focus-visible:ring-blue-500/20">
-                <span className="inline-flex items-center text-sm font-medium">Search PDFs...</span>
+              <Button variant="ghost" size="sm" onClick={handleSearchToggle} aria-label={t('search.open')} className="h-11 w-[290px] justify-between rounded-xl border border-white/10 bg-white/[0.045] px-3 text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))] hover:bg-white/[0.08] hover:border-blue-400/30 transition-colors focus-visible:ring-2 focus-visible:ring-blue-500/20">
+                <span className="inline-flex items-center text-sm font-medium">{t('search.trigger')}</span>
                 <span className="text-xs font-semibold text-[hsl(var(--color-muted-foreground))/0.8] border border-[hsl(var(--color-border))] rounded px-1.5 py-0.5">⌘K</span>
               </Button>
             )}
@@ -268,12 +268,12 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onKeyDown={handleInputKeyDown}
-                        placeholder={t('search.placeholder') || 'Search PDFs, tools, AI...'}
+                        placeholder={t('search.placeholderExpanded')}
                         className="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-background))] shadow-lg focus:outline-none focus:ring-2 focus:ring-[hsl(var(--color-primary))]"
-                        aria-label="Search tools"
+                        aria-label={t('search.trigger')}
                         autoComplete="off"
                       />
-                      <Button variant="ghost" size="sm" onClick={handleSearchToggle} aria-label="Close search" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-transparent">
+                      <Button variant="ghost" size="sm" onClick={handleSearchToggle} aria-label={t('search.close')} className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-transparent">
                         <X className="h-4 w-4 text-[hsl(var(--color-muted-foreground))]" aria-hidden="true" />
                       </Button>
 
@@ -309,7 +309,7 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
                     </div>
                   </div>
                 ) : (
-                  <Button variant="ghost" size="sm" onClick={handleSearchToggle} aria-label="Open search" className="lg:hidden relative text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))] hover:bg-[hsl(var(--color-muted))/0.6] transition-colors rounded-full">
+                  <Button variant="ghost" size="sm" onClick={handleSearchToggle} aria-label={t('search.open')} className="lg:hidden relative text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))] hover:bg-[hsl(var(--color-muted))/0.6] transition-colors rounded-full">
                     <Search className="h-4 w-4" aria-hidden="true" />
                   </Button>
                 )}
@@ -333,10 +333,10 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
               type="button"
               className="hidden sm:inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-semibold bg-white/[0.05] hover:bg-white/[0.1] transition-colors"
               aria-label="Account"
-              title="Upgrade plan"
+              title={t('upgradeTitle')}
             >
               <UserCircle2 className="h-4 w-4" />
-              <span className="font-medium">Upgrade</span>
+              <span className="font-medium">{t('upgrade')}</span>
             </button>
 
             <Button

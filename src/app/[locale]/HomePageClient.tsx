@@ -18,26 +18,26 @@ interface HomePageClientProps {
 }
 
 export default function HomePageClient({ locale }: HomePageClientProps) {
-  const t = useTranslations();
-  const isVi = locale === 'vi';
+  const t = useTranslations('homePage');
+  const tCommon = useTranslations('common');
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [isPreparing, setIsPreparing] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
 
   const aiActions = [
-    { href: `/${locale}/ai-summary`, label: isVi ? 'Tóm tắt' : 'Summarize', icon: Sparkles },
-    { href: `/${locale}/ai-translate`, label: isVi ? 'Dịch tài liệu' : 'Translate', icon: Languages },
-    { href: `/${locale}/chat-pdf`, label: isVi ? 'Chat với PDF' : 'Chat with PDF', icon: MessagesSquare },
-    { href: `/${locale}/smart-ocr`, label: isVi ? 'OCR Scan' : 'OCR Scan', icon: ScanText },
-    { href: `/${locale}/voice-reader`, label: isVi ? 'Voice Reader' : 'Voice Reader', icon: Volume2 },
+    { href: `/${locale}/ai-summary`, label: t('actions.summarize'), icon: Sparkles },
+    { href: `/${locale}/ai-translate`, label: t('actions.translate'), icon: Languages },
+    { href: `/${locale}/chat-pdf`, label: t('actions.chat'), icon: MessagesSquare },
+    { href: `/${locale}/smart-ocr`, label: t('actions.ocr'), icon: ScanText },
+    { href: `/${locale}/voice-reader`, label: t('actions.voice'), icon: Volume2 },
   ];
 
   const pdfActions = [
-    { href: `/${locale}/tools?tab=edit`, label: isVi ? 'Edit' : 'Edit', icon: PencilLine },
-    { href: `/${locale}/tools?tab=optimize`, label: isVi ? 'Compress' : 'Compress', icon: Minimize2 },
-    { href: `/${locale}/tools?tab=edit`, label: isVi ? 'Merge' : 'Merge', icon: GitMerge },
-    { href: `/${locale}/tools?tab=convert`, label: isVi ? 'Convert' : 'Convert', icon: FileCog },
+    { href: `/${locale}/tools?tab=edit`, label: t('actions.edit'), icon: PencilLine },
+    { href: `/${locale}/tools?tab=optimize`, label: t('actions.compress'), icon: Minimize2 },
+    { href: `/${locale}/tools?tab=edit`, label: t('actions.merge'), icon: GitMerge },
+    { href: `/${locale}/tools?tab=convert`, label: t('actions.convert'), icon: FileCog },
   ];
 
   function startUpload() {
@@ -68,15 +68,15 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
             <div className="max-w-4xl mx-auto text-center">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.35)] mb-4">
                 <Sparkles className="h-4 w-4 text-[hsl(var(--color-primary))]" />
-                <span className="text-sm font-medium">{t('common.brand')} • {isVi ? 'AI PDF Workspace' : 'AI PDF Workspace'}</span>
+                <span className="text-sm font-medium">
+                  {tCommon('brand')} • {tCommon('workspaceBadge')}
+                </span>
               </div>
               <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-[hsl(var(--color-foreground))]">
-                {locale === 'vi' ? 'Hiểu mọi tài liệu PDF với AI' : 'Understand Any PDF with AI'}
+                {t('heroTitle')}
               </h1>
               <p className="mt-4 text-lg text-[hsl(var(--color-muted-foreground))]">
-                {locale === 'vi'
-                  ? 'Tóm tắt, dịch, chat và chỉnh sửa tài liệu trong vài giây.'
-                  : 'Summarize, translate, chat, and edit documents instantly.'}
+                {t('heroSubtitle')}
               </p>
             </div>
           </div>
@@ -89,11 +89,11 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
                 <div className="mx-auto mb-3 h-12 w-12 rounded-full bg-[hsl(var(--color-primary)/0.15)] flex items-center justify-center shadow-[0_0_24px_hsl(var(--color-primary)/0.2)] animate-pulse">
                   <Upload className="h-7 w-7 text-[hsl(var(--color-primary))]" />
                 </div>
-                <h2 className="text-2xl font-semibold">{isVi ? 'Upload tài liệu để bắt đầu' : 'Upload document to start'}</h2>
-                <p className="mt-2 text-sm text-[hsl(var(--color-muted-foreground))]">{isVi ? 'Mở Document Workspace và thao tác bằng AI theo ngữ cảnh.' : 'Open Document Workspace and use contextual AI actions.'}</p>
+                <h2 className="text-2xl font-semibold">{t('uploadTitle')}</h2>
+                <p className="mt-2 text-sm text-[hsl(var(--color-muted-foreground))]">{t('uploadDescription')}</p>
                 <div className="inline-block mt-5">
                   <Button variant="primary" size="lg" onClick={startUpload} className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-500 hover:to-indigo-600 shadow-[0_8px_24px_rgba(59,130,246,0.28)] hover:scale-[1.01] transition-all">
-                    {isVi ? 'Upload to Workspace' : 'Upload to Workspace'}
+                    {t('uploadCta')}
                   </Button>
                 </div>
                 <input
@@ -104,9 +104,9 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
                   onChange={(e) => handleSelectedFile(e.target.files?.[0] ?? null)}
                 />
                 <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-xs text-[hsl(var(--color-muted-foreground))]">
-                  <span>✓ Secure processing</span>
-                  <span>✓ AI-powered OCR</span>
-                  <span>✓ Supports 100+ languages</span>
+                  <span>✓ {t('uploadSecure')}</span>
+                  <span>✓ {t('uploadOcr')}</span>
+                  <span>✓ {t('uploadLanguages')}</span>
                 </div>
               </div>
             </Card>
@@ -117,9 +117,9 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold">{isVi ? 'AI Actions' : 'AI Actions'}</h2>
+                <h2 className="text-2xl font-bold">{t('aiActionsTitle')}</h2>
                 <Link href={`/${locale}/workspace`} className="text-sm text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))]">
-                  {isVi ? 'Dùng trong Workspace' : 'Use in Workspace'}
+                  {t('useInWorkspace')}
                 </Link>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -145,9 +145,9 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold">{isVi ? 'Core PDF Actions' : 'Core PDF Actions'}</h2>
+                <h2 className="text-xl font-bold">{t('coreActionsTitle')}</h2>
                 <Link href={`/${locale}/tools`} className="text-sm text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))]">
-                  {isVi ? 'Xem tất cả tools' : 'View all tools'}
+                  {t('viewAllTools')}
                 </Link>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -178,11 +178,11 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
         <div className="fixed inset-0 z-[100] bg-black/65 backdrop-blur-sm flex items-center justify-center px-4">
           <Card className="w-full max-w-md p-6 border border-white/15 bg-[hsl(var(--color-card))]">
             <div className="h-9 w-9 rounded-full border-2 border-blue-400 border-t-transparent animate-spin mb-4" />
-            <h3 className="text-lg font-semibold mb-3">{isVi ? 'Đang chuẩn bị tài liệu...' : 'Preparing document...'}</h3>
+            <h3 className="text-lg font-semibold mb-3">{t('preparingTitle')}</h3>
             <ul className="space-y-2 text-sm text-[hsl(var(--color-muted-foreground))]">
-              <li className={loadingStep >= 0 ? 'text-[hsl(var(--color-foreground))]' : ''}>Uploading...</li>
-              <li className={loadingStep >= 1 ? 'text-[hsl(var(--color-foreground))]' : ''}>Analyzing document...</li>
-              <li className={loadingStep >= 2 ? 'text-[hsl(var(--color-foreground))]' : ''}>Preparing AI workspace...</li>
+              <li className={loadingStep >= 0 ? 'text-[hsl(var(--color-foreground))]' : ''}>{t('preparingUploading')}</li>
+              <li className={loadingStep >= 1 ? 'text-[hsl(var(--color-foreground))]' : ''}>{t('preparingAnalyzing')}</li>
+              <li className={loadingStep >= 2 ? 'text-[hsl(var(--color-foreground))]' : ''}>{t('preparingWorkspace')}</li>
             </ul>
           </Card>
         </div>

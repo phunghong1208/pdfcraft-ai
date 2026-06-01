@@ -1,0 +1,70 @@
+{
+  "workspaceBadge": "Espacio de trabajo PDF con IA",
+  "upgrade": "Mejorar plan",
+  "upgradeTitle": "Mejorar plan",
+  "search": {
+    "trigger": "Buscar PDF...",
+    "placeholderExpanded": "Buscar PDF, herramientas, IA...",
+    "open": "Abrir búsqueda",
+    "close": "Cerrar búsqueda"
+  },
+  "footer": {
+    "resources": "Recursos",
+    "security": "Seguridad",
+    "compliance": "Cumplimiento",
+    "gdprCompliant": "Conforme con el RGPD",
+    "clientSideProcessing": "Procesamiento en el cliente",
+    "filesNeverLeave": "Los archivos nunca salen de su dispositivo",
+    "noUploads": "Sin subida de archivos",
+    "privateSecure": "100 % privado y seguro",
+    "terms": "Términos",
+    "privacyLink": "Privacidad",
+    "cookies": "Cookies"
+  },
+  "aiMenu": {
+    "aiAssistant": "Asistente de IA",
+    "pdfTools": "Herramientas PDF",
+    "workspace": "Espacio de trabajo",
+    "summarizePdf": "Resumir PDF",
+    "translatePdf": "Traducir PDF",
+    "chatWithPdf": "Chat con PDF",
+    "smartOcr": "OCR inteligente",
+    "voiceReader": "Lector de voz",
+    "editPdf": "Editar PDF",
+    "mergePdf": "Combinar PDF",
+    "splitPdf": "Dividir PDF",
+    "compressPdf": "Comprimir PDF",
+    "pdfToWord": "PDF a Word",
+    "ocrPdf": "OCR de PDF"
+  },
+  "homePage": {
+    "badge": "Espacio de trabajo PDF con IA",
+    "heroTitle": "Comprenda cualquier PDF con IA",
+    "heroSubtitle": "Resuma, traduzca, converse y edite documentos al instante.",
+    "uploadTitle": "Suba un documento para empezar",
+    "uploadDescription": "Abra el espacio de trabajo de documentos y use acciones de IA contextuales.",
+    "uploadCta": "Subir al espacio de trabajo",
+    "uploadSecure": "Procesamiento seguro",
+    "uploadOcr": "OCR con IA",
+    "uploadLanguages": "Compatible con más de 100 idiomas",
+    "aiActionsTitle": "Acciones de IA",
+    "useInWorkspace": "Usar en el espacio de trabajo",
+    "coreActionsTitle": "Acciones PDF principales",
+    "viewAllTools": "Ver todas las herramientas",
+    "preparingTitle": "Preparando documento...",
+    "preparingUploading": "Subiendo...",
+    "preparingAnalyzing": "Analizando documento...",
+    "preparingWorkspace": "Preparando el espacio de trabajo con IA...",
+    "actions": {
+      "summarize": "Resumir",
+      "translate": "Traducir documento",
+      "chat": "Chat con PDF",
+      "ocr": "Escaneo OCR",
+      "voice": "Lector de voz",
+      "edit": "Editar",
+      "compress": "Comprimir",
+      "merge": "Combinar",
+      "convert": "Convertir"
+    }
+  }
+}

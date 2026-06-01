@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { FileUploader } from '../FileUploader';
 import { ProcessingProgress } from '../ProcessingProgress';
@@ -14,6 +14,8 @@ import { Trash2, FileArchive, Check, AlertCircle, Loader2, X } from 'lucide-reac
 export interface CompressPDFToolProps {
   /** Custom class name */
   className?: string;
+  /** Pre-load a file when opened from workspace ribbon */
+  initialFile?: File | null;
 }
 
 /**
@@ -23,7 +25,7 @@ export interface CompressPDFToolProps {
  * Provides the UI for compressing PDF files with quality options.
  * Supports batch processing of multiple files with ZIP download.
  */
-export function CompressPDFTool({ className = '' }: CompressPDFToolProps) {
+export function CompressPDFTool({ className = '', initialFile = null }: CompressPDFToolProps) {
   const t = useTranslations('common');
   const tTools = useTranslations('tools');
 
@@ -61,6 +63,14 @@ export function CompressPDFTool({ className = '' }: CompressPDFToolProps) {
       setError(null);
     }
   }, [addFiles]);
+
+  const initialFileSeededRef = useRef(false);
+  useEffect(() => {
+    if (!initialFile || initialFileSeededRef.current) return;
+    initialFileSeededRef.current = true;
+    addFiles([initialFile]);
+    setError(null);
+  }, [initialFile, addFiles]);
 
   /**
    * Handle file upload error

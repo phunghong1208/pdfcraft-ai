@@ -1,0 +1,70 @@
+{
+  "workspaceBadge": "مساحة عمل PDF بالذكاء الاصطناعي",
+  "upgrade": "ترقية",
+  "upgradeTitle": "ترقية الخطة",
+  "search": {
+    "trigger": "البحث في ملفات PDF...",
+    "placeholderExpanded": "ابحث في PDF والأدوات والذكاء الاصطناعي...",
+    "open": "فتح البحث",
+    "close": "إغلاق البحث"
+  },
+  "footer": {
+    "resources": "الموارد",
+    "security": "الأمان",
+    "compliance": "الامتثال",
+    "gdprCompliant": "متوافق مع GDPR",
+    "clientSideProcessing": "معالجة على جهاز العميل",
+    "filesNeverLeave": "الملفات لا تغادر جهازك",
+    "noUploads": "بدون رفع ملفات",
+    "privateSecure": "خاص وآمن بنسبة 100%",
+    "terms": "الشروط",
+    "privacyLink": "الخصوصية",
+    "cookies": "ملفات تعريف الارتباط"
+  },
+  "aiMenu": {
+    "aiAssistant": "مساعد الذكاء الاصطناعي",
+    "pdfTools": "أدوات PDF",
+    "workspace": "مساحة العمل",
+    "summarizePdf": "تلخيص PDF",
+    "translatePdf": "ترجمة PDF",
+    "chatWithPdf": "الدردشة مع PDF",
+    "smartOcr": "OCR ذكي",
+    "voiceReader": "قارئ صوتي",
+    "editPdf": "تحرير PDF",
+    "mergePdf": "دمج PDF",
+    "splitPdf": "تقسيم PDF",
+    "compressPdf": "ضغط PDF",
+    "pdfToWord": "PDF إلى Word",
+    "ocrPdf": "OCR لملف PDF"
+  },
+  "homePage": {
+    "badge": "مساحة عمل PDF بالذكاء الاصطناعي",
+    "heroTitle": "افهم أي PDF بالذكاء الاصطناعي",
+    "heroSubtitle": "لخّص وترجم وتحدث وحرّر المستندات فورًا.",
+    "uploadTitle": "ارفع مستندًا للبدء",
+    "uploadDescription": "افتح مساحة عمل المستند واستخدم إجراءات الذكاء الاصطناعي السياقية.",
+    "uploadCta": "الرفع إلى مساحة العمل",
+    "uploadSecure": "معالجة آمنة",
+    "uploadOcr": "OCR مدعوم بالذكاء الاصطناعي",
+    "uploadLanguages": "يدعم أكثر من 100 لغة",
+    "aiActionsTitle": "إجراءات الذكاء الاصطناعي",
+    "useInWorkspace": "استخدام في مساحة العمل",
+    "coreActionsTitle": "إجراءات PDF الأساسية",
+    "viewAllTools": "عرض جميع الأدوات",
+    "preparingTitle": "جارٍ تحضير المستند...",
+    "preparingUploading": "جارٍ الرفع...",
+    "preparingAnalyzing": "جارٍ تحليل المستند...",
+    "preparingWorkspace": "جارٍ تحضير مساحة عمل الذكاء الاصطناعي...",
+    "actions": {
+      "summarize": "تلخيص",
+      "translate": "ترجمة المستند",
+      "chat": "الدردشة مع PDF",
+      "ocr": "مسح OCR",
+      "voice": "قارئ صوتي",
+      "edit": "تحرير",
+      "compress": "ضغط",
+      "merge": "دمج",
+      "convert": "تحويل"
+    }
+  }
+}

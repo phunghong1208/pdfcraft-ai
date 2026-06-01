@@ -22,6 +22,8 @@ dist
 coverage
 
 # Misc
+# Thư mục lỡ `git init` — không phải tool PDFReader trong src/
+PDFReader/
 .DS_Store
 *.pem
 Thumbs.db

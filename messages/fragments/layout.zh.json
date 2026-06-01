@@ -1,0 +1,70 @@
+{
+  "workspaceBadge": "AI PDF 工作区",
+  "upgrade": "升级",
+  "upgradeTitle": "升级套餐",
+  "search": {
+    "trigger": "搜索 PDF...",
+    "placeholderExpanded": "搜索 PDF、工具、AI...",
+    "open": "打开搜索",
+    "close": "关闭搜索"
+  },
+  "footer": {
+    "resources": "资源",
+    "security": "安全",
+    "compliance": "合规",
+    "gdprCompliant": "符合 GDPR",
+    "clientSideProcessing": "客户端处理",
+    "filesNeverLeave": "文件永不离开您的设备",
+    "noUploads": "不上传文件",
+    "privateSecure": "100% 私密且安全",
+    "terms": "条款",
+    "privacyLink": "隐私",
+    "cookies": "Cookie"
+  },
+  "aiMenu": {
+    "aiAssistant": "AI 助手",
+    "pdfTools": "PDF 工具",
+    "workspace": "工作区",
+    "summarizePdf": "PDF 摘要",
+    "translatePdf": "翻译 PDF",
+    "chatWithPdf": "与 PDF 对话",
+    "smartOcr": "智能 OCR",
+    "voiceReader": "语音朗读",
+    "editPdf": "编辑 PDF",
+    "mergePdf": "合并 PDF",
+    "splitPdf": "拆分 PDF",
+    "compressPdf": "压缩 PDF",
+    "pdfToWord": "PDF 转 Word",
+    "ocrPdf": "PDF OCR"
+  },
+  "homePage": {
+    "badge": "AI PDF 工作区",
+    "heroTitle": "用 AI 理解任何 PDF",
+    "heroSubtitle": "即时摘要、翻译、对话和编辑文档。",
+    "uploadTitle": "上传文档开始使用",
+    "uploadDescription": "打开文档工作区并使用上下文 AI 操作。",
+    "uploadCta": "上传到工作区",
+    "uploadSecure": "安全处理",
+    "uploadOcr": "AI 驱动 OCR",
+    "uploadLanguages": "支持 100+ 种语言",
+    "aiActionsTitle": "AI 操作",
+    "useInWorkspace": "在工作区中使用",
+    "coreActionsTitle": "核心 PDF 操作",
+    "viewAllTools": "查看所有工具",
+    "preparingTitle": "正在准备文档...",
+    "preparingUploading": "上传中...",
+    "preparingAnalyzing": "正在分析文档...",
+    "preparingWorkspace": "正在准备 AI 工作区...",
+    "actions": {
+      "summarize": "摘要",
+      "translate": "翻译文档",
+      "chat": "与 PDF 对话",
+      "ocr": "OCR 扫描",
+      "voice": "语音朗读",
+      "edit": "编辑",
+      "compress": "压缩",
+      "merge": "合并",
+      "convert": "转换"
+    }
+  }
+}

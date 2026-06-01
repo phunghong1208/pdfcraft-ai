@@ -1,0 +1,70 @@
+{
+  "workspaceBadge": "AI PDF Workspace",
+  "upgrade": "Upgrade",
+  "upgradeTitle": "Upgrade plan",
+  "search": {
+    "trigger": "Search PDFs...",
+    "placeholderExpanded": "Search PDFs, tools, AI...",
+    "open": "Open search",
+    "close": "Close search"
+  },
+  "footer": {
+    "resources": "Resources",
+    "security": "Security",
+    "compliance": "Compliance",
+    "gdprCompliant": "GDPR Compliant",
+    "clientSideProcessing": "Client-side processing",
+    "filesNeverLeave": "Files never leave your device",
+    "noUploads": "No file uploads",
+    "privateSecure": "100% private & secure",
+    "terms": "Terms",
+    "privacyLink": "Privacy",
+    "cookies": "Cookies"
+  },
+  "aiMenu": {
+    "aiAssistant": "AI Assistant",
+    "pdfTools": "PDF Tools",
+    "workspace": "Workspace",
+    "summarizePdf": "Summarize PDF",
+    "translatePdf": "Translate PDF",
+    "chatWithPdf": "Chat with PDF",
+    "smartOcr": "Smart OCR",
+    "voiceReader": "Voice Reader",
+    "editPdf": "Edit PDF",
+    "mergePdf": "Merge PDF",
+    "splitPdf": "Split PDF",
+    "compressPdf": "Compress PDF",
+    "pdfToWord": "PDF to Word",
+    "ocrPdf": "OCR PDF"
+  },
+  "homePage": {
+    "badge": "AI PDF Workspace",
+    "heroTitle": "Understand Any PDF with AI",
+    "heroSubtitle": "Summarize, translate, chat, and edit documents instantly.",
+    "uploadTitle": "Upload document to start",
+    "uploadDescription": "Open Document Workspace and use contextual AI actions.",
+    "uploadCta": "Upload to Workspace",
+    "uploadSecure": "Secure processing",
+    "uploadOcr": "AI-powered OCR",
+    "uploadLanguages": "Supports 100+ languages",
+    "aiActionsTitle": "AI Actions",
+    "useInWorkspace": "Use in Workspace",
+    "coreActionsTitle": "Core PDF Actions",
+    "viewAllTools": "View all tools",
+    "preparingTitle": "Preparing document...",
+    "preparingUploading": "Uploading...",
+    "preparingAnalyzing": "Analyzing document...",
+    "preparingWorkspace": "Preparing AI workspace...",
+    "actions": {
+      "summarize": "Summarize",
+      "translate": "Translate document",
+      "chat": "Chat with PDF",
+      "ocr": "OCR Scan",
+      "voice": "Voice Reader",
+      "edit": "Edit",
+      "compress": "Compress",
+      "merge": "Merge",
+      "convert": "Convert"
+    }
+  }
+}

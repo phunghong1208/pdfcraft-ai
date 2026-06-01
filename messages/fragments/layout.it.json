@@ -1,0 +1,70 @@
+{
+  "workspaceBadge": "Area di lavoro PDF con AI",
+  "upgrade": "Aggiorna",
+  "upgradeTitle": "Aggiorna piano",
+  "search": {
+    "trigger": "Cerca PDF...",
+    "placeholderExpanded": "Cerca PDF, strumenti, AI...",
+    "open": "Apri ricerca",
+    "close": "Chiudi ricerca"
+  },
+  "footer": {
+    "resources": "Risorse",
+    "security": "Sicurezza",
+    "compliance": "Conformità",
+    "gdprCompliant": "Conforme al GDPR",
+    "clientSideProcessing": "Elaborazione lato client",
+    "filesNeverLeave": "I file non lasciano mai il tuo dispositivo",
+    "noUploads": "Nessun caricamento di file",
+    "privateSecure": "100% privato e sicuro",
+    "terms": "Termini",
+    "privacyLink": "Privacy",
+    "cookies": "Cookie"
+  },
+  "aiMenu": {
+    "aiAssistant": "Assistente AI",
+    "pdfTools": "Strumenti PDF",
+    "workspace": "Area di lavoro",
+    "summarizePdf": "Riassumi PDF",
+    "translatePdf": "Traduci PDF",
+    "chatWithPdf": "Chat con PDF",
+    "smartOcr": "OCR intelligente",
+    "voiceReader": "Lettore vocale",
+    "editPdf": "Modifica PDF",
+    "mergePdf": "Unisci PDF",
+    "splitPdf": "Dividi PDF",
+    "compressPdf": "Comprimi PDF",
+    "pdfToWord": "PDF in Word",
+    "ocrPdf": "OCR PDF"
+  },
+  "homePage": {
+    "badge": "Area di lavoro PDF con AI",
+    "heroTitle": "Comprendi qualsiasi PDF con l'AI",
+    "heroSubtitle": "Riassumi, traduci, chatta e modifica i documenti all'istante.",
+    "uploadTitle": "Carica un documento per iniziare",
+    "uploadDescription": "Apri l'area di lavoro del documento e usa azioni AI contestuali.",
+    "uploadCta": "Carica nell'area di lavoro",
+    "uploadSecure": "Elaborazione sicura",
+    "uploadOcr": "OCR basato su AI",
+    "uploadLanguages": "Supporta oltre 100 lingue",
+    "aiActionsTitle": "Azioni AI",
+    "useInWorkspace": "Usa nell'area di lavoro",
+    "coreActionsTitle": "Azioni PDF principali",
+    "viewAllTools": "Vedi tutti gli strumenti",
+    "preparingTitle": "Preparazione del documento...",
+    "preparingUploading": "Caricamento...",
+    "preparingAnalyzing": "Analisi del documento...",
+    "preparingWorkspace": "Preparazione dell'area di lavoro AI...",
+    "actions": {
+      "summarize": "Riassumi",
+      "translate": "Traduci documento",
+      "chat": "Chat con PDF",
+      "ocr": "Scansione OCR",
+      "voice": "Lettore vocale",
+      "edit": "Modifica",
+      "compress": "Comprimi",
+      "merge": "Unisci",
+      "convert": "Converti"
+    }
+  }
+}

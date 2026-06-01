@@ -9,8 +9,8 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enable static export for deployment flexibility
-  output: 'export',
+  // Static export chỉ khi build — dev giữ rewrites proxy AI (tránh CORS)
+  ...(process.env.NODE_ENV === 'production' ? { output: 'export' } : {}),
   
   // Support deployment under a subpath (e.g., /pdfcraft/)
   // Use BASE_PATH or NEXT_PUBLIC_BASE_PATH environment variable
@@ -88,6 +88,11 @@ const nextConfig = {
 
   // Trailing slash for static hosting compatibility
   trailingSlash: true,
+
+  // Dev: app/api/workspace-ai/[...path]/route.ts proxy (timeout dài). Production static: nginx.
+  experimental: {
+    proxyTimeout: Number(process.env.AI_PROXY_TIMEOUT_MS || 600_000),
+  },
 
   // Strict mode for better development experience
   reactStrictMode: true,

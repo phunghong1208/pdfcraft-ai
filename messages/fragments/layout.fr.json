@@ -1,0 +1,70 @@
+{
+  "workspaceBadge": "Espace de travail PDF avec IA",
+  "upgrade": "Mettre à niveau",
+  "upgradeTitle": "Mettre à niveau l'abonnement",
+  "search": {
+    "trigger": "Rechercher des PDF...",
+    "placeholderExpanded": "Rechercher des PDF, outils, IA...",
+    "open": "Ouvrir la recherche",
+    "close": "Fermer la recherche"
+  },
+  "footer": {
+    "resources": "Ressources",
+    "security": "Sécurité",
+    "compliance": "Conformité",
+    "gdprCompliant": "Conforme au RGPD",
+    "clientSideProcessing": "Traitement côté client",
+    "filesNeverLeave": "Les fichiers ne quittent jamais votre appareil",
+    "noUploads": "Aucun envoi de fichiers",
+    "privateSecure": "100 % privé et sécurisé",
+    "terms": "Conditions",
+    "privacyLink": "Confidentialité",
+    "cookies": "Cookies"
+  },
+  "aiMenu": {
+    "aiAssistant": "Assistant IA",
+    "pdfTools": "Outils PDF",
+    "workspace": "Espace de travail",
+    "summarizePdf": "Résumer le PDF",
+    "translatePdf": "Traduire le PDF",
+    "chatWithPdf": "Discuter avec le PDF",
+    "smartOcr": "OCR intelligent",
+    "voiceReader": "Lecture vocale",
+    "editPdf": "Modifier le PDF",
+    "mergePdf": "Fusionner le PDF",
+    "splitPdf": "Diviser le PDF",
+    "compressPdf": "Compresser le PDF",
+    "pdfToWord": "PDF vers Word",
+    "ocrPdf": "OCR du PDF"
+  },
+  "homePage": {
+    "badge": "Espace de travail PDF avec IA",
+    "heroTitle": "Comprenez n'importe quel PDF grâce à l'IA",
+    "heroSubtitle": "Résumez, traduisez, discutez et modifiez vos documents en un instant.",
+    "uploadTitle": "Importez un document pour commencer",
+    "uploadDescription": "Ouvrez l'espace de travail document et utilisez les actions IA contextuelles.",
+    "uploadCta": "Importer dans l'espace de travail",
+    "uploadSecure": "Traitement sécurisé",
+    "uploadOcr": "OCR alimenté par l'IA",
+    "uploadLanguages": "Plus de 100 langues prises en charge",
+    "aiActionsTitle": "Actions IA",
+    "useInWorkspace": "Utiliser dans l'espace de travail",
+    "coreActionsTitle": "Actions PDF essentielles",
+    "viewAllTools": "Voir tous les outils",
+    "preparingTitle": "Préparation du document...",
+    "preparingUploading": "Importation...",
+    "preparingAnalyzing": "Analyse du document...",
+    "preparingWorkspace": "Préparation de l'espace de travail IA...",
+    "actions": {
+      "summarize": "Résumer",
+      "translate": "Traduire le document",
+      "chat": "Discuter avec le PDF",
+      "ocr": "Numérisation OCR",
+      "voice": "Lecture vocale",
+      "edit": "Modifier",
+      "compress": "Compresser",
+      "merge": "Fusionner",
+      "convert": "Convertir"
+    }
+  }
+}

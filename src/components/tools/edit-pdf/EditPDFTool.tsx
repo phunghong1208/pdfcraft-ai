@@ -82,7 +82,6 @@ export function EditPDFTool({
   }, [pdfUrl, sourcePdfUrl]);
 
   useEffect(() => {
-    onIframeRef?.(iframeRef.current);
     return () => onIframeRef?.(null);
   }, [onIframeRef]);
 

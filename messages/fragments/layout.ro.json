@@ -1,0 +1,70 @@
+{
+  "workspaceBadge": "Spațiu de lucru PDF AI",
+  "upgrade": "Actualizează",
+  "upgradeTitle": "Actualizează planul",
+  "search": {
+    "trigger": "Caută PDF-uri...",
+    "placeholderExpanded": "Caută PDF-uri, instrumente, AI...",
+    "open": "Deschide căutarea",
+    "close": "Închide căutarea"
+  },
+  "footer": {
+    "resources": "Resurse",
+    "security": "Securitate",
+    "compliance": "Conformitate",
+    "gdprCompliant": "Conform GDPR",
+    "clientSideProcessing": "Procesare pe dispozitiv",
+    "filesNeverLeave": "Fișierele nu părăsesc niciodată dispozitivul tău",
+    "noUploads": "Fără încărcări de fișiere",
+    "privateSecure": "100% privat și securizat",
+    "terms": "Termeni",
+    "privacyLink": "Confidențialitate",
+    "cookies": "Cookie-uri"
+  },
+  "aiMenu": {
+    "aiAssistant": "Asistent AI",
+    "pdfTools": "Instrumente PDF",
+    "workspace": "Spațiu de lucru",
+    "summarizePdf": "Rezumă PDF",
+    "translatePdf": "Traduce PDF",
+    "chatWithPdf": "Chat cu PDF",
+    "smartOcr": "OCR inteligent",
+    "voiceReader": "Cititor vocal",
+    "editPdf": "Editează PDF",
+    "mergePdf": "Combină PDF",
+    "splitPdf": "Divizează PDF",
+    "compressPdf": "Comprimă PDF",
+    "pdfToWord": "PDF în Word",
+    "ocrPdf": "OCR PDF"
+  },
+  "homePage": {
+    "badge": "Spațiu de lucru PDF AI",
+    "heroTitle": "Înțelege orice PDF cu AI",
+    "heroSubtitle": "Rezumă, traduce, discută și editează documente instant.",
+    "uploadTitle": "Încarcă un document pentru a începe",
+    "uploadDescription": "Deschide spațiul de lucru pentru documente și folosește acțiuni AI contextuale.",
+    "uploadCta": "Încarcă în spațiul de lucru",
+    "uploadSecure": "Procesare securizată",
+    "uploadOcr": "OCR alimentat de AI",
+    "uploadLanguages": "Suportă peste 100 de limbi",
+    "aiActionsTitle": "Acțiuni AI",
+    "useInWorkspace": "Folosește în spațiul de lucru",
+    "coreActionsTitle": "Acțiuni PDF de bază",
+    "viewAllTools": "Vezi toate instrumentele",
+    "preparingTitle": "Se pregătește documentul...",
+    "preparingUploading": "Se încarcă...",
+    "preparingAnalyzing": "Se analizează documentul...",
+    "preparingWorkspace": "Se pregătește spațiul de lucru AI...",
+    "actions": {
+      "summarize": "Rezumă",
+      "translate": "Traduce documentul",
+      "chat": "Chat cu PDF",
+      "ocr": "Scanare OCR",
+      "voice": "Cititor vocal",
+      "edit": "Editează",
+      "compress": "Comprimă",
+      "merge": "Combină",
+      "convert": "Convertește"
+    }
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "workspaceBadge": "AI PDF 工作區",
+  "upgrade": "升級",
+  "upgradeTitle": "升級方案",
+  "search": {
+    "trigger": "搜尋 PDF...",
+    "placeholderExpanded": "搜尋 PDF、工具、AI...",
+    "open": "開啟搜尋",
+    "close": "關閉搜尋"
+  },
+  "footer": {
+    "resources": "資源",
+    "security": "安全",
+    "compliance": "合規",
+    "gdprCompliant": "符合 GDPR",
+    "clientSideProcessing": "用戶端處理",
+    "filesNeverLeave": "檔案永不離開您的裝置",
+    "noUploads": "不上傳檔案",
+    "privateSecure": "100% 私密且安全",
+    "terms": "條款",
+    "privacyLink": "隱私",
+    "cookies": "Cookie"
+  },
+  "aiMenu": {
+    "aiAssistant": "AI 助手",
+    "pdfTools": "PDF 工具",
+    "workspace": "工作區",
+    "summarizePdf": "PDF 摘要",
+    "translatePdf": "翻譯 PDF",
+    "chatWithPdf": "與 PDF 對話",
+    "smartOcr": "智慧 OCR",
+    "voiceReader": "語音朗讀",
+    "editPdf": "編輯 PDF",
+    "mergePdf": "合併 PDF",
+    "splitPdf": "拆分 PDF",
+    "compressPdf": "壓縮 PDF",
+    "pdfToWord": "PDF 轉 Word",
+    "ocrPdf": "PDF OCR"
+  },
+  "homePage": {
+    "badge": "AI PDF 工作區",
+    "heroTitle": "用 AI 理解任何 PDF",
+    "heroSubtitle": "即時摘要、翻譯、對話和編輯文件。",
+    "uploadTitle": "上傳文件以開始使用",
+    "uploadDescription": "開啟文件工作區並使用情境式 AI 操作。",
+    "uploadCta": "上傳至工作區",
+    "uploadSecure": "安全處理",
+    "uploadOcr": "AI 驅動 OCR",
+    "uploadLanguages": "支援 100+ 種語言",
+    "aiActionsTitle": "AI 操作",
+    "useInWorkspace": "在工作區中使用",
+    "coreActionsTitle": "核心 PDF 操作",
+    "viewAllTools": "查看所有工具",
+    "preparingTitle": "正在準備文件...",
+    "preparingUploading": "上傳中...",
+    "preparingAnalyzing": "正在分析文件...",
+    "preparingWorkspace": "正在準備 AI 工作區...",
+    "actions": {
+      "summarize": "摘要",
+      "translate": "翻譯文件",
+      "chat": "與 PDF 對話",
+      "ocr": "OCR 掃描",
+      "voice": "語音朗讀",
+      "edit": "編輯",
+      "compress": "壓縮",
+      "merge": "合併",
+      "convert": "轉換"
+    }
+  }
+}

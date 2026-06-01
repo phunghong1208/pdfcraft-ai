@@ -1,0 +1,70 @@
+{
+  "workspaceBadge": "KI-PDF-Arbeitsbereich",
+  "upgrade": "Upgrade",
+  "upgradeTitle": "Tarif upgraden",
+  "search": {
+    "trigger": "PDFs suchen...",
+    "placeholderExpanded": "PDFs, Werkzeuge, KI suchen...",
+    "open": "Suche öffnen",
+    "close": "Suche schließen"
+  },
+  "footer": {
+    "resources": "Ressourcen",
+    "security": "Sicherheit",
+    "compliance": "Compliance",
+    "gdprCompliant": "DSGVO-konform",
+    "clientSideProcessing": "Clientseitige Verarbeitung",
+    "filesNeverLeave": "Dateien verlassen Ihr Gerät nie",
+    "noUploads": "Keine Datei-Uploads",
+    "privateSecure": "100 % privat und sicher",
+    "terms": "AGB",
+    "privacyLink": "Datenschutz",
+    "cookies": "Cookies"
+  },
+  "aiMenu": {
+    "aiAssistant": "KI-Assistent",
+    "pdfTools": "PDF-Werkzeuge",
+    "workspace": "Arbeitsbereich",
+    "summarizePdf": "PDF zusammenfassen",
+    "translatePdf": "PDF übersetzen",
+    "chatWithPdf": "Mit PDF chatten",
+    "smartOcr": "Intelligente OCR",
+    "voiceReader": "Sprachausgabe",
+    "editPdf": "PDF bearbeiten",
+    "mergePdf": "PDF zusammenführen",
+    "splitPdf": "PDF teilen",
+    "compressPdf": "PDF komprimieren",
+    "pdfToWord": "PDF zu Word",
+    "ocrPdf": "PDF-OCR"
+  },
+  "homePage": {
+    "badge": "KI-PDF-Arbeitsbereich",
+    "heroTitle": "Jede PDF mit KI verstehen",
+    "heroSubtitle": "Dokumente sofort zusammenfassen, übersetzen, besprechen und bearbeiten.",
+    "uploadTitle": "Dokument hochladen, um zu starten",
+    "uploadDescription": "Öffnen Sie den Dokumentarbeitsbereich und nutzen Sie kontextbezogene KI-Aktionen.",
+    "uploadCta": "In den Arbeitsbereich hochladen",
+    "uploadSecure": "Sichere Verarbeitung",
+    "uploadOcr": "KI-gestützte OCR",
+    "uploadLanguages": "Unterstützt über 100 Sprachen",
+    "aiActionsTitle": "KI-Aktionen",
+    "useInWorkspace": "Im Arbeitsbereich verwenden",
+    "coreActionsTitle": "Zentrale PDF-Aktionen",
+    "viewAllTools": "Alle Werkzeuge anzeigen",
+    "preparingTitle": "Dokument wird vorbereitet...",
+    "preparingUploading": "Wird hochgeladen...",
+    "preparingAnalyzing": "Dokument wird analysiert...",
+    "preparingWorkspace": "KI-Arbeitsbereich wird vorbereitet...",
+    "actions": {
+      "summarize": "Zusammenfassen",
+      "translate": "Dokument übersetzen",
+      "chat": "Mit PDF chatten",
+      "ocr": "OCR-Scan",
+      "voice": "Sprachausgabe",
+      "edit": "Bearbeiten",
+      "compress": "Komprimieren",
+      "merge": "Zusammenführen",
+      "convert": "Konvertieren"
+    }
+  }
+}

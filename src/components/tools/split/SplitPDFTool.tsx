@@ -24,6 +24,8 @@ import type { SplitOptions, PageRange, ProcessOutput } from '@/types/pdf';
 export interface SplitPDFToolProps {
   /** Custom class name */
   className?: string;
+  /** Pre-load a file when opened from workspace ribbon */
+  initialFile?: File | null;
 }
 
 type SplitMode = 'ranges' | 'even-odd' | 'every-page' | 'visual' | 'bookmarks' | 'n-times';
@@ -39,7 +41,7 @@ interface PagePreview {
  * 
  * Provides the UI for splitting PDF files with page range input and preview.
  */
-export function SplitPDFTool({ className = '' }: SplitPDFToolProps) {
+export function SplitPDFTool({ className = '', initialFile = null }: SplitPDFToolProps) {
   const t = useTranslations('common');
   const tTools = useTranslations('tools');
 
@@ -199,6 +201,13 @@ export function SplitPDFTool({ className = '' }: SplitPDFToolProps) {
       loadPdfPreviews(selectedFile);
     }
   }, [loadPdfPreviews, splitMode]);
+
+  const initialFileSeededRef = useRef(false);
+  useEffect(() => {
+    if (!initialFile || initialFileSeededRef.current) return;
+    initialFileSeededRef.current = true;
+    handleFilesSelected([initialFile]);
+  }, [initialFile, handleFilesSelected]);
 
   /**
    * Handle file upload error

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { FileUploader } from '../FileUploader';
 import { ProcessingProgress, ProcessingStatus } from '../ProcessingProgress';
@@ -20,6 +20,8 @@ function generateId(): string {
 export interface MergePDFToolProps {
   /** Custom class name */
   className?: string;
+  /** Pre-load a file when opened from workspace ribbon */
+  initialFile?: File | null;
 }
 
 /**
@@ -28,7 +30,7 @@ export interface MergePDFToolProps {
  * 
  * Provides the UI for merging multiple PDF files with drag-to-reorder functionality.
  */
-export function MergePDFTool({ className = '' }: MergePDFToolProps) {
+export function MergePDFTool({ className = '', initialFile = null }: MergePDFToolProps) {
   const t = useTranslations('common');
   const tTools = useTranslations('tools');
   
@@ -62,6 +64,13 @@ export function MergePDFTool({ className = '' }: MergePDFToolProps) {
     setError(null);
     setResult(null);
   }, []);
+
+  const initialFileSeededRef = useRef(false);
+  useEffect(() => {
+    if (!initialFile || initialFileSeededRef.current) return;
+    initialFileSeededRef.current = true;
+    handleFilesSelected([initialFile]);
+  }, [initialFile, handleFilesSelected]);
 
   /**
    * Handle file upload error

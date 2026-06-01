@@ -1,0 +1,70 @@
+{
+  "workspaceBadge": "Không gian làm việc PDF AI",
+  "upgrade": "Nâng cấp",
+  "upgradeTitle": "Nâng cấp gói",
+  "search": {
+    "trigger": "Tìm PDF...",
+    "placeholderExpanded": "Tìm PDF, công cụ, AI...",
+    "open": "Mở tìm kiếm",
+    "close": "Đóng tìm kiếm"
+  },
+  "footer": {
+    "resources": "Tài nguyên",
+    "security": "Bảo mật",
+    "compliance": "Tuân thủ",
+    "gdprCompliant": "Tuân thủ GDPR",
+    "clientSideProcessing": "Xử lý trên thiết bị",
+    "filesNeverLeave": "Tệp không bao giờ rời khỏi thiết bị",
+    "noUploads": "Không tải lên máy chủ",
+    "privateSecure": "100% riêng tư & an toàn",
+    "terms": "Điều khoản",
+    "privacyLink": "Bảo mật",
+    "cookies": "Cookie"
+  },
+  "aiMenu": {
+    "aiAssistant": "Trợ lý AI",
+    "pdfTools": "Công cụ PDF",
+    "workspace": "Không gian làm việc",
+    "summarizePdf": "Tóm tắt PDF",
+    "translatePdf": "Dịch PDF",
+    "chatWithPdf": "Chat với PDF",
+    "smartOcr": "OCR thông minh",
+    "voiceReader": "Đọc bằng giọng nói",
+    "editPdf": "Chỉnh sửa PDF",
+    "mergePdf": "Gộp PDF",
+    "splitPdf": "Tách PDF",
+    "compressPdf": "Nén PDF",
+    "pdfToWord": "PDF sang Word",
+    "ocrPdf": "OCR PDF"
+  },
+  "homePage": {
+    "badge": "Không gian làm việc PDF AI",
+    "heroTitle": "Hiểu mọi tài liệu PDF với AI",
+    "heroSubtitle": "Tóm tắt, dịch, chat và chỉnh sửa tài liệu trong vài giây.",
+    "uploadTitle": "Tải tài liệu để bắt đầu",
+    "uploadDescription": "Mở không gian làm việc và thao tác bằng AI theo ngữ cảnh.",
+    "uploadCta": "Tải lên Workspace",
+    "uploadSecure": "Xử lý an toàn",
+    "uploadOcr": "OCR tích hợp AI",
+    "uploadLanguages": "Hỗ trợ 100+ ngôn ngữ",
+    "aiActionsTitle": "Thao tác AI",
+    "useInWorkspace": "Dùng trong Workspace",
+    "coreActionsTitle": "Thao tác PDF cốt lõi",
+    "viewAllTools": "Xem tất cả công cụ",
+    "preparingTitle": "Đang chuẩn bị tài liệu...",
+    "preparingUploading": "Đang tải lên...",
+    "preparingAnalyzing": "Đang phân tích tài liệu...",
+    "preparingWorkspace": "Đang chuẩn bị workspace AI...",
+    "actions": {
+      "summarize": "Tóm tắt",
+      "translate": "Dịch tài liệu",
+      "chat": "Chat với PDF",
+      "ocr": "Quét OCR",
+      "voice": "Đọc giọng nói",
+      "edit": "Chỉnh sửa",
+      "compress": "Nén",
+      "merge": "Ghép",
+      "convert": "Chuyển đổi"
+    }
+  }
+}

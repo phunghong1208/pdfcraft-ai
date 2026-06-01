@@ -1,0 +1,70 @@
+{
+  "workspaceBadge": "AI PDFワークスペース",
+  "upgrade": "アップグレード",
+  "upgradeTitle": "プランをアップグレード",
+  "search": {
+    "trigger": "PDFを検索...",
+    "placeholderExpanded": "PDF、ツール、AIを検索...",
+    "open": "検索を開く",
+    "close": "検索を閉じる"
+  },
+  "footer": {
+    "resources": "リソース",
+    "security": "セキュリティ",
+    "compliance": "コンプライアンス",
+    "gdprCompliant": "GDPR準拠",
+    "clientSideProcessing": "クライアント側処理",
+    "filesNeverLeave": "ファイルはデバイスから送信されません",
+    "noUploads": "ファイルのアップロードなし",
+    "privateSecure": "100%プライベートで安全",
+    "terms": "利用規約",
+    "privacyLink": "プライバシー",
+    "cookies": "Cookie"
+  },
+  "aiMenu": {
+    "aiAssistant": "AIアシスタント",
+    "pdfTools": "PDFツール",
+    "workspace": "ワークスペース",
+    "summarizePdf": "PDFを要約",
+    "translatePdf": "PDFを翻訳",
+    "chatWithPdf": "PDFとチャット",
+    "smartOcr": "スマートOCR",
+    "voiceReader": "音声読み上げ",
+    "editPdf": "PDFを編集",
+    "mergePdf": "PDFを結合",
+    "splitPdf": "PDFを分割",
+    "compressPdf": "PDFを圧縮",
+    "pdfToWord": "PDFをWordへ",
+    "ocrPdf": "PDFのOCR"
+  },
+  "homePage": {
+    "badge": "AI PDFワークスペース",
+    "heroTitle": "AIですべてのPDFを理解",
+    "heroSubtitle": "文書を即座に要約、翻訳、チャット、編集。",
+    "uploadTitle": "開始するにはドキュメントをアップロード",
+    "uploadDescription": "ドキュメントワークスペースを開き、文脈に応じたAI操作を利用。",
+    "uploadCta": "ワークスペースにアップロード",
+    "uploadSecure": "安全な処理",
+    "uploadOcr": "AI搭載OCR",
+    "uploadLanguages": "100以上の言語に対応",
+    "aiActionsTitle": "AIアクション",
+    "useInWorkspace": "ワークスペースで使用",
+    "coreActionsTitle": "主要なPDF操作",
+    "viewAllTools": "すべてのツールを表示",
+    "preparingTitle": "ドキュメントを準備中...",
+    "preparingUploading": "アップロード中...",
+    "preparingAnalyzing": "ドキュメントを分析中...",
+    "preparingWorkspace": "AIワークスペースを準備中...",
+    "actions": {
+      "summarize": "要約",
+      "translate": "ドキュメントを翻訳",
+      "chat": "PDFとチャット",
+      "ocr": "OCRスキャン",
+      "voice": "音声読み上げ",
+      "edit": "編集",
+      "compress": "圧縮",
+      "merge": "結合",
+      "convert": "変換"
+    }
+  }
+}
