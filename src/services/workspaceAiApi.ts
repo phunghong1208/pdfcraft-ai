@@ -1,3 +1,5 @@
+import { defaultLocale, localeConfig, locales, type Locale } from '@/lib/i18n/config';
+
 /** Same-origin proxy path — paired with next.config rewrites (dev) or nginx (prod). */
 const WORKSPACE_AI_PROXY_PATH = '/api/workspace-ai';
 
@@ -33,6 +35,55 @@ export const WORKSPACE_CHAT_TOP_K_PRESETS: WorkspaceChatTopKPreset[] = [
 ];
 
 export const WORKSPACE_DEFAULT_PRESET_TIER: WorkspacePresetTierId = 'balanced';
+
+/** Giá trị `language` gửi lên POST /summary và POST /chat (tên tiếng Anh, vd. Vietnamese). */
+export type WorkspaceAiResponseLanguage = {
+  /** API form field / JSON value */
+  apiName: string;
+  locale: Locale;
+  nativeName: string;
+};
+
+export const WORKSPACE_AI_RESPONSE_LANGUAGES: WorkspaceAiResponseLanguage[] = locales.map((loc) => ({
+  apiName: localeConfig[loc].name,
+  locale: loc,
+  nativeName: localeConfig[loc].nativeName,
+}));
+
+export const WORKSPACE_DEFAULT_AI_LANGUAGE = localeConfig[defaultLocale].name;
+
+export function getWorkspaceAiLanguageForLocale(locale: string): string {
+  if (locale in localeConfig) return localeConfig[locale as Locale].name;
+  return WORKSPACE_DEFAULT_AI_LANGUAGE;
+}
+
+export function isWorkspaceAiLanguageSupported(language: string): boolean {
+  return WORKSPACE_AI_RESPONSE_LANGUAGES.some((l) => l.apiName === language);
+}
+
+/** Mã BCP 47 cho Web Speech API — khớp ngôn ngữ trả lời AI */
+const SPEECH_LANG_BY_LOCALE: Record<Locale, string> = {
+  en: 'en-US',
+  vi: 'vi-VN',
+  ja: 'ja-JP',
+  ko: 'ko-KR',
+  es: 'es-ES',
+  fr: 'fr-FR',
+  de: 'de-DE',
+  zh: 'zh-CN',
+  'zh-TW': 'zh-TW',
+  pt: 'pt-BR',
+  ar: 'ar-SA',
+  it: 'it-IT',
+  id: 'id-ID',
+  ro: 'ro-RO',
+};
+
+export function getSpeechLangForWorkspaceAiAnswerLanguage(apiName: string): string {
+  const entry = WORKSPACE_AI_RESPONSE_LANGUAGES.find((l) => l.apiName === apiName);
+  if (entry) return SPEECH_LANG_BY_LOCALE[entry.locale] ?? 'en-US';
+  return 'en-US';
+}
 
 export function getWorkspaceSummaryDetailPreset(id: WorkspacePresetTierId): WorkspaceSummaryDetailPreset {
   return WORKSPACE_SUMMARY_DETAIL_PRESETS.find((p) => p.id === id) ?? WORKSPACE_SUMMARY_DETAIL_PRESETS[1];
@@ -87,6 +138,14 @@ function getBaseUrl(): string {
   return `${basePath}${WORKSPACE_AI_PROXY_PATH}`.replace(/\/$/, '');
 }
 
+/** Khớp `trailingSlash: true` của Next — tránh redirect 308 làm hỏng POST. */
+function buildApiUrl(pathSegment: string): string {
+  const base = getBaseUrl();
+  const segment = pathSegment.replace(/^\//, '').replace(/\/$/, '');
+  const url = `${base}/${segment}`;
+  return url.startsWith('/') && !url.endsWith('/') ? `${url}/` : url;
+}
+
 function wrapNetworkError(err: unknown): Error {
   if (err instanceof TypeError && /fetch|network/i.test(err.message)) {
     return new Error(
@@ -99,9 +158,14 @@ function wrapNetworkError(err: unknown): Error {
   return new Error(String(err));
 }
 
-function pickDocumentId(data: WorkspaceDocumentIdPayload): number | null {
+function pickDocumentId(data: WorkspaceDocumentIdPayload & Record<string, unknown>): number | null {
   const id = data.document_id ?? data.documentId ?? data.id;
-  return id != null && !Number.isNaN(Number(id)) ? Number(id) : null;
+  if (id != null && !Number.isNaN(Number(id))) return Number(id);
+  const nested = data.data;
+  if (nested && typeof nested === 'object') {
+    return pickDocumentId(nested as WorkspaceDocumentIdPayload & Record<string, unknown>);
+  }
+  return null;
 }
 
 function pickText(data: Record<string, unknown>, keys: string[]): string {
@@ -109,6 +173,45 @@ function pickText(data: Record<string, unknown>, keys: string[]): string {
     const value = data[key];
     if (typeof value === 'string' && value.trim()) return value.trim();
   }
+  return '';
+}
+
+const SUMMARY_TEXT_KEYS = [
+  'summary',
+  'markdown',
+  'text',
+  'content',
+  'result',
+  'answer',
+  'output',
+  'summary_text',
+  'summaryText',
+  'response',
+] as const;
+
+/** Trích văn bản tóm tắt từ JSON server (nhiều schema khác nhau). */
+export function extractWorkspaceSummaryText(data: unknown): string {
+  if (typeof data === 'string' && data.trim()) return data.trim();
+  if (!data || typeof data !== 'object') return '';
+
+  const record = data as Record<string, unknown>;
+  const direct = pickText(record, [...SUMMARY_TEXT_KEYS]);
+  if (direct) return direct;
+
+  const summaryField = record.summary;
+  if (summaryField && typeof summaryField === 'object' && !Array.isArray(summaryField)) {
+    const fromNested = pickText(summaryField as Record<string, unknown>, [...SUMMARY_TEXT_KEYS, 'body']);
+    if (fromNested) return fromNested;
+  }
+
+  for (const key of ['data', 'result', 'payload'] as const) {
+    const nested = record[key];
+    if (nested && typeof nested === 'object') {
+      const fromChild = extractWorkspaceSummaryText(nested);
+      if (fromChild) return fromChild;
+    }
+  }
+
   return '';
 }
 
@@ -151,10 +254,11 @@ export async function chatWithWorkspaceDocument(opts: {
   documentId: number;
   topK?: number;
   userKey?: string;
+  language?: string;
 }): Promise<string> {
   let res: Response;
   try {
-    res = await fetch(`${getBaseUrl()}/chat`, {
+    res = await fetch(buildApiUrl('chat'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -162,6 +266,7 @@ export async function chatWithWorkspaceDocument(opts: {
         document_id: opts.documentId,
         top_k: opts.topK ?? DEFAULT_TOP_K,
         user_key: opts.userKey ?? DEFAULT_USER_KEY,
+        language: opts.language ?? WORKSPACE_DEFAULT_AI_LANGUAGE,
       }),
     });
   } catch (err) {
@@ -183,23 +288,25 @@ export async function chatWithWorkspaceDocument(opts: {
  * Tóm tắt PDF — khớp Postman:
  * POST {BASE}/summary
  * Headers: Accept: application/json
- * Body (form-data): file, detail=0.2, user_key=user_001
+ * Body (form-data): file, detail=0.2, language=Vietnamese, user_key=user_001
  */
 export async function summarizeWorkspaceDocument(
   file: File,
-  opts?: { detail?: number | string; userKey?: string },
+  opts?: { detail?: number | string; userKey?: string; language?: string },
 ): Promise<{ text: string; documentId: number | null }> {
   const detail = String(opts?.detail ?? DEFAULT_SUMMARY_DETAIL);
   const userKey = opts?.userKey ?? DEFAULT_USER_KEY;
+  const language = opts?.language ?? WORKSPACE_DEFAULT_AI_LANGUAGE;
 
   const form = new FormData();
   form.append('file', file, file.name);
   form.append('detail', detail);
+  form.append('language', language);
   form.append('user_key', userKey);
 
   let res: Response;
   try {
-    res = await fetch(`${getBaseUrl()}/summary`, {
+    res = await fetch(buildApiUrl('summary'), {
       method: 'POST',
       headers: { Accept: 'application/json' },
       body: form,
@@ -219,15 +326,12 @@ export async function summarizeWorkspaceDocument(
   }
 
   const data = (await res.json()) as WorkspaceSummaryResponse & Record<string, unknown>;
-  const nested = data.data;
-  const nestedRecord =
-    nested && typeof nested === 'object' ? (nested as Record<string, unknown>) : null;
-
-  const text =
-    pickText(data, ['summary', 'markdown', 'text', 'content', 'result']) ||
-    (nestedRecord ? pickText(nestedRecord, ['summary', 'markdown', 'text', 'content']) : '') ||
-    (typeof data === 'string' ? data : '') ||
-    JSON.stringify(data, null, 2);
+  const text = extractWorkspaceSummaryText(data);
+  if (!text) {
+    throw new Error(
+      'Server trả về thành công nhưng không có nội dung tóm tắt. Kiểm tra PDF có text và response API.',
+    );
+  }
 
   return { text, documentId: pickDocumentId(data) };
 }

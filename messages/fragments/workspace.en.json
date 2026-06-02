@@ -137,11 +137,25 @@
     "summaryError": "Summary request failed.",
     "noFile": "Upload a PDF first.",
     "noDocumentId": "Document is not indexed yet. Wait or run Summary first.",
+    "answerLanguage": {
+      "label": "Answer language",
+      "hint": "Summary and chat replies will be in this language."
+    },
+    "languageShort": "Language",
+    "analyzing": "✨ AI is analyzing your document…",
+    "thinkingAi": "✨ AI is thinking…",
+    "summaryByAi": "✨ Summary by AI",
+    "askDocument": "✨ Ask your document",
+    "copy": "Copy",
+    "copied": "Copied",
+    "copyFailed": "Could not copy to clipboard.",
+    "exportPdf": "Export PDF",
+    "exportFailed": "PDF export failed.",
     "summaryDetail": {
-      "label": "Detail",
-      "light": { "title": "Brief" },
-      "balanced": { "title": "Mid" },
-      "deep": { "title": "Deep" }
+      "label": "Detail level",
+      "light": { "title": "Short" },
+      "balanced": { "title": "Medium" },
+      "deep": { "title": "Detailed" }
     },
     "chatContext": {
       "label": "Chat depth",

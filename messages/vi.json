@@ -2361,16 +2361,30 @@
       "summaryError": "Yêu cầu tóm tắt thất bại.",
       "noFile": "Hãy tải PDF trước.",
       "noDocumentId": "Tài liệu chưa được lập chỉ mục. Đợi hoặc chạy Tóm tắt trước.",
+      "answerLanguage": {
+        "label": "Ngôn ngữ trả lời",
+        "hint": "Tóm tắt và chat sẽ trả lời bằng ngôn ngữ này."
+      },
+      "languageShort": "Ngôn ngữ",
+      "analyzing": "✨ AI đang phân tích tài liệu…",
+      "thinkingAi": "✨ AI đang suy nghĩ…",
+      "summaryByAi": "✨ Tóm tắt bởi AI",
+      "askDocument": "✨ Hỏi tài liệu",
+      "copy": "Sao chép",
+      "copied": "Đã sao chép",
+      "copyFailed": "Không sao chép được.",
+      "exportPdf": "Xuất PDF",
+      "exportFailed": "Xuất PDF thất bại.",
       "summaryDetail": {
         "label": "Độ chi tiết",
         "light": {
-          "title": "Gọn"
+          "title": "Ngắn"
         },
         "balanced": {
           "title": "Vừa"
         },
         "deep": {
-          "title": "Sâu"
+          "title": "Chi tiết"
         }
       },
       "chatContext": {

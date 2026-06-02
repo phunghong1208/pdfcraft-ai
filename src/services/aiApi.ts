@@ -29,10 +29,14 @@ async function postPdfFile<T>(endpoint: string, file: File): Promise<T> {
 }
 
 /** POST /summary trên AI Document Summarizer — cùng API với workspace */
-export async function summarizePdf(file: File, detail?: string) {
+export async function summarizePdf(
+  file: File,
+  opts?: { detail?: string; language?: string },
+) {
   const tier = getWorkspaceSummaryDetailPreset(WORKSPACE_DEFAULT_PRESET_TIER);
   const { text, documentId } = await summarizeWorkspaceDocument(file, {
-    detail: detail ?? tier.detail,
+    detail: opts?.detail ?? tier.detail,
+    language: opts?.language,
   });
   return {
     summary: text,

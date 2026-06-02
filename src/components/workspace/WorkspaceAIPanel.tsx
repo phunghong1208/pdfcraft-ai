@@ -1,9 +1,27 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { PanelRightClose, Loader2, FileText, Volume2, Play, Pause, Square } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  Loader2,
+  Volume2,
+  Play,
+  Pause,
+  Square,
+  Sparkles,
+  Copy,
+  FileDown,
+  Check,
+} from 'lucide-react';
+import { WorkspaceAiMarkdown } from '@/components/workspace/WorkspaceAiMarkdown';
+import { markdownToPDF } from '@/lib/pdf/processors/markdown-to-pdf';
 import { WorkspaceAIIcon } from '@/components/workspace/WorkspaceAIIcon';
-import { useTranslations } from 'next-intl';
+import { WorkspaceAIPanelCollapseButton } from '@/components/workspace/WorkspaceAIPanelCollapseButton';
+import { WorkspaceAiLanguageSelect } from '@/components/workspace/WorkspaceAiLanguageSelect';
+import { useLocale, useTranslations } from 'next-intl';
+import {
+  loadWorkspaceAiAnswerLanguage,
+  saveWorkspaceAiAnswerLanguage,
+} from '@/lib/workspace-ai-language-preference';
 import { Button } from '@/components/ui/Button';
 import {
   chatWithWorkspaceDocument,
@@ -14,6 +32,7 @@ import {
   WORKSPACE_AI_USER_KEY,
   getWorkspaceChatTopKPreset,
   getWorkspaceSummaryDetailPreset,
+  getSpeechLangForWorkspaceAiAnswerLanguage,
   type WorkspacePresetTierId,
 } from '@/services/workspaceAiApi';
 
@@ -44,6 +63,7 @@ type PersistedWorkspaceAi = {
   summaryText: string;
   summaryTierId?: WorkspacePresetTierId;
   chatTierId?: WorkspacePresetTierId;
+  answerLanguage?: string;
 };
 
 const WORKSPACE_AI_STORAGE_PREFIX = 'pdfcraft-workspace-ai:';
@@ -252,7 +272,15 @@ function tierTitle(
   return t('aiPanel.chatContext.deep.title');
 }
 
-/** Giống hàng chọn tốc độ tab Đọc file — chỉ label ngắn + 3 nút */
+function AiSectionTitle({ children }: { children: ReactNode }) {
+  return (
+    <h3 className="flex items-center gap-1.5 text-[12px] font-semibold text-transparent bg-gradient-to-r from-blue-200 via-violet-200 to-fuchsia-200 bg-clip-text shrink-0">
+      {children}
+    </h3>
+  );
+}
+
+/** Độ chi tiết — 3 pill ngang (gọn) */
 function TierRadioGroup({
   mode,
   presets,
@@ -271,8 +299,8 @@ function TierRadioGroup({
     mode === 'summaryDetail' ? t('aiPanel.summaryDetail.label') : t('aiPanel.chatContext.label');
 
   return (
-    <div className="shrink-0 space-y-1.5 min-w-0">
-      <p className={SEGMENT_LABEL_CLASS}>{label}</p>
+    <div className="shrink-0 min-w-0">
+      <p className={`${SEGMENT_LABEL_CLASS} mb-1.5 px-0.5`}>{label}</p>
       <div className="flex gap-1.5" role="radiogroup" aria-label={label}>
         {presets.map((preset) => {
           const selected = value === preset.id;
@@ -283,7 +311,11 @@ function TierRadioGroup({
               disabled={disabled}
               onClick={() => onChange(preset.id)}
               aria-pressed={selected}
-              className={`${SEGMENT_PILL_BASE} border ${segmentPillClass(selected)}`}
+              className={`flex-1 rounded-lg py-1.5 px-1.5 text-[10px] font-medium border transition-all disabled:opacity-40 ${
+                selected
+                  ? 'bg-blue-500/20 text-blue-100 border-blue-500/35'
+                  : 'bg-[#0D1117] text-[#9CA3AF] border-[#30363D] hover:text-white/80 hover:border-white/15'
+              }`}
             >
               {tierTitle(t, mode, preset.id)}
             </button>
@@ -295,6 +327,7 @@ function TierRadioGroup({
 }
 
 export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelProps) {
+  const locale = useLocale();
   const t = useTranslations('workspace');
   const [aiTab, setAiTab] = useState<AiTab>('summary');
   const [chatInput, setChatInput] = useState('');
@@ -308,9 +341,17 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
   const [voiceRate, setVoiceRate] = useState(1);
   const [summaryTierId, setSummaryTierId] = useState<WorkspacePresetTierId>(WORKSPACE_DEFAULT_PRESET_TIER);
   const [chatTierId, setChatTierId] = useState<WorkspacePresetTierId>(WORKSPACE_DEFAULT_PRESET_TIER);
+  const [answerLanguage, setAnswerLanguage] = useState(() => loadWorkspaceAiAnswerLanguage(locale));
+  const [copyDone, setCopyDone] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const speech = useDocumentSpeech();
+
   const summaryPreset = getWorkspaceSummaryDetailPreset(summaryTierId);
   const chatPreset = getWorkspaceChatTopKPreset(chatTierId);
+  const speechLang = useMemo(
+    () => getSpeechLangForWorkspaceAiAnswerLanguage(answerLanguage),
+    [answerLanguage],
+  );
 
   const voiceReady = Boolean(summaryText?.trim() && documentId != null);
   const chatReady = documentId != null;
@@ -340,6 +381,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
       setSummaryText(persisted.summaryText);
       if (persisted.summaryTierId) setSummaryTierId(persisted.summaryTierId);
       if (persisted.chatTierId) setChatTierId(persisted.chatTierId);
+      if (persisted.answerLanguage) setAnswerLanguage(persisted.answerLanguage);
     } else {
       setSummaryText(null);
       setDocumentId(null);
@@ -362,6 +404,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
         const { text, documentId: newId } = await summarizeWorkspaceDocument(file, {
           detail: summaryPreset.detail,
           userKey: WORKSPACE_AI_USER_KEY,
+          language: answerLanguage,
         });
         setSummaryText(text);
         if (newId == null) {
@@ -374,7 +417,9 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
           summaryText: text,
           summaryTierId,
           chatTierId,
+          answerLanguage,
         });
+        saveWorkspaceAiAnswerLanguage(answerLanguage, locale);
         if (options?.keepTab) {
           setAiHint(t('aiPanel.chatReady'));
         } else if (newId != null) {
@@ -386,8 +431,60 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
         setIsSummarizing(false);
       }
     },
-    [file, summaryPreset.detail, summaryTierId, chatTierId, t],
+    [file, summaryPreset.detail, summaryTierId, chatTierId, answerLanguage, t],
   );
+
+  const handleAnswerLanguageChange = useCallback(
+    (language: string) => {
+      setAnswerLanguage(language);
+      saveWorkspaceAiAnswerLanguage(language, locale);
+      const nextSpeechLang = getSpeechLangForWorkspaceAiAnswerLanguage(language);
+      if (speech.isActive && summaryText?.trim()) {
+        speech.continueAtRate(voiceRate, summaryText, nextSpeechLang);
+      }
+    },
+    [locale, speech, summaryText, voiceRate],
+  );
+
+  useEffect(() => {
+    setAnswerLanguage(loadWorkspaceAiAnswerLanguage(locale));
+  }, [locale]);
+
+  const handleCopySummary = useCallback(async () => {
+    if (!summaryText?.trim()) return;
+    try {
+      await navigator.clipboard.writeText(summaryText);
+      setCopyDone(true);
+      window.setTimeout(() => setCopyDone(false), 2000);
+    } catch {
+      setAiError(t('aiPanel.copyFailed'));
+    }
+  }, [summaryText, t]);
+
+  const handleExportSummaryPdf = useCallback(async () => {
+    if (!summaryText?.trim() || !file) return;
+    setIsExportingPdf(true);
+    setAiError(null);
+    try {
+      const base = file.name.replace(/\.pdf$/i, '') || 'document';
+      const mdFile = new File([summaryText], `${base}-summary.md`, { type: 'text/markdown' });
+      const out = await markdownToPDF(mdFile, { theme: 'light', gfm: true });
+      if (!out.success || !out.result) {
+        throw new Error(out.error?.message ?? t('aiPanel.exportFailed'));
+      }
+      const blob = Array.isArray(out.result) ? out.result[0] : out.result;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = out.filename ?? `${base}-summary.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : t('aiPanel.exportFailed'));
+    } finally {
+      setIsExportingPdf(false);
+    }
+  }, [file, summaryText, t]);
 
   const handleSendMessage = useCallback(async () => {
     const content = chatInput.trim();
@@ -414,6 +511,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
         documentId,
         topK: chatPreset.topK,
         userKey: WORKSPACE_AI_USER_KEY,
+        language: answerLanguage,
       });
       setMessages((prev) => [...prev, { role: 'assistant', text: answer }]);
     } catch (err) {
@@ -423,7 +521,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
     } finally {
       setIsAiThinking(false);
     }
-  }, [chatInput, chatPreset.topK, documentId, file, isAiThinking, t]);
+  }, [answerLanguage, chatInput, chatPreset.topK, documentId, file, isAiThinking, t]);
 
   const startVoiceReading = useCallback(
     (rate: number) => {
@@ -436,9 +534,9 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
         return;
       }
       setAiError(null);
-      speech.speakFresh(summaryText, 'vi-VN', rate);
+      speech.speakFresh(summaryText, speechLang, rate);
     },
-    [summaryText, speech, t],
+    [summaryText, speech, speechLang, t],
   );
 
   const handleVoiceToggle = useCallback(() => {
@@ -457,9 +555,9 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
     (rate: number) => {
       setVoiceRate(rate);
       if (!speech.isActive || !summaryText?.trim()) return;
-      speech.continueAtRate(rate, summaryText, 'vi-VN');
+      speech.continueAtRate(rate, summaryText, speechLang);
     },
-    [speech, summaryText],
+    [speech, speechLang, summaryText],
   );
 
   const tabs: AiTab[] = ['summary', 'chat', 'translate', 'voice'];
@@ -469,34 +567,39 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
       className={`relative w-[min(100%,420px)] min-w-[360px] shrink-0 flex flex-col border-l ${PANEL_BORDER} bg-[#0B0E14] shadow-[-8px_0_32px_rgba(0,0,0,0.35)]`}
       aria-label={t('aiPanel.title')}
     >
-      <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-[#30363D] bg-[#0D1117] shrink-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <WorkspaceAIIcon size="md" />
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-[13px] font-semibold text-white truncate">{t('aiPanel.title')}</span>
-              <span className="shrink-0 rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-blue-300">
-                {t('aiPanel.newBadge')}
-              </span>
-            </div>
-            {file && (
-              <p className="text-[10px] text-white/40 truncate mt-0.5">{file.name}</p>
-            )}
+      <div className="px-4 pt-3 pb-2 border-b border-[#30363D] bg-[#0D1117] shrink-0 space-y-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <WorkspaceAIIcon size="sm" />
+            <span className="text-[12px] font-semibold text-white/90">{t('aiPanel.title')}</span>
+            <span className="shrink-0 rounded-full bg-violet-500/20 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-violet-300">
+              AI
+            </span>
           </div>
+          <WorkspaceAIPanelCollapseButton
+            onClick={onClose}
+            aria-label={t('inlineTools.close')}
+            title={t('inlineTools.close')}
+          />
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="p-1.5 rounded-md text-white/40 hover:text-white/80 hover:bg-white/[0.08] border border-transparent hover:border-white/10 transition-all shrink-0"
-          aria-label={t('inlineTools.close')}
-          title={t('inlineTools.close')}
-        >
-          <PanelRightClose className="h-4 w-4" />
-        </button>
-      </div>
 
-      <div className="px-4 py-2.5 border-b border-[#30363D] shrink-0">
-        <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+        {file ? (
+          <p className="flex items-center gap-1.5 text-[13px] font-medium text-white/90 truncate min-w-0">
+            <span className="shrink-0 opacity-80" aria-hidden>
+              📄
+            </span>
+            <span className="truncate">{file.name}</span>
+            {pageCount > 0 && (
+              <span className="shrink-0 text-[10px] font-normal text-white/35">
+                · {t('aiPanel.pageDocument', { count: pageCount })}
+              </span>
+            )}
+          </p>
+        ) : (
+          <p className="text-[12px] text-white/40">{t('aiPanel.noFile')}</p>
+        )}
+
+        <div className="flex flex-wrap items-center gap-1 text-[11px] pb-0.5">
           {tabs.map((tab) => (
             <button
               key={tab}
@@ -524,33 +627,6 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
         </div>
       </div>
 
-      <div className="px-4 py-3 shrink-0">
-        <div className={`rounded-xl ${PANEL_BORDER} border ${PANEL_SURFACE} p-3`}>
-          <div className="flex items-start gap-2">
-            <FileText className="h-4 w-4 text-blue-400/80 shrink-0 mt-0.5" />
-            <div className="min-w-0">
-              <div className="text-[10px] font-medium uppercase tracking-wide text-blue-300/70">
-                {t('aiPanel.detected')}
-              </div>
-              <div className="mt-1 text-[12px] text-white/80">
-                {pageCount > 0 ? t('aiPanel.pageDocument', { count: pageCount }) : t('aiPanel.documentLoaded')}
-              </div>
-              {isSummarizing && (
-                <div className="mt-2 flex items-center gap-1.5 text-[10px] text-blue-300/90">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  {t('aiPanel.summarizing')}
-                </div>
-              )}
-              {documentId != null && !isSummarizing && (
-                <div className="mt-1 text-[10px] text-white/35">
-                  {t('aiPanel.documentId', { id: documentId })}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
       {aiHint && !aiError && (
         <div className="mx-4 mb-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-100/90 shrink-0">
           {aiHint}
@@ -562,68 +638,127 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
         </div>
       )}
 
-      <div className="flex-1 min-h-0 flex flex-col px-4 pb-4">
+      <div className="flex-1 min-h-0 flex flex-col px-4 pt-3 pb-4">
         {aiTab === 'summary' && (
-          <div className="flex-1 min-h-0 flex flex-col gap-2">
-            <TierRadioGroup
-              mode="summaryDetail"
-              presets={WORKSPACE_SUMMARY_DETAIL_PRESETS}
-              value={summaryTierId}
-              onChange={setSummaryTierId}
-              disabled={isSummarizing}
-            />
-            <Button
-              size="sm"
-              onClick={() => void runSummary()}
-              disabled={!file || isSummarizing}
-              className="w-full h-9 text-[12px] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500"
-            >
-              {isSummarizing ? (
-                <span className="inline-flex items-center gap-2">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  {t('aiPanel.thinking')}
-                </span>
-              ) : (
-                t('aiPanel.generateSummary')
-              )}
-            </Button>
-            <div
-              className={`flex-1 min-h-0 flex flex-col rounded-xl ${PANEL_SURFACE} overflow-hidden ${
-                summaryText ? 'border border-[#30363D]' : ''
-              }`}
-            >
-              {summaryText ? (
-                <div className="flex-1 overflow-auto p-3 scrollbar-thin">
-                  <p className="text-[12px] leading-relaxed text-[#d1d5db] whitespace-pre-wrap">
-                    {summaryText}
-                  </p>
-                </div>
-              ) : (
-                <div className="flex-1 flex items-center justify-center p-6 min-h-[140px]">
-                  <p className="text-[11px] text-[#8B949E] text-center max-w-[260px] leading-relaxed">
-                    {t('aiPanel.summaryPlaceholder')}
-                  </p>
-                </div>
-              )}
+          <div className="flex-1 min-h-0 flex flex-col gap-2.5">
+            <div className="shrink-0 rounded-xl border border-[#30363D]/90 bg-[#161B22]/70 px-3.5 py-3.5 space-y-3">
+              <WorkspaceAiLanguageSelect
+                compact
+                label={t('aiPanel.answerLanguage.label')}
+                value={answerLanguage}
+                onChange={handleAnswerLanguageChange}
+                disabled={isSummarizing}
+              />
+              <TierRadioGroup
+                mode="summaryDetail"
+                presets={WORKSPACE_SUMMARY_DETAIL_PRESETS}
+                value={summaryTierId}
+                onChange={setSummaryTierId}
+                disabled={isSummarizing}
+              />
+              <Button
+                size="sm"
+                onClick={() => void runSummary()}
+                disabled={!file || isSummarizing}
+                className="w-full h-8 text-[11px] font-semibold bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:via-indigo-500 hover:to-violet-500"
+              >
+                {isSummarizing ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    {t('aiPanel.analyzing')}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1">
+                    <Sparkles className="h-3 w-3" />
+                    {t('aiPanel.generateSummary')}
+                  </span>
+                )}
+              </Button>
+            </div>
+
+            <div className="flex-1 min-h-0 flex flex-col gap-1.5">
+              <AiSectionTitle>{t('aiPanel.summaryByAi')}</AiSectionTitle>
+
+              <div
+                className={`flex-1 min-h-0 flex flex-col rounded-xl border overflow-hidden ${
+                  summaryText
+                    ? 'border-violet-500/20 bg-gradient-to-b from-violet-500/[0.06] to-[#161B22]'
+                    : `border-dashed ${PANEL_BORDER} ${PANEL_SURFACE}`
+                }`}
+              >
+                {summaryText ? (
+                  <>
+                    <div className="flex-1 overflow-auto p-3.5 scrollbar-thin">
+                      <WorkspaceAiMarkdown content={summaryText} />
+                    </div>
+                    <div className="flex gap-2 border-t border-[#30363D] p-2 shrink-0 bg-[#0D1117]/80">
+                      <button
+                        type="button"
+                        onClick={() => void handleCopySummary()}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#30363D] bg-[#161B22] py-2 text-[11px] font-medium text-white/80 hover:border-blue-500/30 hover:text-white transition-all"
+                      >
+                        {copyDone ? (
+                          <Check className="h-3.5 w-3.5 text-emerald-400" />
+                        ) : (
+                          <Copy className="h-3.5 w-3.5" />
+                        )}
+                        {copyDone ? t('aiPanel.copied') : t('aiPanel.copy')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleExportSummaryPdf()}
+                        disabled={isExportingPdf}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#30363D] bg-[#161B22] py-2 text-[11px] font-medium text-white/80 hover:border-violet-500/30 hover:text-white transition-all disabled:opacity-50"
+                      >
+                        {isExportingPdf ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <FileDown className="h-3.5 w-3.5" />
+                        )}
+                        {t('aiPanel.exportPdf')}
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center p-6 min-h-[120px] text-center gap-2">
+                    <Sparkles className="h-8 w-8 text-violet-400/40" />
+                    <p className="text-[11px] text-[#8B949E] max-w-[240px] leading-relaxed">
+                      {t('aiPanel.summaryPlaceholder')}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
 
         {aiTab === 'chat' && (
           <div
-            className={`flex-1 min-h-0 flex flex-col ${!chatReady ? 'opacity-95' : ''}`}
+            className={`flex-1 min-h-0 flex flex-col gap-2 ${!chatReady ? 'opacity-95' : ''}`}
             aria-readonly={!chatReady}
           >
-            {chatReady && (
-              <TierRadioGroup
-                mode="chatContext"
-                presets={WORKSPACE_CHAT_TOP_K_PRESETS}
-                value={chatTierId}
-                onChange={setChatTierId}
+            <div className="shrink-0 rounded-xl border border-[#30363D]/90 bg-[#161B22]/70 px-3.5 py-3.5 space-y-3">
+              <WorkspaceAiLanguageSelect
+                compact
+                label={t('aiPanel.answerLanguage.label')}
+                value={answerLanguage}
+                onChange={handleAnswerLanguageChange}
                 disabled={isAiThinking}
               />
-            )}
-            <div className="flex-1 overflow-auto space-y-3 pr-1 min-h-0 mt-2">
+              {chatReady && (
+                <TierRadioGroup
+                  mode="chatContext"
+                  presets={WORKSPACE_CHAT_TOP_K_PRESETS}
+                  value={chatTierId}
+                  onChange={setChatTierId}
+                  disabled={isAiThinking}
+                />
+              )}
+            </div>
+
+            <AiSectionTitle>{t('aiPanel.askDocument')}</AiSectionTitle>
+
+            <div className="flex-1 overflow-auto space-y-3 pr-1 min-h-0">
               {!chatReady && (
                 <div className={`rounded-xl border ${PANEL_BORDER} ${PANEL_SURFACE} p-3 space-y-2.5`}>
                   <p className="text-[11px] leading-relaxed text-[#9CA3AF]">{t('aiPanel.runSummaryForChat')}</p>
@@ -640,21 +775,19 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
               {messages.map((m, idx) => (
                 <div
                   key={idx}
-                  className={`rounded-lg px-3 py-2 text-[12px] leading-relaxed ${
+                  className={`rounded-xl px-3 py-2.5 ${
                     m.role === 'assistant'
-                      ? `${PANEL_SURFACE} border ${PANEL_BORDER} text-[#d1d5db]`
-                      : 'bg-blue-500/12 border border-blue-500/25 text-blue-100 ml-4'
+                      ? `border border-violet-500/15 bg-gradient-to-br from-violet-500/[0.08] to-[#161B22]`
+                      : 'bg-blue-500/12 border border-blue-500/25 text-blue-100 ml-3'
                   }`}
                 >
-                  {m.text}
+                  {m.role === 'assistant' ? (
+                    <WorkspaceAiMarkdown content={m.text} />
+                  ) : (
+                    <p className="text-[12px] leading-relaxed">{m.text}</p>
+                  )}
                 </div>
               ))}
-              {isAiThinking && (
-                <div className="flex items-center gap-2 text-[11px] text-blue-300/90 px-1">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  {t('aiPanel.thinking')}
-                </div>
-              )}
             </div>
             <div
               className={`pt-3 border-t border-[#30363D] flex items-end gap-2 shrink-0 ${!chatReady ? 'pointer-events-none opacity-60' : ''}`}
@@ -683,14 +816,27 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
                 disabled={!chatReady || !file || isAiThinking || !chatInput.trim()}
                 className="h-[52px] px-4 text-[12px] bg-blue-600 hover:bg-blue-500"
               >
-                {t('aiPanel.send')}
+                {isAiThinking ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-label={t('aiPanel.thinking')} />
+                ) : (
+                  t('aiPanel.send')
+                )}
               </Button>
             </div>
           </div>
         )}
 
         {aiTab === 'voice' && (
-          <div className="flex-1 min-h-0 flex flex-col">
+          <div className="flex-1 min-h-0 flex flex-col gap-2.5">
+            <div className="shrink-0 rounded-xl border border-[#30363D]/90 bg-[#161B22]/70 px-3.5 py-3">
+              <WorkspaceAiLanguageSelect
+                compact
+                label={t('aiPanel.answerLanguage.label')}
+                value={answerLanguage}
+                onChange={handleAnswerLanguageChange}
+                disabled={speech.isPlaying && !speech.isPaused}
+              />
+            </div>
             {!voiceReady ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center px-2 gap-4">
                 <div className="h-20 w-20 rounded-full bg-gradient-to-br from-pink-500/25 to-violet-500/15 ring-1 ring-pink-400/30 flex items-center justify-center">

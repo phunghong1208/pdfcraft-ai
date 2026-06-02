@@ -11,11 +11,11 @@ import {
   ArrowLeftRight, Lock, Unlock, EyeOff, Pen, ShieldCheck,
   Languages, Layers, Scissors, Wrench,
   ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight,
-  PanelLeftOpen, PanelLeftClose, PanelRightClose, X,
+  X,
   Underline, Strikethrough, StickyNote, Square, Circle,
   PenTool, Stamp, Table, FileImage,
   Undo2, Redo2, Printer, Settings,
-  FileCheck, PenSquare, MessageCircle,
+  FileCheck, PenSquare,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -27,6 +27,7 @@ import { SplitPDFTool } from '@/components/tools/split/SplitPDFTool';
 import { PageThumbnails } from '@/components/workspace/PageThumbnails';
 import { WorkspaceAIPanel } from '@/components/workspace/WorkspaceAIPanel';
 import { WorkspaceAIIcon } from '@/components/workspace/WorkspaceAIIcon';
+import { WorkspacePagesSidebarToggle } from '@/components/workspace/WorkspacePagesSidebarToggle';
 import { type Locale } from '@/lib/i18n/config';
 import { peekUploadedPdf, setUploadedPdf } from '@/lib/document-session';
 import {
@@ -42,7 +43,7 @@ interface DocumentWorkspaceClientProps {
   locale: Locale;
 }
 
-type RibbonTabKey = 'home' | 'edit' | 'page' | 'comment' | 'convert' | 'tool' | 'fillsign' | 'protect' | 'ai';
+type RibbonTabKey = 'home' | 'edit' | 'page' | 'comment' | 'convert' | 'tool' | 'fillsign' | 'protect';
 
 type WorkspaceInlineTool = 'compress' | 'ocr' | 'merge' | 'split';
 
@@ -326,19 +327,6 @@ function getRibbonGroups(
         },
       ];
 
-    case 'ai':
-      return [
-        {
-          label: tr('groups.aiTools'),
-          tools: [
-            { icon: MessageCircle, label: tr('tools.chatPdf'), href: `/${locale}/chat-pdf` },
-            { icon: FileText, label: tr('tools.summarize'), href: `/${locale}/ai-summary` },
-            { icon: Languages, label: tr('tools.translate'), href: `/${locale}/ai-translate` },
-            { icon: ScanText, label: tr('tools.smartOcr'), href: `/${locale}/smart-ocr` },
-          ],
-        },
-      ];
-
     default:
       return [];
   }
@@ -481,7 +469,6 @@ const TAB_KEYS: { key: RibbonTabKey; icon: LucideIcon }[] = [
   { key: 'tool', icon: Wrench },
   { key: 'fillsign', icon: Pen },
   { key: 'protect', icon: Lock },
-  { key: 'ai', icon: MessageCircle },
 ];
 
 export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps) {
@@ -852,7 +839,6 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
                 onClick={() => {
                   if (file) setUploadedPdf(file);
                   setActiveTab(tab.key);
-                  if (tab.key === 'ai') setIsRightPanelOpen(true);
                 }}
                 className={`relative inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] whitespace-nowrap transition-all ${
                   active
@@ -860,7 +846,6 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
                     : 'text-white/45 hover:text-white/80 hover:bg-white/[0.04]'
                 }`}
               >
-                {tab.key === 'ai' && <WorkspaceAIIcon size="xs" />}
                 {tab.label}
                 {active && (
                   <span className="absolute bottom-0 left-1 right-1 h-[2px] bg-blue-400 rounded-t" />
@@ -941,15 +926,13 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
                 <span className="sr-only">{t('sidebar.newPdf')}</span>
                 <input type="file" accept=".pdf,application/pdf" className="hidden" onChange={(e) => handleFileChange(e.target.files?.[0] ?? null)} />
               </label>
-              <button
-                type="button"
+              <WorkspacePagesSidebarToggle
+                expanded
+                variant="header"
                 onClick={() => setShowThumbnails(false)}
-                className="p-1 rounded-md border border-transparent text-white/40 hover:text-white/80 hover:bg-white/[0.06] hover:border-white/10 transition-all"
                 title={t('sidebar.hidePages')}
                 aria-label={t('sidebar.hidePages')}
-              >
-                <PanelLeftClose className="h-3.5 w-3.5" />
-              </button>
+              />
             </div>
 
             <div className="flex-1 overflow-y-auto px-2 py-2 scrollbar-thin">
@@ -987,24 +970,20 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
             )}
             {/* Annotation viewer: always mounted; ribbon only changes behavior */}
             {previewUrl && !showThumbnails && (
-              <button
-                type="button"
+              <WorkspacePagesSidebarToggle
+                expanded={false}
+                variant="floating"
                 onClick={() => setShowThumbnails(true)}
-                className="absolute left-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-md border border-white/12 bg-[#2a2d35]/95 text-white/65 shadow-lg backdrop-blur-sm hover:border-white/20 hover:bg-[#32363f] hover:text-white transition-all"
                 title={t('sidebar.openPages')}
                 aria-label={t('sidebar.openPages')}
-              >
-                <PanelLeftOpen className="h-4 w-4" />
-              </button>
+                className="absolute left-2 top-2 z-20"
+              />
             )}
 
             {previewUrl && !isRightPanelOpen && file && (
               <button
                 type="button"
-                onClick={() => {
-                  setActiveTab('ai');
-                  setIsRightPanelOpen(true);
-                }}
+                onClick={() => setIsRightPanelOpen(true)}
                 className="absolute right-0 top-1/2 z-20 -translate-y-1/2 flex items-center gap-2 rounded-l-xl border border-r-0 border-white/12 bg-[#0D1117]/95 py-2 pl-2.5 pr-2 shadow-[-6px_0_20px_rgba(0,0,0,0.35)] backdrop-blur-sm hover:bg-[#161B22] hover:border-white/20 transition-all"
                 title={t('statusBar.aiAssistant')}
                 aria-label={t('statusBar.aiAssistant')}
@@ -1043,14 +1022,13 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
         {/* Left: Thumbnail toggle + page nav */}
         <div className="flex items-center gap-2">
           {!showThumbnails && (
-            <button
-              type="button"
+            <WorkspacePagesSidebarToggle
+              expanded={false}
+              variant="compact"
               onClick={() => setShowThumbnails(true)}
-              className="p-0.5 rounded text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-all"
               title={t('sidebar.showThumbnails')}
-            >
-              <LayoutGrid className="h-3.5 w-3.5" />
-            </button>
+              aria-label={t('sidebar.showThumbnails')}
+            />
           )}
           <div className="flex items-center gap-0.5">
             <button
@@ -1102,26 +1080,9 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
           {file ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` : ''}
         </div>
 
-        {/* Right: Zoom + AI panel toggle */}
+        {/* Right: Zoom */}
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="p-1 rounded-md text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-all inline-flex items-center justify-center"
-            onClick={() => {
-              if (!isRightPanelOpen) setActiveTab('ai');
-              setIsRightPanelOpen((prev) => !prev);
-            }}
-            title={t('statusBar.aiAssistant')}
-            aria-label={t('statusBar.aiAssistant')}
-            aria-pressed={isRightPanelOpen}
-          >
-            {isRightPanelOpen ? (
-              <PanelRightClose className="h-4 w-4" />
-            ) : (
-              <WorkspaceAIIcon size="xs" />
-            )}
-          </button>
-          <div className="flex items-center gap-1.5 ml-1">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={handleZoomOut}
               className="p-1 rounded text-white/40 hover:text-white/80 transition-all"
