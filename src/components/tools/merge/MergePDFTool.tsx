@@ -22,6 +22,8 @@ export interface MergePDFToolProps {
   className?: string;
   /** Pre-load a file when opened from workspace ribbon */
   initialFile?: File | null;
+  /** Lock tool to initialFile when used inside workspace */
+  lockToInitialFile?: boolean;
 }
 
 /**
@@ -30,7 +32,11 @@ export interface MergePDFToolProps {
  * 
  * Provides the UI for merging multiple PDF files with drag-to-reorder functionality.
  */
-export function MergePDFTool({ className = '', initialFile = null }: MergePDFToolProps) {
+export function MergePDFTool({
+  className = '',
+  initialFile = null,
+  lockToInitialFile = false,
+}: MergePDFToolProps) {
   const t = useTranslations('common');
   const tTools = useTranslations('tools');
   
@@ -231,16 +237,18 @@ export function MergePDFTool({ className = '', initialFile = null }: MergePDFToo
   return (
     <div className={`space-y-6 ${className}`.trim()}>
       {/* File Upload Area */}
-      <FileUploader
-        accept={['application/pdf', '.pdf']}
-        multiple
-        maxFiles={100}
-        onFilesSelected={handleFilesSelected}
-        onError={handleUploadError}
-        disabled={isProcessing}
-        label={tTools('mergePdf.uploadLabel') || 'Upload PDF Files'}
-        description={tTools('mergePdf.uploadDescription') || 'Drag and drop PDF files here, or click to browse. You can add multiple files.'}
-      />
+      {!lockToInitialFile && (
+        <FileUploader
+          accept={['application/pdf', '.pdf']}
+          multiple
+          maxFiles={100}
+          onFilesSelected={handleFilesSelected}
+          onError={handleUploadError}
+          disabled={isProcessing}
+          label={tTools('mergePdf.uploadLabel') || 'Upload PDF Files'}
+          description={tTools('mergePdf.uploadDescription') || 'Drag and drop PDF files here, or click to browse. You can add multiple files.'}
+        />
+      )}
 
       {/* Error Message */}
       {error && (
@@ -259,14 +267,16 @@ export function MergePDFTool({ className = '', initialFile = null }: MergePDFToo
             <h3 className="text-lg font-medium text-[hsl(var(--color-foreground))]">
               {tTools('mergePdf.filesTitle') || 'Files to Merge'} ({files.length})
             </h3>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClearAll}
-              disabled={isProcessing}
-            >
-              {t('buttons.clearAll') || 'Clear All'}
-            </Button>
+            {!lockToInitialFile && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearAll}
+                disabled={isProcessing}
+              >
+                {t('buttons.clearAll') || 'Clear All'}
+              </Button>
+            )}
           </div>
 
           <p className="text-sm text-[hsl(var(--color-muted-foreground))] mb-4">
@@ -277,7 +287,7 @@ export function MergePDFTool({ className = '', initialFile = null }: MergePDFToo
             {files.map((file, index) => (
               <li
                 key={file.id}
-                draggable={!isProcessing}
+                draggable={!isProcessing && !lockToInitialFile}
                 onDragStart={() => handleDragStart(index)}
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragEnd={handleDragEnd}
@@ -333,7 +343,7 @@ export function MergePDFTool({ className = '', initialFile = null }: MergePDFToo
                   <button
                     type="button"
                     onClick={() => handleMoveUp(index)}
-                    disabled={index === 0 || isProcessing}
+                    disabled={index === 0 || isProcessing || lockToInitialFile}
                     className="p-1 rounded hover:bg-[hsl(var(--color-muted))] disabled:opacity-30 disabled:cursor-not-allowed"
                     aria-label="Move up"
                   >
@@ -344,7 +354,7 @@ export function MergePDFTool({ className = '', initialFile = null }: MergePDFToo
                   <button
                     type="button"
                     onClick={() => handleMoveDown(index)}
-                    disabled={index === files.length - 1 || isProcessing}
+                    disabled={index === files.length - 1 || isProcessing || lockToInitialFile}
                     className="p-1 rounded hover:bg-[hsl(var(--color-muted))] disabled:opacity-30 disabled:cursor-not-allowed"
                     aria-label="Move down"
                   >
@@ -355,20 +365,28 @@ export function MergePDFTool({ className = '', initialFile = null }: MergePDFToo
                 </div>
 
                 {/* Remove Button */}
-                <button
-                  type="button"
-                  onClick={() => handleRemoveFile(file.id)}
-                  disabled={isProcessing}
-                  className="flex-shrink-0 p-1 rounded hover:bg-red-100 text-[hsl(var(--color-muted-foreground))] hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed"
-                  aria-label={`Remove ${file.file.name}`}
-                >
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M18 6L6 18M6 6l12 12" />
-                  </svg>
-                </button>
+                {!lockToInitialFile && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveFile(file.id)}
+                    disabled={isProcessing}
+                    className="flex-shrink-0 p-1 rounded hover:bg-red-100 text-[hsl(var(--color-muted-foreground))] hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                    aria-label={`Remove ${file.file.name}`}
+                  >
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
               </li>
             ))}
           </ul>
+
+          {lockToInitialFile && files.length < 2 && (
+            <p className="mt-3 text-xs text-[hsl(var(--color-muted-foreground))]">
+              {tTools('mergePdf.workspaceSingleFileHint') || 'Workspace mode đang khóa theo file hiện tại. Để ghép, hãy dùng công cụ Ghép PDF ở trang công cụ.'}
+            </p>
+          )}
         </Card>
       )}
 

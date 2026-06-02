@@ -62,6 +62,17 @@ function itemFontSize(item: TextItem): number {
 function lineTextFromItems(items: TextItem[]): string {
   if (!items.length) return '';
 
+  const tokenCodePointLen = (s: string) => Array.from(s).length;
+  const mergeSingleCharTokensIfNeeded = (s: string) => {
+    // Trường hợp PDF tách từng ký tự và chèn space: "Q u y" => "Quy".
+    const tokens = s.split(' ').filter(Boolean);
+    if (tokens.length < 4) return s;
+    if (tokens.every((tok) => tokenCodePointLen(tok) === 1)) {
+      return tokens.join('');
+    }
+    return s;
+  };
+
   let result = '';
   for (let i = 0; i < items.length; i += 1) {
     const item = items[i];
@@ -80,7 +91,8 @@ function lineTextFromItems(items: TextItem[]): string {
     result += str;
   }
 
-  return result.replace(/\s+/g, ' ').trim();
+  const collapsed = result.replace(/\s+/g, ' ').trim();
+  return mergeSingleCharTokensIfNeeded(collapsed);
 }
 
 function segmentForLine(

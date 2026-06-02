@@ -16,6 +16,8 @@ export interface CompressPDFToolProps {
   className?: string;
   /** Pre-load a file when opened from workspace ribbon */
   initialFile?: File | null;
+  /** Lock tool to initialFile when used inside workspace */
+  lockToInitialFile?: boolean;
 }
 
 /**
@@ -25,7 +27,11 @@ export interface CompressPDFToolProps {
  * Provides the UI for compressing PDF files with quality options.
  * Supports batch processing of multiple files with ZIP download.
  */
-export function CompressPDFTool({ className = '', initialFile = null }: CompressPDFToolProps) {
+export function CompressPDFTool({
+  className = '',
+  initialFile = null,
+  lockToInitialFile = false,
+}: CompressPDFToolProps) {
   const t = useTranslations('common');
   const tTools = useTranslations('tools');
 
@@ -144,13 +150,26 @@ export function CompressPDFTool({ className = '', initialFile = null }: Compress
   const getStatusIcon = (status: BatchFile['status']) => {
     switch (status) {
       case 'pending':
-        return <div className="w-4 h-4 rounded-full bg-gray-300" />;
+        return null;
       case 'processing':
         return <Loader2 className="w-4 h-4 animate-spin text-blue-500" />;
       case 'completed':
         return <Check className="w-4 h-4 text-green-500" />;
       case 'error':
         return <AlertCircle className="w-4 h-4 text-red-500" />;
+    }
+  };
+
+  const getStatusLabel = (status: BatchFile['status']) => {
+    switch (status) {
+      case 'pending':
+        return t('status.ready') || 'Ready';
+      case 'processing':
+        return t('status.processing') || 'Processing';
+      case 'completed':
+        return t('status.complete') || 'Completed';
+      case 'error':
+        return t('status.error') || 'Error';
     }
   };
 
@@ -162,16 +181,18 @@ export function CompressPDFTool({ className = '', initialFile = null }: Compress
   return (
     <div className={`space-y-6 ${className}`.trim()}>
       {/* File Upload Area */}
-      <FileUploader
-        accept={['application/pdf', '.pdf']}
-        multiple={true}
-        maxFiles={10}
-        onFilesSelected={handleFilesSelected}
-        onError={handleUploadError}
-        disabled={isProcessing}
-        label={tTools('compressPdf.uploadLabel') || 'Upload PDF Files'}
-        description={tTools('compressPdf.batchUploadDescription') || 'Drag and drop PDF files here. You can compress up to 10 files at once.'}
-      />
+      {!lockToInitialFile && (
+        <FileUploader
+          accept={['application/pdf', '.pdf']}
+          multiple={true}
+          maxFiles={10}
+          onFilesSelected={handleFilesSelected}
+          onError={handleUploadError}
+          disabled={isProcessing}
+          label={tTools('compressPdf.uploadLabel') || 'Upload PDF Files'}
+          description={tTools('compressPdf.batchUploadDescription') || 'Drag and drop PDF files here. You can compress up to 10 files at once.'}
+        />
+      )}
 
       {/* Error Message */}
       {error && (
@@ -186,55 +207,60 @@ export function CompressPDFTool({ className = '', initialFile = null }: Compress
       {/* File List */}
       {hasFiles && (
         <Card variant="outlined" size="lg">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium text-[hsl(var(--color-foreground))]">
-              {tTools('compressPdf.filesTitle') || 'Files to Compress'} ({files.length})
-            </h3>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearFiles}
-              disabled={isProcessing}
-            >
-              <Trash2 className="w-4 h-4 mr-1" />
-              {t('buttons.clearAll') || 'Clear All'}
-            </Button>
+          <div className="flex items-center justify-end mb-4">
+            {!lockToInitialFile && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFiles}
+                disabled={isProcessing}
+              >
+                <Trash2 className="w-4 h-4 mr-1" />
+                {t('buttons.clearAll') || 'Clear All'}
+              </Button>
+            )}
           </div>
 
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {files.map((batchFile) => (
               <div
                 key={batchFile.id}
-                className="flex items-center justify-between p-3 bg-[hsl(var(--color-muted)/0.3)] rounded-[var(--radius-md)]"
+                className="flex items-center justify-between p-3 rounded-[var(--radius-md)] border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.2)]"
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                  {getStatusIcon(batchFile.status)}
+                  <svg className="w-8 h-8 text-red-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
+                    <path d="M14 2v6h6" fill="white" />
+                    <text x="7" y="17" fontSize="6" fill="white" fontWeight="bold">PDF</text>
+                  </svg>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-[hsl(var(--color-foreground))] truncate">
                       {batchFile.file.name}
                     </p>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-[hsl(var(--color-muted-foreground))]">
-                        {formatSize(batchFile.file.size)}
-                      </span>
-                      {batchFile.status === 'processing' && (
-                        <span className="text-xs text-blue-500">
-                          {batchFile.progress}%
-                        </span>
-                      )}
+                    <div className="flex items-center gap-2 text-xs text-[hsl(var(--color-muted-foreground))]">
+                      <span>{formatSize(batchFile.file.size)}</span>
+                      <span>•</span>
+                      <span>{getStatusLabel(batchFile.status)}</span>
+                      {batchFile.status === 'processing' && <span>{batchFile.progress}%</span>}
                       {batchFile.status === 'completed' && batchFile.result && (
-                        <span className="text-xs text-green-500">
-                          → {formatSize(batchFile.result.size)}
-                        </span>
+                        <>
+                          <span>•</span>
+                          <span className="text-green-500">→ {formatSize(batchFile.result.size)}</span>
+                        </>
                       )}
-                      {batchFile.status === 'error' && (
-                        <span className="text-xs text-red-500">
-                          {batchFile.error}
-                        </span>
+                      {batchFile.status === 'error' && batchFile.error && (
+                        <>
+                          <span>•</span>
+                          <span className="text-red-500 truncate max-w-[12rem]">{batchFile.error}</span>
+                        </>
                       )}
                     </div>
                   </div>
                 </div>
+
+                {batchFile.status !== 'pending' && (
+                  <div className="mr-1 flex-shrink-0">{getStatusIcon(batchFile.status)}</div>
+                )}
 
                 {/* Individual download for completed files */}
                 {batchFile.status === 'completed' && batchFile.result && (
@@ -247,7 +273,7 @@ export function CompressPDFTool({ className = '', initialFile = null }: Compress
                 )}
 
                 {/* Remove button for pending files */}
-                {batchFile.status === 'pending' && !isProcessing && (
+                {batchFile.status === 'pending' && !isProcessing && !lockToInitialFile && (
                   <button
                     onClick={() => removeFile(batchFile.id)}
                     className="p-1 text-[hsl(var(--color-muted-foreground))] hover:text-red-500 transition-colors"

@@ -23,6 +23,8 @@ export interface OCRPDFToolProps {
   className?: string;
   /** Pre-load a file when opened from workspace ribbon */
   initialFile?: File | null;
+  /** Lock tool to initialFile when used inside workspace */
+  lockToInitialFile?: boolean;
 }
 
 /**
@@ -31,7 +33,11 @@ export interface OCRPDFToolProps {
  * 
  * Performs OCR on PDF pages to extract text.
  */
-export function OCRPDFTool({ className = '', initialFile = null }: OCRPDFToolProps) {
+export function OCRPDFTool({
+  className = '',
+  initialFile = null,
+  lockToInitialFile = false,
+}: OCRPDFToolProps) {
   const t = useTranslations('common');
   const tTools = useTranslations('tools');
   
@@ -228,16 +234,18 @@ export function OCRPDFTool({ className = '', initialFile = null }: OCRPDFToolPro
   return (
     <div className={`space-y-6 ${className}`.trim()}>
       {/* File Upload Area */}
-      <FileUploader
-        accept={['application/pdf', '.pdf']}
-        multiple={false}
-        maxFiles={1}
-        onFilesSelected={handleFilesSelected}
-        onError={handleUploadError}
-        disabled={isProcessing}
-        label={tTools('ocrPdf.uploadLabel') || 'Upload PDF'}
-        description={tTools('ocrPdf.uploadDescription') || 'Drag and drop a scanned PDF file here, or click to browse.'}
-      />
+      {!lockToInitialFile && (
+        <FileUploader
+          accept={['application/pdf', '.pdf']}
+          multiple={false}
+          maxFiles={1}
+          onFilesSelected={handleFilesSelected}
+          onError={handleUploadError}
+          disabled={isProcessing}
+          label={tTools('ocrPdf.uploadLabel') || 'Upload PDF'}
+          description={tTools('ocrPdf.uploadDescription') || 'Drag and drop a scanned PDF file here, or click to browse.'}
+        />
+      )}
 
       {/* Error Message */}
       {error && (
@@ -265,14 +273,16 @@ export function OCRPDFTool({ className = '', initialFile = null }: OCRPDFToolPro
                 <p className="text-sm text-[hsl(var(--color-muted-foreground))]">{formatSize(file.file.size)}</p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleRemoveFile}
-              disabled={isProcessing}
-            >
-              {t('buttons.remove') || 'Remove'}
-            </Button>
+            {!lockToInitialFile && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRemoveFile}
+                disabled={isProcessing}
+              >
+                {t('buttons.remove') || 'Remove'}
+              </Button>
+            )}
           </div>
         </Card>
       )}

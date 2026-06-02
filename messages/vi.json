@@ -77,6 +77,7 @@
     },
     "status": {
       "idle": "Sẵn sàng",
+      "ready": "Sẵn sàng",
       "uploading": "Đang tải lên...",
       "processing": "Đang xử lý...",
       "complete": "Hoàn tất",
@@ -733,6 +734,7 @@
       "uploadDescription": "Kéo và thả tệp PDF vào đây, hoặc nhấp để duyệt. Bạn có thể thêm nhiều tệp.",
       "filesTitle": "Tệp cần Hợp nhất",
       "reorderHint": "Kéo và thả để sắp xếp lại thứ tự. Các tệp sẽ được hợp nhất theo thứ tự hiển thị.",
+      "workspaceSingleFileHint": "Đang ở chế độ Workspace với 1 file hiện tại. Hãy thêm file khác để ghép.",
       "optionsTitle": "Tùy chọn Hợp nhất",
       "preserveBookmarks": "Giữ dấu trang (tạo dấu trang cho mỗi tệp)",
       "mergeButton": "Hợp nhất PDF",

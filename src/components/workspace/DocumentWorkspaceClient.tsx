@@ -1172,10 +1172,10 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-4">
-              {workspaceTool === 'compress' && <CompressPDFTool initialFile={file} />}
-              {workspaceTool === 'ocr' && <OCRPDFTool initialFile={file} />}
+              {workspaceTool === 'compress' && <CompressPDFTool initialFile={file} lockToInitialFile />}
+              {workspaceTool === 'ocr' && <OCRPDFTool initialFile={file} lockToInitialFile />}
               {workspaceTool === 'merge' && <MergePDFTool initialFile={file} />}
-              {workspaceTool === 'split' && <SplitPDFTool initialFile={file} />}
+              {workspaceTool === 'split' && <SplitPDFTool initialFile={file} lockToInitialFile />}
               {workspaceTool === 'pdf-to-docx' && <PDFToDocxTool initialFile={file} />}
               {workspaceTool === 'pdf-to-excel' && <PDFToExcelTool initialFile={file} />}
               {workspaceTool === 'pdf-to-pptx' && <PDFToPptxTool initialFile={file} />}

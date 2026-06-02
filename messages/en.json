@@ -77,6 +77,7 @@
     },
     "status": {
       "idle": "Ready",
+      "ready": "Ready",
       "uploading": "Uploading...",
       "processing": "Processing...",
       "complete": "Complete",
@@ -763,6 +764,7 @@
       "uploadDescription": "Drag and drop PDF files here, or click to browse. You can add multiple files.",
       "filesTitle": "Files to Merge",
       "reorderHint": "Drag and drop to reorder files. Files will be merged in the order shown.",
+      "workspaceSingleFileHint": "Workspace mode starts with the current file. Add another file to merge.",
       "optionsTitle": "Merge Options",
       "preserveBookmarks": "Preserve bookmarks (create bookmark for each file)",
       "mergeButton": "Merge PDFs",

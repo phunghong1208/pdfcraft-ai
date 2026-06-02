@@ -26,6 +26,8 @@ export interface SplitPDFToolProps {
   className?: string;
   /** Pre-load a file when opened from workspace ribbon */
   initialFile?: File | null;
+  /** Lock tool to initialFile when used inside workspace */
+  lockToInitialFile?: boolean;
 }
 
 type SplitMode = 'ranges' | 'even-odd' | 'every-page' | 'visual' | 'bookmarks' | 'n-times';
@@ -41,7 +43,11 @@ interface PagePreview {
  * 
  * Provides the UI for splitting PDF files with page range input and preview.
  */
-export function SplitPDFTool({ className = '', initialFile = null }: SplitPDFToolProps) {
+export function SplitPDFTool({
+  className = '',
+  initialFile = null,
+  lockToInitialFile = false,
+}: SplitPDFToolProps) {
   const t = useTranslations('common');
   const tTools = useTranslations('tools');
 
@@ -473,14 +479,16 @@ export function SplitPDFTool({ className = '', initialFile = null }: SplitPDFToo
                 </p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClearFile}
-              disabled={isProcessing}
-            >
-              {t('buttons.remove') || 'Remove'}
-            </Button>
+            {!lockToInitialFile && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearFile}
+                disabled={isProcessing}
+              >
+                {t('buttons.remove') || 'Remove'}
+              </Button>
+            )}
           </div>
         </Card>
       )}
