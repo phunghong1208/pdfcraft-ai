@@ -8,6 +8,8 @@
 'use client';
 
 import React, { forwardRef, useId } from 'react';
+import { ChevronDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export interface FormFieldProps {
   /** Label text */
@@ -204,25 +206,41 @@ export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElemen
 }
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ hasError, className = '', children, ...props }, ref) => {
+  ({ hasError, className = '', children, disabled, ...props }, ref) => {
     return (
-      <select
-        ref={ref}
-        className={`
-          w-full px-3 py-2
-          rounded-[var(--radius-md)]
-          border border-[hsl(var(--color-border))]
-          bg-[hsl(var(--color-background))]
-          text-[hsl(var(--color-foreground))]
-          focus:outline-none focus:ring-2 focus:ring-[hsl(var(--color-ring))] focus:border-transparent
-          disabled:opacity-50 disabled:cursor-not-allowed
-          ${hasError ? 'border-[hsl(var(--color-destructive))] focus:ring-[hsl(var(--color-destructive))]' : ''}
-          ${className}
-        `.trim()}
-        {...props}
-      >
-        {children}
-      </select>
+      <div className="relative w-full">
+        <select
+          ref={ref}
+          disabled={disabled}
+          className={cn(
+            'w-full appearance-none px-3 py-2 pr-9',
+            'rounded-[var(--radius-md)]',
+            'border border-[hsl(var(--color-border))]',
+            'bg-[hsl(var(--color-background))]',
+            'text-[hsl(var(--color-foreground))]',
+            'text-sm leading-normal',
+            'transition-colors',
+            'focus:outline-none focus:ring-2 focus:ring-[hsl(var(--color-ring))] focus:border-transparent',
+            'disabled:opacity-50 disabled:cursor-not-allowed',
+            hasError &&
+              'border-[hsl(var(--color-destructive))] focus:ring-[hsl(var(--color-destructive))]',
+            className,
+          )}
+          {...props}
+        >
+          {children}
+        </select>
+        <span
+          className={cn(
+            'pointer-events-none absolute inset-y-0 right-0 flex w-9 items-center justify-center',
+            'text-[hsl(var(--color-muted-foreground))]',
+            disabled && 'opacity-50',
+          )}
+          aria-hidden
+        >
+          <ChevronDown className="h-4 w-4 shrink-0 opacity-70" strokeWidth={2.25} />
+        </span>
+      </div>
     );
   }
 );

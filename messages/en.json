@@ -2583,6 +2583,9 @@
       "startSummaryForChat": "Summarize to enable chat",
       "chatReady": "Chat is ready — type your question.",
       "summaryMissingDocumentId": "Summary finished but the server did not return document_id — chat is unavailable.",
+      "chatReindexing": "Syncing document for chat (re-running summary)…",
+      "chatNoContext": "Chat could not find this document in the index.",
+      "chatNoContextHint": "Tap “Generate summary” again on the Summary tab, wait until it finishes, then ask your question.",
       "chatError": "Chat request failed.",
       "summaryError": "Summary request failed.",
       "noFile": "Upload a PDF first.",
@@ -2629,6 +2632,7 @@
       "summaryPlaceholder": "Run summary to see AI-generated highlights for this PDF.",
       "summaryDone": "Summary is ready. Open the Summary tab to read it.",
       "documentId": "Document ID: {id}",
+      "previewPdf": "PDF preview",
       "title": "AI Assistant",
       "tabs": {
         "chat": "Chat",

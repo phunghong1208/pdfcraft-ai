@@ -9,6 +9,7 @@ import { DownloadButton } from '../DownloadButton';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { pdfToExcel } from '@/lib/pdf/processors/pdf-to-excel';
+import { useToolInitialFile } from '@/lib/hooks/useToolInitialFile';
 import type { UploadedFile, ProcessOutput } from '@/types/pdf';
 
 /**
@@ -21,6 +22,7 @@ function generateId(): string {
 export interface PDFToExcelToolProps {
     /** Custom class name */
     className?: string;
+    initialFile?: File | null;
 }
 
 /**
@@ -28,7 +30,7 @@ export interface PDFToExcelToolProps {
  * 
  * Converts PDF files to Excel spreadsheets (XLSX).
  */
-export function PDFToExcelTool({ className = '' }: PDFToExcelToolProps) {
+export function PDFToExcelTool({ className = '', initialFile = null }: PDFToExcelToolProps) {
     const t = useTranslations('common');
     const tTools = useTranslations('tools');
 
@@ -60,6 +62,8 @@ export function PDFToExcelTool({ className = '' }: PDFToExcelToolProps) {
             setProgress(0);
         }
     }, []);
+
+    useToolInitialFile(initialFile, (f) => handleFilesSelected([f]));
 
     /**
      * Handle file upload error

@@ -227,21 +227,45 @@ export class LibreOfficeConverter {
             const url = `${this.basePath}${file}?v=${ASSET_VERSION}`;
             try {
                 const start = performance.now();
-                // Check for the file itself or its chunk manifest
+                // Check for the file itself, chunk manifest, or .gz (repo only ships compressed assets)
                 let res = await fetch(url, { method: 'HEAD' });
-                
+                let resolvedVia = 'raw';
+
+                if (!res.ok) {
+                    const gzUrl = `${this.basePath}${file}.gz?v=${ASSET_VERSION}`;
+                    const gzRes = await fetch(gzUrl, { method: 'HEAD' });
+                    if (gzRes.ok) {
+                        res = gzRes;
+                        resolvedVia = 'gzip';
+                    }
+                }
+
                 if (!res.ok) {
                     const manifestUrl = `${this.basePath}${file}.manifest.json?v=${ASSET_VERSION}`;
                     const mRes = await fetch(manifestUrl, { method: 'HEAD' });
                     if (mRes.ok) {
                         res = mRes;
-                        console.warn(`[LibreOffice] ${file}: Found chunk manifest instead of raw file.`);
+                        resolvedVia = 'manifest';
                     }
                 }
 
                 const duration = Math.round(performance.now() - start);
 
                 if (res.ok) {
+                    if (
+                        resolvedVia === 'gzip' &&
+                        (file === SOFFICE_WASM_FILE || file === SOFFICE_DATA_FILE)
+                    ) {
+                        throw new Error(
+                            `${file} chưa có bản giải nén (chỉ có ${file}.gz). ` +
+                                'Chạy: node scripts/decompress-wasm-dev.mjs hoặc npm run dev (predev tự giải nén), rồi restart dev server.',
+                        );
+                    }
+                    if (resolvedVia === 'gzip') {
+                        console.warn(`[LibreOffice] ${file}: served as .gz only.`);
+                    } else if (resolvedVia === 'manifest') {
+                        console.warn(`[LibreOffice] ${file}: Found chunk manifest instead of raw file.`);
+                    }
                     const size = res.headers.get('content-length');
                     const type = res.headers.get('content-type');
                     // Note: manifest size is small, so totalAssetSizeMB will be undercounted 

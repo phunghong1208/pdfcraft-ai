@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { pdfToImages, type ImageFormat, type PDFToImageOptions, type PageLayoutPreset, type PageLayoutOptions } from '@/lib/pdf/processors/pdf-to-image';
 import { Select } from '@/components/ui/FormField';
+import { useToolInitialFile } from '@/lib/hooks/useToolInitialFile';
 import type { UploadedFile, ProcessOutput } from '@/types/pdf';
 import JSZip from 'jszip';
 
@@ -24,6 +25,7 @@ export interface PDFToImageToolProps {
   className?: string;
   /** Specific output format (e.g., 'jpg', 'png') */
   outputFormat?: ImageFormat;
+  initialFile?: File | null;
 }
 
 /**
@@ -32,7 +34,7 @@ export interface PDFToImageToolProps {
  * 
  * Converts PDF pages to images (JPG, PNG, WebP, BMP, TIFF).
  */
-export function PDFToImageTool({ className = '', outputFormat }: PDFToImageToolProps) {
+export function PDFToImageTool({ className = '', outputFormat, initialFile = null }: PDFToImageToolProps) {
   const t = useTranslations('common');
   const tTools = useTranslations('tools');
 
@@ -75,6 +77,8 @@ export function PDFToImageTool({ className = '', outputFormat }: PDFToImageToolP
       setResult(null);
     }
   }, []);
+
+  useToolInitialFile(initialFile, (f) => handleFilesSelected([f]));
 
   /**
    * Handle file upload error

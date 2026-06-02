@@ -1,7 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Upload, FileText, Loader2 } from 'lucide-react';
+import { Upload, FileText, Loader2, Copy, Check, FileDown, Sparkles } from 'lucide-react';
+import { WorkspaceAiMarkdown } from '@/components/workspace/WorkspaceAiMarkdown';
+import { markdownToPDF } from '@/lib/pdf/processors/markdown-to-pdf';
 import { useLocale, useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -99,6 +101,8 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
   const [summaryTierId, setSummaryTierId] = useState<WorkspacePresetTierId>(WORKSPACE_DEFAULT_PRESET_TIER);
   const [answerLanguage, setAnswerLanguage] = useState(() => loadWorkspaceAiAnswerLanguage(locale));
   const [restoredHint, setRestoredHint] = useState<string | null>(null);
+  const [copyDone, setCopyDone] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : ''), [file]);
 
@@ -206,16 +210,66 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
     result && typeof result === 'object'
       ? ((result as SummaryResult).document_id ?? (result as SummaryResult).documentId ?? null)
       : null;
+  const summarySourceName =
+    file?.name ??
+    (result && typeof result === 'object' ? (result as SummaryResult).fileName : undefined) ??
+    'document';
+
+  const handleCopySummary = useCallback(async () => {
+    if (!summaryText.trim()) return;
+    try {
+      await navigator.clipboard.writeText(summaryText);
+      setCopyDone(true);
+      window.setTimeout(() => setCopyDone(false), 2000);
+    } catch {
+      setError(tWorkspace('aiPanel.copyFailed'));
+    }
+  }, [summaryText, tWorkspace]);
+
+  const handleExportSummaryPdf = useCallback(async () => {
+    if (!summaryText.trim()) return;
+    setIsExportingPdf(true);
+    setError(null);
+    try {
+      const base = summarySourceName.replace(/\.pdf$/i, '') || 'document';
+      const mdFile = new File([summaryText], `${base}-summary.md`, { type: 'text/markdown' });
+      const out = await markdownToPDF(mdFile, { theme: 'light', gfm: true });
+      if (!out.success || !out.result) {
+        throw new Error(out.error?.message ?? tWorkspace('aiPanel.exportFailed'));
+      }
+      const blob = Array.isArray(out.result) ? out.result[0] : out.result;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = out.filename ?? `${base}-summary.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : tWorkspace('aiPanel.exportFailed'));
+    } finally {
+      setIsExportingPdf(false);
+    }
+  }, [summarySourceName, summaryText, tWorkspace]);
+
+  const isSummaryPage = actionType === 'summary';
+  /** Có tóm tắt → thu nhỏ preview PDF, ưu tiên vùng kết quả */
+  const compactPreview = isSummaryPage && Boolean(summaryText) && !loading;
 
   return (
     <section className="pt-28 pb-16 bg-[hsl(var(--color-muted)/0.2)] min-h-[calc(100vh-220px)]">
-      <div className="container mx-auto px-4 max-w-6xl">
+      <div className="container mx-auto px-4 max-w-7xl">
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold text-[hsl(var(--color-foreground))]">{title}</h1>
           <p className="mt-2 text-[hsl(var(--color-muted-foreground))]">{description}</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div
+          className={
+            isSummaryPage
+              ? 'grid grid-cols-1 xl:grid-cols-[minmax(300px,380px)_1fr] gap-6 items-start'
+              : 'grid grid-cols-1 lg:grid-cols-2 gap-6'
+          }
+        >
           <Card className="p-6 border border-[hsl(var(--color-border)/0.7)]">
             <label className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[hsl(var(--color-border))] p-8 cursor-pointer hover:border-[hsl(var(--color-primary)/0.5)] transition-colors">
               <Upload className="h-10 w-10 text-[hsl(var(--color-primary))]" />
@@ -293,44 +347,126 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
             )}
           </Card>
 
-          <Card className="p-6 border border-[hsl(var(--color-border)/0.7)]">
-            <h2 className="text-lg font-semibold mb-3">Preview & Result</h2>
-            {previewUrl ? (
-              <iframe src={previewUrl} className="w-full h-64 rounded border" title="PDF preview" />
-            ) : (
-              <div className="h-64 rounded border flex items-center justify-center text-sm text-[hsl(var(--color-muted-foreground))]">
-                No file selected
-              </div>
-            )}
-
-            <div className="mt-4">
-              <h3 className="font-medium mb-2">Kết quả</h3>
-              {loading && actionType === 'summary' ? (
-                <div className="flex items-center gap-2 rounded-lg bg-[hsl(var(--color-muted)/0.35)] border border-[hsl(var(--color-border))] p-4 text-sm text-[hsl(var(--color-muted-foreground))]">
-                  <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-                  Đang gọi API tóm tắt — thường mất 1–2 phút, vui lòng không đóng tab…
-                </div>
-              ) : actionType === 'summary' && summaryText ? (
-                <div className="space-y-2">
-                  {restoredHint && (
-                    <p className="text-[11px] text-[hsl(var(--color-primary))]">{restoredHint}</p>
-                  )}
-                  {summaryDocId != null && (
-                    <p className="text-[11px] text-[hsl(var(--color-muted-foreground))]">
-                      Mã tài liệu (chat): {summaryDocId}
-                    </p>
-                  )}
-                  <div className="max-h-56 overflow-auto rounded-lg bg-[hsl(var(--color-muted)/0.35)] border border-[hsl(var(--color-border))] p-3 text-sm leading-relaxed whitespace-pre-wrap">
-                    {summaryText}
+          {isSummaryPage ? (
+            <div className="flex flex-col gap-3 min-h-[min(68vh,680px)]">
+              <Card className="p-3 border border-[hsl(var(--color-border)/0.7)] shrink-0">
+                <h2 className="text-xs font-semibold text-[hsl(var(--color-foreground))] mb-1.5">
+                  {tWorkspace('aiPanel.previewPdf')}
+                </h2>
+                {previewUrl ? (
+                  <iframe
+                    src={previewUrl}
+                    className={`w-full rounded-md border border-[hsl(var(--color-border))] transition-[height] duration-300 ${
+                      compactPreview ? 'h-52 md:h-56' : 'h-[28rem] md:h-[32rem]'
+                    }`}
+                    title="PDF preview"
+                  />
+                ) : (
+                  <div
+                    className={`rounded-md border border-dashed border-[hsl(var(--color-border))] flex items-center justify-center text-xs text-[hsl(var(--color-muted-foreground))] ${
+                      compactPreview ? 'h-52 md:h-56' : 'h-[28rem] md:h-[32rem]'
+                    }`}
+                  >
+                    {tWorkspace('aiPanel.noFile')}
                   </div>
+                )}
+              </Card>
+
+              <Card className="p-3 md:p-4 border border-[hsl(var(--color-border)/0.7)] flex flex-col flex-1 min-h-0">
+                <div className="flex flex-wrap items-center justify-between gap-1.5 mb-2 shrink-0">
+                  <h3 className="text-sm font-semibold inline-flex items-center gap-1">
+                    <Sparkles className="h-3.5 w-3.5 text-violet-500" />
+                    {tWorkspace('aiPanel.summaryByAi')}
+                  </h3>
+                  {summaryText && !loading && (
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void handleCopySummary()}
+                        className="gap-1.5"
+                      >
+                        {copyDone ? (
+                          <Check className="h-3.5 w-3.5 text-emerald-600" />
+                        ) : (
+                          <Copy className="h-3.5 w-3.5" />
+                        )}
+                        {copyDone ? tWorkspace('aiPanel.copied') : tWorkspace('aiPanel.copy')}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void handleExportSummaryPdf()}
+                        disabled={isExportingPdf}
+                        className="gap-1.5"
+                      >
+                        {isExportingPdf ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <FileDown className="h-3.5 w-3.5" />
+                        )}
+                        {tWorkspace('aiPanel.exportPdf')}
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <pre className="max-h-56 overflow-auto rounded-lg bg-[hsl(var(--color-muted)/0.5)] p-3 text-xs">
-                  {result ? JSON.stringify(result, null, 2) : 'Chưa có kết quả — chọn PDF và bấm Tạo tóm tắt.'}
-                </pre>
-              )}
+
+                {restoredHint && (
+                  <p className="text-[10px] text-[hsl(var(--color-primary))] mb-1 shrink-0 leading-snug">
+                    {restoredHint}
+                  </p>
+                )}
+                {summaryDocId != null && summaryText && (
+                  <p className="text-[10px] text-[hsl(var(--color-muted-foreground))] mb-1.5 shrink-0">
+                    {tWorkspace('aiPanel.documentId', { id: summaryDocId })}
+                  </p>
+                )}
+
+                <div className="flex-1 min-h-0 flex flex-col rounded-lg border border-[hsl(var(--color-border))] overflow-hidden bg-[hsl(var(--color-muted)/0.2)]">
+                  {loading ? (
+                    <div className="flex-1 flex items-center gap-2 p-4 text-xs text-[hsl(var(--color-muted-foreground))] min-h-[200px]">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                      {tWorkspace('aiPanel.summarizing')}
+                    </div>
+                  ) : summaryText ? (
+                    <div
+                      className={`flex-1 overflow-auto scrollbar-thin ${
+                        compactPreview ? 'p-3 min-h-[min(42vh,480px)]' : 'p-3 min-h-[200px]'
+                      }`}
+                    >
+                      <WorkspaceAiMarkdown content={summaryText} />
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center gap-1.5 p-6 text-center min-h-[200px]">
+                      <Sparkles className="h-8 w-8 text-violet-400/35" />
+                      <p className="text-xs text-[hsl(var(--color-muted-foreground))] max-w-md">
+                        {tWorkspace('aiPanel.summaryPlaceholder')}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </Card>
             </div>
-          </Card>
+          ) : (
+            <Card className="p-6 border border-[hsl(var(--color-border)/0.7)]">
+              <h2 className="text-lg font-semibold mb-3">Preview & Result</h2>
+              {previewUrl ? (
+                <iframe src={previewUrl} className="w-full h-64 rounded border" title="PDF preview" />
+              ) : (
+                <div className="h-64 rounded border flex items-center justify-center text-sm text-[hsl(var(--color-muted-foreground))]">
+                  No file selected
+                </div>
+              )}
+              <div className="mt-4">
+                <h3 className="font-medium mb-2">Kết quả</h3>
+                <pre className="max-h-56 overflow-auto rounded-lg bg-[hsl(var(--color-muted)/0.5)] p-3 text-xs">
+                  {result ? JSON.stringify(result, null, 2) : 'Chưa có kết quả.'}
+                </pre>
+              </div>
+            </Card>
+          )}
         </div>
       </div>
     </section>

@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/Button';
 import {
   chatWithWorkspaceDocument,
   summarizeWorkspaceDocument,
+  isWorkspaceChatNoContextAnswer,
   WORKSPACE_CHAT_TOP_K_PRESETS,
   WORKSPACE_DEFAULT_PRESET_TIER,
   WORKSPACE_SUMMARY_DETAIL_PRESETS,
@@ -95,6 +96,15 @@ function savePersistedWorkspaceAi(file: File, data: PersistedWorkspaceAi): void 
     );
   } catch {
     // ignore quota / private mode
+  }
+}
+
+function clearPersistedWorkspaceAi(file: File): void {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.removeItem(WORKSPACE_AI_STORAGE_PREFIX + getWorkspaceFileKey(file));
+  } catch {
+    // ignore
   }
 }
 
@@ -354,7 +364,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
   );
 
   const voiceReady = Boolean(summaryText?.trim() && documentId != null);
-  const chatReady = documentId != null;
+  const chatReady = documentId != null && Boolean(summaryText?.trim());
 
   const voiceStatusLabel = useMemo(() => {
     if (!speech.supported) return t('aiPanel.voice.unsupported');
@@ -390,6 +400,26 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
     }
   }, [file]);
 
+  /** Mỗi lần tóm tắt xong — luôn gán document_id mới cho chat + sessionStorage */
+  const commitSummaryResult = useCallback(
+    (text: string, newDocumentId: number) => {
+      setSummaryText(text);
+      setDocumentId(newDocumentId);
+      setMessages([]);
+      if (file) {
+        savePersistedWorkspaceAi(file, {
+          documentId: newDocumentId,
+          summaryText: text,
+          summaryTierId,
+          chatTierId,
+          answerLanguage,
+        });
+      }
+      saveWorkspaceAiAnswerLanguage(answerLanguage, locale);
+    },
+    [file, summaryTierId, chatTierId, answerLanguage, locale],
+  );
+
   const runSummary = useCallback(
     async (options?: { keepTab?: boolean }) => {
       if (!file) {
@@ -397,6 +427,9 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
         return;
       }
       if (!options?.keepTab) setAiTab('summary');
+      // Chạy lại summary → bỏ document_id cũ, chat không dùng index lỗi thời
+      setDocumentId(null);
+      setMessages([]);
       setIsSummarizing(true);
       setAiError(null);
       setAiHint(null);
@@ -406,32 +439,27 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
           userKey: WORKSPACE_AI_USER_KEY,
           language: answerLanguage,
         });
-        setSummaryText(text);
         if (newId == null) {
+          setSummaryText(text);
+          setDocumentId(null);
+          clearPersistedWorkspaceAi(file);
           setAiError(t('aiPanel.summaryMissingDocumentId'));
           return;
         }
-        setDocumentId(newId);
-        savePersistedWorkspaceAi(file, {
-          documentId: newId,
-          summaryText: text,
-          summaryTierId,
-          chatTierId,
-          answerLanguage,
-        });
-        saveWorkspaceAiAnswerLanguage(answerLanguage, locale);
+        commitSummaryResult(text, newId);
         if (options?.keepTab) {
           setAiHint(t('aiPanel.chatReady'));
-        } else if (newId != null) {
+        } else {
           setAiHint(t('aiPanel.summaryDone'));
         }
       } catch (err) {
+        setDocumentId(null);
         setAiError(err instanceof Error ? err.message : t('aiPanel.summaryError'));
       } finally {
         setIsSummarizing(false);
       }
     },
-    [file, summaryPreset.detail, summaryTierId, chatTierId, answerLanguage, t],
+    [file, summaryPreset.detail, answerLanguage, commitSummaryResult, t],
   );
 
   const handleAnswerLanguageChange = useCallback(
@@ -506,13 +534,41 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
     setAiHint(null);
 
     try {
-      const answer = await chatWithWorkspaceDocument({
+      const chatOpts = {
         question: content,
-        documentId,
         topK: chatPreset.topK,
         userKey: WORKSPACE_AI_USER_KEY,
         language: answerLanguage,
-      });
+      };
+
+      let activeDocId = documentId;
+      let answer = await chatWithWorkspaceDocument({ ...chatOpts, documentId: activeDocId });
+
+      if (isWorkspaceChatNoContextAnswer(answer) && file) {
+        setAiHint(t('aiPanel.chatReindexing'));
+        setDocumentId(null);
+        const refreshed = await summarizeWorkspaceDocument(file, {
+          detail: summaryPreset.detail,
+          userKey: WORKSPACE_AI_USER_KEY,
+          language: answerLanguage,
+        });
+        if (refreshed.documentId != null) {
+          activeDocId = refreshed.documentId;
+          commitSummaryResult(refreshed.text, refreshed.documentId);
+          answer = await chatWithWorkspaceDocument({ ...chatOpts, documentId: activeDocId });
+        } else {
+          setDocumentId(null);
+          clearPersistedWorkspaceAi(file);
+        }
+      }
+
+      if (isWorkspaceChatNoContextAnswer(answer)) {
+        setAiError(t('aiPanel.chatNoContext'));
+        setAiHint(t('aiPanel.chatNoContextHint'));
+      } else {
+        setAiHint(null);
+      }
+
       setMessages((prev) => [...prev, { role: 'assistant', text: answer }]);
     } catch (err) {
       const msg = err instanceof Error ? err.message : t('aiPanel.chatError');
@@ -521,7 +577,19 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
     } finally {
       setIsAiThinking(false);
     }
-  }, [answerLanguage, chatInput, chatPreset.topK, documentId, file, isAiThinking, t]);
+  }, [
+    answerLanguage,
+    chatInput,
+    chatPreset.topK,
+    chatTierId,
+    documentId,
+    file,
+    isAiThinking,
+    summaryPreset.detail,
+    summaryTierId,
+    commitSummaryResult,
+    t,
+  ]);
 
   const startVoiceReading = useCallback(
     (rate: number) => {

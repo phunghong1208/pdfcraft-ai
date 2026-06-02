@@ -9,6 +9,7 @@ import { DownloadButton } from '../DownloadButton';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { pdfToDocx } from '@/lib/pdf/processors/pdf-to-docx';
+import { useToolInitialFile } from '@/lib/hooks/useToolInitialFile';
 import type { UploadedFile, ProcessOutput } from '@/types/pdf';
 
 /**
@@ -21,6 +22,8 @@ function generateId(): string {
 export interface PDFToDocxToolProps {
     /** Custom class name */
     className?: string;
+    /** Pre-load from workspace ribbon */
+    initialFile?: File | null;
 }
 
 /**
@@ -28,7 +31,7 @@ export interface PDFToDocxToolProps {
  * 
  * Converts PDF files to Word documents (DOCX).
  */
-export function PDFToDocxTool({ className = '' }: PDFToDocxToolProps) {
+export function PDFToDocxTool({ className = '', initialFile = null }: PDFToDocxToolProps) {
     const t = useTranslations('common');
     const tTools = useTranslations('tools');
 
@@ -60,6 +63,8 @@ export function PDFToDocxTool({ className = '' }: PDFToDocxToolProps) {
             setProgress(0);
         }
     }, []);
+
+    useToolInitialFile(initialFile, (f) => handleFilesSelected([f]));
 
     /**
      * Handle file upload error

@@ -10,6 +10,7 @@ import { DownloadButton } from '../DownloadButton';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { pdfToMarkdown } from '@/lib/pdf/processors/pdf-to-markdown';
+import { useToolInitialFile } from '@/lib/hooks/useToolInitialFile';
 import type { UploadedFile, ProcessOutput } from '@/types/pdf';
 import { sanitizeHtml } from '@/lib/utils/html-sanitizer';
 
@@ -23,6 +24,7 @@ function generateId(): string {
 export interface PDFToMarkdownToolProps {
     /** Custom class name */
     className?: string;
+    initialFile?: File | null;
 }
 
 /**
@@ -30,7 +32,7 @@ export interface PDFToMarkdownToolProps {
  * 
  * Converts PDF files to Markdown format.
  */
-export function PDFToMarkdownTool({ className = '' }: PDFToMarkdownToolProps) {
+export function PDFToMarkdownTool({ className = '', initialFile = null }: PDFToMarkdownToolProps) {
     const t = useTranslations('common');
     const tTools = useTranslations('tools');
 
@@ -72,6 +74,8 @@ export function PDFToMarkdownTool({ className = '' }: PDFToMarkdownToolProps) {
             setProgress(0);
         }
     }, []);
+
+    useToolInitialFile(initialFile, (f) => handleFilesSelected([f]));
 
     /**
      * Handle file upload error

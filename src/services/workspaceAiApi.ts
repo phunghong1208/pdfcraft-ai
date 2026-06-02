@@ -158,13 +158,39 @@ function wrapNetworkError(err: unknown): Error {
   return new Error(String(err));
 }
 
-function pickDocumentId(data: WorkspaceDocumentIdPayload & Record<string, unknown>): number | null {
-  const id = data.document_id ?? data.documentId ?? data.id;
-  if (id != null && !Number.isNaN(Number(id))) return Number(id);
-  const nested = data.data;
-  if (nested && typeof nested === 'object') {
-    return pickDocumentId(nested as WorkspaceDocumentIdPayload & Record<string, unknown>);
+function tryDocumentId(value: unknown): number | null {
+  if (value == null || value === '') return null;
+  const n = Number(value);
+  if (Number.isNaN(n) || n <= 0) return null;
+  return n;
+}
+
+/** Chỉ lấy id tài liệu — không dùng `id` gốc (hay là request id / page id). */
+function pickDocumentId(data: Record<string, unknown>): number | null {
+  const direct =
+    tryDocumentId(data.document_id) ??
+    tryDocumentId(data.documentId) ??
+    tryDocumentId(data.doc_id);
+  if (direct != null) return direct;
+
+  const document = data.document;
+  if (document && typeof document === 'object' && !Array.isArray(document)) {
+    const doc = document as Record<string, unknown>;
+    const fromDoc =
+      tryDocumentId(doc.document_id) ??
+      tryDocumentId(doc.documentId) ??
+      tryDocumentId(doc.id);
+    if (fromDoc != null) return fromDoc;
   }
+
+  for (const key of ['data', 'result', 'payload'] as const) {
+    const nested = data[key];
+    if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+      const fromChild = pickDocumentId(nested as Record<string, unknown>);
+      if (fromChild != null) return fromChild;
+    }
+  }
+
   return null;
 }
 
@@ -333,5 +359,14 @@ export async function summarizeWorkspaceDocument(
     );
   }
 
-  return { text, documentId: pickDocumentId(data) };
+  const documentId = pickDocumentId(data as Record<string, unknown>);
+
+  return { text, documentId };
+}
+
+/** Server trả câu này khi chưa index / document_id không khớp kho vector. */
+export function isWorkspaceChatNoContextAnswer(text: string): boolean {
+  return /no relevant context|upload and summarize|không tìm thấy ngữ cảnh|chưa có ngữ cảnh/i.test(
+    text,
+  );
 }

@@ -24,6 +24,11 @@ import { CompressPDFTool } from '@/components/tools/compress/CompressPDFTool';
 import { OCRPDFTool } from '@/components/tools/ocr/OCRPDFTool';
 import { MergePDFTool } from '@/components/tools/merge/MergePDFTool';
 import { SplitPDFTool } from '@/components/tools/split/SplitPDFTool';
+import { PDFToDocxTool } from '@/components/tools/pdf-to-docx';
+import { PDFToExcelTool } from '@/components/tools/pdf-to-excel';
+import { PDFToPptxTool } from '@/components/tools/pdf-to-pptx';
+import { PDFToImageTool } from '@/components/tools/pdf-to-image';
+import { PDFToMarkdownTool } from '@/components/tools/pdf-to-markdown';
 import { PageThumbnails } from '@/components/workspace/PageThumbnails';
 import { WorkspaceAIPanel } from '@/components/workspace/WorkspaceAIPanel';
 import { WorkspaceAIIcon } from '@/components/workspace/WorkspaceAIIcon';
@@ -45,7 +50,41 @@ interface DocumentWorkspaceClientProps {
 
 type RibbonTabKey = 'home' | 'edit' | 'page' | 'comment' | 'convert' | 'tool' | 'fillsign' | 'protect';
 
-type WorkspaceInlineTool = 'compress' | 'ocr' | 'merge' | 'split';
+type WorkspaceInlineTool =
+  | 'compress'
+  | 'ocr'
+  | 'merge'
+  | 'split'
+  | 'pdf-to-docx'
+  | 'pdf-to-excel'
+  | 'pdf-to-pptx'
+  | 'pdf-to-image'
+  | 'pdf-to-markdown';
+
+const WORKSPACE_PDF_EXPORT_SLUGS = new Set<string>([
+  'pdf-to-docx',
+  'pdf-to-excel',
+  'pdf-to-pptx',
+  'pdf-to-image',
+  'pdf-to-markdown',
+]);
+
+function workspaceInlineToolTitleKey(tool: WorkspaceInlineTool): string {
+  switch (tool) {
+    case 'pdf-to-docx':
+      return 'tools.pdfToWord';
+    case 'pdf-to-excel':
+      return 'tools.pdfToExcel';
+    case 'pdf-to-pptx':
+      return 'tools.pdfToPpt';
+    case 'pdf-to-image':
+      return 'tools.pdfToImage';
+    case 'pdf-to-markdown':
+      return 'tools.pdfToTxt';
+    default:
+      return `inlineTools.${tool}`;
+  }
+}
 
 type RibbonToolDef = {
   icon: LucideIcon;
@@ -766,6 +805,16 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
           return;
         }
 
+        if (WORKSPACE_PDF_EXPORT_SLUGS.has(slug)) {
+          setWorkspaceTool(slug as WorkspaceInlineTool);
+          return;
+        }
+
+        if (['image-to-pdf', 'word-to-pdf', 'excel-to-pdf'].includes(slug)) {
+          router.push(tool.href);
+          return;
+        }
+
         // For page-level tools, keep user in workspace and open left page panel.
         if ([
           'add-blank-page',
@@ -1110,7 +1159,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
           <div className="relative flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-white/10 bg-[#252830] shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3 shrink-0">
               <h2 className="text-[13px] font-medium text-white/90">
-                {t(`inlineTools.${workspaceTool}`)}
+                {t(workspaceInlineToolTitleKey(workspaceTool))}
               </h2>
               <button
                 type="button"
@@ -1126,6 +1175,11 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
               {workspaceTool === 'ocr' && <OCRPDFTool initialFile={file} />}
               {workspaceTool === 'merge' && <MergePDFTool initialFile={file} />}
               {workspaceTool === 'split' && <SplitPDFTool initialFile={file} />}
+              {workspaceTool === 'pdf-to-docx' && <PDFToDocxTool initialFile={file} />}
+              {workspaceTool === 'pdf-to-excel' && <PDFToExcelTool initialFile={file} />}
+              {workspaceTool === 'pdf-to-pptx' && <PDFToPptxTool initialFile={file} />}
+              {workspaceTool === 'pdf-to-image' && <PDFToImageTool initialFile={file} />}
+              {workspaceTool === 'pdf-to-markdown' && <PDFToMarkdownTool initialFile={file} />}
             </div>
           </div>
         </div>

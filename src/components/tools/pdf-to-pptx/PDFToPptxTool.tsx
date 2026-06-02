@@ -8,7 +8,9 @@ import { ProcessingProgress, ProcessingStatus } from '../ProcessingProgress';
 import { DownloadButton } from '../DownloadButton';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { Select } from '@/components/ui/FormField';
 import { pdfToPptx } from '@/lib/pdf/processors/pdf-to-pptx';
+import { useToolInitialFile } from '@/lib/hooks/useToolInitialFile';
 import type { UploadedFile, ProcessOutput } from '@/types/pdf';
 
 /**
@@ -21,6 +23,7 @@ function generateId(): string {
 export interface PDFToPptxToolProps {
     /** Custom class name */
     className?: string;
+    initialFile?: File | null;
 }
 
 /**
@@ -28,7 +31,7 @@ export interface PDFToPptxToolProps {
  * 
  * Converts PDF files to PowerPoint presentations (PPTX).
  */
-export function PDFToPptxTool({ className = '' }: PDFToPptxToolProps) {
+export function PDFToPptxTool({ className = '', initialFile = null }: PDFToPptxToolProps) {
     const t = useTranslations('common');
     const tTools = useTranslations('tools');
 
@@ -63,6 +66,8 @@ export function PDFToPptxTool({ className = '' }: PDFToPptxToolProps) {
             setProgress(0);
         }
     }, []);
+
+    useToolInitialFile(initialFile, (f) => handleFilesSelected([f]));
 
     /**
      * Handle file upload error
@@ -214,17 +219,16 @@ export function PDFToPptxTool({ className = '' }: PDFToPptxToolProps) {
                             <label className="block text-sm font-medium text-[hsl(var(--color-foreground))] mb-2">
                                 {tTools('pdfToPptx.dpiLabel') || 'Image Quality (DPI)'}
                             </label>
-                            <select
-                                value={dpi}
+                            <Select
+                                value={String(dpi)}
                                 onChange={(e) => setDpi(Number(e.target.value))}
                                 disabled={isProcessing}
-                                className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[hsl(var(--color-border))] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--color-primary))]"
                             >
                                 <option value="72">{tTools('pdfToPptx.lowSet') || 'Low (72 DPI - smaller file)'}</option>
                                 <option value="150">{tTools('pdfToPptx.mediumSet') || 'Medium (150 DPI - balanced)'}</option>
                                 <option value="200">{tTools('pdfToPptx.highSet') || 'High (200 DPI - better quality)'}</option>
                                 <option value="300">{tTools('pdfToPptx.veryHighSet') || 'Very High (300 DPI - best quality)'}</option>
-                            </select>
+                            </Select>
                             <p className="mt-1 text-xs text-[hsl(var(--color-muted-foreground))]">
                                 {tTools('pdfToPptx.dpiHint') || 'Higher DPI produces better quality slides but larger file sizes.'}
                             </p>
