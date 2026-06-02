@@ -58,11 +58,13 @@ export function PageNumbersTool({
   // Preview state
   const [totalPages, setTotalPages] = useState(0);
   const [currentPreviewPage, setCurrentPreviewPage] = useState(1);
-  const [previewScale, setPreviewScale] = useState(0.5);
+  const [previewScale, setPreviewScale] = useState(0.9);
 
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const cancelledRef = useRef(false);
   const renderTaskRef = useRef<{ cancel: () => void } | null>(null);
+  const renderGenerationRef = useRef(0);
+  const renderQueueRef = useRef<Promise<void>>(Promise.resolve());
 
   // Load pdfjs module dynamically
   const loadPdfjsLib = async () => {
@@ -86,7 +88,7 @@ export function PageNumbersTool({
       const arrayBuffer = await pdfFile.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       setTotalPages(pdf.numPages);
-      renderPagePreview(pdf, 1);
+      setCurrentPreviewPage(1);
     } catch (err) {
       console.error('Failed to load PDF:', err);
     }
@@ -95,11 +97,14 @@ export function PageNumbersTool({
   // Render page with page number overlay
   const renderPagePreview = async (pdf: any, pageNum: number) => {
     if (!previewCanvasRef.current) return;
+    const generation = ++renderGenerationRef.current;
 
     // Cancel any ongoing render task
     if (renderTaskRef.current) {
+      const activeTask = renderTaskRef.current as { cancel: () => void; promise?: Promise<unknown> };
       try {
-        renderTaskRef.current.cancel();
+        activeTask.cancel();
+        await activeTask.promise?.catch(() => undefined);
       } catch {
         // Ignore cancel errors
       }
@@ -108,8 +113,8 @@ export function PageNumbersTool({
 
     try {
       const page = await pdf.getPage(pageNum);
-      // Use scale 1.5 for good quality preview
-      const renderScale = 1.5;
+      // Render directly at requested zoom level for cleaner layout (no CSS transform artifacts)
+      const renderScale = Math.max(0.6, Math.min(2, previewScale)) * 1.2;
       const viewport = page.getViewport({ scale: renderScale });
 
       const canvas = previewCanvasRef.current;
@@ -123,6 +128,7 @@ export function PageNumbersTool({
       renderTaskRef.current = renderTask;
 
       await renderTask.promise;
+      if (generation !== renderGenerationRef.current) return;
       renderTaskRef.current = null;
 
       // Check if page number should be drawn based on pageMode
@@ -268,16 +274,23 @@ export function PageNumbersTool({
 
   // Re-render preview when options change
   useEffect(() => {
-    if (file && totalPages > 0) {
-      const loadAndRender = async () => {
+    if (!file || totalPages <= 0) return;
+
+    const requestId = ++renderGenerationRef.current;
+    renderQueueRef.current = renderQueueRef.current
+      .then(async () => {
+        if (requestId !== renderGenerationRef.current) return;
         const pdfjsLib = await loadPdfjsLib();
         const arrayBuffer = await file.arrayBuffer();
+        if (requestId !== renderGenerationRef.current) return;
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        renderPagePreview(pdf, currentPreviewPage);
-      };
-      loadAndRender();
-    }
-  }, [file, position, format, customFormat, startNumber, fontSize, fontColor, margin, skipFirstPage, prefix, suffix, currentPreviewPage, totalPages, pageMode, oddPosition, evenPosition]);
+        if (requestId !== renderGenerationRef.current) return;
+        await renderPagePreview(pdf, currentPreviewPage);
+      })
+      .catch((err) => {
+        console.error('Preview render queue failed:', err);
+      });
+  }, [file, position, format, customFormat, startNumber, fontSize, fontColor, margin, skipFirstPage, prefix, suffix, currentPreviewPage, totalPages, pageMode, oddPosition, evenPosition, previewScale]);
 
   const handleFilesSelected = useCallback((files: File[]) => {
     if (files.length > 0) {
@@ -393,9 +406,9 @@ export function PageNumbersTool({
       )}
 
       {file && (
-        <div className="grid lg:grid-cols-2 gap-4">
+        <div className="grid lg:grid-cols-2 gap-6 items-start">
           {/* Options Panel */}
-          <div className="space-y-3 lg:max-h-[850px] lg:overflow-y-auto lg:pr-2">
+          <div className="space-y-6 lg:max-h-[78vh] lg:overflow-y-auto lg:pr-2">
             {/* File Info */}
             <Card variant="outlined" className="p-3">
               <div className="flex items-center justify-between">
@@ -488,7 +501,9 @@ export function PageNumbersTool({
                     className="w-full px-2 py-1.5 text-sm border rounded-md"
                     disabled={isProcessing}
                   />
-                  <p className="text-xs text-gray-500 mt-1">{tTools('pageNumbers.customFormatHint')}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {tTools('pageNumbers.customFormatHint', { page: '{page}', total: '{total}' })}
+                  </p>
                 </div>
               )}
 
@@ -650,7 +665,7 @@ export function PageNumbersTool({
           </div>
 
           {/* Preview Panel */}
-          <div>
+          <div className="lg:sticky lg:top-0">
             <Card variant="outlined" size="lg">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-medium">
@@ -684,8 +699,8 @@ export function PageNumbersTool({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setPreviewScale(s => Math.max(0.5, s - 0.25))}
-                  disabled={previewScale <= 0.5}
+                  onClick={() => setPreviewScale(s => Math.max(0.6, s - 0.2))}
+                  disabled={previewScale <= 0.6}
                   title={tTools('pageNumbers.zoomOut')}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -696,7 +711,7 @@ export function PageNumbersTool({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setPreviewScale(s => Math.min(2, s + 0.25))}
+                  onClick={() => setPreviewScale(s => Math.min(2, s + 0.2))}
                   disabled={previewScale >= 2}
                   title={tTools('pageNumbers.zoomIn')}
                 >
@@ -707,8 +722,8 @@ export function PageNumbersTool({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setPreviewScale(0.5)}
-                  disabled={previewScale === 0.5}
+                  onClick={() => setPreviewScale(0.9)}
+                  disabled={Math.abs(previewScale - 0.9) < 0.01}
                   title={tTools('pageNumbers.zoomReset')}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -717,18 +732,14 @@ export function PageNumbersTool({
                 </Button>
               </div>
 
-              <div className="bg-gray-100 dark:bg-gray-800 rounded-[var(--radius-md)] p-4 overflow-auto" style={{ maxHeight: '600px', minHeight: '500px' }}>
-                <div
-                  className="flex justify-center"
-                  style={{
-                    transform: `scale(${previewScale})`,
-                    transformOrigin: 'top center',
-                    minHeight: previewScale < 1 ? 'auto' : undefined
-                  }}
-                >
+              <div
+                className="bg-[hsl(var(--color-muted)/0.55)] rounded-[var(--radius-md)] p-4 overflow-auto"
+                style={{ maxHeight: '68vh', minHeight: '540px' }}
+              >
+                <div className="flex min-h-full justify-center items-start">
                   <canvas
                     ref={previewCanvasRef}
-                    className="shadow-lg bg-white"
+                    className="shadow-xl bg-white rounded-sm"
                   />
                 </div>
               </div>

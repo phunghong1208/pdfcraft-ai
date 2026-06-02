@@ -13,7 +13,11 @@ async function proxyRequest(req: NextRequest, context: RouteContext): Promise<Ne
   req.headers.forEach((value, key) => {
     const lower = key.toLowerCase();
     if (lower === 'host' || lower === 'connection' || lower === 'content-length') return;
-    headers.set(key, value);
+    try {
+      headers.set(key, value);
+    } catch {
+      // Skip malformed header names/values from browser/proxy internals.
+    }
   });
 
   const init: RequestInit & { duplex?: 'half' } = {
@@ -29,8 +33,15 @@ async function proxyRequest(req: NextRequest, context: RouteContext): Promise<Ne
 
   try {
     const upstream = await fetch(target, init);
-    const responseHeaders = new Headers(upstream.headers);
-    responseHeaders.delete('transfer-encoding');
+    const responseHeaders = new Headers();
+    upstream.headers.forEach((value, key) => {
+      if (key.toLowerCase() === 'transfer-encoding') return;
+      try {
+        responseHeaders.set(key, value);
+      } catch {
+        // Skip malformed upstream headers to avoid runtime crash in proxy layer.
+      }
+    });
 
     return new NextResponse(upstream.body, {
       status: upstream.status,

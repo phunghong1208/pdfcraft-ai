@@ -636,7 +636,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
             onClick={onClose}
             aria-label={t('inlineTools.close')}
             title={t('inlineTools.close')}
-            className={isDarkTheme ? '' : 'text-[#374151] hover:text-[#111827] hover:bg-[#E5E7EB]'}
+            theme={isDarkTheme ? 'dark' : 'light'}
           />
         </div>
 

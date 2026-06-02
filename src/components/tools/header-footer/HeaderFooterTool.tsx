@@ -28,6 +28,9 @@ const loadPdfjsLib = async () => {
   return pdfjsLib;
 };
 
+const isRenderCancelledError = (err: unknown): boolean =>
+  err instanceof Error && /Rendering cancelled|cancelled/i.test(err.message);
+
 export interface HeaderFooterToolProps {
   className?: string;
   initialFile?: File | null;
@@ -70,6 +73,9 @@ export function HeaderFooterTool({
 
   const cancelledRef = useRef(false);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+  const renderTaskRef = useRef<{ cancel: () => void; promise?: Promise<unknown> } | null>(null);
+  const renderGenerationRef = useRef(0);
+  const renderQueueRef = useRef<Promise<void>>(Promise.resolve());
 
   // Load PDF and generate preview
   const loadPdfPreview = useCallback(async (pdfFile: File) => {
@@ -87,6 +93,17 @@ export function HeaderFooterTool({
   // Render page preview with header/footer overlay
   const renderPagePreview = async (pdf: any, pageNum: number) => {
     if (!previewCanvasRef.current) return;
+    const generation = ++renderGenerationRef.current;
+
+    if (renderTaskRef.current) {
+      try {
+        renderTaskRef.current.cancel();
+        await renderTaskRef.current.promise?.catch(() => undefined);
+      } catch {
+        // ignore cancellation errors
+      }
+      renderTaskRef.current = null;
+    }
 
     try {
       const page = await pdf.getPage(pageNum);
@@ -100,7 +117,11 @@ export function HeaderFooterTool({
       canvas.width = viewport.width;
       canvas.height = viewport.height;
 
-      await page.render({ canvasContext: ctx, viewport }).promise;
+      const renderTask = page.render({ canvasContext: ctx, viewport });
+      renderTaskRef.current = renderTask as { cancel: () => void; promise?: Promise<unknown> };
+      await renderTask.promise;
+      if (generation !== renderGenerationRef.current) return;
+      renderTaskRef.current = null;
 
       // Check if page should show header/footer
       const shouldShowContent = isPageInRange(pageNum) && !(skipFirstPage && pageNum === 1);
@@ -109,6 +130,7 @@ export function HeaderFooterTool({
       }
 
     } catch (err) {
+      if (isRenderCancelledError(err)) return;
       console.error('Failed to render page:', err);
     }
   };
@@ -189,15 +211,21 @@ export function HeaderFooterTool({
 
   // Re-render preview when options change
   useEffect(() => {
-    if (file && totalPages > 0) {
-      const loadAndRender = async () => {
+    if (!file || totalPages <= 0) return;
+    const requestId = ++renderGenerationRef.current;
+    renderQueueRef.current = renderQueueRef.current
+      .then(async () => {
+        if (requestId !== renderGenerationRef.current) return;
         const pdfjsLib = await loadPdfjsLib();
         const arrayBuffer = await file.arrayBuffer();
+        if (requestId !== renderGenerationRef.current) return;
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        renderPagePreview(pdf, currentPreviewPage);
-      };
-      loadAndRender();
-    }
+        if (requestId !== renderGenerationRef.current) return;
+        await renderPagePreview(pdf, currentPreviewPage);
+      })
+      .catch((err) => {
+        console.error('Header/Footer preview queue failed:', err);
+      });
   }, [file, headerLeft, headerCenter, headerRight, footerLeft, footerCenter, footerRight, fontSize, fontColor, margin, skipFirstPage, pageRange, currentPreviewPage, totalPages]);
 
   const handleFilesSelected = useCallback((files: File[]) => {
@@ -417,14 +445,14 @@ export function HeaderFooterTool({
                     <button
                       key={item.label}
                       onClick={() => navigator.clipboard.writeText(item.label)}
-                      className="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                      className="px-3 py-1.5 text-xs rounded-full transition-colors bg-[hsl(var(--color-muted))] text-[hsl(var(--color-foreground))] hover:bg-[hsl(var(--color-muted)/0.75)] border border-[hsl(var(--color-border))]"
                       title={`Copy "${item.label}" - ${item.desc}`}
                     >
                       <code>{item.label}</code>
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Click to copy, then paste into any field</p>
+                <p className="text-xs text-[hsl(var(--color-muted-foreground))] mt-1">Click to copy, then paste into any field</p>
               </div>
 
               {/* Style Options */}

@@ -67,9 +67,10 @@ export default async function LocaleLayout({
 
   // Get direction for the locale
   const direction = localeConfig[locale as Locale]?.direction || 'ltr';
+  const now = new Date();
 
   return (
-    <NextIntlClientProvider messages={messages}>
+    <NextIntlClientProvider messages={messages} now={now} timeZone="UTC">
       <div lang={locale} dir={direction} className={`${fontVariables} min-h-screen bg-background text-foreground antialiased font-sans`}>
         <SkipLink targetId="main-content">Skip to main content</SkipLink>
         {children}

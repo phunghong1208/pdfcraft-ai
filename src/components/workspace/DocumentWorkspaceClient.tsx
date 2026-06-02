@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
@@ -40,7 +40,8 @@ import { WorkspacePagesSidebarToggle } from '@/components/workspace/WorkspacePag
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { type Locale } from '@/lib/i18n/config';
 import { peekUploadedPdf, setUploadedPdf } from '@/lib/document-session';
-import { addBlankPages, deletePages } from '@/lib/pdf/processors';
+import { addBlankPages } from '@/lib/pdf/processors/add-blank-page';
+import { deletePages } from '@/lib/pdf/processors/delete';
 import {
   coverPageCanvasSeams,
   injectPdfViewerChrome,
@@ -424,8 +425,10 @@ function patchViewerIframe(
 
       pdfViewer.removePageBorders = true;
 
-      const applyFitPageWidth = () => {
-        fitPdfViewerPageWidth(pdfViewer);
+      const applyInitialZoom100 = () => {
+        pdfViewer.currentScale = 1;
+        pdfViewer.currentScaleValue = '1';
+        pdfViewer.update?.();
         opts?.onScaleChange?.(Math.round((pdfViewer.currentScale ?? 1) * 100));
         const container = doc.getElementById('viewerContainer');
         if (container) container.scrollTop = 0;
@@ -441,7 +444,7 @@ function patchViewerIframe(
 
       const onPagesReady = () => {
         refreshPages();
-        if (opts?.scaleOnLoad) applyFitPageWidth();
+        if (opts?.scaleOnLoad) applyInitialZoom100();
       };
 
       if (opts?.scaleOnLoad) {
@@ -535,6 +538,30 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
   const [workspaceTool, setWorkspaceTool] = useState<WorkspaceInlineTool | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [isWorkspaceDark, setIsWorkspaceDark] = useState(false);
+  const inlineToolThemeVars = useMemo(
+    () =>
+      ({
+        colorScheme: isWorkspaceDark ? 'dark' : 'light',
+        ['--color-primary' as const]: isWorkspaceDark ? '0 72% 55%' : '0 72% 51%',
+        ['--color-primary-foreground' as const]: '0 0% 100%',
+        ['--color-primary-hover' as const]: isWorkspaceDark ? '0 72% 48%' : '0 72% 44%',
+        ['--color-secondary' as const]: isWorkspaceDark ? '215 20% 20%' : '215 20% 90%',
+        ['--color-secondary-foreground' as const]: isWorkspaceDark ? '210 40% 98%' : '215 25% 15%',
+        ['--color-secondary-hover' as const]: isWorkspaceDark ? '215 20% 30%' : '215 20% 80%',
+        ['--color-accent' as const]: isWorkspaceDark ? '0 72% 55%' : '0 72% 51%',
+        ['--color-accent-foreground' as const]: '0 0% 100%',
+        ['--color-background' as const]: isWorkspaceDark ? '222 47% 7%' : '210 40% 98%',
+        ['--color-foreground' as const]: isWorkspaceDark ? '210 40% 98%' : '222 47% 11%',
+        ['--color-muted' as const]: isWorkspaceDark ? '217 33% 13%' : '210 40% 96%',
+        ['--color-muted-foreground' as const]: isWorkspaceDark ? '215 20% 65%' : '215 16% 47%',
+        ['--color-card' as const]: isWorkspaceDark ? '222 47% 10%' : '0 0% 100%',
+        ['--color-card-foreground' as const]: isWorkspaceDark ? '210 40% 98%' : '222 47% 11%',
+        ['--color-border' as const]: isWorkspaceDark ? '217 33% 15%' : '214 32% 91%',
+        ['--color-input' as const]: isWorkspaceDark ? '217 33% 15%' : '214 32% 91%',
+        ['--color-ring' as const]: isWorkspaceDark ? '0 72% 55%' : '0 72% 51%',
+      }) as CSSProperties,
+    [isWorkspaceDark],
+  );
   const fileHandleRef = useRef<{
     name: string;
     createWritable: () => Promise<{ write: (data: Blob) => Promise<void>; close: () => Promise<void> }>;
@@ -568,7 +595,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
       URL.revokeObjectURL(previewUrlRef.current);
       previewUrlRef.current = '';
     };
-  }, []);
+  }, [zoom]);
 
   useEffect(() => {
     if (hasInitialized.current) return;
@@ -673,7 +700,8 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
   );
 
   const applyPdfZoom = useCallback((direction: 'in' | 'out' | 'fit') => {
-    const pdfViewer = getPdfApp(editorIframeRef.current)?.PDFViewerApplication?.pdfViewer;
+    const app = getPdfApp(editorIframeRef.current)?.PDFViewerApplication;
+    const pdfViewer = app?.pdfViewer;
     if (!pdfViewer) {
       setZoom((z) => {
         if (direction === 'in') return Math.min(200, z + 10);
@@ -689,10 +717,32 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
       return;
     }
 
+    // Prefer built-in PDF.js zoom handlers to keep UI state consistent.
+    const zoomApp = app as { zoomIn?: (steps?: number) => void; zoomOut?: (steps?: number) => void; forceRendering?: () => void } | undefined;
+    if (direction === 'in' && typeof zoomApp?.zoomIn === 'function') {
+      zoomApp.zoomIn(1);
+      zoomApp.forceRendering?.();
+      setZoom(Math.round((pdfViewer.currentScale ?? 1) * 100));
+      return;
+    }
+    if (direction === 'out' && typeof zoomApp?.zoomOut === 'function') {
+      zoomApp.zoomOut(1);
+      zoomApp.forceRendering?.();
+      setZoom(Math.round((pdfViewer.currentScale ?? 1) * 100));
+      return;
+    }
+
+    // Fallback for builds without zoomIn/zoomOut.
     const factor = direction === 'in' ? 1.1 : 1 / 1.1;
-    const next = Math.max(0.25, Math.min(4, pdfViewer.currentScale * factor));
-    pdfViewer.currentScale = snapPdfViewerScale(next);
-    setZoom(Math.round(pdfViewer.currentScale * 100));
+    const baseScale = typeof pdfViewer.currentScale === 'number' && Number.isFinite(pdfViewer.currentScale)
+      ? pdfViewer.currentScale
+      : 1;
+    const next = snapPdfViewerScale(Math.max(0.25, Math.min(4, baseScale * factor)));
+    pdfViewer.currentScale = next;
+    pdfViewer.currentScaleValue = `${next}`;
+    pdfViewer.update?.();
+    zoomApp?.forceRendering?.();
+    setZoom(Math.round(next * 100));
   }, []);
 
   const handleZoomIn = useCallback(() => applyPdfZoom('in'), [applyPdfZoom]);
@@ -724,10 +774,10 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     [patchViewer],
   );
 
-  // Default zoom when a new document loads (not on every ribbon tab switch).
+  // New documents start at 100%.
   useEffect(() => {
     if (!previewUrl) return;
-    applyPdfZoom('fit');
+    setZoom(100);
   }, [previewUrl, applyPdfZoom]);
 
   useEffect(() => {
@@ -737,20 +787,33 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    // Ensure workspace respects explicit theme selection from ThemeToggle.
+    // Sync workspace theme with global setting and ThemeToggle.
     const syncTheme = () => {
       try {
         const savedTheme = window.localStorage.getItem('theme');
-        const isDark = savedTheme === 'dark';
-        setIsWorkspaceDark(isDark);
-        // Keep root class in sync so `dark:*` utilities match selected theme.
-        if (isDark) {
+        if (savedTheme === 'dark') {
+          setIsWorkspaceDark(true);
           document.documentElement.classList.add('dark');
-        } else {
+          return;
+        }
+        if (savedTheme === 'light') {
+          setIsWorkspaceDark(false);
           document.documentElement.classList.remove('dark');
+          return;
         }
       } catch {
         // ignore localStorage access errors
+      }
+
+      // Fallback to current document class / system preference.
+      const prefersDark =
+        document.documentElement.classList.contains('dark') ||
+        window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+      setIsWorkspaceDark(Boolean(prefersDark));
+      if (prefersDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
       }
     };
     syncTheme();
@@ -1212,6 +1275,12 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     () => TAB_KEYS.map((tab) => ({ ...tab, label: t(`tabs.${tab.key}`) })),
     [t],
   );
+  const previewHeavyTools = useMemo(
+    () => new Set<WorkspaceInlineTool>(['watermark', 'header-footer', 'page-numbers']),
+    [],
+  );
+  const inlineDialogMaxWidthClass =
+    workspaceTool && previewHeavyTools.has(workspaceTool) ? 'max-w-6xl' : 'max-w-3xl';
 
   const ribbonGroups = useMemo(
     () => getRibbonGroups(activeTab, locale, (key) => t(key)),
@@ -1570,20 +1639,27 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
 
       {workspaceTool && file && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4"
+          className={`fixed inset-0 z-[100] flex items-center justify-center p-4 ${isWorkspaceDark ? 'bg-black/60' : 'bg-black/45'}`}
           role="dialog"
           aria-modal="true"
           aria-label={t('inlineTools.dialogLabel')}
         >
-          <div className="relative flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-[hsl(var(--color-border))] dark:border-white/10 bg-[hsl(var(--color-card))] dark:bg-[#252830] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[hsl(var(--color-border))] dark:border-white/[0.06] px-4 py-3 shrink-0">
-              <h2 className="text-[13px] font-medium text-[hsl(var(--color-foreground))] dark:text-white/90">
+          <div
+            style={inlineToolThemeVars}
+            className={`relative flex max-h-[90vh] w-full ${inlineDialogMaxWidthClass} flex-col overflow-hidden rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-card))] text-[hsl(var(--color-foreground))] shadow-2xl`}
+          >
+            <div className="flex items-center justify-between border-b border-[hsl(var(--color-border))] px-4 py-3 shrink-0">
+              <h2 className="text-[13px] font-medium text-[hsl(var(--color-foreground))]">
                 {t(workspaceInlineToolTitleKey(workspaceTool))}
               </h2>
               <button
                 type="button"
                 onClick={() => setWorkspaceTool(null)}
-                className="rounded p-1 text-[hsl(var(--color-muted-foreground))] dark:text-white/40 hover:bg-[hsl(var(--color-muted)/0.65)] dark:hover:bg-white/[0.06] hover:text-[hsl(var(--color-foreground))] dark:hover:text-white/80 transition-all"
+                className={`rounded p-1 transition-all ${
+                  isWorkspaceDark
+                    ? 'text-white/55 hover:bg-white/[0.08] hover:text-white/90'
+                    : 'text-[hsl(var(--color-muted-foreground))] hover:bg-[hsl(var(--color-muted)/0.65)] hover:text-[hsl(var(--color-foreground))]'
+                }`}
                 aria-label={t('inlineTools.close')}
               >
                 <X className="h-4 w-4" />
