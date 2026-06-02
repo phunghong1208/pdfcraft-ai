@@ -44,14 +44,6 @@ import {
   fitPdfViewerPageWidth,
   stripPdfViewerSeams,
 } from '@/lib/pdf-viewer-chrome';
-import {
-  applyPdfViewerLayers,
-  detectScanLikePdf,
-  loadPdfViewerLayerSettings,
-  savePdfViewerLayerSettings,
-  type PdfViewerLayerSettings,
-} from '@/lib/pdf/pdf-viewer-layers';
-import { PdfViewerLayerPanel } from '@/components/workspace/PdfViewerLayerPanel';
 
 interface DocumentWorkspaceClientProps {
   locale: Locale;
@@ -406,8 +398,6 @@ function patchViewerIframe(
   opts?: {
     scaleOnLoad?: boolean;
     onScaleChange?: (pct: number) => void;
-    layerSettings?: PdfViewerLayerSettings;
-    onScanDetected?: (isScan: boolean) => void;
   },
 ) {
   try {
@@ -438,11 +428,6 @@ function patchViewerIframe(
         stripPdfViewerSeams(doc);
         pdfViewer.removePageBorders = true;
         doc.querySelector('.pdfViewer')?.classList.add('removePageBorders');
-        const isScan = detectScanLikePdf(doc);
-        opts?.onScanDetected?.(isScan);
-        if (opts?.layerSettings) {
-          applyPdfViewerLayers(doc, opts.layerSettings, { isScanLike: isScan });
-        }
         requestAnimationFrame(() => coverPageCanvasSeams(doc));
       };
 
@@ -540,10 +525,6 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
   const [showThumbnails, setShowThumbnails] = useState(true);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const [workspaceTool, setWorkspaceTool] = useState<WorkspaceInlineTool | null>(null);
-  const [layerSettings, setLayerSettings] = useState<PdfViewerLayerSettings>(() =>
-    loadPdfViewerLayerSettings(),
-  );
-  const [isScanLikePdf, setIsScanLikePdf] = useState(false);
 
   const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : ''), [file]);
 
@@ -605,15 +586,6 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
   const handleZoomIn = useCallback(() => applyPdfZoom('in'), [applyPdfZoom]);
   const handleZoomOut = useCallback(() => applyPdfZoom('out'), [applyPdfZoom]);
 
-  const handleLayerSettingsChange = useCallback((next: PdfViewerLayerSettings) => {
-    setLayerSettings(next);
-    savePdfViewerLayerSettings(next);
-    const doc = editorIframeRef.current?.contentDocument;
-    if (doc) {
-      applyPdfViewerLayers(doc, next, { isScanLike: isScanLikePdf });
-    }
-  }, [isScanLikePdf]);
-
   const patchViewer = useCallback(
     (iframe: HTMLIFrameElement) => {
       const scaleOnLoad = !viewerFitAppliedRef.current;
@@ -622,19 +594,10 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
       patchViewerIframe(iframe, {
         scaleOnLoad,
         onScaleChange: setZoom,
-        layerSettings,
-        onScanDetected: setIsScanLikePdf,
       });
     },
-    [layerSettings],
+    [],
   );
-
-  useEffect(() => {
-    const doc = editorIframeRef.current?.contentDocument;
-    if (doc) {
-      applyPdfViewerLayers(doc, layerSettings, { isScanLike: isScanLikePdf });
-    }
-  }, [layerSettings, isScanLikePdf]);
 
   useEffect(() => {
     viewerFitAppliedRef.current = false;
@@ -998,18 +961,6 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
             </div>
           </div>
         ))}
-        {activeTab === 'home' && file ? (
-          <>
-            <div className="flex items-center px-2">
-              <div className="w-px h-10 bg-white/[0.08]" />
-            </div>
-            <PdfViewerLayerPanel
-              settings={layerSettings}
-              isScanLike={isScanLikePdf}
-              onChange={handleLayerSettingsChange}
-            />
-          </>
-        ) : null}
       </div>
       )}
 

@@ -42,13 +42,6 @@ html.pdfcraft-annotating .pdfViewer .page .PdfjsAnnotationExtension_painter_wrap
 html.pdfcraft-annotating .pdfViewer .page .konvajs-content{display:block!important;visibility:visible!important;width:calc(100% - 1px)!important;height:auto!important}
 html.pdfcraft-annotating .pdfViewer .page .konvajs-content>canvas{display:block!important;visibility:visible!important;width:100%!important;height:auto!important;clip-path:inset(0 4px 0 0)!important}
 #sidebarContainer,#sidebarContent,#sidebarResizer{display:none!important;box-shadow:none!important;border:none!important}
-/* ── View mode layer toggles (data-* on <html>) ── */
-html[data-pdfcraft-original="0"] .pdfViewer .canvasWrapper{visibility:hidden!important}
-html[data-pdfcraft-annotation="0"] .pdfViewer .annotationLayer{visibility:hidden!important;pointer-events:none!important}
-html[data-pdfcraft-scan="0"][data-pdfcraft-text="0"] .pdfViewer .textLayer{opacity:0!important;pointer-events:none!important}
-html[data-pdfcraft-scan="1"][data-pdfcraft-ocr="0"] .pdfViewer .textLayer{opacity:0!important;pointer-events:none!important}
-html[data-pdfcraft-scan="1"][data-pdfcraft-ocr="1"] .pdfViewer .textLayer{opacity:1!important;pointer-events:auto!important}
-.pdfcraft-read-along-layer{display:none!important}
 `;
 
 /** Extension re-creates Konva layers on render — delete them unless user is annotating. */
