@@ -1,7 +1,7 @@
 {
   "metadata": {
     "home": {
-      "title": "PDFPilot AI - Không gian làm việc PDF AI",
+      "title": "PDF Reader - Không gian làm việc PDF AI",
       "description": "Nền tảng PDF tích hợp AI: chỉnh sửa PDF, tóm tắt, dịch thuật, chat với PDF và Smart OCR."
     },
     "tools": {
@@ -35,7 +35,8 @@
     }
   },
   "common": {
-    "brand": "PDFPilot AI",
+    "brand": "PDF Reader",
+    "brandSubtitle": "Workspace",
     "tagline": "Nền tảng PDF AI cho đội nhóm hiện đại",
     "navigation": {
       "home": "Trang chủ",
@@ -87,7 +88,7 @@
     "upgradeTitle": "Nâng cấp gói",
     "footer": {
       "footer": "© 2025 PDFCraft. Bảo lưu mọi quyền.",
-      "copyright": "© {year} PDFPilot AI. Bảo lưu mọi quyền.",
+      "copyright": "© {year} PDF Reader. Bảo lưu mọi quyền.",
       "privacyBadge": "100% Riêng tư - Tệp không bao giờ rời khỏi thiết bị",
       "madeWith": "Được tạo bởi <Heart /> và <Nextjs />",
       "resources": "Tài nguyên",
@@ -2342,14 +2343,17 @@
     "sidebar": {
       "newPdf": "PDF mới",
       "hidePages": "Ẩn trang",
-      "showThumbnails": "Hiện thumbnail"
+      "showThumbnails": "Hiện thumbnail",
+      "openPages": "Mở panel trang"
     },
     "aiPanel": {
       "newBadge": "Mới",
       "indexing": "Đang lập chỉ mục tài liệu cho chat AI...",
       "summarizing": "Đang tóm tắt (có thể mất 1–2 phút, đừng đóng tab)...",
       "indexError": "Không thể chuẩn bị tài liệu cho chat.",
-      "runSummaryForChat": "Chat cần mã tài liệu từ API /summary. Bấm nút bên dưới (mất khoảng 1–2 phút), sau đó hỏi đáp được ngay.",
+      "runSummaryForChat": "Chat cần chạy Tóm tắt trước (khoảng 1–2 phút). Mở tab Tóm tắt, tạo tóm tắt, rồi quay lại Chat.",
+      "goToSummaryTab": "Mở tab Tóm tắt",
+      "chatReadonlyPlaceholder": "Chạy Tóm tắt trước để hỏi về tài liệu…",
       "startSummaryForChat": "Tóm tắt để bật chat",
       "chatReady": "Đã sẵn sàng chat — hãy nhập câu hỏi.",
       "summaryMissingDocumentId": "Tóm tắt xong nhưng server không trả document_id — không thể chat.",

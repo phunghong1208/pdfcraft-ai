@@ -4,14 +4,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
-  Upload, Bot, ScanText, ZoomIn, ZoomOut, Maximize2, Minimize2,
+  Upload, ScanText, ZoomIn, ZoomOut, Maximize2, Minimize2,
   Eye, Highlighter, ArrowLeft, Save, Share2, FileDown,
   Type, FileText, FileSpreadsheet,
   Image, FileType, Plus, Trash2, RotateCw, Crop, LayoutGrid,
   ArrowLeftRight, Lock, Unlock, EyeOff, Pen, ShieldCheck,
   Languages, Layers, Scissors, Wrench,
   ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight,
-  PanelRightOpen, PanelRightClose, X,
+  PanelLeftOpen, PanelLeftClose, PanelRightClose, X,
   Underline, Strikethrough, StickyNote, Square, Circle,
   PenTool, Stamp, Table, FileImage,
   Undo2, Redo2, Printer, Settings,
@@ -26,6 +26,7 @@ import { MergePDFTool } from '@/components/tools/merge/MergePDFTool';
 import { SplitPDFTool } from '@/components/tools/split/SplitPDFTool';
 import { PageThumbnails } from '@/components/workspace/PageThumbnails';
 import { WorkspaceAIPanel } from '@/components/workspace/WorkspaceAIPanel';
+import { WorkspaceAIIcon } from '@/components/workspace/WorkspaceAIIcon';
 import { type Locale } from '@/lib/i18n/config';
 import { peekUploadedPdf, setUploadedPdf } from '@/lib/document-session';
 import {
@@ -480,7 +481,7 @@ const TAB_KEYS: { key: RibbonTabKey; icon: LucideIcon }[] = [
   { key: 'tool', icon: Wrench },
   { key: 'fillsign', icon: Pen },
   { key: 'protect', icon: Lock },
-  { key: 'ai', icon: Bot },
+  { key: 'ai', icon: MessageCircle },
 ];
 
 export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps) {
@@ -853,12 +854,13 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
                   setActiveTab(tab.key);
                   if (tab.key === 'ai') setIsRightPanelOpen(true);
                 }}
-                className={`relative px-3 py-1.5 text-[11px] whitespace-nowrap transition-all ${
+                className={`relative inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] whitespace-nowrap transition-all ${
                   active
                     ? 'text-white font-medium'
                     : 'text-white/45 hover:text-white/80 hover:bg-white/[0.04]'
                 }`}
               >
+                {tab.key === 'ai' && <WorkspaceAIIcon size="xs" />}
                 {tab.label}
                 {active && (
                   <span className="absolute bottom-0 left-1 right-1 h-[2px] bg-blue-400 rounded-t" />
@@ -942,10 +944,11 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
               <button
                 type="button"
                 onClick={() => setShowThumbnails(false)}
-                className="p-1 rounded text-white/30 hover:text-white/70 hover:bg-white/[0.06] transition-all"
+                className="p-1 rounded-md border border-transparent text-white/40 hover:text-white/80 hover:bg-white/[0.06] hover:border-white/10 transition-all"
                 title={t('sidebar.hidePages')}
+                aria-label={t('sidebar.hidePages')}
               >
-                <X className="h-3 w-3" />
+                <PanelLeftClose className="h-3.5 w-3.5" />
               </button>
             </div>
 
@@ -983,6 +986,36 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
               </div>
             )}
             {/* Annotation viewer: always mounted; ribbon only changes behavior */}
+            {previewUrl && !showThumbnails && (
+              <button
+                type="button"
+                onClick={() => setShowThumbnails(true)}
+                className="absolute left-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-md border border-white/12 bg-[#2a2d35]/95 text-white/65 shadow-lg backdrop-blur-sm hover:border-white/20 hover:bg-[#32363f] hover:text-white transition-all"
+                title={t('sidebar.openPages')}
+                aria-label={t('sidebar.openPages')}
+              >
+                <PanelLeftOpen className="h-4 w-4" />
+              </button>
+            )}
+
+            {previewUrl && !isRightPanelOpen && file && (
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('ai');
+                  setIsRightPanelOpen(true);
+                }}
+                className="absolute right-0 top-1/2 z-20 -translate-y-1/2 flex items-center gap-2 rounded-l-xl border border-r-0 border-white/12 bg-[#0D1117]/95 py-2 pl-2.5 pr-2 shadow-[-6px_0_20px_rgba(0,0,0,0.35)] backdrop-blur-sm hover:bg-[#161B22] hover:border-white/20 transition-all"
+                title={t('statusBar.aiAssistant')}
+                aria-label={t('statusBar.aiAssistant')}
+              >
+                <WorkspaceAIIcon size="sm" />
+                <span className="max-w-[4.5rem] text-[10px] font-medium leading-tight text-white/55 pr-0.5">
+                  {t('statusBar.aiAssistant')}
+                </span>
+              </button>
+            )}
+
             {previewUrl && (
               <EditPDFTool
                 key={viewerInstanceKey}
@@ -1072,11 +1105,21 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
         {/* Right: Zoom + AI panel toggle */}
         <div className="flex items-center gap-2">
           <button
-            className="p-1 rounded text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-all"
-            onClick={() => setIsRightPanelOpen((prev) => !prev)}
+            type="button"
+            className="p-1 rounded-md text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-all inline-flex items-center justify-center"
+            onClick={() => {
+              if (!isRightPanelOpen) setActiveTab('ai');
+              setIsRightPanelOpen((prev) => !prev);
+            }}
             title={t('statusBar.aiAssistant')}
+            aria-label={t('statusBar.aiAssistant')}
+            aria-pressed={isRightPanelOpen}
           >
-            {isRightPanelOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+            {isRightPanelOpen ? (
+              <PanelRightClose className="h-4 w-4" />
+            ) : (
+              <WorkspaceAIIcon size="xs" />
+            )}
           </button>
           <div className="flex items-center gap-1.5 ml-1">
             <button

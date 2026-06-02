@@ -35,7 +35,8 @@
     }
   },
   "common": {
-    "brand": "PDFCraft",
+    "brand": "PDF Reader",
+    "brandSubtitle": "Workspace",
     "tagline": "プロフェッショナルPDFツール - 無料＆プライベート",
     "navigation": {
       "home": "ホーム",

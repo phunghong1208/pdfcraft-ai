@@ -126,7 +126,7 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
                 {aiActions.map((item) => {
                   const Icon = item.icon;
                   return (
-                    <Link key={item.href} href={item.href} className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 hover:bg-white/[0.06] transition-all">
+                    <Link key={item.href} href={item.href} className="rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-card))] px-3 py-2.5 hover:bg-[hsl(var(--color-muted))]/50 transition-all">
                       <div className="flex items-center gap-2.5">
                         <div className="h-8 w-8 rounded-xl bg-blue-500/10 flex items-center justify-center">
                           <Icon className="h-[18px] w-[18px] text-blue-400" strokeWidth={1.75} />
@@ -154,7 +154,7 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
                 {pdfActions.map((item) => {
                   const Icon = item.icon;
                   return (
-                  <Link key={`${item.href}-${item.label}`} href={item.href} className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 hover:bg-white/[0.06] transition-all">
+                  <Link key={`${item.href}-${item.label}`} href={item.href} className="rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-card))] px-3 py-2.5 hover:bg-[hsl(var(--color-muted))]/50 transition-all">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
                         <div className="h-8 w-8 rounded-xl bg-blue-500/10 flex items-center justify-center">

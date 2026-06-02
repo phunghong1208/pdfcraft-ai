@@ -119,14 +119,17 @@
   "sidebar": {
     "newPdf": "PDF mới",
     "hidePages": "Ẩn trang",
-    "showThumbnails": "Hiện thumbnail"
+    "showThumbnails": "Hiện thumbnail",
+    "openPages": "Mở panel trang"
   },
   "aiPanel": {
     "newBadge": "Mới",
     "indexing": "Đang lập chỉ mục tài liệu cho chat AI...",
     "summarizing": "Đang tóm tắt (có thể mất 1–2 phút, đừng đóng tab)...",
     "indexError": "Không thể chuẩn bị tài liệu cho chat.",
-    "runSummaryForChat": "Chat cần mã tài liệu từ API /summary. Bấm nút bên dưới (mất khoảng 1–2 phút), sau đó hỏi đáp được ngay.",
+    "runSummaryForChat": "Chat cần chạy Tóm tắt trước (khoảng 1–2 phút). Mở tab Tóm tắt, tạo tóm tắt, rồi quay lại Chat.",
+    "goToSummaryTab": "Mở tab Tóm tắt",
+    "chatReadonlyPlaceholder": "Chạy Tóm tắt trước để hỏi về tài liệu…",
     "startSummaryForChat": "Tóm tắt để bật chat",
     "chatReady": "Đã sẵn sàng chat — hãy nhập câu hỏi.",
     "summaryMissingDocumentId": "Tóm tắt xong nhưng server không trả document_id — không thể chat.",

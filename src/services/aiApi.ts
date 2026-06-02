@@ -1,8 +1,16 @@
+import {
+  getWorkspaceSummaryDetailPreset,
+  summarizeWorkspaceDocument,
+  WORKSPACE_DEFAULT_PRESET_TIER,
+} from '@/services/workspaceAiApi';
+
 const AI_API_BASE_URL = process.env.NEXT_PUBLIC_AI_API_URL || '';
 
 async function postPdfFile<T>(endpoint: string, file: File): Promise<T> {
   if (!AI_API_BASE_URL) {
-    throw new Error('NEXT_PUBLIC_AI_API_URL is not configured');
+    throw new Error(
+      'NEXT_PUBLIC_AI_API_URL is not configured. Set NEXT_PUBLIC_WORKSPACE_AI_URL=/api/workspace-ai in .env.local (see .env.example).',
+    );
   }
 
   const formData = new FormData();
@@ -20,8 +28,18 @@ async function postPdfFile<T>(endpoint: string, file: File): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export async function summarizePdf(file: File) {
-  return postPdfFile<{ summary: string; markdown?: string }>('/pdf/summary', file);
+/** POST /summary trên AI Document Summarizer — cùng API với workspace */
+export async function summarizePdf(file: File, detail?: string) {
+  const tier = getWorkspaceSummaryDetailPreset(WORKSPACE_DEFAULT_PRESET_TIER);
+  const { text, documentId } = await summarizeWorkspaceDocument(file, {
+    detail: detail ?? tier.detail,
+  });
+  return {
+    summary: text,
+    markdown: text,
+    document_id: documentId,
+    documentId,
+  };
 }
 
 export async function translatePdf(file: File) {

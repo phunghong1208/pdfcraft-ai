@@ -12,6 +12,7 @@ import { searchTools, SearchResult } from '@/lib/utils/search';
 import { getToolContent } from '@/config/tool-content';
 import { getAllTools } from '@/config/tools';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { BrandLogo } from '@/components/layout/BrandLogo';
 import { LanguageSelector } from '@/components/layout/LanguageSelector';
 
 export interface HeaderProps {
@@ -194,35 +195,23 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
       role="banner"
     >
       <div className="container mx-auto px-4 pt-5">
-        <div className="flex h-[78px] items-center justify-between rounded-2xl bg-white/[0.03] backdrop-blur-2xl px-4 shadow-sm">
+        <div className="flex h-[78px] items-center justify-between rounded-2xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-card))]/95 backdrop-blur-2xl px-4 shadow-sm">
           <div className="flex flex-1 items-center gap-2">
-            <Link
-              href={`/${locale}`}
-              className="group flex items-center gap-2 text-base font-semibold text-[hsl(var(--color-foreground))]"
-              aria-label={`${t('brand')} - ${t('navigation.home')}`}
-            >
-              <div className="relative flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-[hsl(var(--color-primary))] to-[hsl(var(--color-accent))] shadow-sm shadow-primary/20 transition-transform group-hover:scale-105">
-                <svg className="h-4.5 w-4.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-                  <polyline points="14 2 14 8 20 8" />
-                </svg>
-              </div>
-              <span className="tracking-tight" data-testid="brand-name">{t('brand')}</span>
-            </Link>
+            <BrandLogo locale={locale} href={`/${locale}`} />
           </div>
 
           <nav
-            className={`hidden md:flex items-center gap-1 rounded-full border border-white/8 bg-white/[0.02] px-1.5 py-1 transition-all duration-300 ${isSearchOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+            className={`hidden md:flex items-center gap-1 rounded-full border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.35)] px-1.5 py-1 transition-all duration-300 ${isSearchOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
             role="navigation"
             aria-label="Main navigation"
             ref={groupRef}
           >
-            <Link href={`/${locale}`} className="px-3.5 py-1.5 text-sm font-medium rounded-full text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))] hover:bg-white/[0.06] transition-colors">{t('navigation.home')}</Link>
+            <Link href={`/${locale}`} className="px-3.5 py-1.5 text-sm font-medium rounded-full text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))] hover:bg-[hsl(var(--color-muted))]/80 transition-colors">{t('navigation.home')}</Link>
 
             <div className="relative">
               <button
                 type="button"
-                className={`inline-flex items-center gap-1 px-3.5 py-1.5 text-sm font-medium rounded-full transition-all ${isAIActive ? 'text-[hsl(var(--color-primary))] bg-[hsl(var(--color-primary)/0.14)]' : 'text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))] hover:bg-white/[0.06]'}`}
+                className={`inline-flex items-center gap-1 px-3.5 py-1.5 text-sm font-medium rounded-full transition-all ${isAIActive ? 'text-[hsl(var(--color-primary))] bg-[hsl(var(--color-primary)/0.14)]' : 'text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))] hover:bg-[hsl(var(--color-muted))]/80'}`}
                 onClick={() => setOpenGroup(prev => prev === 'ai' ? null : 'ai')}
               >
                 {t('ai.menu.aiAssistant')}
@@ -234,7 +223,7 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
             <div className="relative">
               <button
                 type="button"
-                className={`inline-flex items-center gap-1 px-3.5 py-1.5 text-sm font-medium rounded-full transition-all ${isPDFAcitve ? 'text-[hsl(var(--color-primary))] bg-[hsl(var(--color-primary)/0.14)]' : 'text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))] hover:bg-white/[0.06]'}`}
+                className={`inline-flex items-center gap-1 px-3.5 py-1.5 text-sm font-medium rounded-full transition-all ${isPDFAcitve ? 'text-[hsl(var(--color-primary))] bg-[hsl(var(--color-primary)/0.14)]' : 'text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))] hover:bg-[hsl(var(--color-muted))]/80'}`}
                 onClick={() => setOpenGroup(prev => prev === 'pdf' ? null : 'pdf')}
               >
                 {t('ai.menu.pdfTools')}
@@ -243,12 +232,12 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
               {openGroup === 'pdf' && renderGroupDropdown(pdfItems)}
             </div>
 
-            <Link href={`/${locale}/workspace`} className={`px-3.5 py-1.5 text-sm font-medium rounded-full transition-all ${isWorkspaceActive ? 'text-[hsl(var(--color-primary))] bg-[hsl(var(--color-primary)/0.14)]' : 'text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))] hover:bg-white/[0.06]'}`}>{t('ai.menu.workspace')}</Link>
+            <Link href={`/${locale}/workspace`} className={`px-3.5 py-1.5 text-sm font-medium rounded-full transition-all ${isWorkspaceActive ? 'text-[hsl(var(--color-primary))] bg-[hsl(var(--color-primary)/0.14)]' : 'text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))] hover:bg-[hsl(var(--color-muted))]/80'}`}>{t('ai.menu.workspace')}</Link>
           </nav>
 
           <div className="hidden lg:flex flex-1 items-center justify-center px-10">
             {showSearch && !isSearchOpen && (
-              <Button variant="ghost" size="sm" onClick={handleSearchToggle} aria-label={t('search.open')} className="h-11 w-[290px] justify-between rounded-xl border border-white/10 bg-white/[0.045] px-3 text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))] hover:bg-white/[0.08] hover:border-blue-400/30 transition-colors focus-visible:ring-2 focus-visible:ring-blue-500/20">
+              <Button variant="ghost" size="sm" onClick={handleSearchToggle} aria-label={t('search.open')} className="h-11 w-[290px] justify-between rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.45)] px-3 text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))] hover:bg-[hsl(var(--color-muted))]/80 hover:border-[hsl(var(--color-primary)/0.35)] transition-colors focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-primary)/0.25)]">
                 <span className="inline-flex items-center text-sm font-medium">{t('search.trigger')}</span>
                 <span className="text-xs font-semibold text-[hsl(var(--color-muted-foreground))/0.8] border border-[hsl(var(--color-border))] rounded px-1.5 py-0.5">⌘K</span>
               </Button>
@@ -331,7 +320,7 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
             <LanguageSelector currentLocale={locale} compact />
             <button
               type="button"
-              className="hidden sm:inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-semibold bg-white/[0.05] hover:bg-white/[0.1] transition-colors"
+              className="hidden sm:inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-semibold text-[hsl(var(--color-foreground))] bg-[hsl(var(--color-muted))]/60 hover:bg-[hsl(var(--color-muted))] transition-colors"
               aria-label="Account"
               title={t('upgradeTitle')}
             >

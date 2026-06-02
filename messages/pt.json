@@ -35,7 +35,8 @@
     }
   },
   "common": {
-    "brand": "PDFCraft",
+    "brand": "PDF Reader",
+    "brandSubtitle": "Workspace",
     "tagline": "Ferramentas PDF Profissionais - Grátis e Privadas",
     "navigation": {
       "home": "Início",

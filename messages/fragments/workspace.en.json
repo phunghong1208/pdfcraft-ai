@@ -119,14 +119,17 @@
   "sidebar": {
     "newPdf": "New PDF",
     "hidePages": "Hide pages",
-    "showThumbnails": "Show thumbnails"
+    "showThumbnails": "Show thumbnails",
+    "openPages": "Open pages panel"
   },
   "aiPanel": {
     "newBadge": "New",
     "indexing": "Indexing document for AI chat...",
     "summarizing": "Summarizing (may take 1–2 minutes, keep this tab open)...",
     "indexError": "Could not prepare document for chat.",
-    "runSummaryForChat": "Chat needs a document ID from /summary. Tap the button below (about 1–2 minutes), then you can ask questions.",
+    "runSummaryForChat": "Chat requires Summary first (about 1–2 minutes). Open the Summary tab, generate a summary, then return to Chat.",
+    "goToSummaryTab": "Open Summary tab",
+    "chatReadonlyPlaceholder": "Run Summary first to ask about this document…",
     "startSummaryForChat": "Summarize to enable chat",
     "chatReady": "Chat is ready — type your question.",
     "summaryMissingDocumentId": "Summary finished but the server did not return document_id — chat is unavailable.",

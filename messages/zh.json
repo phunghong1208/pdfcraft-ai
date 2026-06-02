@@ -35,7 +35,8 @@
     }
   },
   "common": {
-    "brand": "PDFCraft",
+    "brand": "PDF Reader",
+    "brandSubtitle": "Workspace",
     "tagline": "专业PDF工具 - 免费且私密",
     "navigation": {
       "home": "首页",

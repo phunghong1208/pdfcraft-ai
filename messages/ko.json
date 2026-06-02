@@ -35,7 +35,8 @@
     }
   },
   "common": {
-    "brand": "PDFCraft",
+    "brand": "PDF Reader",
+    "brandSubtitle": "Workspace",
     "tagline": "전문 PDF 도구 - 무료 & 프라이빗",
     "navigation": {
       "home": "홈",

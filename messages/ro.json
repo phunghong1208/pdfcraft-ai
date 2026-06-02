@@ -35,7 +35,8 @@
     }
   },
   "common": {
-    "brand": "PDFCraft",
+    "brand": "PDF Reader",
+    "brandSubtitle": "Workspace",
     "tagline": "Instrumente PDF Profesionale - Gratuite și Private",
     "navigation": {
       "home": "Acasă",

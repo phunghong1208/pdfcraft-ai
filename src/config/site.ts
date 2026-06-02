@@ -2,7 +2,7 @@
  * Site configuration
  */
 export const siteConfig = {
-  name: 'PDFPilot AI',
+  name: 'PDF Reader',
   description: 'AI-powered PDF workspace for editing, summarizing, translating, OCR, and chat with PDF.',
   url: 'https://pdfpilot-ai.com',
   ogImage: '/images/og-image.png',
@@ -10,7 +10,7 @@ export const siteConfig = {
     github: 'https://github.com/PDFCraftTool/pdfcraft',
     twitter: 'https://twitter.com/pdfpilotai',
   },
-  creator: 'PDFPilot AI Team',
+  creator: 'PDF Reader Team',
   keywords: [
     'PDF tools',
     'PDF editor',
@@ -25,8 +25,8 @@ export const siteConfig = {
   ],
   // SEO-related settings
   seo: {
-    titleTemplate: '%s | PDFPilot AI',
-    defaultTitle: 'PDFPilot AI - AI PDF Workspace',
+    titleTemplate: '%s | PDF Reader',
+    defaultTitle: 'PDF Reader - AI PDF Workspace',
     twitterHandle: '@pdfpilotai',
     locale: 'en_US',
   },

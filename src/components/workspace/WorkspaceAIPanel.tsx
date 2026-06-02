@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Sparkles, X, Loader2, FileText, Volume2, Play, Pause, Square } from 'lucide-react';
+import { PanelRightClose, Loader2, FileText, Volume2, Play, Pause, Square } from 'lucide-react';
+import { WorkspaceAIIcon } from '@/components/workspace/WorkspaceAIIcon';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/Button';
 import {
@@ -31,9 +32,12 @@ const SEGMENT_PILL_BASE =
   'flex-1 rounded-lg py-1.5 text-[11px] font-medium transition-all disabled:opacity-40';
 const segmentPillClass = (selected: boolean) =>
   selected
-    ? 'bg-pink-500/25 text-pink-100 ring-1 ring-pink-400/40'
-    : 'bg-white/[0.04] text-white/50 hover:bg-white/[0.08]';
-const SEGMENT_LABEL_CLASS = 'text-[10px] text-white/45 px-0.5';
+    ? 'bg-blue-500/20 text-blue-100 border border-blue-500/35'
+    : 'bg-[#161B22] text-[#9CA3AF] border border-[#30363D] hover:bg-[#1a2332] hover:text-white/80';
+const SEGMENT_LABEL_CLASS = 'text-[10px] text-[#8B949E] px-0.5';
+
+const PANEL_BORDER = 'border-[#30363D]';
+const PANEL_SURFACE = 'bg-[#161B22]';
 
 type PersistedWorkspaceAi = {
   documentId: number;
@@ -279,7 +283,7 @@ function TierRadioGroup({
               disabled={disabled}
               onClick={() => onChange(preset.id)}
               aria-pressed={selected}
-              className={`${SEGMENT_PILL_BASE} ${segmentPillClass(selected)}`}
+              className={`${SEGMENT_PILL_BASE} border ${segmentPillClass(selected)}`}
             >
               {tierTitle(t, mode, preset.id)}
             </button>
@@ -292,7 +296,7 @@ function TierRadioGroup({
 
 export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelProps) {
   const t = useTranslations('workspace');
-  const [aiTab, setAiTab] = useState<AiTab>('chat');
+  const [aiTab, setAiTab] = useState<AiTab>('summary');
   const [chatInput, setChatInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [summaryText, setSummaryText] = useState<string | null>(null);
@@ -309,6 +313,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
   const chatPreset = getWorkspaceChatTopKPreset(chatTierId);
 
   const voiceReady = Boolean(summaryText?.trim() && documentId != null);
+  const chatReady = documentId != null;
 
   const voiceStatusLabel = useMemo(() => {
     if (!speech.supported) return t('aiPanel.voice.unsupported');
@@ -372,6 +377,8 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
         });
         if (options?.keepTab) {
           setAiHint(t('aiPanel.chatReady'));
+        } else if (newId != null) {
+          setAiHint(t('aiPanel.summaryDone'));
         }
       } catch (err) {
         setAiError(err instanceof Error ? err.message : t('aiPanel.summaryError'));
@@ -455,20 +462,16 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
     [speech, summaryText],
   );
 
-  const tabs: AiTab[] = ['chat', 'summary', 'translate', 'voice'];
+  const tabs: AiTab[] = ['summary', 'chat', 'translate', 'voice'];
 
   return (
     <aside
-      className="relative w-[min(100%,420px)] min-w-[360px] shrink-0 flex flex-col border-l border-blue-500/25 bg-gradient-to-b from-[#1a1f2e] to-[#16181d] shadow-[-12px_0_40px_rgba(59,130,246,0.08)]"
+      className={`relative w-[min(100%,420px)] min-w-[360px] shrink-0 flex flex-col border-l ${PANEL_BORDER} bg-[#0B0E14] shadow-[-8px_0_32px_rgba(0,0,0,0.35)]`}
       aria-label={t('aiPanel.title')}
     >
-      <div className="absolute inset-y-0 left-0 w-px bg-gradient-to-b from-blue-400/50 via-violet-400/30 to-transparent pointer-events-none" />
-
-      <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-blue-500/15 bg-blue-500/[0.06] shrink-0">
+      <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-[#30363D] bg-[#0D1117] shrink-0">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500/30 to-violet-500/20 ring-1 ring-blue-400/30">
-            <Sparkles className="h-4 w-4 text-blue-300" />
-          </div>
+          <WorkspaceAIIcon size="md" />
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="text-[13px] font-semibold text-white truncate">{t('aiPanel.title')}</span>
@@ -484,14 +487,15 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
         <button
           type="button"
           onClick={onClose}
-          className="p-1 rounded-md text-white/40 hover:text-white/80 hover:bg-white/[0.08] transition-all shrink-0"
+          className="p-1.5 rounded-md text-white/40 hover:text-white/80 hover:bg-white/[0.08] border border-transparent hover:border-white/10 transition-all shrink-0"
           aria-label={t('inlineTools.close')}
+          title={t('inlineTools.close')}
         >
-          <X className="h-4 w-4" />
+          <PanelRightClose className="h-4 w-4" />
         </button>
       </div>
 
-      <div className="px-4 py-2.5 border-b border-white/[0.06] shrink-0">
+      <div className="px-4 py-2.5 border-b border-[#30363D] shrink-0">
         <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
           {tabs.map((tab) => (
             <button
@@ -504,11 +508,15 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
               disabled={tab === 'translate'}
               className={`px-2.5 py-1 rounded-md font-medium transition-all ${
                 aiTab === tab
-                  ? 'text-blue-200 bg-blue-500/20 ring-1 ring-blue-400/25'
+                  ? 'text-blue-100 bg-blue-500/20 border border-blue-500/30'
                   : tab === 'translate'
-                    ? 'text-white/25 cursor-not-allowed'
-                    : 'text-white/50 hover:text-white/85 hover:bg-white/[0.05]'
+                    ? 'text-[#6b7280] cursor-not-allowed'
+                    : tab === 'chat' && !chatReady
+                      ? 'text-[#6b7280] hover:text-[#9CA3AF]'
+                      : 'text-[#9CA3AF] hover:text-white/90 hover:bg-[#161B22]'
               }`}
+              aria-disabled={tab === 'chat' && !chatReady ? true : undefined}
+              title={tab === 'chat' && !chatReady ? t('aiPanel.runSummaryForChat') : undefined}
             >
               {t(`aiPanel.tabs.${tab}`)}
             </button>
@@ -517,7 +525,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
       </div>
 
       <div className="px-4 py-3 shrink-0">
-        <div className="rounded-xl border border-blue-500/15 bg-blue-500/[0.04] p-3">
+        <div className={`rounded-xl ${PANEL_BORDER} border ${PANEL_SURFACE} p-3`}>
           <div className="flex items-start gap-2">
             <FileText className="h-4 w-4 text-blue-400/80 shrink-0 mt-0.5" />
             <div className="min-w-0">
@@ -579,19 +587,34 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
                 t('aiPanel.generateSummary')
               )}
             </Button>
-            <div className="flex-1 overflow-auto rounded-xl border border-white/[0.08] bg-black/20 p-3">
+            <div
+              className={`flex-1 min-h-0 flex flex-col rounded-xl ${PANEL_SURFACE} overflow-hidden ${
+                summaryText ? 'border border-[#30363D]' : ''
+              }`}
+            >
               {summaryText ? (
-                <p className="text-[12px] leading-relaxed text-white/75 whitespace-pre-wrap">{summaryText}</p>
+                <div className="flex-1 overflow-auto p-3 scrollbar-thin">
+                  <p className="text-[12px] leading-relaxed text-[#d1d5db] whitespace-pre-wrap">
+                    {summaryText}
+                  </p>
+                </div>
               ) : (
-                <p className="text-[11px] text-white/35">{t('aiPanel.summaryPlaceholder')}</p>
+                <div className="flex-1 flex items-center justify-center p-6 min-h-[140px]">
+                  <p className="text-[11px] text-[#8B949E] text-center max-w-[260px] leading-relaxed">
+                    {t('aiPanel.summaryPlaceholder')}
+                  </p>
+                </div>
               )}
             </div>
           </div>
         )}
 
         {aiTab === 'chat' && (
-          <>
-            {documentId != null && (
+          <div
+            className={`flex-1 min-h-0 flex flex-col ${!chatReady ? 'opacity-95' : ''}`}
+            aria-readonly={!chatReady}
+          >
+            {chatReady && (
               <TierRadioGroup
                 mode="chatContext"
                 presets={WORKSPACE_CHAT_TOP_K_PRESETS}
@@ -601,23 +624,16 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
               />
             )}
             <div className="flex-1 overflow-auto space-y-3 pr-1 min-h-0 mt-2">
-              {documentId == null && (
-                <div className="rounded-xl border border-blue-500/25 bg-blue-500/[0.08] p-3 space-y-2.5">
-                  <p className="text-[11px] leading-relaxed text-white/60">{t('aiPanel.runSummaryForChat')}</p>
+              {!chatReady && (
+                <div className={`rounded-xl border ${PANEL_BORDER} ${PANEL_SURFACE} p-3 space-y-2.5`}>
+                  <p className="text-[11px] leading-relaxed text-[#9CA3AF]">{t('aiPanel.runSummaryForChat')}</p>
                   <Button
                     size="sm"
-                    onClick={() => void runSummary({ keepTab: true })}
+                    onClick={() => setAiTab('summary')}
                     disabled={!file || isSummarizing}
                     className="w-full h-9 text-[12px] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500"
                   >
-                    {isSummarizing ? (
-                      <span className="inline-flex items-center gap-2">
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        {t('aiPanel.summarizing')}
-                      </span>
-                    ) : (
-                      t('aiPanel.startSummaryForChat')
-                    )}
+                    {t('aiPanel.goToSummaryTab')}
                   </Button>
                 </div>
               )}
@@ -626,8 +642,8 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
                   key={idx}
                   className={`rounded-lg px-3 py-2 text-[12px] leading-relaxed ${
                     m.role === 'assistant'
-                      ? 'bg-white/[0.04] border border-white/[0.06] text-white/75'
-                      : 'bg-blue-500/15 border border-blue-400/20 text-blue-100 ml-4'
+                      ? `${PANEL_SURFACE} border ${PANEL_BORDER} text-[#d1d5db]`
+                      : 'bg-blue-500/12 border border-blue-500/25 text-blue-100 ml-4'
                   }`}
                 >
                   {m.text}
@@ -640,31 +656,37 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
                 </div>
               )}
             </div>
-            <div className="pt-3 border-t border-white/[0.08] flex items-end gap-2 shrink-0">
+            <div
+              className={`pt-3 border-t border-[#30363D] flex items-end gap-2 shrink-0 ${!chatReady ? 'pointer-events-none opacity-60' : ''}`}
+            >
               <textarea
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyDown={(e) => {
+                  if (!chatReady) return;
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     void handleSendMessage();
                   }
                 }}
                 rows={2}
-                placeholder={t('aiPanel.placeholder')}
-                disabled={!file || documentId == null || isAiThinking}
-                className="flex-1 min-w-0 resize-none rounded-lg border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-[12px] text-white/90 placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/35 disabled:opacity-50"
+                readOnly={!chatReady}
+                placeholder={
+                  chatReady ? t('aiPanel.placeholder') : t('aiPanel.chatReadonlyPlaceholder')
+                }
+                disabled={!file || isAiThinking}
+                className="flex-1 min-w-0 resize-none rounded-lg border border-[#30363D] bg-[#0D1117] px-3 py-2 text-[12px] text-white/90 placeholder:text-[#6b7280] focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:opacity-50 read-only:cursor-not-allowed"
               />
               <Button
                 size="sm"
                 onClick={() => void handleSendMessage()}
-                disabled={!file || documentId == null || isAiThinking || !chatInput.trim()}
+                disabled={!chatReady || !file || isAiThinking || !chatInput.trim()}
                 className="h-[52px] px-4 text-[12px] bg-blue-600 hover:bg-blue-500"
               >
                 {t('aiPanel.send')}
               </Button>
             </div>
-          </>
+          </div>
         )}
 
         {aiTab === 'voice' && (
