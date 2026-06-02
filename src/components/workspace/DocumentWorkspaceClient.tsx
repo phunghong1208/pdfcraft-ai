@@ -37,6 +37,7 @@ import { PageThumbnails } from '@/components/workspace/PageThumbnails';
 import { WorkspaceAIPanel } from '@/components/workspace/WorkspaceAIPanel';
 import { WorkspaceAIIcon } from '@/components/workspace/WorkspaceAIIcon';
 import { WorkspacePagesSidebarToggle } from '@/components/workspace/WorkspacePagesSidebarToggle';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { type Locale } from '@/lib/i18n/config';
 import { peekUploadedPdf, setUploadedPdf } from '@/lib/document-session';
 import { addBlankPages, deletePages } from '@/lib/pdf/processors';
@@ -404,13 +405,14 @@ function patchViewerIframe(
   opts?: {
     scaleOnLoad?: boolean;
     onScaleChange?: (pct: number) => void;
+    theme?: 'light' | 'dark';
   },
 ) {
   try {
     const doc = iframe.contentDocument;
     if (!doc) return;
 
-    injectPdfViewerChrome(doc);
+    injectPdfViewerChrome(doc, 'pdfcraft-viewer-chrome', opts?.theme ?? 'light');
 
     const win = getPdfApp(iframe);
     const app = win?.PDFViewerApplication;
@@ -532,13 +534,18 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const [workspaceTool, setWorkspaceTool] = useState<WorkspaceInlineTool | null>(null);
   const [isDirty, setIsDirty] = useState(false);
+  const [isWorkspaceDark, setIsWorkspaceDark] = useState(false);
   const fileHandleRef = useRef<{
     name: string;
     createWritable: () => Promise<{ write: (data: Blob) => Promise<void>; close: () => Promise<void> }>;
     getFile?: () => Promise<File>;
   } | null>(null);
 
-  const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : ''), [file]);
+  const previewUrlRef = useRef('');
+  const previewUrl = useMemo(() => {
+    if (!file) return '';
+    return URL.createObjectURL(file);
+  }, [file]);
 
   useEffect(() => {
     if (file) setIsRightPanelOpen(true);
@@ -548,10 +555,20 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     ? `${file.name}-${file.size}-${file.lastModified}`
     : 'no-document';
   useEffect(() => {
-    return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-    };
+    const prev = previewUrlRef.current;
+    if (prev && prev !== previewUrl) {
+      URL.revokeObjectURL(prev);
+    }
+    previewUrlRef.current = previewUrl;
   }, [previewUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (!previewUrlRef.current) return;
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = '';
+    };
+  }, []);
 
   useEffect(() => {
     if (hasInitialized.current) return;
@@ -689,9 +706,10 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
       patchViewerIframe(iframe, {
         scaleOnLoad,
         onScaleChange: setZoom,
+        theme: isWorkspaceDark ? 'dark' : 'light',
       });
     },
-    [],
+    [isWorkspaceDark],
   );
 
   useEffect(() => {
@@ -711,6 +729,102 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     if (!previewUrl) return;
     applyPdfZoom('fit');
   }, [previewUrl, applyPdfZoom]);
+
+  useEffect(() => {
+    // Entering workspace from a scrolled page can leave viewport offset artifacts.
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    // Ensure workspace respects explicit theme selection from ThemeToggle.
+    const syncTheme = () => {
+      try {
+        const savedTheme = window.localStorage.getItem('theme');
+        const isDark = savedTheme === 'dark';
+        setIsWorkspaceDark(isDark);
+        // Keep root class in sync so `dark:*` utilities match selected theme.
+        if (isDark) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      } catch {
+        // ignore localStorage access errors
+      }
+    };
+    syncTheme();
+    window.addEventListener('storage', syncTheme);
+    window.addEventListener('pdfcraft-theme-changed', syncTheme as EventListener);
+    return () => {
+      window.removeEventListener('storage', syncTheme);
+      window.removeEventListener('pdfcraft-theme-changed', syncTheme as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
+    // Hard lock page scroll while workspace editor is active.
+    const html = document.documentElement;
+    const body = document.body;
+    const appRoot = document.getElementById('__next');
+    const isDarkTheme = html.classList.contains('dark');
+    const scrollY = window.scrollY;
+    const prevHtmlOverflow = html.style.overflow;
+    const prevHtmlHeight = html.style.height;
+    const prevHtmlBg = html.style.background;
+    const prevBodyOverflow = body.style.overflow;
+    const prevBodyPosition = body.style.position;
+    const prevBodyTop = body.style.top;
+    const prevBodyWidth = body.style.width;
+    const prevBodyHeight = body.style.height;
+    const prevBodyLeft = body.style.left;
+    const prevBodyRight = body.style.right;
+    const prevBodyBg = body.style.background;
+    const prevAppOverflow = appRoot?.style.overflow ?? '';
+    const prevAppHeight = appRoot?.style.height ?? '';
+    const prevAppBg = appRoot?.style.background ?? '';
+
+    html.style.setProperty('overflow', 'hidden', 'important');
+    html.style.setProperty('height', '100%', 'important');
+    body.style.setProperty('overflow', 'hidden', 'important');
+    body.style.setProperty('position', 'fixed', 'important');
+    body.style.setProperty('top', `-${scrollY}px`, 'important');
+    body.style.setProperty('left', '0', 'important');
+    body.style.setProperty('right', '0', 'important');
+    body.style.setProperty('width', '100%', 'important');
+    body.style.setProperty('height', '100%', 'important');
+    if (!isDarkTheme) {
+      html.style.setProperty('background', '#ffffff', 'important');
+      body.style.setProperty('background', '#ffffff', 'important');
+    }
+    if (appRoot) {
+      appRoot.style.setProperty('overflow', 'hidden', 'important');
+      appRoot.style.setProperty('height', '100%', 'important');
+      if (!isDarkTheme) {
+        appRoot.style.setProperty('background', '#ffffff', 'important');
+      }
+    }
+
+    return () => {
+      html.style.overflow = prevHtmlOverflow;
+      html.style.height = prevHtmlHeight;
+      html.style.background = prevHtmlBg;
+      body.style.overflow = prevBodyOverflow;
+      body.style.position = prevBodyPosition;
+      body.style.top = prevBodyTop;
+      body.style.width = prevBodyWidth;
+      body.style.height = prevBodyHeight;
+      body.style.left = prevBodyLeft;
+      body.style.right = prevBodyRight;
+      body.style.background = prevBodyBg;
+      if (appRoot) {
+        appRoot.style.overflow = prevAppOverflow;
+        appRoot.style.height = prevAppHeight;
+        appRoot.style.background = prevAppBg;
+      }
+      window.scrollTo(0, scrollY);
+    };
+  }, []);
 
   const handlePageSelect = useCallback((page: number) => {
     setCurrentPage(page);
@@ -1116,20 +1230,24 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
   }
 
   return (
-    <section className="h-screen flex flex-col overflow-hidden text-[hsl(var(--color-foreground))] bg-[hsl(var(--color-background))] dark:text-white dark:bg-[#1e2028]">
+    <section className={`fixed inset-0 z-40 flex flex-col overflow-hidden ${isWorkspaceDark ? 'text-white bg-[#1e2028]' : 'text-[hsl(var(--color-foreground))] bg-white'}`}>
       {/* ─── Tab Bar ─── */}
-      <div className="flex items-center h-9 bg-[hsl(var(--color-card))] dark:bg-[#2a2d35] border-b border-[hsl(var(--color-border))] dark:border-white/[0.06] px-2 shrink-0">
+      <div className={`flex items-center h-9 border-b px-2 shrink-0 ${isWorkspaceDark ? 'bg-[#2a2d35] border-white/[0.06]' : 'bg-white border-[#E5E7EB]'}`}>
         <button
           type="button"
           onClick={() => navigateWithUnsavedCheck(`/${locale}`)}
-          className="inline-flex items-center gap-1 px-2 py-1 rounded text-[hsl(var(--color-muted-foreground))] dark:text-white/50 hover:text-[hsl(var(--color-foreground))] dark:hover:text-white hover:bg-[hsl(var(--color-muted)/0.6)] dark:hover:bg-white/[0.08] transition-all mr-2"
+          className={`inline-flex items-center gap-1 px-2 py-1 rounded transition-all mr-2 ${
+            isWorkspaceDark
+              ? 'text-white/55 hover:text-white hover:bg-white/[0.08]'
+              : 'text-[#4B5563] hover:text-[#111827] hover:bg-[#F3F4F6]'
+          }`}
         >
           <ArrowLeft className="h-3.5 w-3.5" />
         </button>
 
         <div className="w-px h-4 bg-[hsl(var(--color-border))] dark:bg-white/[0.08] mr-2" />
 
-        <span className="text-[12px] font-medium text-[hsl(var(--color-foreground))] dark:text-white/70 truncate max-w-[180px] mr-3">
+        <span className={`text-[12px] font-medium truncate max-w-[180px] mr-3 ${isWorkspaceDark ? 'text-white/75' : 'text-[#111827]'}`}>
           {file?.name || t('untitled')}
         </span>
 
@@ -1151,8 +1269,12 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
                 }}
                 className={`relative inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] whitespace-nowrap transition-all ${
                   active
-                    ? 'text-[hsl(var(--color-foreground))] dark:text-white font-medium'
-                    : 'text-[hsl(var(--color-muted-foreground))] dark:text-white/45 hover:text-[hsl(var(--color-foreground))] dark:hover:text-white/80 hover:bg-[hsl(var(--color-muted)/0.6)] dark:hover:bg-white/[0.04]'
+                    ? isWorkspaceDark
+                      ? 'text-white font-medium'
+                      : 'text-[#111827] font-semibold'
+                    : isWorkspaceDark
+                      ? 'text-white/50 hover:text-white/85 hover:bg-white/[0.04]'
+                      : 'text-[#4B5563] hover:text-[#111827] hover:bg-[#F3F4F6]'
                 }`}
               >
                 {tab.label}
@@ -1170,8 +1292,10 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
           <button
             className={`inline-flex items-center gap-1 px-2 py-1 rounded transition-all text-[11px] ${
               isDirty
-                ? 'text-amber-200 bg-amber-500/15 ring-1 ring-amber-400/35 hover:bg-amber-500/25'
-                : 'text-[hsl(var(--color-muted-foreground))] dark:text-white/50 hover:text-[hsl(var(--color-foreground))] dark:hover:text-white hover:bg-[hsl(var(--color-muted)/0.6)] dark:hover:bg-white/[0.06]'
+                ? 'text-amber-700 dark:text-amber-200 bg-amber-100 dark:bg-amber-500/15 ring-1 ring-amber-500/40 dark:ring-amber-400/35 hover:bg-amber-200/80 dark:hover:bg-amber-500/25'
+                : isWorkspaceDark
+                  ? 'text-white/55 hover:text-white hover:bg-white/[0.06]'
+                  : 'text-[#4B5563] hover:text-[#111827] hover:bg-[#F3F4F6]'
             }`}
             onClick={() => handleRibbonAction('save')}
             title={isDirty ? 'Có thay đổi chưa lưu' : 'Đã lưu'}
@@ -1179,20 +1303,30 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
             <Save className="h-3 w-3" /> {t('header.save')}
           </button>
           <button
-            className="inline-flex items-center gap-1 px-2 py-1 rounded text-[hsl(var(--color-muted-foreground))] dark:text-white/50 hover:text-[hsl(var(--color-foreground))] dark:hover:text-white hover:bg-[hsl(var(--color-muted)/0.6)] dark:hover:bg-white/[0.06] transition-all text-[11px]"
+            className={`inline-flex items-center gap-1 px-2 py-1 rounded transition-all text-[11px] ${
+              isWorkspaceDark
+                ? 'text-white/55 hover:text-white hover:bg-white/[0.06]'
+                : 'text-[#4B5563] hover:text-[#111827] hover:bg-[#F3F4F6]'
+            }`}
             onClick={() => handleRibbonAction('export')}
           >
             <FileDown className="h-3 w-3" /> {t('header.export')}
           </button>
-          <button className="inline-flex items-center gap-1 px-2 py-1 rounded text-[hsl(var(--color-muted-foreground))] dark:text-white/50 hover:text-[hsl(var(--color-foreground))] dark:hover:text-white hover:bg-[hsl(var(--color-muted)/0.6)] dark:hover:bg-white/[0.06] transition-all text-[11px]">
+          <button className={`inline-flex items-center gap-1 px-2 py-1 rounded transition-all text-[11px] ${
+            isWorkspaceDark
+              ? 'text-white/55 hover:text-white hover:bg-white/[0.06]'
+              : 'text-[#4B5563] hover:text-[#111827] hover:bg-[#F3F4F6]'
+          }`}>
             <Share2 className="h-3 w-3" /> {t('header.share')}
           </button>
+          <div className="w-px h-4 bg-[hsl(var(--color-border))] dark:bg-white/[0.08] mx-1" />
+          <ThemeToggle />
         </div>
       </div>
 
       {/* ─── Ribbon Toolbar (collapsible) ─── */}
       {ribbonGroups.length > 0 && (
-      <div className="flex items-center h-[42px] bg-[hsl(var(--color-card))] dark:bg-[#252830] border-b border-[hsl(var(--color-border))] dark:border-white/[0.06] px-2 shrink-0 overflow-hidden">
+      <div className={`flex items-center h-[42px] border-b px-2 shrink-0 overflow-hidden ${isWorkspaceDark ? 'bg-[#252830] border-white/[0.06]' : 'bg-white border-[#E5E7EB]'}`}>
         {ribbonGroups.map((group, gi) => (
           <div key={`${activeTab}-${gi}`} className="flex items-center">
             {gi > 0 && (
@@ -1208,11 +1342,23 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
                     key={ti}
                     type="button"
                     onClick={() => handleToolClick(tool)}
-                    className="flex flex-col items-center justify-center gap-0.5 px-1.5 py-1 rounded-md hover:bg-[hsl(var(--color-muted)/0.7)] dark:hover:bg-white/[0.08] active:bg-[hsl(var(--color-muted))] dark:active:bg-white/[0.14] active:scale-95 transition-all min-w-[42px] cursor-pointer group"
+                    className={`flex flex-col items-center justify-center gap-0.5 px-1.5 py-1 rounded-md active:scale-95 transition-all min-w-[42px] cursor-pointer group ${
+                      isWorkspaceDark
+                        ? 'hover:bg-white/[0.08] active:bg-white/[0.14]'
+                        : 'hover:bg-[#F3F4F6] active:bg-[#E5E7EB]'
+                    }`}
                     title={`${group.label}: ${tool.label}`}
                   >
-                    <Icon className="h-4 w-4 text-[hsl(var(--color-muted-foreground))] dark:text-white/75 group-hover:text-[hsl(var(--color-foreground))] dark:group-hover:text-white transition-colors" />
-                    <span className="text-[9px] leading-tight text-[hsl(var(--color-muted-foreground))] dark:text-white/60 group-hover:text-[hsl(var(--color-foreground))] dark:group-hover:text-white/90 whitespace-nowrap transition-colors">
+                    <Icon className={`h-4 w-4 transition-colors ${
+                      isWorkspaceDark
+                        ? 'text-white/75 group-hover:text-white'
+                        : 'text-[#4B5563] group-hover:text-[#111827]'
+                    }`} />
+                    <span className={`text-[9px] leading-tight whitespace-nowrap transition-colors ${
+                      isWorkspaceDark
+                        ? 'text-white/60 group-hover:text-white/90'
+                        : 'text-[#4B5563] group-hover:text-[#111827]'
+                    }`}>
                       {tool.label}
                     </span>
                   </button>
@@ -1228,8 +1374,8 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
       <div className="flex-1 flex min-h-0">
         {/* Left: Thumbnail Panel */}
         {showThumbnails && (
-          <aside className="w-[148px] shrink-0 flex flex-col bg-[hsl(var(--color-card))] dark:bg-[#1e2028]">
-            <div className="flex items-center justify-between gap-1.5 px-2 py-2 border-b border-[hsl(var(--color-border))] dark:border-white/[0.06] shrink-0">
+          <aside className={`w-[148px] shrink-0 flex flex-col ${isWorkspaceDark ? 'bg-[#1e2028]' : 'bg-white'}`}>
+            <div className="flex items-center justify-between gap-1.5 px-2 py-2 border-b border-[#E5E7EB] dark:border-white/[0.06] shrink-0">
               <label className="inline-flex flex-1 items-center justify-center rounded-md border border-dashed border-[hsl(var(--color-border))] dark:border-white/10 p-2 cursor-pointer hover:bg-[hsl(var(--color-muted)/0.6)] dark:hover:bg-white/[0.04] hover:border-[hsl(var(--color-primary)/0.35)] dark:hover:border-white/20 transition-all">
                 <Upload className="h-4 w-4 text-[hsl(var(--color-primary)/0.85)]" />
                 <span className="sr-only">{t('sidebar.newPdf')}</span>
@@ -1238,6 +1384,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
               <WorkspacePagesSidebarToggle
                 expanded
                 variant="header"
+                theme={isWorkspaceDark ? 'dark' : 'light'}
                 onClick={() => setShowThumbnails(false)}
                 title={t('sidebar.hidePages')}
                 aria-label={t('sidebar.hidePages')}
@@ -1251,6 +1398,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
                   currentPage={currentPage}
                   onPageSelect={handlePageSelect}
                   onPageCountChange={setPageCount}
+                  theme={isWorkspaceDark ? 'dark' : 'light'}
                 />
               )}
             </div>
@@ -1258,7 +1406,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
         )}
 
         {/* Center: single annotation viewer (no remount on tab switch) */}
-        <div className="flex-1 min-w-0 flex flex-col bg-[hsl(var(--color-muted)/0.35)] dark:bg-[#16181d] overflow-hidden">
+        <div className={`flex-1 min-w-0 flex flex-col overflow-hidden ${isWorkspaceDark ? 'bg-[#16181d]' : 'bg-white'}`}>
           <div className="relative flex-1 min-h-0 overflow-hidden">
             {!previewUrl && (
               <div className="absolute inset-0 flex items-center justify-center">
@@ -1282,6 +1430,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
               <WorkspacePagesSidebarToggle
                 expanded={false}
                 variant="floating"
+                theme={isWorkspaceDark ? 'dark' : 'light'}
                 onClick={() => setShowThumbnails(true)}
                 title={t('sidebar.openPages')}
                 aria-label={t('sidebar.openPages')}
@@ -1328,13 +1477,14 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
       </div>
 
       {/* ─── Bottom Status Bar ─── */}
-      <div className="h-9 flex items-center justify-between bg-[hsl(var(--color-card))] dark:bg-[#2a2d35] border-t border-[hsl(var(--color-border))] dark:border-white/[0.06] px-3 shrink-0 text-[12px]">
+      <div className={`h-9 flex items-center justify-between border-t px-3 shrink-0 text-[12px] ${isWorkspaceDark ? 'bg-[#2a2d35] border-white/[0.06]' : 'bg-white border-[#E5E7EB]'}`}>
         {/* Left: Thumbnail toggle + page nav */}
         <div className="flex items-center gap-2">
           {!showThumbnails && (
             <WorkspacePagesSidebarToggle
               expanded={false}
               variant="compact"
+              theme={isWorkspaceDark ? 'dark' : 'light'}
               onClick={() => setShowThumbnails(true)}
               title={t('sidebar.showThumbnails')}
               aria-label={t('sidebar.showThumbnails')}
@@ -1395,14 +1545,22 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
           <div className="flex items-center gap-1.5">
             <button
               onClick={handleZoomOut}
-              className="p-1 rounded text-[hsl(var(--color-muted-foreground))] dark:text-white/40 hover:text-[hsl(var(--color-foreground))] dark:hover:text-white/80 transition-all"
+              className={`p-1 rounded transition-all ${
+                isWorkspaceDark
+                  ? 'text-white/55 hover:text-white/85'
+                  : 'text-[#4B5563] hover:text-[#111827] hover:bg-[#F3F4F6]'
+              }`}
             >
               <ZoomOut className="h-4 w-4" />
             </button>
-            <span className="w-10 text-center text-[hsl(var(--color-muted-foreground))] dark:text-white/50 tabular-nums text-[11px]">{zoom}%</span>
+            <span className={`w-10 text-center tabular-nums text-[11px] ${isWorkspaceDark ? 'text-white/65' : 'text-[#374151]'}`}>{zoom}%</span>
             <button
               onClick={handleZoomIn}
-              className="p-1 rounded text-[hsl(var(--color-muted-foreground))] dark:text-white/40 hover:text-[hsl(var(--color-foreground))] dark:hover:text-white/80 transition-all"
+              className={`p-1 rounded transition-all ${
+                isWorkspaceDark
+                  ? 'text-white/55 hover:text-white/85'
+                  : 'text-[#4B5563] hover:text-[#111827] hover:bg-[#F3F4F6]'
+              }`}
             >
               <ZoomIn className="h-4 w-4" />
             </button>

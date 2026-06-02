@@ -77,7 +77,9 @@ export function WorkspaceAiLanguageSelect({
           active ? 'bg-[hsl(var(--color-primary)/0.15)] text-red-100' : 'text-white/85 hover:bg-white/[0.06]'
         }`
       : `w-full flex items-center gap-2 px-2.5 py-2 text-sm transition-colors ${
-          active ? 'bg-[hsl(var(--color-primary)/0.1)]' : 'hover:bg-[hsl(var(--color-muted))]'
+          active
+            ? 'bg-[hsl(var(--color-primary)/0.1)] text-[hsl(var(--color-foreground))]'
+            : 'text-[hsl(var(--color-foreground))] hover:bg-[hsl(var(--color-muted))]'
         }`;
 
   return (

@@ -17,10 +17,12 @@ export function ThemeToggle() {
       document.documentElement.classList.add('dark');
       localStorage.setItem('theme', 'dark');
       setTheme('dark');
+      window.dispatchEvent(new CustomEvent('pdfcraft-theme-changed', { detail: { theme: 'dark' } }));
     } else {
       document.documentElement.classList.remove('dark');
       localStorage.setItem('theme', 'light');
       setTheme('light');
+      window.dispatchEvent(new CustomEvent('pdfcraft-theme-changed', { detail: { theme: 'light' } }));
     }
   };
 

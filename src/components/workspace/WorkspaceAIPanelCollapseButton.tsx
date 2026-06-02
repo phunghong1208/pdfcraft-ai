@@ -24,14 +24,15 @@ export function WorkspaceAIPanelCollapseButton({
       aria-label={ariaLabel}
       title={title}
       className={cn(
-        'shrink-0 rounded-md p-1.5 text-[hsl(var(--color-muted-foreground))] dark:text-white/40',
-        'hover:bg-[hsl(var(--color-muted)/0.65)] dark:hover:bg-white/[0.08] hover:text-[hsl(var(--color-foreground))] dark:hover:text-white/85',
+        'shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-full border',
+        'border-[#CBD5E1] bg-white text-[#1F2937] dark:border-[#334155] dark:bg-[#0F172A] dark:text-white/85',
+        'hover:bg-[#F3F4F6] hover:text-[#111827] dark:hover:bg-[#1E293B] dark:hover:text-white',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-primary)/0.4)]',
         'active:scale-95 transition-all',
         className,
       )}
     >
-      <X className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+      <X className="h-4.5 w-4.5" strokeWidth={2.5} aria-hidden />
     </button>
   );
 }

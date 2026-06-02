@@ -61,14 +61,14 @@ type ChatMessage = { role: 'user' | 'assistant'; text: string };
 /** Pill chọn mức — dùng chung Tóm tắt / Chat / Tốc độ đọc */
 const SEGMENT_PILL_BASE =
   'flex-1 rounded-lg py-1.5 text-[11px] font-medium transition-all disabled:opacity-40';
-const segmentPillClass = (selected: boolean) =>
+const segmentPillClass = (selected: boolean, isDarkTheme: boolean) =>
   selected
-    ? 'bg-[hsl(var(--color-primary)/0.16)] dark:bg-[rgba(239,68,68,0.18)] text-[hsl(var(--color-primary))] dark:text-white border border-[hsl(var(--color-primary)/0.4)] dark:border-[#EF4444]'
-    : 'bg-white dark:bg-[#0F141B] text-[hsl(var(--color-muted-foreground))] dark:text-[#CBD5E1] border border-[hsl(var(--color-border))] dark:border-[#2F3A4A] hover:bg-[hsl(var(--color-muted)/0.5)] dark:hover:bg-[#141C26] hover:text-[hsl(var(--color-foreground))] dark:hover:text-[#E2E8F0]';
-const SEGMENT_LABEL_CLASS = 'text-[10px] text-[hsl(var(--color-muted-foreground))] dark:text-[#8B949E] px-0.5';
-
-const PANEL_BORDER = 'border-[hsl(var(--color-border))] dark:border-[#263241]';
-const PANEL_SURFACE = 'bg-[hsl(var(--color-card))] dark:bg-[#111820]';
+    ? `border border-[hsl(var(--color-primary)/0.4)] bg-[hsl(var(--color-primary)/0.14)] ${
+        isDarkTheme ? 'text-white border-[#EF4444] bg-[rgba(239,68,68,0.18)]' : 'text-[hsl(var(--color-primary))]'
+      }`
+    : `border ${isDarkTheme ? 'border-[#2F3A4A] bg-[#0F141B] text-[#CBD5E1] hover:bg-[#141C26] hover:text-[#E2E8F0]' : 'border-[#DCE1E7] bg-white text-[hsl(var(--color-muted-foreground))] hover:bg-[#F2F4F7] hover:text-[hsl(var(--color-foreground))]'}`;
+const segmentLabelClass = (isDarkTheme: boolean) =>
+  `text-[10px] px-0.5 ${isDarkTheme ? 'text-[#8B949E]' : 'text-[hsl(var(--color-muted-foreground))]'}`;
 
 type PersistedWorkspaceAi = {
   documentId: number;
@@ -149,12 +149,14 @@ function TierRadioGroup({
   value,
   onChange,
   disabled,
+  isDarkTheme,
 }: {
   mode: 'summaryDetail' | 'chatContext';
   presets: readonly { id: WorkspacePresetTierId }[];
   value: WorkspacePresetTierId;
   onChange: (id: WorkspacePresetTierId) => void;
   disabled?: boolean;
+  isDarkTheme: boolean;
 }) {
   const t = useTranslations('workspace');
   const label =
@@ -162,7 +164,7 @@ function TierRadioGroup({
 
   return (
     <div className="shrink-0 min-w-0">
-      <p className={`${SEGMENT_LABEL_CLASS} mb-1.5 px-0.5`}>{label}</p>
+      <p className={`${segmentLabelClass(isDarkTheme)} mb-1.5 px-0.5`}>{label}</p>
       <div className="flex gap-1.5" role="radiogroup" aria-label={label}>
         {presets.map((preset) => {
           const selected = value === preset.id;
@@ -175,8 +177,8 @@ function TierRadioGroup({
               aria-pressed={selected}
               className={`flex-1 rounded-lg py-1.5 px-1.5 text-[10px] font-medium border transition-all disabled:opacity-40 ${
                 selected
-                  ? 'bg-[hsl(var(--color-primary)/0.2)] text-[hsl(var(--color-foreground))] dark:text-white border-[hsl(var(--color-primary)/0.35)]'
-                  : 'bg-white dark:bg-[#0F141B] text-[hsl(var(--color-muted-foreground))] dark:text-[#CBD5E1] border-[hsl(var(--color-border))] dark:border-[#2F3A4A] hover:text-[hsl(var(--color-foreground))] dark:hover:text-[#F8FAFC] hover:border-[hsl(var(--color-primary)/0.35)] dark:hover:border-[#EF4444]'
+                  ? `${isDarkTheme ? 'text-white border-[#EF4444] bg-[rgba(239,68,68,0.18)]' : 'text-[hsl(var(--color-foreground))] border-[hsl(var(--color-primary)/0.35)] bg-[hsl(var(--color-primary)/0.18)]'}`
+                  : `${isDarkTheme ? 'bg-[#0F141B] text-[#CBD5E1] border-[#2F3A4A] hover:text-[#F8FAFC] hover:border-[#EF4444]' : 'bg-white text-[hsl(var(--color-muted-foreground))] border-[#DCE1E7] hover:text-[hsl(var(--color-foreground))] hover:border-[hsl(var(--color-primary)/0.35)]'}`
               }`}
             >
               {tierTitle(t, mode, preset.id)}
@@ -209,8 +211,15 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
   const [copyDone, setCopyDone] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(() => {
-    if (typeof document === 'undefined') return true;
-    return document.documentElement.classList.contains('dark');
+    if (typeof document === 'undefined' || typeof window === 'undefined') return true;
+    try {
+      const savedTheme = window.localStorage.getItem('theme');
+      // Default to light unless user explicitly chose dark.
+      return savedTheme === 'dark';
+    } catch {
+      // ignore localStorage access errors
+    }
+    return false;
   });
   const voiceSegmentsRef = useRef<PdfSpeechSegment[]>([]);
   const pdfViewerIframeRefStable = pdfViewerIframeRef;
@@ -218,20 +227,24 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
   useEffect(() => {
     if (typeof document === 'undefined' || typeof window === 'undefined') return;
 
-    const root = document.documentElement;
-    const media = window.matchMedia('(prefers-color-scheme: dark)');
     const syncTheme = () => {
-      // App uses .dark class; fallback to system preference.
-      setIsDarkTheme(root.classList.contains('dark') || media.matches);
+      try {
+        const savedTheme = window.localStorage.getItem('theme');
+        // Default to light unless user explicitly chose dark.
+        setIsDarkTheme(savedTheme === 'dark');
+        return;
+      } catch {
+        // ignore localStorage access errors
+      }
+      setIsDarkTheme(false);
     };
 
     syncTheme();
-    const observer = new MutationObserver(syncTheme);
-    observer.observe(root, { attributes: true, attributeFilter: ['class'] });
-    media.addEventListener('change', syncTheme);
+    window.addEventListener('storage', syncTheme);
+    window.addEventListener('pdfcraft-theme-changed', syncTheme as EventListener);
     return () => {
-      observer.disconnect();
-      media.removeEventListener('change', syncTheme);
+      window.removeEventListener('storage', syncTheme);
+      window.removeEventListener('pdfcraft-theme-changed', syncTheme as EventListener);
     };
   }, []);
 
@@ -583,17 +596,38 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
   );
 
   const tabs: AiTab[] = ['summary', 'chat', 'translate', 'voice'];
+  const panelRootTone = isDarkTheme
+    ? 'bg-[#0B1118] border-[#263241] shadow-[-8px_0_32px_rgba(0,0,0,0.35)]'
+    : 'bg-[#F3F5F8] border-[#DDE3EA] shadow-[-4px_0_16px_rgba(15,23,42,0.06)]';
+  const panelHeaderTone = isDarkTheme
+    ? 'bg-[#0B1118] border-[#263241]'
+    : 'bg-[#F8FAFC] border-[#DDE3EA]';
+  const panelTextMain = isDarkTheme ? 'text-white/90' : 'text-[hsl(var(--color-foreground))]';
+  const panelTextMuted = isDarkTheme ? 'text-[#94A3B8]' : 'text-[#6B7280]';
+  const panelCardTone = isDarkTheme
+    ? 'border-[#263241] bg-[#111820]'
+    : 'border-[#E2E8F0] bg-[#F9FAFB]';
+  const panelSoftTone = isDarkTheme ? 'bg-[#111820] border-[#263241]' : 'bg-[#EEF2F6] border-[#E2E8F0]';
+  const inputTone = isDarkTheme
+    ? 'border-[#263241] bg-[#0F141B] text-[#F8FAFC] placeholder:text-[#94A3B8]'
+    : 'border-[#E5E7EB] bg-white text-[hsl(var(--color-foreground))] placeholder:text-[hsl(var(--color-muted-foreground))]';
+  const hintTone = isDarkTheme
+    ? 'border-amber-500/30 bg-amber-500/10 text-amber-100/90'
+    : 'border-[#F8D8A8] bg-[#FFF7ED] text-[#B45309]';
+  const errorTone = isDarkTheme
+    ? 'border-red-500/25 bg-red-500/10 text-red-200/90'
+    : 'border-[#FBCACA] bg-[#FFF1F2] text-[#B91C1C]';
 
   return (
     <aside
-      className="relative w-[min(100%,440px)] min-w-[380px] shrink-0 flex flex-col rounded-none overflow-hidden bg-[hsl(var(--color-background))] dark:bg-[#0B1118] border-l border-[hsl(var(--color-border))] dark:border-[#263241] shadow-[-4px_0_16px_rgba(0,0,0,0.06)] dark:shadow-[-8px_0_32px_rgba(0,0,0,0.35)]"
+      className={`relative w-[min(100%,440px)] min-w-[380px] shrink-0 flex flex-col rounded-none overflow-hidden border-l ${panelRootTone}`}
       aria-label={t('aiPanel.title')}
     >
-      <div className="px-4 pt-3 pb-2 bg-[hsl(var(--color-card))] dark:bg-[#0B1118] border-b border-[hsl(var(--color-border))] dark:border-[#263241] shrink-0 space-y-2.5">
+      <div className={`px-4 pt-3 pb-2 border-b shrink-0 space-y-2.5 ${panelHeaderTone}`}>
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <WorkspaceAIIcon size="sm" />
-            <span className="text-[12px] font-semibold text-[hsl(var(--color-foreground))] dark:text-white/90">{t('aiPanel.title')}</span>
+            <span className={`text-[12px] font-semibold ${panelTextMain}`}>{t('aiPanel.title')}</span>
             <span className="shrink-0 rounded-full bg-[hsl(var(--color-primary)/0.2)] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-red-300">
               AI
             </span>
@@ -602,23 +636,24 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
             onClick={onClose}
             aria-label={t('inlineTools.close')}
             title={t('inlineTools.close')}
+            className={isDarkTheme ? '' : 'text-[#374151] hover:text-[#111827] hover:bg-[#E5E7EB]'}
           />
         </div>
 
         {file ? (
-          <p className="flex items-center gap-1.5 text-[13px] font-medium text-[hsl(var(--color-foreground))] dark:text-white/90 truncate min-w-0">
+          <p className={`flex items-center gap-1.5 text-[13px] font-medium truncate min-w-0 ${panelTextMain}`}>
             <span className="shrink-0 opacity-80" aria-hidden>
               📄
             </span>
             <span className="truncate">{file.name}</span>
             {pageCount > 0 && (
-              <span className="shrink-0 text-[10px] font-normal text-[hsl(var(--color-muted-foreground))] dark:text-white/35">
+              <span className={`shrink-0 text-[10px] font-normal ${panelTextMuted}`}>
                 · {t('aiPanel.pageDocument', { count: pageCount })}
               </span>
             )}
           </p>
         ) : (
-          <p className="text-[12px] text-[hsl(var(--color-muted-foreground))] dark:text-white/40">{t('aiPanel.noFile')}</p>
+          <p className={`text-[12px] ${panelTextMuted}`}>{t('aiPanel.noFile')}</p>
         )}
 
         <div className="flex flex-wrap items-center gap-1 text-[11px] pb-0.5">
@@ -634,12 +669,12 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
               disabled={tab === 'translate'}
               className={`px-2.5 py-1 rounded-md font-medium transition-all ${
                 aiTab === tab
-                  ? 'text-[hsl(var(--color-foreground))] dark:text-white bg-[hsl(var(--color-primary)/0.2)] border border-[hsl(var(--color-primary)/0.3)]'
+                  ? `${isDarkTheme ? 'text-white bg-[rgba(239,68,68,0.18)] border-[#EF4444]' : 'text-[hsl(var(--color-foreground))] bg-[hsl(var(--color-primary)/0.16)] border-[hsl(var(--color-primary)/0.3)]'} border`
                   : tab === 'translate'
                     ? 'text-[#6b7280] cursor-not-allowed'
                     : tab === 'chat' && !chatReady
                       ? 'text-[#6b7280] hover:text-[#9CA3AF]'
-                      : 'text-[hsl(var(--color-muted-foreground))] dark:text-[#94A3B8] hover:text-[hsl(var(--color-foreground))] dark:hover:text-[#F8FAFC] hover:bg-[hsl(var(--color-muted)/0.5)] dark:hover:bg-[#111820]'
+                      : `${isDarkTheme ? 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#111820]' : 'text-[#6B7280] hover:text-[hsl(var(--color-foreground))] hover:bg-[#EEF2F6]'}`
               }`}
               aria-disabled={tab === 'chat' && !chatReady ? true : undefined}
               title={tab === 'chat' && !chatReady ? t('aiPanel.runSummaryForChat') : undefined}
@@ -651,12 +686,12 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
       </div>
 
       {aiHint && !aiError && (
-        <div className="mx-4 mb-2 rounded-lg border border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-3 py-2 text-[11px] text-amber-700 dark:text-amber-100/90 shrink-0">
+        <div className={`mx-4 mb-2 rounded-lg border px-3 py-2 text-[11px] shrink-0 ${hintTone}`}>
           {aiHint}
         </div>
       )}
       {aiError && (
-        <div className="mx-4 mb-2 rounded-lg border border-red-300 dark:border-red-500/25 bg-red-50 dark:bg-red-500/10 px-3 py-2 text-[11px] text-red-700 dark:text-red-200/90 shrink-0">
+        <div className={`mx-4 mb-2 rounded-lg border px-3 py-2 text-[11px] shrink-0 ${errorTone}`}>
           {aiError}
         </div>
       )}
@@ -664,7 +699,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
       <div className="flex-1 min-h-0 flex flex-col px-4 pt-3 pb-4">
         {aiTab === 'summary' && (
           <div className="flex-1 min-h-0 flex flex-col gap-2.5">
-            <div className="shrink-0 rounded-2xl border border-[hsl(var(--color-border))] dark:border-[#263241] bg-[hsl(var(--color-card))] dark:bg-[#111820] px-4 py-4 space-y-3">
+            <div className={`shrink-0 rounded-2xl border px-4 py-4 space-y-3 ${panelCardTone}`}>
               <WorkspaceAiLanguageSelect
                 compact
                 variant={isDarkTheme ? 'dark' : 'light'}
@@ -679,6 +714,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
                 value={summaryTierId}
                 onChange={setSummaryTierId}
                 disabled={isSummarizing}
+                isDarkTheme={isDarkTheme}
               />
               <Button
                 size="sm"
@@ -699,14 +735,14 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
 
             <div className="flex-1 min-h-0 flex flex-col gap-1.5">
               <AiSectionTitle>
-                <span className="text-[hsl(var(--color-primary))] dark:text-[#FF5A5F]">{t('aiPanel.summaryByAi')}</span>
+                <span className={isDarkTheme ? 'text-[#FF5A5F]' : 'text-[hsl(var(--color-primary))]'}>{t('aiPanel.summaryByAi')}</span>
               </AiSectionTitle>
 
               <div
                 className={`flex-1 min-h-0 flex flex-col rounded-xl border overflow-hidden ${
                   summaryText
-                    ? 'border-[hsl(var(--color-border))] dark:border-[#263241] bg-[hsl(var(--color-card))] dark:bg-[#111820]'
-                    : `${PANEL_BORDER} ${PANEL_SURFACE}`
+                    ? panelCardTone
+                    : panelSoftTone
                 }`}
               >
                 {isSummarizing ? (
@@ -716,11 +752,11 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
                     <div className="flex-1 overflow-auto p-3.5 scrollbar-thin">
                       <WorkspaceAiMarkdown content={summaryText} variant={isDarkTheme ? 'dark' : 'light'} />
                     </div>
-                    <div className="flex gap-2 border-t border-[hsl(var(--color-border))] dark:border-[#263241] p-2 shrink-0 bg-[hsl(var(--color-muted)/0.3)] dark:bg-[#111820]">
+                    <div className={`flex gap-2 border-t p-2 shrink-0 ${panelSoftTone}`}>
                       <button
                         type="button"
                         onClick={() => void handleCopySummary()}
-                        className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-[hsl(var(--color-border))] dark:border-[#263241] bg-[hsl(var(--color-card))] dark:bg-[#0F141B] py-2 text-[11px] font-medium text-[hsl(var(--color-foreground))] dark:text-[#F8FAFC] hover:border-[hsl(var(--color-primary)/0.35)] dark:hover:border-[#EF4444] hover:text-[hsl(var(--color-foreground))] dark:hover:text-white transition-all"
+                        className={`flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border py-2 text-[11px] font-medium hover:border-[hsl(var(--color-primary)/0.35)] transition-all ${inputTone}`}
                       >
                         {copyDone ? (
                           <Check className="h-3.5 w-3.5 text-emerald-400" />
@@ -733,7 +769,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
                         type="button"
                         onClick={() => void handleExportSummaryPdf()}
                         disabled={isExportingPdf}
-                        className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-[hsl(var(--color-border))] dark:border-[#263241] bg-[hsl(var(--color-card))] dark:bg-[#0F141B] py-2 text-[11px] font-medium text-[hsl(var(--color-foreground))] dark:text-[#F8FAFC] hover:border-[hsl(var(--color-primary)/0.35)] dark:hover:border-[#EF4444] hover:text-[hsl(var(--color-foreground))] dark:hover:text-white transition-all disabled:opacity-50"
+                        className={`flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border py-2 text-[11px] font-medium hover:border-[hsl(var(--color-primary)/0.35)] transition-all disabled:opacity-50 ${inputTone}`}
                       >
                         {isExportingPdf ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -747,7 +783,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
                 ) : (
                   <div className="flex-1 flex flex-col items-center justify-center p-6 min-h-[120px] text-center gap-2">
                     <Sparkles className={`h-8 w-8 ${AI_UI.iconMuted}`} aria-hidden />
-                    <p className="text-[11px] text-[hsl(var(--color-muted-foreground))] dark:text-[#8B949E] max-w-[240px] leading-relaxed">
+                    <p className={`text-[11px] max-w-[240px] leading-relaxed ${panelTextMuted}`}>
                       {t('aiPanel.summaryPlaceholder')}
                     </p>
                   </div>
@@ -762,7 +798,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
             className={`flex-1 min-h-0 flex flex-col gap-2 ${!chatReady ? 'opacity-95' : ''}`}
             aria-readonly={!chatReady}
           >
-            <div className="shrink-0 rounded-2xl border border-[hsl(var(--color-border))] dark:border-[#263241] bg-[hsl(var(--color-card))] dark:bg-[#111820] px-4 py-4 space-y-3">
+            <div className={`shrink-0 rounded-2xl border px-4 py-4 space-y-3 ${panelCardTone}`}>
               <WorkspaceAiLanguageSelect
                 compact
                 variant={isDarkTheme ? 'dark' : 'light'}
@@ -778,6 +814,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
                   value={chatTierId}
                   onChange={setChatTierId}
                   disabled={isAiThinking}
+                  isDarkTheme={isDarkTheme}
                 />
               )}
             </div>
@@ -786,8 +823,8 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
 
             <div className="flex-1 overflow-auto space-y-3 pr-1 min-h-0">
               {!chatReady && (
-                <div className={`rounded-xl border ${PANEL_BORDER} ${PANEL_SURFACE} p-3 space-y-2.5`}>
-                  <p className="text-[11px] leading-relaxed text-[hsl(var(--color-muted-foreground))] dark:text-[#9CA3AF]">{t('aiPanel.runSummaryForChat')}</p>
+                <div className={`rounded-xl border ${panelSoftTone} p-3 space-y-2.5`}>
+                  <p className={`text-[11px] leading-relaxed ${panelTextMuted}`}>{t('aiPanel.runSummaryForChat')}</p>
                   <Button
                     size="sm"
                     onClick={() => setAiTab('summary')}
@@ -803,8 +840,8 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
                   key={idx}
                   className={`rounded-xl px-3 py-2.5 ${
                     m.role === 'assistant'
-                      ? `border border-[hsl(var(--color-border))] dark:border-[hsl(var(--color-primary)/0.18)] bg-[hsl(var(--color-card))] dark:bg-gradient-to-br dark:from-[hsl(var(--color-primary)/0.1)] dark:to-[#161B22]`
-                      : 'bg-[hsl(var(--color-primary)/0.12)] border border-[hsl(var(--color-primary)/0.25)] text-[hsl(var(--color-foreground))] dark:text-[#F8FAFC] ml-3'
+                      ? `border ${isDarkTheme ? 'border-[hsl(var(--color-primary)/0.18)] bg-gradient-to-br from-[hsl(var(--color-primary)/0.1)] to-[#161B22]' : 'border-[#E5E7EB] bg-white'}`
+                      : `bg-[hsl(var(--color-primary)/0.12)] border border-[hsl(var(--color-primary)/0.25)] ${isDarkTheme ? 'text-[#F8FAFC]' : 'text-[hsl(var(--color-foreground))]'} ml-3`
                   }`}
                 >
                   {m.role === 'assistant' ? (
@@ -816,7 +853,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
               ))}
             </div>
             <div
-              className={`pt-3 border-t border-[hsl(var(--color-border))] dark:border-[#263241] flex items-end gap-2 shrink-0 ${!chatReady ? 'pointer-events-none opacity-60' : ''}`}
+              className={`pt-3 border-t flex items-end gap-2 shrink-0 ${isDarkTheme ? 'border-[#263241]' : 'border-[#E5E7EB]'} ${!chatReady ? 'pointer-events-none opacity-60' : ''}`}
             >
               <textarea
                 value={chatInput}
@@ -834,7 +871,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
                   chatReady ? t('aiPanel.placeholder') : t('aiPanel.chatReadonlyPlaceholder')
                 }
                 disabled={!file || isAiThinking}
-                className={`flex-1 min-w-0 resize-none rounded-lg border border-[hsl(var(--color-border))] dark:border-[#263241] bg-[hsl(var(--color-card))] dark:bg-[#0F141B] px-3 py-2 text-[12px] text-[hsl(var(--color-foreground))] dark:text-[#F8FAFC] placeholder:text-[hsl(var(--color-muted-foreground))] dark:placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 ${AI_UI.focusRing} disabled:opacity-50 read-only:cursor-not-allowed`}
+                className={`flex-1 min-w-0 resize-none rounded-lg border px-3 py-2 text-[12px] focus:outline-none focus:ring-2 ${AI_UI.focusRing} disabled:opacity-50 read-only:cursor-not-allowed ${inputTone}`}
               />
               <Button
                 size="sm"
@@ -854,7 +891,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
 
         {aiTab === 'voice' && (
           <div className="flex-1 min-h-0 flex flex-col gap-2.5">
-            <div className="shrink-0 rounded-2xl border border-[hsl(var(--color-border))] dark:border-[#263241] bg-[hsl(var(--color-card))] dark:bg-[#111820] px-4 py-4">
+            <div className={`shrink-0 rounded-2xl border px-4 py-4 ${panelCardTone}`}>
               <WorkspaceAiLanguageSelect
                 compact
                 variant={isDarkTheme ? 'dark' : 'light'}
@@ -866,7 +903,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
             </div>
             {!file ? (
               <div className="flex-1 flex items-center justify-center px-2">
-                <p className="text-[12px] text-[hsl(var(--color-muted-foreground))] dark:text-white/45">{t('aiPanel.noFile')}</p>
+                <p className={`text-[12px] ${panelTextMuted}`}>{t('aiPanel.noFile')}</p>
               </div>
             ) : isPreparingVoice ? (
               <AiCenteredSpinner className="flex-1 min-h-[200px]" size="h-9 w-9" />
@@ -878,8 +915,8 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
                   <Volume2 className={`h-9 w-9 ${AI_UI.playerIcon}`} />
                 </div>
                 <div className="space-y-1.5 max-w-[280px]">
-                  <p className="text-[13px] font-medium text-[hsl(var(--color-foreground))] dark:text-red-200/90">{t('aiVoicePage.prepareFailedTitle')}</p>
-                  <p className="text-[11px] text-[hsl(var(--color-muted-foreground))] dark:text-white/45 leading-relaxed">
+                  <p className={`text-[13px] font-medium ${panelTextMain}`}>{t('aiVoicePage.prepareFailedTitle')}</p>
+                  <p className={`text-[11px] leading-relaxed ${panelTextMuted}`}>
                     {aiError ?? t('aiVoicePage.noExtractableText')}
                   </p>
                 </div>
@@ -929,7 +966,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
                   <div className="text-center space-y-1 min-w-0 w-full">
                     <p className={`text-[12px] font-medium ${AI_UI.playerStatus}`}>{voiceStatusLabel}</p>
                     {file && speech.isActive && (
-                      <p className="text-[10px] text-[hsl(var(--color-muted-foreground))] dark:text-white/40 truncate px-2">
+                      <p className={`text-[10px] truncate px-2 ${panelTextMuted}`}>
                         {t('aiPanel.voice.nowReading', { name: file.name })}
                       </p>
                     )}
@@ -937,7 +974,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
                 </div>
 
                 <div className="space-y-1.5">
-                  <p className={SEGMENT_LABEL_CLASS}>{t('aiPanel.voice.speed')}</p>
+                  <p className={segmentLabelClass(isDarkTheme)}>{t('aiPanel.voice.speed')}</p>
                   <div className="flex gap-1.5" role="radiogroup" aria-label={t('aiPanel.voice.speed')}>
                     {([0.85, 1, 1.15, 1.3] as const).map((rate) => (
                       <button
@@ -945,7 +982,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
                         type="button"
                         onClick={() => handleVoiceSpeedChange(rate)}
                         aria-pressed={voiceRate === rate}
-                        className={`${SEGMENT_PILL_BASE} ${segmentPillClass(voiceRate === rate)}`}
+                        className={`${SEGMENT_PILL_BASE} ${segmentPillClass(voiceRate === rate, isDarkTheme)}`}
                       >
                         {rate}×
                       </button>
@@ -969,7 +1006,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
         )}
 
         {aiTab === 'translate' && (
-          <p className="text-[12px] text-[hsl(var(--color-muted-foreground))] dark:text-white/40 text-center py-8">{t('aiPanel.translateComingSoon')}</p>
+          <p className={`text-[12px] text-center py-8 ${panelTextMuted}`}>{t('aiPanel.translateComingSoon')}</p>
         )}
       </div>
     </aside>

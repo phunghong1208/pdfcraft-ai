@@ -12,6 +12,7 @@ import { injectPdfViewerChrome, attachKonvaSeamGuard } from '@/lib/pdf-viewer-ch
 export interface EditPDFToolProps {
   className?: string;
   immersive?: boolean;
+  theme?: 'light' | 'dark';
   onIframeRef?: (iframe: HTMLIFrameElement | null) => void;
   /** Khi dùng trong workspace — tránh load lại / màn đen do peek session chậm */
   sourceFile?: File | null;
@@ -29,6 +30,7 @@ export interface EditPDFToolProps {
 export function EditPDFTool({
   className = '',
   immersive = false,
+  theme = 'dark',
   onIframeRef,
   sourceFile = null,
   sourcePdfUrl = null,
@@ -121,7 +123,7 @@ export function EditPDFTool({
       if (!doc) return;
 
       if (immersive) {
-        injectPdfViewerChrome(doc);
+        injectPdfViewerChrome(doc, 'pdfcraft-viewer-chrome', theme);
         attachKonvaSeamGuard(doc);
       }
 
@@ -274,7 +276,7 @@ export function EditPDFTool({
     } catch (e) {
       console.warn('Could not access iframe content', e);
     }
-  }, [activeUrl, immersive, onIframeRef]);
+  }, [activeUrl, immersive, onIframeRef, theme]);
 
   const handleClear = useCallback(() => {
     if (pdfUrl) URL.revokeObjectURL(pdfUrl);
@@ -330,7 +332,7 @@ export function EditPDFTool({
           )}
 
           {/* PDF Viewer iframe */}
-          <div className={`relative overflow-hidden ${immersive ? 'h-full bg-[#16181d]' : 'border border-[hsl(var(--color-border))] rounded-[var(--radius-md)] bg-gray-100'}`}>
+          <div className={`relative overflow-hidden ${immersive ? `h-full ${theme === 'dark' ? 'bg-[#16181d]' : 'bg-[#f8fafc]'}` : 'border border-[hsl(var(--color-border))] rounded-[var(--radius-md)] bg-gray-100'}`}>
             <iframe
               ref={iframeRef}
               src={`/pdfjs-annotation-viewer/web/viewer.html?file=${encodeURIComponent(activeUrl)}&embedded=1#pagemode=none&zoom=page-width`}
@@ -340,17 +342,17 @@ export function EditPDFTool({
             />
             {!viewerReady && (
             <div
-              className="absolute inset-0 z-10 flex items-center justify-center bg-[#16181d] pointer-events-none"
+              className={`absolute inset-0 z-10 flex items-center justify-center pointer-events-none ${theme === 'dark' ? 'bg-[#16181d]' : 'bg-[#f8fafc]'}`}
             >
               <div className="text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-3" />
-                <p className="text-sm text-white/50">Loading document...</p>
+                <p className={`text-sm ${theme === 'dark' ? 'text-white/50' : 'text-slate-500'}`}>Loading document...</p>
               </div>
             </div>
             )}
             {viewerReady && (
             <div
-              className="absolute inset-0 z-10 flex items-center justify-center bg-[#16181d] pointer-events-none"
+              className={`absolute inset-0 z-10 flex items-center justify-center pointer-events-none ${theme === 'dark' ? 'bg-[#16181d]' : 'bg-[#f8fafc]'}`}
               style={{ animation: 'pdfcraft-overlay-fade 1.2s ease-in forwards' }}
             >
               <style>{`@keyframes pdfcraft-overlay-fade { 0%,40% { opacity:1 } 100% { opacity:0 } }`}</style>
