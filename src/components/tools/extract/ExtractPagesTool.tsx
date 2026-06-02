@@ -14,6 +14,12 @@ import type { ProcessOutput } from '@/types/pdf';
 export interface ExtractPagesToolProps {
   /** Custom class name */
   className?: string;
+  /** Pre-load a file when opened from workspace ribbon */
+  initialFile?: File | null;
+  /** Lock tool to initialFile when used inside workspace */
+  lockToInitialFile?: boolean;
+  /** Update current workspace file after successful extraction */
+  onFileUpdated?: (file: File) => void;
 }
 
 interface PagePreview {
@@ -27,7 +33,12 @@ interface PagePreview {
  * 
  * Provides the UI for extracting specific pages from a PDF.
  */
-export function ExtractPagesTool({ className = '' }: ExtractPagesToolProps) {
+export function ExtractPagesTool({
+  className = '',
+  initialFile = null,
+  lockToInitialFile = false,
+  onFileUpdated,
+}: ExtractPagesToolProps) {
   const t = useTranslations('common');
   const tTools = useTranslations('tools');
   
@@ -48,6 +59,7 @@ export function ExtractPagesTool({ className = '' }: ExtractPagesToolProps) {
   
   // Ref for cancellation
   const cancelledRef = useRef(false);
+  const initialFileSeededRef = useRef(false);
 
   /**
    * Load PDF and generate page previews
@@ -120,6 +132,12 @@ export function ExtractPagesTool({ className = '' }: ExtractPagesToolProps) {
       loadPdfPreviews(selectedFile);
     }
   }, [loadPdfPreviews]);
+
+  React.useEffect(() => {
+    if (!initialFile || initialFileSeededRef.current) return;
+    initialFileSeededRef.current = true;
+    handleFilesSelected([initialFile]);
+  }, [initialFile, handleFilesSelected]);
 
   /**
    * Handle file upload error
@@ -226,8 +244,16 @@ export function ExtractPagesTool({ className = '' }: ExtractPagesToolProps) {
       }
 
       if (output.success && output.result) {
-        setResult(output.result as Blob);
+        const resultBlob = output.result as Blob;
+        setResult(resultBlob);
         setStatus('complete');
+        if (lockToInitialFile && onFileUpdated && file) {
+          const updatedFile = new File([resultBlob], file.name, {
+            type: 'application/pdf',
+            lastModified: Date.now(),
+          });
+          onFileUpdated(updatedFile);
+        }
       } else {
         setError(output.error?.message || 'Failed to extract pages.');
         setStatus('error');
@@ -264,7 +290,7 @@ export function ExtractPagesTool({ className = '' }: ExtractPagesToolProps) {
   return (
     <div className={`space-y-6 ${className}`.trim()}>
       {/* File Upload Area */}
-      {!file && (
+      {!file && !lockToInitialFile && (
         <FileUploader
           accept={['application/pdf', '.pdf']}
           multiple={false}
@@ -304,14 +330,16 @@ export function ExtractPagesTool({ className = '' }: ExtractPagesToolProps) {
                 </p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClearFile}
-              disabled={isProcessing}
-            >
-              {t('buttons.remove') || 'Remove'}
-            </Button>
+            {!lockToInitialFile ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearFile}
+                disabled={isProcessing}
+              >
+                {t('buttons.remove') || 'Remove'}
+              </Button>
+            ) : null}
           </div>
         </Card>
       )}

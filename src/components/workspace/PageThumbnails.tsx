@@ -76,9 +76,9 @@ export function PageThumbnails({ pdfUrl, currentPage, onPageSelect, onPageCountC
     <div ref={containerRef} className="space-y-2">
       {loading && thumbnails.length === 0 && (
         Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="w-full rounded-md border border-white/[0.06] bg-white/[0.02] p-1.5 text-center">
-            <div className="h-[140px] rounded bg-white/[0.06] animate-pulse" />
-            <div className="mt-2 h-3 w-5 mx-auto rounded bg-white/[0.06] animate-pulse" />
+          <div key={i} className="w-full rounded-md border border-[hsl(var(--color-border))] dark:border-[#2b2f38] bg-[hsl(var(--color-card))] dark:bg-[#222833] p-1.5 text-center">
+            <div className="h-[140px] rounded bg-[hsl(var(--color-muted)/0.6)] dark:bg-[#2a3140] animate-pulse" />
+            <div className="mt-2 h-3 w-5 mx-auto rounded bg-[hsl(var(--color-muted)/0.6)] dark:bg-[#2a3140] animate-pulse" />
           </div>
         ))
       )}
@@ -95,7 +95,7 @@ export function PageThumbnails({ pdfUrl, currentPage, onPageSelect, onPageCountC
             className={`group w-full rounded-md border p-1.5 text-center transition-all duration-150 ${
               active
                 ? 'border-[hsl(var(--color-primary)/0.5)] bg-[hsl(var(--color-primary)/0.1)] ring-1 ring-[hsl(var(--color-primary)/0.22)]'
-                : 'border-white/[0.06] bg-white/[0.02] hover:border-white/15 hover:bg-white/[0.05]'
+                : 'border-[hsl(var(--color-border))] dark:border-[#2b2f38] bg-[hsl(var(--color-card))] dark:bg-[#222833] hover:border-[hsl(var(--color-primary)/0.35)] dark:hover:border-[#3a4150] hover:bg-[hsl(var(--color-muted)/0.55)] dark:hover:bg-[#2a3140]'
             }`}
           >
             <img
@@ -104,7 +104,7 @@ export function PageThumbnails({ pdfUrl, currentPage, onPageSelect, onPageCountC
               className="w-full rounded"
               draggable={false}
             />
-            <div className={`mt-2 text-[11px] tabular-nums ${active ? 'text-red-300 font-medium' : 'text-white/40 group-hover:text-white/70'}`}>
+            <div className={`mt-2 text-[11px] tabular-nums ${active ? 'text-red-300 font-medium' : 'text-[hsl(var(--color-muted-foreground))] dark:text-[#9ca3af] group-hover:text-[hsl(var(--color-foreground))] dark:group-hover:text-white/80'}`}>
               {page}
             </div>
           </button>

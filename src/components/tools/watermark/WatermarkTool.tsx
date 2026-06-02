@@ -14,6 +14,9 @@ import type { ProcessOutput } from '@/types/pdf';
 
 export interface WatermarkToolProps {
   className?: string;
+  initialFile?: File | null;
+  lockToInitialFile?: boolean;
+  onFileUpdated?: (file: File) => void;
 }
 
 /**
@@ -65,7 +68,12 @@ async function convertImageToPng(file: File): Promise<ArrayBuffer> {
 
 type WatermarkType = 'text' | 'image';
 
-export function WatermarkTool({ className = '' }: WatermarkToolProps) {
+export function WatermarkTool({
+  className = '',
+  initialFile = null,
+  lockToInitialFile = false,
+  onFileUpdated,
+}: WatermarkToolProps) {
   const t = useTranslations('common');
   const tTools = useTranslations('tools.watermark');
 
@@ -124,6 +132,11 @@ export function WatermarkTool({ className = '' }: WatermarkToolProps) {
       }
     }
   }, []);
+
+  React.useEffect(() => {
+    if (!initialFile) return;
+    void handleFilesSelected([initialFile]);
+  }, [initialFile, handleFilesSelected]);
 
   const handleImageSelected = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -232,8 +245,13 @@ export function WatermarkTool({ className = '' }: WatermarkToolProps) {
       }
 
       if (output.success && output.result) {
-        setResult(output.result as Blob);
+        const resultBlob = output.result as Blob;
+        setResult(resultBlob);
         setStatus('complete');
+        if (lockToInitialFile && onFileUpdated && file) {
+          const updatedFile = new File([resultBlob], file.name, { type: 'application/pdf' });
+          onFileUpdated(updatedFile);
+        }
       } else {
         setError(output.error?.message || tTools('failed'));
         setStatus('error');
@@ -347,7 +365,7 @@ export function WatermarkTool({ className = '' }: WatermarkToolProps) {
 
   return (
     <div className={`space-y-6 ${className}`.trim()}>
-      {!file && (
+      {!file && !lockToInitialFile && (
         <FileUploader
           accept={['application/pdf', '.pdf']}
           multiple={false}
@@ -380,9 +398,11 @@ export function WatermarkTool({ className = '' }: WatermarkToolProps) {
                     <p className="text-sm text-gray-500 dark:text-gray-400">{formatSize(file.size)}</p>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={handleClearFile} disabled={isProcessing}>
-                  {t('buttons.remove')}
-                </Button>
+                {!lockToInitialFile ? (
+                  <Button variant="ghost" size="sm" onClick={handleClearFile} disabled={isProcessing}>
+                    {t('buttons.remove')}
+                  </Button>
+                ) : null}
               </div>
             </Card>
 

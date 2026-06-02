@@ -18,6 +18,8 @@ export interface CompressPDFToolProps {
   initialFile?: File | null;
   /** Lock tool to initialFile when used inside workspace */
   lockToInitialFile?: boolean;
+  /** Update current workspace file after successful processing */
+  onFileUpdated?: (file: File) => void;
 }
 
 /**
@@ -31,6 +33,7 @@ export function CompressPDFTool({
   className = '',
   initialFile = null,
   lockToInitialFile = false,
+  onFileUpdated,
 }: CompressPDFToolProps) {
   const t = useTranslations('common');
   const tTools = useTranslations('tools');
@@ -71,12 +74,25 @@ export function CompressPDFTool({
   }, [addFiles]);
 
   const initialFileSeededRef = useRef(false);
+  const inlineAppliedRef = useRef(false);
   useEffect(() => {
     if (!initialFile || initialFileSeededRef.current) return;
     initialFileSeededRef.current = true;
     addFiles([initialFile]);
     setError(null);
   }, [initialFile, addFiles]);
+
+  useEffect(() => {
+    if (!lockToInitialFile || !onFileUpdated || inlineAppliedRef.current) return;
+    const completedFile = files.find((batchFile) => batchFile.status === 'completed' && batchFile.result);
+    if (!completedFile?.result) return;
+    inlineAppliedRef.current = true;
+    const updatedFile = new File([completedFile.result], completedFile.file.name, {
+      type: 'application/pdf',
+      lastModified: Date.now(),
+    });
+    onFileUpdated(updatedFile);
+  }, [files, lockToInitialFile, onFileUpdated]);
 
   /**
    * Handle file upload error

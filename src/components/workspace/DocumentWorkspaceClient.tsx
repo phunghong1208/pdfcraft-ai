@@ -24,6 +24,10 @@ import { CompressPDFTool } from '@/components/tools/compress/CompressPDFTool';
 import { OCRPDFTool } from '@/components/tools/ocr/OCRPDFTool';
 import { MergePDFTool } from '@/components/tools/merge/MergePDFTool';
 import { SplitPDFTool } from '@/components/tools/split/SplitPDFTool';
+import { ExtractPagesTool } from '@/components/tools/extract/ExtractPagesTool';
+import { WatermarkTool } from '@/components/tools/watermark/WatermarkTool';
+import { HeaderFooterTool } from '@/components/tools/header-footer/HeaderFooterTool';
+import { PageNumbersTool } from '@/components/tools/page-numbers/PageNumbersTool';
 import { PDFToDocxTool } from '@/components/tools/pdf-to-docx';
 import { PDFToExcelTool } from '@/components/tools/pdf-to-excel';
 import { PDFToPptxTool } from '@/components/tools/pdf-to-pptx';
@@ -35,6 +39,7 @@ import { WorkspaceAIIcon } from '@/components/workspace/WorkspaceAIIcon';
 import { WorkspacePagesSidebarToggle } from '@/components/workspace/WorkspacePagesSidebarToggle';
 import { type Locale } from '@/lib/i18n/config';
 import { peekUploadedPdf, setUploadedPdf } from '@/lib/document-session';
+import { addBlankPages, deletePages } from '@/lib/pdf/processors';
 import {
   coverPageCanvasSeams,
   injectPdfViewerChrome,
@@ -56,6 +61,10 @@ type WorkspaceInlineTool =
   | 'ocr'
   | 'merge'
   | 'split'
+  | 'extract-pages'
+  | 'watermark'
+  | 'header-footer'
+  | 'page-numbers'
   | 'pdf-to-docx'
   | 'pdf-to-excel'
   | 'pdf-to-pptx'
@@ -82,6 +91,14 @@ function workspaceInlineToolTitleKey(tool: WorkspaceInlineTool): string {
       return 'tools.pdfToImage';
     case 'pdf-to-markdown':
       return 'tools.pdfToTxt';
+    case 'watermark':
+      return 'tools.watermark';
+    case 'header-footer':
+      return 'tools.headerFooter';
+    case 'page-numbers':
+      return 'tools.pageNumbers';
+    case 'extract-pages':
+      return 'tools.extract';
     default:
       return `inlineTools.${tool}`;
   }
@@ -138,7 +155,7 @@ function getRibbonGroups(
         {
           label: tr('groups.process'),
           tools: [
-            { icon: Minimize2, label: tr('tools.compress'), href: t('compress') },
+            { icon: Minimize2, label: tr('tools.compress'), action: 'openInlineCompress' },
             { icon: ScanText, label: tr('tools.ocr'), href: t('ocr') },
           ],
         },
@@ -153,8 +170,6 @@ function getRibbonGroups(
           label: tr('groups.output'),
           tools: [
             { icon: Printer, label: tr('tools.print'), action: 'print' },
-            { icon: Save, label: tr('tools.save'), action: 'save' },
-            { icon: FileDown, label: tr('tools.export'), action: 'export' },
           ],
         },
       ];
@@ -184,13 +199,6 @@ function getRibbonGroups(
             { icon: Type, label: tr('tools.headerFooter'), href: t('header-footer') },
             { icon: FileType, label: tr('tools.pageNumbers'), href: t('page-numbers') },
             { icon: Image, label: tr('tools.background'), href: t('background-color') },
-          ],
-        },
-        {
-          label: tr('groups.save'),
-          tools: [
-            { icon: Save, label: tr('tools.save'), action: 'save' },
-            { icon: FileDown, label: tr('tools.export'), action: 'export' },
           ],
         },
       ];
@@ -261,8 +269,6 @@ function getRibbonGroups(
           label: tr('groups.manage'),
           tools: [
             { icon: Trash2, label: tr('tools.removeAll'), href: t('remove-annotations') },
-            { icon: Save, label: tr('tools.save'), action: 'save' },
-            { icon: FileDown, label: tr('tools.export'), action: 'export' },
           ],
         },
       ];
@@ -303,7 +309,7 @@ function getRibbonGroups(
           label: tr('groups.process'),
           tools: [
             { icon: ScanText, label: tr('tools.ocr'), href: t('ocr') },
-            { icon: Minimize2, label: tr('tools.compress'), href: t('compress') },
+            { icon: Minimize2, label: tr('tools.compress'), action: 'openInlineCompress' },
             { icon: Wrench, label: tr('tools.repair'), href: t('repair') },
           ],
         },
@@ -525,6 +531,12 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
   const [showThumbnails, setShowThumbnails] = useState(true);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const [workspaceTool, setWorkspaceTool] = useState<WorkspaceInlineTool | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
+  const fileHandleRef = useRef<{
+    name: string;
+    createWritable: () => Promise<{ write: (data: Blob) => Promise<void>; close: () => Promise<void> }>;
+    getFile?: () => Promise<File>;
+  } | null>(null);
 
   const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : ''), [file]);
 
@@ -548,17 +560,100 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     const initialFile = peekUploadedPdf();
     if (initialFile) {
       setFile(initialFile);
+      setIsDirty(false);
       setIsBootstrapping(false);
       return;
     }
     router.replace(`/${locale}`);
   }, [locale, router]);
 
-  function handleFileChange(nextFile: File | null) {
+  const confirmDiscardUnsavedChanges = useCallback(() => {
+    if (!isDirty) return true;
+    return window.confirm('Bạn có thay đổi chưa lưu. Bạn có muốn bỏ thay đổi và tiếp tục không?');
+  }, [isDirty]);
+
+  function handleFileChange(nextFile: File | null, options?: { markDirty?: boolean }) {
     setFile(nextFile);
+    setIsDirty(Boolean(options?.markDirty));
+    if (!nextFile || fileHandleRef.current?.name !== nextFile.name) {
+      fileHandleRef.current = null;
+    }
     if (!nextFile) return;
     setUploadedPdf(nextFile);
   }
+
+  const resolveWritableHandle = useCallback(async (currentFileName: string) => {
+    if (fileHandleRef.current) return fileHandleRef.current;
+    const browserWindow = window as Window & {
+      showSaveFilePicker?: (options?: {
+        suggestedName?: string;
+        types?: Array<{ description?: string; accept: Record<string, string[]> }>;
+      }) => Promise<{
+        name: string;
+        createWritable: () => Promise<{ write: (data: Blob) => Promise<void>; close: () => Promise<void> }>;
+        getFile?: () => Promise<File>;
+      }>;
+      showOpenFilePicker?: (options?: {
+        multiple?: boolean;
+        types?: Array<{ description?: string; accept: Record<string, string[]> }>;
+      }) => Promise<Array<{
+        name: string;
+        createWritable: () => Promise<{ write: (data: Blob) => Promise<void>; close: () => Promise<void> }>;
+        getFile?: () => Promise<File>;
+      }>>;
+    };
+
+    if (browserWindow.showSaveFilePicker) {
+      const handle = await browserWindow.showSaveFilePicker({
+        suggestedName: currentFileName,
+        types: [
+          {
+            description: 'PDF files',
+            accept: { 'application/pdf': ['.pdf'] },
+          },
+        ],
+      });
+      fileHandleRef.current = handle;
+      return handle;
+    }
+
+    if (browserWindow.showOpenFilePicker) {
+      const handles = await browserWindow.showOpenFilePicker({
+        multiple: false,
+        types: [
+          {
+            description: 'PDF files',
+            accept: { 'application/pdf': ['.pdf'] },
+          },
+        ],
+      });
+      const handle = handles[0];
+      if (!handle) return null;
+      fileHandleRef.current = handle;
+      return handle;
+    }
+
+    return null;
+  }, []);
+
+  const navigateWithUnsavedCheck = useCallback((href: string) => {
+    if (!confirmDiscardUnsavedChanges()) return;
+    router.push(href);
+  }, [confirmDiscardUnsavedChanges, router]);
+
+  const handleFilePicked = useCallback((nextFile: File | null) => {
+    if (!nextFile) return;
+    if (!confirmDiscardUnsavedChanges()) return;
+    handleFileChange(nextFile, { markDirty: false });
+  }, [confirmDiscardUnsavedChanges]);
+
+  const handleInlineToolFileUpdated = useCallback(
+    (nextFile: File) => {
+      handleFileChange(nextFile, { markDirty: true });
+      setWorkspaceTool(null);
+    },
+    [],
+  );
 
   const applyPdfZoom = useCallback((direction: 'in' | 'out' | 'fit') => {
     const pdfViewer = getPdfApp(editorIframeRef.current)?.PDFViewerApplication?.pdfViewer;
@@ -635,10 +730,23 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
       if (e.data?.type === 'pdfcraft-page-change' && typeof e.data.page === 'number') {
         setCurrentPage(e.data.page);
       }
+      if (e.data?.type === 'pdfcraft-dirty-change') {
+        setIsDirty(true);
+      }
     }
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
   }, []);
+
+  useEffect(() => {
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!isDirty) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [isDirty]);
 
   const sendAnnotationToolToViewer = useCallback((tool: string) => {
     const win = editorIframeRef.current?.contentWindow as (Window & { pdfcraftSetAnnotationTool?: (t: string) => void }) | null;
@@ -696,16 +804,44 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
         } catch { /* noop */ }
         break;
       case 'save':
-        try {
-          const app = iframeWin()?.PDFViewerApplication as PdfViewerApp | undefined;
-          if (app?.save) {
-            void app.save();
-          } else if (app?.downloadOrSave) {
-            app.downloadOrSave();
-          } else {
-            app?.download?.();
+        if (!file) break;
+        void (async () => {
+          try {
+            const win = iframeWin() as (Window & { pdfcraftExportEditedPdf?: () => Promise<Uint8Array | ArrayBuffer | null> }) | null;
+            const bytes = await win?.pdfcraftExportEditedPdf?.();
+            if (!bytes) {
+              window.alert('Chưa hỗ trợ Lưu trực tiếp ở chế độ này.');
+              return;
+            }
+            const arrayBuffer = bytes instanceof ArrayBuffer
+              ? bytes
+              : bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+            const safeBuffer = arrayBuffer instanceof SharedArrayBuffer ? new Uint8Array(arrayBuffer).slice().buffer : arrayBuffer;
+            const blob = new Blob([safeBuffer], { type: 'application/pdf' });
+            const nextFile = new File([blob], file.name, {
+              type: 'application/pdf',
+              lastModified: Date.now(),
+            });
+            try {
+              const handle = await resolveWritableHandle(file.name);
+              if (!handle) {
+                window.alert('Trình duyệt hiện tại không hỗ trợ lưu đè trực tiếp. Vui lòng dùng Chrome/Edge mới nhất.');
+                return;
+              }
+              const writable = await handle.createWritable();
+              await writable.write(blob);
+              await writable.close();
+            } catch (diskErr) {
+              if ((diskErr as { name?: string })?.name !== 'AbortError') {
+                window.alert('Không thể ghi file ra ổ đĩa. Vui lòng kiểm tra quyền truy cập file.');
+              }
+              return;
+            }
+            handleFileChange(nextFile, { markDirty: false });
+          } catch {
+            window.alert('Không thể lưu trực tiếp. Vui lòng thử lại.');
           }
-        } catch { /* noop */ }
+        })();
         break;
       case 'export':
         try {
@@ -716,6 +852,80 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
             app.downloadOrSave();
           }
         } catch { /* noop */ }
+        break;
+      case 'addPageInline':
+        if (!file) break;
+        void (async () => {
+          const inlineWin = iframeWin() as { pdfcraftInvokeToolbarAction?: (action: string) => boolean } | null;
+          const invokedInline = inlineWin?.pdfcraftInvokeToolbarAction?.('addPage') ?? false;
+          if (invokedInline) {
+            const app = (iframeWin()?.PDFViewerApplication as { pagesCount?: number; pdfViewer?: { pagesCount?: number; currentPageNumber?: number } } | undefined);
+            const nextPageCount = app?.pdfViewer?.pagesCount ?? app?.pagesCount;
+            if (typeof nextPageCount === 'number' && nextPageCount > 0) {
+              setPageCount(nextPageCount);
+              setCurrentPage(app?.pdfViewer?.currentPageNumber ?? nextPageCount);
+            }
+            setShowThumbnails(true);
+            setIsDirty(true);
+            return;
+          }
+          try {
+            const position = Math.max(0, pageCount);
+            const output = await addBlankPages(file, position, 1);
+            if (!output.success || !output.result) {
+              throw new Error(output.error?.message || 'Không thể thêm trang.');
+            }
+            const blob = output.result as Blob;
+            const nextFile = new File([blob], file.name, {
+              type: 'application/pdf',
+              lastModified: Date.now(),
+            });
+            handleFileChange(nextFile, { markDirty: true });
+            setCurrentPage(position + 1);
+            setShowThumbnails(true);
+          } catch (err) {
+            window.alert(err instanceof Error ? err.message : 'Không thể thêm trang.');
+          }
+        })();
+        break;
+      case 'deletePageInline':
+        if (!file) break;
+        if (pageCount <= 1) {
+          window.alert('PDF cần giữ lại ít nhất 1 trang.');
+          break;
+        }
+        void (async () => {
+          const inlineWin = iframeWin() as { pdfcraftInvokeToolbarAction?: (action: string) => boolean } | null;
+          const invokedInline = inlineWin?.pdfcraftInvokeToolbarAction?.('deletePage') ?? false;
+          if (invokedInline) {
+            const app = (iframeWin()?.PDFViewerApplication as { pagesCount?: number; pdfViewer?: { pagesCount?: number; currentPageNumber?: number } } | undefined);
+            const nextPageCount = app?.pdfViewer?.pagesCount ?? app?.pagesCount;
+            if (typeof nextPageCount === 'number' && nextPageCount > 0) {
+              setPageCount(nextPageCount);
+              setCurrentPage(Math.max(1, app?.pdfViewer?.currentPageNumber ?? currentPage - 1));
+            }
+            setShowThumbnails(true);
+            setIsDirty(true);
+            return;
+          }
+          const pageToDelete = Math.min(Math.max(currentPage, 1), pageCount);
+          try {
+            const output = await deletePages(file, [pageToDelete]);
+            if (!output.success || !output.result) {
+              throw new Error(output.error?.message || 'Không thể xóa trang.');
+            }
+            const blob = output.result as Blob;
+            const nextFile = new File([blob], file.name, {
+              type: 'application/pdf',
+              lastModified: Date.now(),
+            });
+            handleFileChange(nextFile, { markDirty: true });
+            setCurrentPage(Math.max(1, pageToDelete - 1));
+            setShowThumbnails(true);
+          } catch (err) {
+            window.alert(err instanceof Error ? err.message : 'Không thể xóa trang.');
+          }
+        })();
         break;
       case 'switchToEdit':
         if (file) setUploadedPdf(file);
@@ -761,10 +971,26 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
         sendAnnotationToolToViewer('signature');
         setActiveTab('comment');
         break;
+      case 'openInlineCompress':
+        if (file) {
+          setWorkspaceTool('compress');
+        } else {
+          window.alert('Vui lòng mở PDF trước khi nén.');
+        }
+        break;
       default:
         break;
     }
-  }, [handleZoomIn, handleZoomOut, applyPdfZoom, file, sendAnnotationToolToViewer]);
+  }, [
+    handleZoomIn,
+    handleZoomOut,
+    applyPdfZoom,
+    file,
+    resolveWritableHandle,
+    pageCount,
+    currentPage,
+    sendAnnotationToolToViewer,
+  ]);
 
   const handleToolClick = useCallback((tool: RibbonToolDef) => {
     if (tool.href) {
@@ -785,7 +1011,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
           return;
         }
 
-        if (slug === 'compress-pdf') {
+        if (slug === 'compress-pdf' || slug === 'compress') {
           setWorkspaceTool('compress');
           return;
         }
@@ -805,18 +1031,48 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
           return;
         }
 
+        if (slug === 'extract-pages') {
+          setWorkspaceTool('extract-pages');
+          return;
+        }
+
+        if (slug === 'add-watermark') {
+          setWorkspaceTool('watermark');
+          return;
+        }
+
+        if (slug === 'header-footer') {
+          setWorkspaceTool('header-footer');
+          return;
+        }
+
+        if (slug === 'page-numbers') {
+          setWorkspaceTool('page-numbers');
+          return;
+        }
+
+        if (slug === 'add-blank-page') {
+          handleRibbonAction('addPageInline');
+          return;
+        }
+
+        if (slug === 'delete-pages') {
+          handleRibbonAction('deletePageInline');
+          return;
+        }
+
         if (WORKSPACE_PDF_EXPORT_SLUGS.has(slug)) {
           setWorkspaceTool(slug as WorkspaceInlineTool);
           return;
         }
 
         if (['image-to-pdf', 'word-to-pdf', 'excel-to-pdf'].includes(slug)) {
-          router.push(tool.href);
+          navigateWithUnsavedCheck(tool.href);
           return;
         }
 
-        // For page-level tools, keep user in workspace and open left page panel.
-        if ([
+        // For page-tab tools only, keep user in workspace and open left page panel.
+        if (activeTab === 'page' && [
           'add-blank-page',
           'delete-pages',
           'extract-pages',
@@ -828,14 +1084,15 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
           return;
         }
 
-        setActiveTab('edit');
+        // Fallback: open the dedicated tool page when no inline action is wired yet.
+        navigateWithUnsavedCheck(tool.href);
         return;
       }
-      router.push(tool.href);
+      navigateWithUnsavedCheck(tool.href);
     } else if (tool.action) {
       handleRibbonAction(tool.action);
     }
-  }, [file, router, handleRibbonAction]);
+  }, [activeTab, file, handleRibbonAction, navigateWithUnsavedCheck]);
 
   const tabList = useMemo(
     () => TAB_KEYS.map((tab) => ({ ...tab, label: t(`tabs.${tab.key}`) })),
@@ -849,34 +1106,34 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
 
   if (isBootstrapping) {
     return (
-      <section className="min-h-screen flex items-center justify-center" style={{ background: '#1e2028' }}>
-        <div className="p-6 border border-white/10 rounded-xl max-w-xl text-center bg-black/20">
+      <section className="min-h-screen flex items-center justify-center bg-[hsl(var(--color-background))] dark:bg-[#1e2028]">
+        <div className="p-6 border border-[hsl(var(--color-border))] dark:border-white/10 rounded-xl max-w-xl text-center bg-[hsl(var(--color-card))] dark:bg-black/20">
           <div className="h-8 w-8 rounded-full border-2 border-[hsl(var(--color-primary))] border-t-transparent animate-spin mx-auto mb-3" />
-          <p className="text-sm text-white/70">{t('opening')}</p>
+          <p className="text-sm text-[hsl(var(--color-muted-foreground))] dark:text-white/70">{t('opening')}</p>
         </div>
       </section>
     );
   }
 
   return (
-    <section className="h-screen flex flex-col text-white overflow-hidden" style={{ background: '#1e2028' }}>
+    <section className="h-screen flex flex-col overflow-hidden text-[hsl(var(--color-foreground))] bg-[hsl(var(--color-background))] dark:text-white dark:bg-[#1e2028]">
       {/* ─── Tab Bar ─── */}
-      <div className="flex items-center h-9 bg-[#2a2d35] border-b border-white/[0.06] px-2 shrink-0">
+      <div className="flex items-center h-9 bg-[hsl(var(--color-card))] dark:bg-[#2a2d35] border-b border-[hsl(var(--color-border))] dark:border-white/[0.06] px-2 shrink-0">
         <button
           type="button"
-          onClick={() => router.push(`/${locale}`)}
-          className="inline-flex items-center gap-1 px-2 py-1 rounded text-white/50 hover:text-white hover:bg-white/[0.08] transition-all mr-2"
+          onClick={() => navigateWithUnsavedCheck(`/${locale}`)}
+          className="inline-flex items-center gap-1 px-2 py-1 rounded text-[hsl(var(--color-muted-foreground))] dark:text-white/50 hover:text-[hsl(var(--color-foreground))] dark:hover:text-white hover:bg-[hsl(var(--color-muted)/0.6)] dark:hover:bg-white/[0.08] transition-all mr-2"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
         </button>
 
-        <div className="w-px h-4 bg-white/[0.08] mr-2" />
+        <div className="w-px h-4 bg-[hsl(var(--color-border))] dark:bg-white/[0.08] mr-2" />
 
-        <span className="text-[12px] font-medium text-white/70 truncate max-w-[180px] mr-3">
+        <span className="text-[12px] font-medium text-[hsl(var(--color-foreground))] dark:text-white/70 truncate max-w-[180px] mr-3">
           {file?.name || t('untitled')}
         </span>
 
-        <div className="w-px h-4 bg-white/[0.08] mr-1" />
+        <div className="w-px h-4 bg-[hsl(var(--color-border))] dark:bg-white/[0.08] mr-1" />
 
         <nav className="flex items-center gap-0 overflow-x-auto">
           {tabList.map((tab) => {
@@ -888,11 +1145,14 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
                 onClick={() => {
                   if (file) setUploadedPdf(file);
                   setActiveTab(tab.key);
+                  if (tab.key === 'comment') {
+                    sendAnnotationToolToViewer('highlight');
+                  }
                 }}
                 className={`relative inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] whitespace-nowrap transition-all ${
                   active
-                    ? 'text-white font-medium'
-                    : 'text-white/45 hover:text-white/80 hover:bg-white/[0.04]'
+                    ? 'text-[hsl(var(--color-foreground))] dark:text-white font-medium'
+                    : 'text-[hsl(var(--color-muted-foreground))] dark:text-white/45 hover:text-[hsl(var(--color-foreground))] dark:hover:text-white/80 hover:bg-[hsl(var(--color-muted)/0.6)] dark:hover:bg-white/[0.04]'
                 }`}
               >
                 {tab.label}
@@ -908,18 +1168,23 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
 
         <div className="hidden md:flex items-center gap-1">
           <button
-            className="inline-flex items-center gap-1 px-2 py-1 rounded text-white/50 hover:text-white hover:bg-white/[0.06] transition-all text-[11px]"
+            className={`inline-flex items-center gap-1 px-2 py-1 rounded transition-all text-[11px] ${
+              isDirty
+                ? 'text-amber-200 bg-amber-500/15 ring-1 ring-amber-400/35 hover:bg-amber-500/25'
+                : 'text-[hsl(var(--color-muted-foreground))] dark:text-white/50 hover:text-[hsl(var(--color-foreground))] dark:hover:text-white hover:bg-[hsl(var(--color-muted)/0.6)] dark:hover:bg-white/[0.06]'
+            }`}
             onClick={() => handleRibbonAction('save')}
+            title={isDirty ? 'Có thay đổi chưa lưu' : 'Đã lưu'}
           >
             <Save className="h-3 w-3" /> {t('header.save')}
           </button>
           <button
-            className="inline-flex items-center gap-1 px-2 py-1 rounded text-white/50 hover:text-white hover:bg-white/[0.06] transition-all text-[11px]"
+            className="inline-flex items-center gap-1 px-2 py-1 rounded text-[hsl(var(--color-muted-foreground))] dark:text-white/50 hover:text-[hsl(var(--color-foreground))] dark:hover:text-white hover:bg-[hsl(var(--color-muted)/0.6)] dark:hover:bg-white/[0.06] transition-all text-[11px]"
             onClick={() => handleRibbonAction('export')}
           >
             <FileDown className="h-3 w-3" /> {t('header.export')}
           </button>
-          <button className="inline-flex items-center gap-1 px-2 py-1 rounded text-white/50 hover:text-white hover:bg-white/[0.06] transition-all text-[11px]">
+          <button className="inline-flex items-center gap-1 px-2 py-1 rounded text-[hsl(var(--color-muted-foreground))] dark:text-white/50 hover:text-[hsl(var(--color-foreground))] dark:hover:text-white hover:bg-[hsl(var(--color-muted)/0.6)] dark:hover:bg-white/[0.06] transition-all text-[11px]">
             <Share2 className="h-3 w-3" /> {t('header.share')}
           </button>
         </div>
@@ -927,37 +1192,32 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
 
       {/* ─── Ribbon Toolbar (collapsible) ─── */}
       {ribbonGroups.length > 0 && (
-      <div className="flex items-stretch h-[44px] bg-[#252830] border-b border-white/[0.06] px-2 shrink-0 overflow-x-auto">
+      <div className="flex items-center h-[42px] bg-[hsl(var(--color-card))] dark:bg-[#252830] border-b border-[hsl(var(--color-border))] dark:border-white/[0.06] px-2 shrink-0 overflow-hidden">
         {ribbonGroups.map((group, gi) => (
-          <div key={`${activeTab}-${gi}`} className="flex items-stretch">
+          <div key={`${activeTab}-${gi}`} className="flex items-center">
             {gi > 0 && (
               <div className="flex items-center px-2">
-                <div className="w-px h-10 bg-white/[0.08]" />
+                <div className="w-px h-6 bg-[hsl(var(--color-border))] dark:bg-white/[0.08]" />
               </div>
             )}
-            <div className="flex flex-col justify-between py-1">
-              <div className="flex items-center gap-0.5">
-                {group.tools.map((tool, ti) => {
-                  const Icon = tool.icon;
-                  return (
-                    <button
-                      key={ti}
-                      type="button"
-                      onClick={() => handleToolClick(tool)}
-                      className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 rounded-md hover:bg-white/[0.08] active:bg-white/[0.14] active:scale-95 transition-all min-w-[48px] cursor-pointer group"
-                      title={tool.label}
-                    >
-                      <Icon className="h-5 w-5 text-white/75 group-hover:text-white transition-colors" />
-                      <span className="text-[10px] leading-tight text-white/60 group-hover:text-white/90 whitespace-nowrap transition-colors">
-                        {tool.label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="text-[9px] text-white/25 text-center px-1 leading-none pb-0.5">
-                {group.label}
-              </div>
+            <div className="flex items-center gap-0.5">
+              {group.tools.map((tool, ti) => {
+                const Icon = tool.icon;
+                return (
+                  <button
+                    key={ti}
+                    type="button"
+                    onClick={() => handleToolClick(tool)}
+                    className="flex flex-col items-center justify-center gap-0.5 px-1.5 py-1 rounded-md hover:bg-[hsl(var(--color-muted)/0.7)] dark:hover:bg-white/[0.08] active:bg-[hsl(var(--color-muted))] dark:active:bg-white/[0.14] active:scale-95 transition-all min-w-[42px] cursor-pointer group"
+                    title={`${group.label}: ${tool.label}`}
+                  >
+                    <Icon className="h-4 w-4 text-[hsl(var(--color-muted-foreground))] dark:text-white/75 group-hover:text-[hsl(var(--color-foreground))] dark:group-hover:text-white transition-colors" />
+                    <span className="text-[9px] leading-tight text-[hsl(var(--color-muted-foreground))] dark:text-white/60 group-hover:text-[hsl(var(--color-foreground))] dark:group-hover:text-white/90 whitespace-nowrap transition-colors">
+                      {tool.label}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         ))}
@@ -968,12 +1228,12 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
       <div className="flex-1 flex min-h-0">
         {/* Left: Thumbnail Panel */}
         {showThumbnails && (
-          <aside className="w-[148px] shrink-0 flex flex-col bg-[#1e2028]">
-            <div className="flex items-center justify-between gap-1.5 px-2 py-2 border-b border-white/[0.06] shrink-0">
-              <label className="inline-flex flex-1 items-center justify-center rounded-md border border-dashed border-white/10 p-2 cursor-pointer hover:bg-white/[0.04] hover:border-white/20 transition-all">
+          <aside className="w-[148px] shrink-0 flex flex-col bg-[hsl(var(--color-card))] dark:bg-[#1e2028]">
+            <div className="flex items-center justify-between gap-1.5 px-2 py-2 border-b border-[hsl(var(--color-border))] dark:border-white/[0.06] shrink-0">
+              <label className="inline-flex flex-1 items-center justify-center rounded-md border border-dashed border-[hsl(var(--color-border))] dark:border-white/10 p-2 cursor-pointer hover:bg-[hsl(var(--color-muted)/0.6)] dark:hover:bg-white/[0.04] hover:border-[hsl(var(--color-primary)/0.35)] dark:hover:border-white/20 transition-all">
                 <Upload className="h-4 w-4 text-[hsl(var(--color-primary)/0.85)]" />
                 <span className="sr-only">{t('sidebar.newPdf')}</span>
-                <input type="file" accept=".pdf,application/pdf" className="hidden" onChange={(e) => handleFileChange(e.target.files?.[0] ?? null)} />
+                <input type="file" accept=".pdf,application/pdf" className="hidden" onChange={(e) => handleFilePicked(e.target.files?.[0] ?? null)} />
               </label>
               <WorkspacePagesSidebarToggle
                 expanded
@@ -984,7 +1244,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
               />
             </div>
 
-            <div className="flex-1 overflow-y-auto px-2 py-2 scrollbar-thin">
+            <div className="flex-1 overflow-y-auto px-2 py-2 scrollbar-hide">
               {previewUrl && (
                 <PageThumbnails
                   pdfUrl={previewUrl}
@@ -998,21 +1258,21 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
         )}
 
         {/* Center: single annotation viewer (no remount on tab switch) */}
-        <div className="flex-1 min-w-0 flex flex-col bg-[#16181d] overflow-hidden">
+        <div className="flex-1 min-w-0 flex flex-col bg-[hsl(var(--color-muted)/0.35)] dark:bg-[#16181d] overflow-hidden">
           <div className="relative flex-1 min-h-0 overflow-hidden">
             {!previewUrl && (
               <div className="absolute inset-0 flex items-center justify-center">
-                <label className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-white/15 bg-white/[0.03] px-8 py-10 text-center cursor-pointer hover:bg-white/[0.05] hover:border-white/25 transition-all">
+                <label className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-[hsl(var(--color-border))] dark:border-white/15 bg-[hsl(var(--color-card))] dark:bg-white/[0.03] px-8 py-10 text-center cursor-pointer hover:bg-[hsl(var(--color-muted)/0.5)] dark:hover:bg-white/[0.05] hover:border-[hsl(var(--color-primary)/0.35)] dark:hover:border-white/25 transition-all">
                   <Upload className="h-8 w-8 text-[hsl(var(--color-primary)/0.8)]" />
                   <div>
-                    <div className="text-[13px] font-medium text-white/80">{t('upload.title')}</div>
-                    <div className="mt-1 text-[11px] text-white/45">{t('upload.description')}</div>
+                    <div className="text-[13px] font-medium text-[hsl(var(--color-foreground))] dark:text-white/80">{t('upload.title')}</div>
+                    <div className="mt-1 text-[11px] text-[hsl(var(--color-muted-foreground))] dark:text-white/45">{t('upload.description')}</div>
                   </div>
                   <input
                     type="file"
                     accept=".pdf,application/pdf"
                     className="hidden"
-                    onChange={(e) => handleFileChange(e.target.files?.[0] ?? null)}
+                    onChange={(e) => handleFilePicked(e.target.files?.[0] ?? null)}
                   />
                 </label>
               </div>
@@ -1033,12 +1293,12 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
               <button
                 type="button"
                 onClick={() => setIsRightPanelOpen(true)}
-                className="absolute right-0 top-1/2 z-20 -translate-y-1/2 flex items-center gap-2 rounded-l-xl border border-r-0 border-white/12 bg-[#0D1117]/95 py-2 pl-2.5 pr-2 shadow-[-6px_0_20px_rgba(0,0,0,0.35)] backdrop-blur-sm hover:bg-[#161B22] hover:border-white/20 transition-all"
+                className="absolute right-0 top-1/2 z-20 -translate-y-1/2 flex items-center gap-2 rounded-l-xl border border-r-0 border-[hsl(var(--color-border))] dark:border-white/12 bg-[hsl(var(--color-card))/0.95] dark:bg-[#0D1117]/95 py-2 pl-2.5 pr-2 shadow-[-6px_0_20px_rgba(0,0,0,0.22)] dark:shadow-[-6px_0_20px_rgba(0,0,0,0.35)] backdrop-blur-sm hover:bg-[hsl(var(--color-muted))] dark:hover:bg-[#161B22] hover:border-[hsl(var(--color-primary)/0.35)] dark:hover:border-white/20 transition-all"
                 title={t('statusBar.aiAssistant')}
                 aria-label={t('statusBar.aiAssistant')}
               >
                 <WorkspaceAIIcon size="sm" />
-                <span className="max-w-[4.5rem] text-[10px] font-medium leading-tight text-white/55 pr-0.5">
+                <span className="max-w-[4.5rem] text-[10px] font-medium leading-tight text-[hsl(var(--color-muted-foreground))] dark:text-white/55 pr-0.5">
                   {t('statusBar.aiAssistant')}
                 </span>
               </button>
@@ -1068,7 +1328,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
       </div>
 
       {/* ─── Bottom Status Bar ─── */}
-      <div className="h-9 flex items-center justify-between bg-[#2a2d35] border-t border-white/[0.06] px-3 shrink-0 text-[12px]">
+      <div className="h-9 flex items-center justify-between bg-[hsl(var(--color-card))] dark:bg-[#2a2d35] border-t border-[hsl(var(--color-border))] dark:border-white/[0.06] px-3 shrink-0 text-[12px]">
         {/* Left: Thumbnail toggle + page nav */}
         <div className="flex items-center gap-2">
           {!showThumbnails && (
@@ -1084,14 +1344,14 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
             <button
               onClick={() => handlePageSelect(1)}
               disabled={currentPage <= 1}
-              className="p-0.5 rounded text-white/40 hover:text-white/80 disabled:opacity-30 disabled:cursor-default transition-all"
+              className="p-0.5 rounded text-[hsl(var(--color-muted-foreground))] dark:text-[#97a1b3] hover:text-[hsl(var(--color-foreground))] dark:hover:text-white/85 disabled:opacity-30 disabled:cursor-default transition-all"
             >
               <ChevronsLeft className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={() => handlePageSelect(Math.max(1, currentPage - 1))}
               disabled={currentPage <= 1}
-              className="p-0.5 rounded text-white/40 hover:text-white/80 disabled:opacity-30 disabled:cursor-default transition-all"
+              className="p-0.5 rounded text-[hsl(var(--color-muted-foreground))] dark:text-[#97a1b3] hover:text-[hsl(var(--color-foreground))] dark:hover:text-white/85 disabled:opacity-30 disabled:cursor-default transition-all"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
             </button>
@@ -1103,22 +1363,22 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
                   const p = parseInt(e.target.value);
                   if (p >= 1 && p <= pageCount) handlePageSelect(p);
                 }}
-                className="w-6 h-5 text-center bg-white/[0.06] border border-white/[0.08] rounded text-[11px] text-white/80 focus:outline-none focus:border-[hsl(var(--color-primary)/0.45)]"
+                className="w-6 h-5 text-center bg-[hsl(var(--color-muted)/0.6)] dark:bg-[#252b37] border border-[hsl(var(--color-border))] dark:border-[#2f3440] rounded text-[11px] text-[hsl(var(--color-foreground))] dark:text-white/85 focus:outline-none focus:border-[hsl(var(--color-primary)/0.45)]"
               />
-              <span className="text-white/30">/</span>
-              <span className="text-white/50 tabular-nums">{pageCount || '—'}</span>
+              <span className="text-[hsl(var(--color-muted-foreground))] dark:text-[#8b96aa]">/</span>
+              <span className="text-[hsl(var(--color-muted-foreground))] dark:text-[#a8b3c8] tabular-nums">{pageCount || '—'}</span>
             </div>
             <button
               onClick={() => handlePageSelect(Math.min(pageCount, currentPage + 1))}
               disabled={currentPage >= pageCount}
-              className="p-0.5 rounded text-white/40 hover:text-white/80 disabled:opacity-30 disabled:cursor-default transition-all"
+              className="p-0.5 rounded text-[hsl(var(--color-muted-foreground))] dark:text-[#97a1b3] hover:text-[hsl(var(--color-foreground))] dark:hover:text-white/85 disabled:opacity-30 disabled:cursor-default transition-all"
             >
               <ChevronRight className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={() => handlePageSelect(pageCount)}
               disabled={currentPage >= pageCount}
-              className="p-0.5 rounded text-white/40 hover:text-white/80 disabled:opacity-30 disabled:cursor-default transition-all"
+              className="p-0.5 rounded text-[hsl(var(--color-muted-foreground))] dark:text-[#97a1b3] hover:text-[hsl(var(--color-foreground))] dark:hover:text-white/85 disabled:opacity-30 disabled:cursor-default transition-all"
             >
               <ChevronsRight className="h-3.5 w-3.5" />
             </button>
@@ -1126,7 +1386,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
         </div>
 
         {/* Center: info */}
-        <div className="text-white/30 text-[10px]">
+          <div className="text-[hsl(var(--color-muted-foreground))] dark:text-white/30 text-[10px]">
           {file ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` : ''}
         </div>
 
@@ -1135,14 +1395,14 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
           <div className="flex items-center gap-1.5">
             <button
               onClick={handleZoomOut}
-              className="p-1 rounded text-white/40 hover:text-white/80 transition-all"
+              className="p-1 rounded text-[hsl(var(--color-muted-foreground))] dark:text-white/40 hover:text-[hsl(var(--color-foreground))] dark:hover:text-white/80 transition-all"
             >
               <ZoomOut className="h-4 w-4" />
             </button>
-            <span className="w-10 text-center text-white/50 tabular-nums text-[11px]">{zoom}%</span>
+            <span className="w-10 text-center text-[hsl(var(--color-muted-foreground))] dark:text-white/50 tabular-nums text-[11px]">{zoom}%</span>
             <button
               onClick={handleZoomIn}
-              className="p-1 rounded text-white/40 hover:text-white/80 transition-all"
+              className="p-1 rounded text-[hsl(var(--color-muted-foreground))] dark:text-white/40 hover:text-[hsl(var(--color-foreground))] dark:hover:text-white/80 transition-all"
             >
               <ZoomIn className="h-4 w-4" />
             </button>
@@ -1157,25 +1417,59 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
           aria-modal="true"
           aria-label={t('inlineTools.dialogLabel')}
         >
-          <div className="relative flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-white/10 bg-[#252830] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3 shrink-0">
-              <h2 className="text-[13px] font-medium text-white/90">
+          <div className="relative flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-[hsl(var(--color-border))] dark:border-white/10 bg-[hsl(var(--color-card))] dark:bg-[#252830] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[hsl(var(--color-border))] dark:border-white/[0.06] px-4 py-3 shrink-0">
+              <h2 className="text-[13px] font-medium text-[hsl(var(--color-foreground))] dark:text-white/90">
                 {t(workspaceInlineToolTitleKey(workspaceTool))}
               </h2>
               <button
                 type="button"
                 onClick={() => setWorkspaceTool(null)}
-                className="rounded p-1 text-white/40 hover:bg-white/[0.06] hover:text-white/80 transition-all"
+                className="rounded p-1 text-[hsl(var(--color-muted-foreground))] dark:text-white/40 hover:bg-[hsl(var(--color-muted)/0.65)] dark:hover:bg-white/[0.06] hover:text-[hsl(var(--color-foreground))] dark:hover:text-white/80 transition-all"
                 aria-label={t('inlineTools.close')}
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-4">
-              {workspaceTool === 'compress' && <CompressPDFTool initialFile={file} lockToInitialFile />}
+            <div className="flex-1 overflow-y-auto p-4 scrollbar-hide">
+              {workspaceTool === 'compress' && (
+                <CompressPDFTool
+                  initialFile={file}
+                  lockToInitialFile
+                  onFileUpdated={handleInlineToolFileUpdated}
+                />
+              )}
               {workspaceTool === 'ocr' && <OCRPDFTool initialFile={file} lockToInitialFile />}
               {workspaceTool === 'merge' && <MergePDFTool initialFile={file} />}
               {workspaceTool === 'split' && <SplitPDFTool initialFile={file} lockToInitialFile />}
+              {workspaceTool === 'extract-pages' && (
+                <ExtractPagesTool
+                  initialFile={file}
+                  lockToInitialFile
+                  onFileUpdated={handleInlineToolFileUpdated}
+                />
+              )}
+              {workspaceTool === 'watermark' && (
+                <WatermarkTool
+                  initialFile={file}
+                  lockToInitialFile
+                  onFileUpdated={handleInlineToolFileUpdated}
+                />
+              )}
+              {workspaceTool === 'header-footer' && (
+                <HeaderFooterTool
+                  initialFile={file}
+                  lockToInitialFile
+                  onFileUpdated={handleInlineToolFileUpdated}
+                />
+              )}
+              {workspaceTool === 'page-numbers' && (
+                <PageNumbersTool
+                  initialFile={file}
+                  lockToInitialFile
+                  onFileUpdated={handleInlineToolFileUpdated}
+                />
+              )}
               {workspaceTool === 'pdf-to-docx' && <PDFToDocxTool initialFile={file} />}
               {workspaceTool === 'pdf-to-excel' && <PDFToExcelTool initialFile={file} />}
               {workspaceTool === 'pdf-to-pptx' && <PDFToPptxTool initialFile={file} />}

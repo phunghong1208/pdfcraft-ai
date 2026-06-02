@@ -30,9 +30,17 @@ const loadPdfjsLib = async () => {
 
 export interface HeaderFooterToolProps {
   className?: string;
+  initialFile?: File | null;
+  lockToInitialFile?: boolean;
+  onFileUpdated?: (file: File) => void;
 }
 
-export function HeaderFooterTool({ className = '' }: HeaderFooterToolProps) {
+export function HeaderFooterTool({
+  className = '',
+  initialFile = null,
+  lockToInitialFile = false,
+  onFileUpdated,
+}: HeaderFooterToolProps) {
   const t = useTranslations('common');
   const tTools = useTranslations('tools');
 
@@ -201,6 +209,11 @@ export function HeaderFooterTool({ className = '' }: HeaderFooterToolProps) {
     }
   }, [loadPdfPreview]);
 
+  useEffect(() => {
+    if (!initialFile) return;
+    handleFilesSelected([initialFile]);
+  }, [initialFile, handleFilesSelected]);
+
   const handleClearFile = useCallback(() => {
     setFile(null);
     setResult(null);
@@ -237,8 +250,13 @@ export function HeaderFooterTool({ className = '' }: HeaderFooterToolProps) {
       });
 
       if (output.success && output.result) {
-        setResult(output.result as Blob);
+        const resultBlob = output.result as Blob;
+        setResult(resultBlob);
         setStatus('complete');
+        if (lockToInitialFile && onFileUpdated && file) {
+          const updatedFile = new File([resultBlob], file.name, { type: 'application/pdf' });
+          onFileUpdated(updatedFile);
+        }
       } else {
         setError(output.error?.message || 'Failed to add header/footer.');
         setStatus('error');
@@ -267,7 +285,7 @@ export function HeaderFooterTool({ className = '' }: HeaderFooterToolProps) {
 
   return (
     <div className={`space-y-6 ${className}`.trim()}>
-      {!file && (
+      {!file && !lockToInitialFile && (
         <FileUploader
           accept={['application/pdf', '.pdf']}
           multiple={false}
@@ -304,9 +322,11 @@ export function HeaderFooterTool({ className = '' }: HeaderFooterToolProps) {
                     </p>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={handleClearFile} disabled={isProcessing}>
-                  {t('buttons.remove') || 'Remove'}
-                </Button>
+                {!lockToInitialFile ? (
+                  <Button variant="ghost" size="sm" onClick={handleClearFile} disabled={isProcessing}>
+                    {t('buttons.remove') || 'Remove'}
+                  </Button>
+                ) : null}
               </div>
             </Card>
 

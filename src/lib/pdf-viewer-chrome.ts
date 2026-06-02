@@ -12,7 +12,20 @@ html,body{margin:0!important;padding:0!important;background:#16181d!important}
 #viewer::before,#viewer::after{content:none!important;display:none!important}
 #toolbarContainer,#toolbarViewer,#loadingBar,#secondaryToolbar,
 #sidebarContainer,#sidebarContent,#sidebarResizer,#sidebarToggleButton,#toolbarSidebar,
-.CustomToolbar,#editorModeButtons,.ant-btn,.splitToolbarButtonSeparator,.verticalToolbarSeparator{display:none!important}
+#editorModeButtons,.splitToolbarButtonSeparator,.verticalToolbarSeparator{display:none!important}
+/* Keep annotation toolbar accessible while annotating. */
+html:not(.pdfcraft-annotating) .CustomToolbar{
+  position:absolute!important;top:-9999px!important;left:-9999px!important;
+  opacity:0!important;pointer-events:none!important;
+}
+html.pdfcraft-annotating .CustomToolbar{
+  position:fixed!important;top:8px!important;right:12px!important;left:auto!important;
+  z-index:60!important;opacity:1!important;pointer-events:auto!important;
+}
+html:not(.pdfcraft-annotating) .ant-btn,
+html:not(.pdfcraft-annotating) [class*="ant-btn"]{
+  display:none!important;visibility:hidden!important;pointer-events:none!important;
+}
 /* Annotation extension comment panel — gray left border = visible vertical line */
 .CustomComment,[class*="CustomComment"]{
   display:none!important;visibility:hidden!important;width:0!important;height:0!important;
@@ -111,7 +124,7 @@ export function stripPdfViewerSeams(doc: Document) {
     el.style.setProperty('box-shadow', 'none', 'important');
   });
 
-  doc.querySelectorAll('.CustomToolbar, #toolbarContainer, #toolbarViewer').forEach((node) => {
+  doc.querySelectorAll('#toolbarContainer, #toolbarViewer').forEach((node) => {
     const el = node as HTMLElement;
     el.style.setProperty('display', 'none', 'important');
     el.style.setProperty('visibility', 'hidden', 'important');

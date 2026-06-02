@@ -15,12 +15,20 @@ let pdfjsModule: typeof import('pdfjs-dist') | null = null;
 
 export interface PageNumbersToolProps {
   className?: string;
+  initialFile?: File | null;
+  lockToInitialFile?: boolean;
+  onFileUpdated?: (file: File) => void;
 }
 
 type Position = 'bottom-center' | 'bottom-left' | 'bottom-right' | 'top-center' | 'top-left' | 'top-right';
 type Format = 'number' | 'roman' | 'page-of-total' | 'custom';
 
-export function PageNumbersTool({ className = '' }: PageNumbersToolProps) {
+export function PageNumbersTool({
+  className = '',
+  initialFile = null,
+  lockToInitialFile = false,
+  onFileUpdated,
+}: PageNumbersToolProps) {
   const t = useTranslations('common');
   const tTools = useTranslations('tools');
 
@@ -280,6 +288,11 @@ export function PageNumbersTool({ className = '' }: PageNumbersToolProps) {
     }
   }, [loadPdfPreview]);
 
+  useEffect(() => {
+    if (!initialFile) return;
+    handleFilesSelected([initialFile]);
+  }, [initialFile, handleFilesSelected]);
+
   const handleClearFile = useCallback(() => {
     setFile(null);
     setResult(null);
@@ -323,8 +336,13 @@ export function PageNumbersTool({ className = '' }: PageNumbersToolProps) {
       });
 
       if (output.success && output.result) {
-        setResult(output.result as Blob);
+        const resultBlob = output.result as Blob;
+        setResult(resultBlob);
         setStatus('complete');
+        if (lockToInitialFile && onFileUpdated && file) {
+          const updatedFile = new File([resultBlob], file.name, { type: 'application/pdf' });
+          onFileUpdated(updatedFile);
+        }
       } else {
         setError(output.error?.message || 'Failed to add page numbers.');
         setStatus('error');
@@ -355,7 +373,7 @@ export function PageNumbersTool({ className = '' }: PageNumbersToolProps) {
 
   return (
     <div className={`space-y-6 ${className}`.trim()}>
-      {!file && (
+      {!file && !lockToInitialFile && (
         <FileUploader
           accept={['application/pdf', '.pdf']}
           multiple={false}
@@ -392,9 +410,11 @@ export function PageNumbersTool({ className = '' }: PageNumbersToolProps) {
                     </p>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={handleClearFile} disabled={isProcessing}>
-                  {t('buttons.remove')}
-                </Button>
+                {!lockToInitialFile ? (
+                  <Button variant="ghost" size="sm" onClick={handleClearFile} disabled={isProcessing}>
+                    {t('buttons.remove')}
+                  </Button>
+                ) : null}
               </div>
             </Card>
 

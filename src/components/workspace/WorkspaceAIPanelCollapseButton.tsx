@@ -24,8 +24,8 @@ export function WorkspaceAIPanelCollapseButton({
       aria-label={ariaLabel}
       title={title}
       className={cn(
-        'shrink-0 rounded-md p-1.5 text-white/40',
-        'hover:bg-white/[0.08] hover:text-white/85',
+        'shrink-0 rounded-md p-1.5 text-[hsl(var(--color-muted-foreground))] dark:text-white/40',
+        'hover:bg-[hsl(var(--color-muted)/0.65)] dark:hover:bg-white/[0.08] hover:text-[hsl(var(--color-foreground))] dark:hover:text-white/85',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-primary)/0.4)]',
         'active:scale-95 transition-all',
         className,

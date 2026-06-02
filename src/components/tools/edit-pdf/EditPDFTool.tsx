@@ -180,6 +180,15 @@ export function EditPDFTool({
           try { window.dispatchEvent(new Event('pdfcraft-edge-sync')); } catch(e){}
         }
 
+        var dirtyNotifyTimer = null;
+        function notifyDirty(){
+          if(dirtyNotifyTimer) return;
+          dirtyNotifyTimer = setTimeout(function(){
+            dirtyNotifyTimer = null;
+            try{ window.parent.postMessage({ type:'pdfcraft-dirty-change' }, '*'); }catch(e){}
+          }, 180);
+        }
+
         function setTool(toolName){
           try{
             if(!toolName) return;
@@ -191,7 +200,69 @@ export function EditPDFTool({
           }catch(e){}
         }
 
+        function invokeToolbarAction(action){
+          try{
+            var toolbar = document.querySelector('.CustomToolbar');
+            if(!toolbar) return false;
+            var map = {
+              addPage: [
+                'addpage','add-page','insertpage','insert-page','newpage','new-page',
+                'add blank page','insert blank page','thêm trang','them trang',
+                '添加页','新增页面','增加页面'
+              ],
+              deletePage: [
+                'deletepage','delete-page','removepage','remove-page',
+                'delete current page','xóa trang','xoa trang',
+                '删除页','删除页面'
+              ]
+            };
+            var keywords = map[action];
+            if(!keywords) return false;
+            var nodes = toolbar.querySelectorAll('li,button,[data-action],[class]');
+            for(var i=0;i<nodes.length;i++){
+              var el = nodes[i];
+              var hay = [
+                el.getAttribute('data-action') || '',
+                el.getAttribute('title') || '',
+                el.getAttribute('aria-label') || '',
+                el.className || '',
+                el.textContent || ''
+              ].join(' ').toLowerCase();
+              for(var j=0;j<keywords.length;j++){
+                if(hay.indexOf(keywords[j]) !== -1){
+                  el.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true, view:window }));
+                  notifyDirty();
+                  return true;
+                }
+              }
+            }
+            return false;
+          }catch(e){
+            return false;
+          }
+        }
+
         window.pdfcraftSetAnnotationTool = setTool;
+        window.pdfcraftInvokeToolbarAction = invokeToolbarAction;
+        window.pdfcraftExportEditedPdf = async function(){
+          try{
+            var app = window.PDFViewerApplication;
+            var doc = app && (app.pdfDocument || (app.pdfViewer && app.pdfViewer.pdfDocument));
+            if(doc && typeof doc.saveDocument === 'function'){
+              return await doc.saveDocument();
+            }
+          }catch(e){}
+          return null;
+        };
+        document.addEventListener('pointerup', function(){
+          if(document.documentElement.classList.contains('pdfcraft-annotating')) notifyDirty();
+        }, true);
+        document.addEventListener('keydown', function(evt){
+          if(!document.documentElement.classList.contains('pdfcraft-annotating')) return;
+          if(evt.key === 'Backspace' || evt.key === 'Delete' || evt.key.length === 1 || evt.ctrlKey || evt.metaKey){
+            notifyDirty();
+          }
+        }, true);
         window.addEventListener('message', function(evt){
           var data = evt && evt.data;
           if(!data || data.type !== 'pdfcraft-set-annotation-tool') return;

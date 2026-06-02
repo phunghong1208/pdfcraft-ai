@@ -79,11 +79,11 @@ export function WorkspacePagesSidebarToggle({
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-primary)/0.45)]',
         'active:scale-95',
         floating &&
-          'h-9 w-9 rounded-lg border border-white/12 bg-[#2a2d35]/95 text-white/70 shadow-lg backdrop-blur-sm hover:border-white/22 hover:bg-[#32363f] hover:text-white',
-        compact && 'rounded-md p-1 text-white/45 hover:bg-white/[0.06] hover:text-white/85',
+          'h-9 w-9 rounded-lg border border-[hsl(var(--color-border))] dark:border-[#2b2f38] bg-[hsl(var(--color-card))/0.95] dark:bg-[#2a2d35]/95 text-[hsl(var(--color-muted-foreground))] dark:text-white/70 shadow-lg backdrop-blur-sm hover:border-[hsl(var(--color-primary)/0.35)] dark:hover:border-[#3a4150] hover:bg-[hsl(var(--color-muted)/0.75)] dark:hover:bg-[#32363f] hover:text-[hsl(var(--color-foreground))] dark:hover:text-white',
+        compact && 'rounded-md p-1 text-[hsl(var(--color-muted-foreground))] dark:text-white/45 hover:bg-[hsl(var(--color-muted)/0.6)] dark:hover:bg-[#2a2f3a] hover:text-[hsl(var(--color-foreground))] dark:hover:text-white/85',
         !floating &&
           !compact &&
-          'h-8 w-8 rounded-lg border border-white/10 bg-white/[0.03] text-white/50 hover:border-white/18 hover:bg-white/[0.07] hover:text-white/90',
+          'h-8 w-8 rounded-lg border border-[hsl(var(--color-border))] dark:border-[#2b2f38] bg-[hsl(var(--color-card))] dark:bg-[#252a34] text-[hsl(var(--color-muted-foreground))] dark:text-white/50 hover:border-[hsl(var(--color-primary)/0.35)] dark:hover:border-[#3a4150] hover:bg-[hsl(var(--color-muted)/0.65)] dark:hover:bg-[#2b313d] hover:text-[hsl(var(--color-foreground))] dark:hover:text-white/90',
         className,
       )}
     >
