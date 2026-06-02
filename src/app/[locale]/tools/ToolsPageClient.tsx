@@ -131,7 +131,7 @@ export default function ToolsPageClient({ locale, localizedToolContent }: ToolsP
                   }`}
                 >
                   <span className="inline-flex items-center gap-2">
-                    <tab.icon className="h-[18px] w-[18px] text-blue-400" strokeWidth={1.75} />
+                    <tab.icon className="h-[18px] w-[18px] text-[hsl(var(--color-primary))]" strokeWidth={1.75} />
                     {tab.label}
                   </span>
                 </button>
@@ -150,8 +150,8 @@ export default function ToolsPageClient({ locale, localizedToolContent }: ToolsP
                         className="rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 hover:bg-white/[0.06] transition-colors"
                       >
                         <span className="text-sm font-medium inline-flex items-center gap-2.5">
-                          <span className="h-8 w-8 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                            <action.icon className="h-[18px] w-[18px] text-blue-400" strokeWidth={1.75} />
+                          <span className="h-8 w-8 rounded-xl bg-[hsl(var(--color-primary)/0.1)] flex items-center justify-center">
+                            <action.icon className="h-[18px] w-[18px] text-[hsl(var(--color-primary))]" strokeWidth={1.75} />
                           </span>
                           {action.label}
                         </span>
@@ -165,7 +165,7 @@ export default function ToolsPageClient({ locale, localizedToolContent }: ToolsP
                   <ul className="space-y-2 text-sm text-[hsl(var(--color-muted-foreground))]">
                     {contextualSuggestions.map((item) => (
                       <li key={item.label} className="inline-flex items-center gap-2">
-                        <item.icon className="h-4 w-4 text-blue-400" strokeWidth={1.75} />
+                        <item.icon className="h-4 w-4 text-[hsl(var(--color-primary))]" strokeWidth={1.75} />
                         {item.label}
                       </li>
                     ))}

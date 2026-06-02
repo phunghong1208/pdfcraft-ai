@@ -24,12 +24,16 @@ export interface WorkspaceAIIconProps {
   bare?: boolean;
 }
 
-/** Icon Trợ lý AI — gradient xanh–tím + lấp lánh */
+/** Icon Trợ lý AI — đỏ thương hiệu */
 export function WorkspaceAIIcon({ size = 'sm', className, bare = false }: WorkspaceAIIconProps) {
   if (bare) {
     return (
       <Sparkles
-        className={cn(ICON[size], 'text-blue-300 drop-shadow-[0_0_6px_rgba(96,165,250,0.6)]', className)}
+        className={cn(
+          ICON[size],
+          'text-[hsl(var(--color-primary))] drop-shadow-[0_0_6px_hsl(var(--color-primary)/0.55)]',
+          className,
+        )}
         strokeWidth={2.25}
         aria-hidden
       />
@@ -40,8 +44,8 @@ export function WorkspaceAIIcon({ size = 'sm', className, bare = false }: Worksp
     <span
       className={cn(
         'relative inline-flex shrink-0 items-center justify-center',
-        'bg-gradient-to-br from-[#2563EB] via-[#4F46E5] to-[#7C3AED]',
-        'shadow-[0_0_14px_rgba(79,70,229,0.45)] ring-1 ring-white/25',
+        'bg-[hsl(var(--color-primary))]',
+        'shadow-[0_0_14px_hsl(var(--color-primary)/0.45)] ring-1 ring-white/25',
         BOX[size],
         className,
       )}

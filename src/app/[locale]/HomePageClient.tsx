@@ -92,7 +92,7 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
                 <h2 className="text-2xl font-semibold">{t('uploadTitle')}</h2>
                 <p className="mt-2 text-sm text-[hsl(var(--color-muted-foreground))]">{t('uploadDescription')}</p>
                 <div className="inline-block mt-5">
-                  <Button variant="primary" size="lg" onClick={startUpload} className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-500 hover:to-indigo-600 shadow-[0_8px_24px_rgba(59,130,246,0.28)] hover:scale-[1.01] transition-all">
+                  <Button variant="primary" size="lg" onClick={startUpload} className="hover:scale-[1.01] transition-all">
                     {t('uploadCta')}
                   </Button>
                 </div>
@@ -128,8 +128,8 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
                   return (
                     <Link key={item.href} href={item.href} className="rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-card))] px-3 py-2.5 hover:bg-[hsl(var(--color-muted))]/50 transition-all">
                       <div className="flex items-center gap-2.5">
-                        <div className="h-8 w-8 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                          <Icon className="h-[18px] w-[18px] text-blue-400" strokeWidth={1.75} />
+                        <div className="h-8 w-8 rounded-xl bg-[hsl(var(--color-primary)/0.1)] flex items-center justify-center">
+                          <Icon className="h-[18px] w-[18px] text-[hsl(var(--color-primary))]" strokeWidth={1.75} />
                         </div>
                         <div className="text-sm font-medium">{item.label}</div>
                       </div>
@@ -157,8 +157,8 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
                   <Link key={`${item.href}-${item.label}`} href={item.href} className="rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-card))] px-3 py-2.5 hover:bg-[hsl(var(--color-muted))]/50 transition-all">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
-                        <div className="h-8 w-8 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                          <Icon className="h-[18px] w-[18px] text-blue-400" strokeWidth={1.75} />
+                        <div className="h-8 w-8 rounded-xl bg-[hsl(var(--color-primary)/0.1)] flex items-center justify-center">
+                          <Icon className="h-[18px] w-[18px] text-[hsl(var(--color-primary))]" strokeWidth={1.75} />
                         </div>
                         <span className="text-sm font-medium">{item.label}</span>
                       </div>
@@ -177,7 +177,7 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
       {isPreparing && (
         <div className="fixed inset-0 z-[100] bg-black/65 backdrop-blur-sm flex items-center justify-center px-4">
           <Card className="w-full max-w-md p-6 border border-white/15 bg-[hsl(var(--color-card))]">
-            <div className="h-9 w-9 rounded-full border-2 border-blue-400 border-t-transparent animate-spin mb-4" />
+            <div className="h-9 w-9 rounded-full border-2 border-[hsl(var(--color-primary))] border-t-transparent animate-spin mb-4" />
             <h3 className="text-lg font-semibold mb-3">{t('preparingTitle')}</h3>
             <ul className="space-y-2 text-sm text-[hsl(var(--color-muted-foreground))]">
               <li className={loadingStep >= 0 ? 'text-[hsl(var(--color-foreground))]' : ''}>{t('preparingUploading')}</li>

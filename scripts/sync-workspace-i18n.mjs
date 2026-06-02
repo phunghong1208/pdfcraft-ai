@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * Merge messages/fragments/workspace.{locale}.json into messages/{locale}.json
- * Falls back to workspace.en.json for locales without a dedicated fragment.
+ * English fragment is the source of truth; locale fragments override translations.
+ * Locales without a dedicated fragment use English only.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -14,18 +15,43 @@ const locales = [
   'en', 'ja', 'ko', 'es', 'fr', 'de', 'zh', 'zh-TW', 'pt', 'ar', 'it', 'id', 'vi', 'ro',
 ];
 
+/** Locale overrides win; missing keys fall back to English. */
+function deepMerge(base, override) {
+  const result = { ...base };
+  for (const key of Object.keys(override)) {
+    const baseValue = base[key];
+    const overrideValue = override[key];
+    if (
+      overrideValue &&
+      typeof overrideValue === 'object' &&
+      !Array.isArray(overrideValue) &&
+      baseValue &&
+      typeof baseValue === 'object' &&
+      !Array.isArray(baseValue)
+    ) {
+      result[key] = deepMerge(baseValue, overrideValue);
+    } else {
+      result[key] = overrideValue;
+    }
+  }
+  return result;
+}
+
 const enFragment = JSON.parse(
   fs.readFileSync(path.join(fragmentsDir, 'workspace.en.json'), 'utf8'),
 );
 
 for (const locale of locales) {
   const fragmentPath = path.join(fragmentsDir, `workspace.${locale}.json`);
-  const workspace =
+  const localeFragment =
     locale === 'en'
       ? enFragment
       : fs.existsSync(fragmentPath)
         ? JSON.parse(fs.readFileSync(fragmentPath, 'utf8'))
-        : enFragment;
+        : {};
+
+  const workspace =
+    locale === 'en' ? enFragment : deepMerge(enFragment, localeFragment);
 
   const messagePath = path.join(messagesDir, `${locale}.json`);
   const data = JSON.parse(fs.readFileSync(messagePath, 'utf8'));

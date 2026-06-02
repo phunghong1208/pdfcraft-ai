@@ -2272,6 +2272,17 @@
       "permissions": "Permessi",
       "aiTools": "Strumenti AI"
     },
+    "viewLayers": {
+      "title": "View layers",
+      "original": "Original PDF",
+      "originalHint": "Page bitmap (canvas)",
+      "annotation": "Annotations",
+      "annotationHint": "Built-in PDF highlights and comments — rendered by PDF.js",
+      "textLayer": "Text layer",
+      "textLayerHint": "Selectable text for native PDFs",
+      "ocrLayer": "OCR layer",
+      "ocrLayerHint": "OCR text on scanned PDFs — turn off if misaligned"
+    },
     "tools": {
       "zoomIn": "Zoom avanti",
       "zoomOut": "Zoom indietro",
@@ -2342,15 +2353,99 @@
     "sidebar": {
       "newPdf": "Nuovo PDF",
       "hidePages": "Nascondi pagine",
-      "showThumbnails": "Mostra miniature"
+      "showThumbnails": "Mostra miniature",
+      "openPages": "Open pages panel"
     },
     "aiPanel": {
+      "newBadge": "New",
+      "indexing": "Indexing document for AI chat...",
+      "summarizing": "Summarizing (may take 1–2 minutes, keep this tab open)...",
+      "indexError": "Could not prepare document for chat.",
+      "runSummaryForChat": "Chat requires Summary first (about 1–2 minutes). Open the Summary tab, generate a summary, then return to Chat.",
+      "goToSummaryTab": "Open Summary tab",
+      "chatReadonlyPlaceholder": "Run Summary first to ask about this document…",
+      "startSummaryForChat": "Summarize to enable chat",
+      "chatReady": "Chat is ready — type your question.",
+      "summaryMissingDocumentId": "Summary finished but the server did not return document_id — chat is unavailable.",
+      "chatReindexing": "Syncing document for chat (re-running summary)…",
+      "chatNoContext": "Chat could not find this document in the index.",
+      "chatNoContextHint": "Tap “Generate summary” again on the Summary tab, wait until it finishes, then ask your question.",
+      "chatError": "Chat request failed.",
+      "summaryError": "Summary request failed.",
+      "noFile": "Upload a PDF first.",
+      "noDocumentId": "Document is not indexed yet. Wait or run Summary first.",
+      "answerLanguage": {
+        "label": "Answer language",
+        "hint": "Summary and chat replies will be in this language."
+      },
+      "languageShort": "Language",
+      "analyzing": "✨ AI is analyzing your document…",
+      "thinkingAi": "✨ AI is thinking…",
+      "summaryByAi": "✨ Summary by AI",
+      "askDocument": "✨ Ask your document",
+      "copy": "Copy",
+      "copied": "Copied",
+      "copyFailed": "Could not copy to clipboard.",
+      "exportPdf": "Export PDF",
+      "exportFailed": "PDF export failed.",
+      "summaryDetail": {
+        "label": "Detail level",
+        "light": {
+          "title": "Short"
+        },
+        "balanced": {
+          "title": "Medium"
+        },
+        "deep": {
+          "title": "Detailed"
+        }
+      },
+      "chatContext": {
+        "label": "Chat depth",
+        "light": {
+          "title": "Light"
+        },
+        "balanced": {
+          "title": "Mid"
+        },
+        "deep": {
+          "title": "Deep"
+        }
+      },
+      "generateSummary": "Generate summary",
+      "summaryPlaceholder": "Run summary to see AI-generated highlights for this PDF.",
+      "summaryDone": "Summary is ready. Open the Summary tab to read it.",
+      "documentId": "Document ID: {id}",
+      "previewPdf": "PDF preview",
       "title": "Assistente AI",
       "tabs": {
         "chat": "Chat",
         "summary": "Riepilogo",
         "translate": "Traduci",
         "voice": "Approfondimenti"
+      },
+      "translateComingSoon": "Document translation — coming soon.",
+      "voice": {
+        "subtitle": "Listen to your document with built-in browser speech",
+        "play": "Start reading",
+        "pause": "Pause",
+        "resume": "Resume",
+        "stop": "Stop",
+        "speed": "Speed",
+        "statusIdle": "Ready to play",
+        "statusPlaying": "Reading…",
+        "statusPaused": "Paused",
+        "nowReading": "Playing: {name}",
+        "voiceLabel": "Voice",
+        "voiceLoading": "Loading voices…",
+        "genderFemale": "Female",
+        "genderMale": "Male",
+        "genderNeutral": "Other",
+        "noVoicesHint": "No voice for this language in your browser. On macOS: System Settings → Accessibility → Spoken Content → System Voice.",
+        "prepareTitle": "Document not ready to read",
+        "prepareHint": "Process the PDF once first (same as enabling chat) — about 1–2 minutes.",
+        "prepareButton": "Process document",
+        "unsupported": "Speech synthesis is not supported in this browser."
       },
       "detected": "Rilevato",
       "documentLoaded": "Documento caricato",
@@ -2366,6 +2461,39 @@
       "send": "Invia",
       "welcome": "Sembra un documento di 3 pagine. Posso riassumere, tradurre, eseguire OCR o estrarre tabelle.",
       "reply": "Capito. Sto analizzando questa pagina e preparo una risposta concisa con i punti chiave."
+    },
+    "aiToolPage": {
+      "prepareHint": "Processing takes about 1–2 minutes. Keep this tab open.",
+      "selectFileFirst": "Choose a PDF file first."
+    },
+    "aiSummaryPage": {
+      "uploadTitle": "Upload PDF",
+      "uploadSubtitle": "AI reads, analyzes, and creates a structured summary",
+      "uploadDropHint": "Drag & drop or choose a file",
+      "uploadFormats": "PDF only · one file",
+      "modelLabel": "PDFCraft Document AI",
+      "generatedAt": "Created at {time}",
+      "wordCount": "{count} words",
+      "downloadSummary": "Download summary",
+      "downloadFailed": "Could not download the summary file.",
+      "restoredAt": "Restored from {time}",
+      "restoredFileHint": "Summary saved for «{name}». Re-select the file to preview the PDF."
+    },
+    "aiChatPage": {
+      "uploadSubtitle": "Upload once, prepare the document, then ask anything",
+      "documentReady": "Document ready — ask your question below.",
+      "restoredFileHint": "Chat restored for «{name}». Re-select the file to preview the PDF."
+    },
+    "aiVoicePage": {
+      "uploadSubtitle": "Upload a PDF — text is extracted automatically for browser read-aloud",
+      "documentReady": "Ready to read aloud — press play.",
+      "restoredFileHint": "Reading session restored for «{name}». Re-select the file to preview the PDF.",
+      "listenTitle": "Read aloud",
+      "readContentHint": "Press play to listen to the document.",
+      "fallbackReadHint": "Using text extracted from the PDF (AI could not summarize this file).",
+      "prepareFailedTitle": "Could not prepare audio",
+      "prepareFailedHint": "Try another PDF or run OCR if the file is scan-only.",
+      "noExtractableText": "No text could be read from this PDF. Try OCR or another file."
     },
     "inlineTools": {
       "compress": "Comprimi PDF",

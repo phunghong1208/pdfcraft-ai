@@ -76,7 +76,7 @@ export function WorkspacePagesSidebarToggle({
       title={title}
       className={cn(
         'inline-flex shrink-0 items-center justify-center transition-all',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/45',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-primary)/0.45)]',
         'active:scale-95',
         floating &&
           'h-9 w-9 rounded-lg border border-white/12 bg-[#2a2d35]/95 text-white/70 shadow-lg backdrop-blur-sm hover:border-white/22 hover:bg-[#32363f] hover:text-white',

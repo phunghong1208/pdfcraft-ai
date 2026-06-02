@@ -41,8 +41,17 @@ import {
   lockPdfViewerSidebar,
   attachKonvaSeamGuard,
   snapPdfViewerScale,
+  fitPdfViewerPageWidth,
   stripPdfViewerSeams,
 } from '@/lib/pdf-viewer-chrome';
+import {
+  applyPdfViewerLayers,
+  detectScanLikePdf,
+  loadPdfViewerLayerSettings,
+  savePdfViewerLayerSettings,
+  type PdfViewerLayerSettings,
+} from '@/lib/pdf/pdf-viewer-layers';
+import { PdfViewerLayerPanel } from '@/components/workspace/PdfViewerLayerPanel';
 
 interface DocumentWorkspaceClientProps {
   locale: Locale;
@@ -394,7 +403,12 @@ function getPdfApp(iframe: HTMLIFrameElement | null) {
 
 function patchViewerIframe(
   iframe: HTMLIFrameElement,
-  opts?: { scaleOnLoad?: boolean; onScaleChange?: (pct: number) => void },
+  opts?: {
+    scaleOnLoad?: boolean;
+    onScaleChange?: (pct: number) => void;
+    layerSettings?: PdfViewerLayerSettings;
+    onScanDetected?: (isScan: boolean) => void;
+  },
 ) {
   try {
     const doc = iframe.contentDocument;
@@ -412,12 +426,9 @@ function patchViewerIframe(
 
       pdfViewer.removePageBorders = true;
 
-      const applyScale100 = () => {
-        pdfViewer.currentScale = snapPdfViewerScale(1);
-        if (typeof pdfViewer.scrollMode !== 'undefined') {
-          pdfViewer.scrollMode = 0;
-        }
-        opts?.onScaleChange?.(100);
+      const applyFitPageWidth = () => {
+        fitPdfViewerPageWidth(pdfViewer);
+        opts?.onScaleChange?.(Math.round((pdfViewer.currentScale ?? 1) * 100));
         const container = doc.getElementById('viewerContainer');
         if (container) container.scrollTop = 0;
       };
@@ -427,16 +438,20 @@ function patchViewerIframe(
         stripPdfViewerSeams(doc);
         pdfViewer.removePageBorders = true;
         doc.querySelector('.pdfViewer')?.classList.add('removePageBorders');
+        const isScan = detectScanLikePdf(doc);
+        opts?.onScanDetected?.(isScan);
+        if (opts?.layerSettings) {
+          applyPdfViewerLayers(doc, opts.layerSettings, { isScanLike: isScan });
+        }
         requestAnimationFrame(() => coverPageCanvasSeams(doc));
       };
 
       const onPagesReady = () => {
         refreshPages();
-        if (opts?.scaleOnLoad) applyScale100();
+        if (opts?.scaleOnLoad) applyFitPageWidth();
       };
 
       if (opts?.scaleOnLoad) {
-        applyScale100();
         if (app.eventBus) {
           app.eventBus.on('pagesinit', onPagesReady);
           app.eventBus.on('pagerendered', refreshPages);
@@ -525,6 +540,10 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
   const [showThumbnails, setShowThumbnails] = useState(true);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const [workspaceTool, setWorkspaceTool] = useState<WorkspaceInlineTool | null>(null);
+  const [layerSettings, setLayerSettings] = useState<PdfViewerLayerSettings>(() =>
+    loadPdfViewerLayerSettings(),
+  );
+  const [isScanLikePdf, setIsScanLikePdf] = useState(false);
 
   const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : ''), [file]);
 
@@ -572,8 +591,8 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     }
 
     if (direction === 'fit') {
-      pdfViewer.currentScale = snapPdfViewerScale(1);
-      setZoom(100);
+      fitPdfViewerPageWidth(pdfViewer);
+      setZoom(Math.round((pdfViewer.currentScale ?? 1) * 100));
       return;
     }
 
@@ -586,6 +605,15 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
   const handleZoomIn = useCallback(() => applyPdfZoom('in'), [applyPdfZoom]);
   const handleZoomOut = useCallback(() => applyPdfZoom('out'), [applyPdfZoom]);
 
+  const handleLayerSettingsChange = useCallback((next: PdfViewerLayerSettings) => {
+    setLayerSettings(next);
+    savePdfViewerLayerSettings(next);
+    const doc = editorIframeRef.current?.contentDocument;
+    if (doc) {
+      applyPdfViewerLayers(doc, next, { isScanLike: isScanLikePdf });
+    }
+  }, [isScanLikePdf]);
+
   const patchViewer = useCallback(
     (iframe: HTMLIFrameElement) => {
       const scaleOnLoad = !viewerFitAppliedRef.current;
@@ -594,10 +622,19 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
       patchViewerIframe(iframe, {
         scaleOnLoad,
         onScaleChange: setZoom,
+        layerSettings,
+        onScanDetected: setIsScanLikePdf,
       });
     },
-    [],
+    [layerSettings],
   );
+
+  useEffect(() => {
+    const doc = editorIframeRef.current?.contentDocument;
+    if (doc) {
+      applyPdfViewerLayers(doc, layerSettings, { isScanLike: isScanLikePdf });
+    }
+  }, [layerSettings, isScanLikePdf]);
 
   useEffect(() => {
     viewerFitAppliedRef.current = false;
@@ -851,7 +888,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     return (
       <section className="min-h-screen flex items-center justify-center" style={{ background: '#1e2028' }}>
         <div className="p-6 border border-white/10 rounded-xl max-w-xl text-center bg-black/20">
-          <div className="h-8 w-8 rounded-full border-2 border-blue-400 border-t-transparent animate-spin mx-auto mb-3" />
+          <div className="h-8 w-8 rounded-full border-2 border-[hsl(var(--color-primary))] border-t-transparent animate-spin mx-auto mb-3" />
           <p className="text-sm text-white/70">{t('opening')}</p>
         </div>
       </section>
@@ -897,7 +934,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
               >
                 {tab.label}
                 {active && (
-                  <span className="absolute bottom-0 left-1 right-1 h-[2px] bg-blue-400 rounded-t" />
+                  <span className="absolute bottom-0 left-1 right-1 h-[2px] bg-[hsl(var(--color-primary))] rounded-t" />
                 )}
               </button>
             );
@@ -961,6 +998,18 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
             </div>
           </div>
         ))}
+        {activeTab === 'home' && file ? (
+          <>
+            <div className="flex items-center px-2">
+              <div className="w-px h-10 bg-white/[0.08]" />
+            </div>
+            <PdfViewerLayerPanel
+              settings={layerSettings}
+              isScanLike={isScanLikePdf}
+              onChange={handleLayerSettingsChange}
+            />
+          </>
+        ) : null}
       </div>
       )}
 
@@ -971,7 +1020,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
           <aside className="w-[148px] shrink-0 flex flex-col bg-[#1e2028]">
             <div className="flex items-center justify-between gap-1.5 px-2 py-2 border-b border-white/[0.06] shrink-0">
               <label className="inline-flex flex-1 items-center justify-center rounded-md border border-dashed border-white/10 p-2 cursor-pointer hover:bg-white/[0.04] hover:border-white/20 transition-all">
-                <Upload className="h-4 w-4 text-blue-400/80" />
+                <Upload className="h-4 w-4 text-[hsl(var(--color-primary)/0.85)]" />
                 <span className="sr-only">{t('sidebar.newPdf')}</span>
                 <input type="file" accept=".pdf,application/pdf" className="hidden" onChange={(e) => handleFileChange(e.target.files?.[0] ?? null)} />
               </label>
@@ -1003,7 +1052,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
             {!previewUrl && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <label className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-white/15 bg-white/[0.03] px-8 py-10 text-center cursor-pointer hover:bg-white/[0.05] hover:border-white/25 transition-all">
-                  <Upload className="h-8 w-8 text-blue-300/80" />
+                  <Upload className="h-8 w-8 text-[hsl(var(--color-primary)/0.8)]" />
                   <div>
                     <div className="text-[13px] font-medium text-white/80">{t('upload.title')}</div>
                     <div className="mt-1 text-[11px] text-white/45">{t('upload.description')}</div>
@@ -1062,6 +1111,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
             file={file}
             pageCount={pageCount}
             onClose={() => setIsRightPanelOpen(false)}
+            pdfViewerIframeRef={editorIframeRef}
           />
         )}
       </div>
@@ -1102,7 +1152,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
                   const p = parseInt(e.target.value);
                   if (p >= 1 && p <= pageCount) handlePageSelect(p);
                 }}
-                className="w-6 h-5 text-center bg-white/[0.06] border border-white/[0.08] rounded text-[11px] text-white/80 focus:outline-none focus:border-blue-400/40"
+                className="w-6 h-5 text-center bg-white/[0.06] border border-white/[0.08] rounded text-[11px] text-white/80 focus:outline-none focus:border-[hsl(var(--color-primary)/0.45)]"
               />
               <span className="text-white/30">/</span>
               <span className="text-white/50 tabular-nums">{pageCount || '—'}</span>

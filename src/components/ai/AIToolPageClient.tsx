@@ -1,9 +1,24 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Upload, FileText, Loader2, Copy, Check, FileDown, Sparkles } from 'lucide-react';
+import {
+  FileText,
+  Loader2,
+  Copy,
+  Check,
+  Download,
+  Sparkles,
+  Send,
+  Volume2,
+  Play,
+  Pause,
+  Square,
+} from 'lucide-react';
+import { AiCenteredSpinner } from '@/components/ai/AiCenteredSpinner';
+import { AI_UI } from '@/lib/ai-ui-classes';
+import { isPdfNoExtractableTextError, buildPdfSpeechIndex } from '@/lib/pdf/extract-pdf-text';
+import { useDocumentSpeech } from '@/lib/hooks/useDocumentSpeech';
 import { WorkspaceAiMarkdown } from '@/components/workspace/WorkspaceAiMarkdown';
-import { markdownToPDF } from '@/lib/pdf/processors/markdown-to-pdf';
 import { useLocale, useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -14,10 +29,18 @@ import {
 } from '@/lib/workspace-ai-language-preference';
 import {
   WORKSPACE_SUMMARY_DETAIL_PRESETS,
+  WORKSPACE_CHAT_TOP_K_PRESETS,
   WORKSPACE_DEFAULT_PRESET_TIER,
+  WORKSPACE_AI_USER_KEY,
+  chatWithWorkspaceDocument,
+  summarizeWorkspaceDocument,
+  isWorkspaceChatNoContextAnswer,
+  getWorkspaceChatTopKPreset,
+  getWorkspaceSummaryDetailPreset,
+  getSpeechLangForWorkspaceAiAnswerLanguage,
   type WorkspacePresetTierId,
 } from '@/services/workspaceAiApi';
-import { chatWithPdf, smartOcrPdf, summarizePdf, translatePdf, voiceReaderPdf } from '@/services/aiApi';
+import { smartOcrPdf, summarizePdf, translatePdf } from '@/services/aiApi';
 
 type AIActionType = 'summary' | 'translate' | 'chat' | 'smartOcr' | 'voice';
 
@@ -36,14 +59,76 @@ type SummaryResult = {
   fileName?: string;
 };
 
-const ACTION_MAP: Record<Exclude<AIActionType, 'summary'>, (file: File) => Promise<unknown>> = {
+const ACTION_MAP: Record<Exclude<AIActionType, 'summary' | 'chat' | 'voice'>, (file: File) => Promise<unknown>> = {
   translate: translatePdf,
-  chat: chatWithPdf,
   smartOcr: smartOcrPdf,
-  voice: voiceReaderPdf,
 };
 
+const VOICE_SPEEDS = [0.85, 1, 1.15, 1.3] as const;
+
+type ChatMessage = { role: 'user' | 'assistant'; text: string };
+
+const WORKSPACE_AI_STORAGE_PREFIX = 'pdfcraft-workspace-ai:';
+
+type PersistedWorkspaceAi = {
+  documentId: number;
+  summaryText: string;
+  summaryTierId?: WorkspacePresetTierId;
+  chatTierId?: WorkspacePresetTierId;
+  answerLanguage?: string;
+};
+
+function getWorkspaceFileKey(file: File): string {
+  return `${file.name}:${file.size}:${file.lastModified}`;
+}
+
+function loadPersistedWorkspaceAi(file: File): PersistedWorkspaceAi | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(WORKSPACE_AI_STORAGE_PREFIX + getWorkspaceFileKey(file));
+    if (!raw) return null;
+    const data = JSON.parse(raw) as PersistedWorkspaceAi;
+    if (typeof data.documentId !== 'number' || Number.isNaN(data.documentId)) return null;
+    if (typeof data.summaryText !== 'string' || !data.summaryText.trim()) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+function savePersistedWorkspaceAi(file: File, data: PersistedWorkspaceAi): void {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.setItem(
+      WORKSPACE_AI_STORAGE_PREFIX + getWorkspaceFileKey(file),
+      JSON.stringify(data),
+    );
+  } catch {
+    // ignore
+  }
+}
+
 const SUMMARY_STORAGE_KEY = 'pdfcraft-ai-summary-last';
+const PDF_PREVIEW_HEIGHT = 'h-[220px]';
+const VOICE_PDF_PREVIEW_HEIGHT = 'h-[min(48vh,520px)]';
+const AI_MODEL_LABEL =
+  process.env.NEXT_PUBLIC_WORKSPACE_AI_MODEL_LABEL?.trim() || 'PDFCraft Document AI';
+
+function countSummaryWords(text: string): number {
+  const trimmed = text.trim();
+  if (!trimmed) return 0;
+  const segments = trimmed.split(/\s+/).filter(Boolean);
+  if (segments.length > 1) return segments.length;
+  return Math.max(1, Math.ceil(trimmed.length / 6));
+}
+
+function formatSummaryTime(ms: number, locale: string): string {
+  return new Date(ms).toLocaleTimeString(locale === 'vi' ? 'vi-VN' : undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+}
 
 type StoredSummary = {
   fileName: string;
@@ -91,9 +176,46 @@ function getSummaryTextFromResult(result: unknown): string {
   return (r.summary ?? r.markdown ?? '').trim();
 }
 
+/** Nút primary đỏ (pill) — icon Sparkles giống panel workspace */
+function AiGradientButton({
+  busy,
+  label,
+  showSparkles = true,
+  disabled,
+  onClick,
+  className = 'mt-3 w-full',
+}: {
+  busy: boolean;
+  label: string;
+  showSparkles?: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  className?: string;
+}) {
+  return (
+    <Button
+      variant="primary"
+      size="md"
+      className={`${className} ${AI_UI.gradientBtn}`}
+      onClick={onClick}
+      disabled={disabled}
+    >
+      {busy ? (
+        <Loader2 className={`h-5 w-5 animate-spin shrink-0 ${AI_UI.spinner}`} aria-hidden />
+      ) : (
+        <span className="inline-flex items-center justify-center gap-1.5">
+          {showSparkles ? <Sparkles className="h-4 w-4 shrink-0" strokeWidth={2.25} /> : null}
+          <span>{label}</span>
+        </span>
+      )}
+    </Button>
+  );
+}
+
 export default function AIToolPageClient({ title, description, actionLabel, actionType }: AIToolPageClientProps) {
   const locale = useLocale();
-  const tWorkspace = useTranslations('workspace');
+  const t = useTranslations('workspace');
+  const tWorkspace = t;
   const [file, setFile] = useState<File | null>(null);
   const [result, setResult] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
@@ -102,9 +224,35 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
   const [answerLanguage, setAnswerLanguage] = useState(() => loadWorkspaceAiAnswerLanguage(locale));
   const [restoredHint, setRestoredHint] = useState<string | null>(null);
   const [copyDone, setCopyDone] = useState(false);
-  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [summaryGeneratedAt, setSummaryGeneratedAt] = useState<number | null>(null);
+  const [uploadDragOver, setUploadDragOver] = useState(false);
+  const [documentId, setDocumentId] = useState<number | null>(null);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatTierId, setChatTierId] = useState<WorkspacePresetTierId>(WORKSPACE_DEFAULT_PRESET_TIER);
+  const [isPreparingChat, setIsPreparingChat] = useState(false);
+  const [isChatThinking, setIsChatThinking] = useState(false);
+  const [chatHint, setChatHint] = useState<string | null>(null);
+  const [voiceSummaryText, setVoiceSummaryText] = useState<string | null>(null);
+  const [isPreparingVoice, setIsPreparingVoice] = useState(false);
+  const [voiceHint, setVoiceHint] = useState<string | null>(null);
+  const [voiceRate, setVoiceRate] = useState(1);
+
+  const speech = useDocumentSpeech();
 
   const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : ''), [file]);
+  const isSummaryPage = actionType === 'summary';
+  const isChatPage = actionType === 'chat';
+  const isVoicePage = actionType === 'voice';
+  const isDenseAiPage = isSummaryPage || isChatPage || isVoicePage;
+  const speechLang = useMemo(
+    () => getSpeechLangForWorkspaceAiAnswerLanguage(answerLanguage),
+    [answerLanguage],
+  );
+  const voiceReady = Boolean(voiceSummaryText?.trim());
+  const chatReady = documentId != null;
+  const chatPreset = getWorkspaceChatTopKPreset(chatTierId);
+  const summaryPreset = getWorkspaceSummaryDetailPreset(summaryTierId);
 
   useEffect(() => {
     return () => {
@@ -128,10 +276,11 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
       fileName: stored.fileName,
     });
     if (stored.answerLanguage) setAnswerLanguage(stored.answerLanguage);
+    setSummaryGeneratedAt(stored.savedAt);
     setRestoredHint(
-      `Tóm tắt đã lưu cho «${stored.fileName}» (${new Date(stored.savedAt).toLocaleTimeString('vi-VN')}). Chọn lại file để xem preview.`,
+      t('aiSummaryPage.restoredFileHint', { name: stored.fileName }),
     );
-  }, [actionType]);
+  }, [actionType, t]);
 
   const restoreSummaryForFile = useCallback((target: File) => {
     const stored = loadStoredSummary();
@@ -148,25 +297,275 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
       documentId: stored.documentId,
       fileName: stored.fileName,
     });
-    setRestoredHint(
-      `Đã khôi phục tóm tắt lúc ${new Date(stored.savedAt).toLocaleTimeString('vi-VN')}.`,
-    );
-  }, []);
+    setSummaryGeneratedAt(stored.savedAt);
+    setRestoredHint(t('aiSummaryPage.restoredAt', { time: formatSummaryTime(stored.savedAt, locale) }));
+  }, [locale, t]);
 
   const handleFileSelect = useCallback(
     (next: File | null) => {
       setFile(next);
       setError(null);
       setRestoredHint(null);
+      setChatHint(null);
+      setVoiceHint(null);
+      speech.stop();
       if (!next) {
         setResult(null);
+        setDocumentId(null);
+        setChatMessages([]);
+        setVoiceSummaryText(null);
         return;
       }
       setResult(null);
-      if (actionType === 'summary') restoreSummaryForFile(next);
+      setDocumentId(null);
+      setChatMessages([]);
+      setVoiceSummaryText(null);
+      if (actionType === 'summary') {
+        restoreSummaryForFile(next);
+      } else if (actionType === 'chat') {
+        const stored = loadPersistedWorkspaceAi(next);
+        if (stored) {
+          setDocumentId(stored.documentId);
+          if (stored.chatTierId) setChatTierId(stored.chatTierId);
+          if (stored.answerLanguage) setAnswerLanguage(stored.answerLanguage);
+          setChatHint(t('aiChatPage.documentReady'));
+          setRestoredHint(t('aiChatPage.restoredFileHint', { name: next.name }));
+        }
+      } else if (actionType === 'voice') {
+        setVoiceHint(null);
+        setRestoredHint(null);
+      }
     },
-    [actionType, restoreSummaryForFile],
+    [actionType, restoreSummaryForFile, speech, t],
   );
+
+  const applyVoiceReadiness = useCallback(
+    (text: string, newDocumentId: number | null, hintKey: 'fallbackReadHint' | null) => {
+      setVoiceSummaryText(text);
+      setDocumentId(newDocumentId);
+      setError(null);
+      setVoiceHint(hintKey ? t(`aiVoicePage.${hintKey}`) : null);
+      saveWorkspaceAiAnswerLanguage(answerLanguage, locale);
+      if (newDocumentId != null) {
+        savePersistedWorkspaceAi(file!, {
+          documentId: newDocumentId,
+          summaryText: text,
+          summaryTierId,
+          answerLanguage,
+        });
+      }
+    },
+    [answerLanguage, file, locale, summaryTierId, t],
+  );
+
+  const prepareVoiceDocument = useCallback(async () => {
+    if (!file) return;
+    setIsPreparingVoice(true);
+    setError(null);
+      setVoiceHint(null);
+      speech.stop();
+      setVoiceSummaryText(null);
+      setDocumentId(null);
+
+    try {
+      const { text } = await buildPdfSpeechIndex(file);
+      if (text.trim()) {
+        applyVoiceReadiness(text, null, null);
+        return;
+      }
+
+      const { text: apiText, documentId: newId } = await summarizeWorkspaceDocument(file, {
+        detail: summaryPreset.detail,
+        userKey: WORKSPACE_AI_USER_KEY,
+        language: answerLanguage,
+      });
+      if (!apiText.trim()) {
+        setError(t('aiVoicePage.noExtractableText'));
+        return;
+      }
+      applyVoiceReadiness(apiText, newId, 'fallbackReadHint');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      if (isPdfNoExtractableTextError(msg)) {
+        try {
+          const { text: retryText } = await buildPdfSpeechIndex(file);
+          if (retryText.trim()) {
+            applyVoiceReadiness(retryText, null, null);
+            return;
+          }
+        } catch {
+          // ignore
+        }
+        setError(t('aiVoicePage.noExtractableText'));
+        return;
+      }
+      setError(msg || t('aiPanel.summaryError'));
+    } finally {
+      setIsPreparingVoice(false);
+    }
+  }, [file, summaryPreset.detail, answerLanguage, applyVoiceReadiness, speech, t]);
+
+  const voiceFileKey = file ? getWorkspaceFileKey(file) : '';
+
+  useEffect(() => {
+    if (!isVoicePage || !file) return;
+    void prepareVoiceDocument();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- chuẩn bị lại khi đổi file
+  }, [isVoicePage, voiceFileKey]);
+
+  const voiceStatusLabel = useMemo(() => {
+    if (!speech.supported) return t('aiPanel.voice.unsupported');
+    if (speech.isPaused) return t('aiPanel.voice.statusPaused');
+    if (speech.isPlaying) return t('aiPanel.voice.statusPlaying');
+    return t('aiPanel.voice.statusIdle');
+  }, [speech.isPaused, speech.isPlaying, speech.supported, t]);
+
+  const startVoiceReading = useCallback(
+    (rate: number) => {
+      const text = voiceSummaryText?.trim();
+      if (!text) {
+        setError(t('aiVoicePage.noExtractableText'));
+        return;
+      }
+      if (!speech.supported) {
+        setError(t('aiPanel.voice.unsupported'));
+        return;
+      }
+      setError(null);
+      speech.speakFresh(text, speechLang, rate);
+    },
+    [voiceSummaryText, speech, speechLang, t],
+  );
+
+  const handleVoiceToggle = useCallback(() => {
+    if (speech.isPaused) {
+      speech.resume();
+      return;
+    }
+    if (speech.isPlaying) {
+      speech.pause();
+      return;
+    }
+    startVoiceReading(voiceRate);
+  }, [speech, startVoiceReading, voiceRate]);
+
+  const handleVoiceSpeedChange = useCallback(
+    (rate: number) => {
+      setVoiceRate(rate);
+      if (!voiceSummaryText?.trim()) return;
+      if (!(speech.isActive || speech.isSynthSpeaking())) return;
+      speech.continueAtRate(rate, voiceSummaryText, speechLang);
+    },
+    [speech, speechLang, voiceSummaryText],
+  );
+
+  const prepareChatDocument = useCallback(async () => {
+    if (!file) return;
+    setIsPreparingChat(true);
+    setError(null);
+    setChatHint(null);
+    setDocumentId(null);
+    setChatMessages([]);
+    try {
+      const { text, documentId: newId } = await summarizeWorkspaceDocument(file, {
+        detail: summaryPreset.detail,
+        userKey: WORKSPACE_AI_USER_KEY,
+        language: answerLanguage,
+      });
+      if (newId == null) {
+        setError(t('aiPanel.summaryMissingDocumentId'));
+        return;
+      }
+      setDocumentId(newId);
+      savePersistedWorkspaceAi(file, {
+        documentId: newId,
+        summaryText: text,
+        summaryTierId,
+        chatTierId,
+        answerLanguage,
+      });
+      saveWorkspaceAiAnswerLanguage(answerLanguage, locale);
+      setChatHint(t('aiChatPage.documentReady'));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('aiPanel.summaryError'));
+    } finally {
+      setIsPreparingChat(false);
+    }
+  }, [file, summaryPreset.detail, answerLanguage, summaryTierId, chatTierId, locale, t]);
+
+  const handleSendChatMessage = useCallback(async () => {
+    const content = chatInput.trim();
+    if (!content || isChatThinking || !file) return;
+    if (documentId == null) {
+      setError(t('aiPanel.noDocumentId'));
+      setChatHint(t('aiPanel.runSummaryForChat'));
+      return;
+    }
+
+    setChatMessages((prev) => [...prev, { role: 'user', text: content }]);
+    setChatInput('');
+    setIsChatThinking(true);
+    setError(null);
+    setChatHint(null);
+
+    try {
+      const chatOpts = {
+        question: content,
+        topK: chatPreset.topK,
+        userKey: WORKSPACE_AI_USER_KEY,
+        language: answerLanguage,
+      };
+
+      let activeDocId = documentId;
+      let answer = await chatWithWorkspaceDocument({ ...chatOpts, documentId: activeDocId });
+
+      if (isWorkspaceChatNoContextAnswer(answer)) {
+        setChatHint(t('aiPanel.chatReindexing'));
+        setDocumentId(null);
+        const refreshed = await summarizeWorkspaceDocument(file, {
+          detail: summaryPreset.detail,
+          userKey: WORKSPACE_AI_USER_KEY,
+          language: answerLanguage,
+        });
+        if (refreshed.documentId != null) {
+          activeDocId = refreshed.documentId;
+          setDocumentId(refreshed.documentId);
+          savePersistedWorkspaceAi(file, {
+            documentId: refreshed.documentId,
+            summaryText: refreshed.text,
+            summaryTierId,
+            chatTierId,
+            answerLanguage,
+          });
+          answer = await chatWithWorkspaceDocument({ ...chatOpts, documentId: activeDocId });
+        }
+      }
+
+      if (isWorkspaceChatNoContextAnswer(answer)) {
+        setError(t('aiPanel.chatNoContext'));
+        setChatHint(t('aiPanel.chatNoContextHint'));
+      }
+
+      setChatMessages((prev) => [...prev, { role: 'assistant', text: answer }]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : t('aiPanel.chatError');
+      setError(msg);
+      setChatMessages((prev) => [...prev, { role: 'assistant', text: msg }]);
+    } finally {
+      setIsChatThinking(false);
+    }
+  }, [
+    chatInput,
+    chatPreset.topK,
+    documentId,
+    file,
+    isChatThinking,
+    answerLanguage,
+    summaryPreset.detail,
+    summaryTierId,
+    chatTierId,
+    t,
+  ]);
 
   async function handleRun() {
     if (!file) return;
@@ -185,6 +584,8 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
         setResult(withMeta);
         const text = getSummaryTextFromResult(withMeta);
         if (text) {
+          const at = Date.now();
+          setSummaryGeneratedAt(at);
           saveStoredSummary(
             file,
             text,
@@ -193,7 +594,7 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
           );
           saveWorkspaceAiAnswerLanguage(answerLanguage, locale);
         }
-      } else {
+      } else if (actionType !== 'chat' && actionType !== 'voice') {
         const data = await ACTION_MAP[actionType](file);
         setResult(data);
       }
@@ -206,10 +607,6 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
   }
 
   const summaryText = getSummaryTextFromResult(result);
-  const summaryDocId =
-    result && typeof result === 'object'
-      ? ((result as SummaryResult).document_id ?? (result as SummaryResult).documentId ?? null)
-      : null;
   const summarySourceName =
     file?.name ??
     (result && typeof result === 'object' ? (result as SummaryResult).fileName : undefined) ??
@@ -226,227 +623,769 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
     }
   }, [summaryText, tWorkspace]);
 
-  const handleExportSummaryPdf = useCallback(async () => {
+  const handleDownloadSummary = useCallback(() => {
     if (!summaryText.trim()) return;
-    setIsExportingPdf(true);
-    setError(null);
     try {
       const base = summarySourceName.replace(/\.pdf$/i, '') || 'document';
-      const mdFile = new File([summaryText], `${base}-summary.md`, { type: 'text/markdown' });
-      const out = await markdownToPDF(mdFile, { theme: 'light', gfm: true });
-      if (!out.success || !out.result) {
-        throw new Error(out.error?.message ?? tWorkspace('aiPanel.exportFailed'));
-      }
-      const blob = Array.isArray(out.result) ? out.result[0] : out.result;
+      const blob = new Blob([summaryText], { type: 'text/markdown;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = out.filename ?? `${base}-summary.pdf`;
+      a.download = `${base}-tom-tat.md`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      setError(err instanceof Error ? err.message : tWorkspace('aiPanel.exportFailed'));
-    } finally {
-      setIsExportingPdf(false);
+      setError(err instanceof Error ? err.message : t('aiSummaryPage.downloadFailed'));
     }
-  }, [summarySourceName, summaryText, tWorkspace]);
+  }, [summarySourceName, summaryText, t]);
 
-  const isSummaryPage = actionType === 'summary';
-  /** Có tóm tắt → thu nhỏ preview PDF, ưu tiên vùng kết quả */
-  const compactPreview = isSummaryPage && Boolean(summaryText) && !loading;
+  const summaryWordCount = countSummaryWords(summaryText);
+  const modelLabel = t('aiSummaryPage.modelLabel');
+
+  const pickFileFromDrop = useCallback(
+    (list: FileList | null) => {
+      const next = list?.[0];
+      if (next && (next.type === 'application/pdf' || next.name.toLowerCase().endsWith('.pdf'))) {
+        handleFileSelect(next);
+      }
+    },
+    [handleFileSelect],
+  );
 
   return (
-    <section className="pt-28 pb-16 bg-[hsl(var(--color-muted)/0.2)] min-h-[calc(100vh-220px)]">
+    <section
+      className={`${
+        isDenseAiPage ? 'pt-24 pb-10' : 'pt-28 pb-16'
+      } bg-[hsl(var(--color-muted)/0.2)] min-h-[calc(100vh-220px)]`}
+    >
       <div className="container mx-auto px-4 max-w-7xl">
-        <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-[hsl(var(--color-foreground))]">{title}</h1>
-          <p className="mt-2 text-[hsl(var(--color-muted-foreground))]">{description}</p>
+        <div className={isDenseAiPage ? 'mb-4' : 'mb-6'}>
+          <h1
+            className={
+              isDenseAiPage
+                ? 'text-lg font-semibold tracking-tight text-[hsl(var(--color-foreground))]'
+                : 'text-2xl md:text-3xl font-bold text-[hsl(var(--color-foreground))]'
+            }
+          >
+            {title}
+          </h1>
+          <p
+            className={
+              isDenseAiPage
+                ? 'mt-0.5 text-sm leading-snug text-[hsl(var(--color-muted-foreground))]'
+                : 'mt-1.5 text-[hsl(var(--color-muted-foreground))]'
+            }
+          >
+            {description}
+          </p>
         </div>
 
         <div
           className={
-            isSummaryPage
+            isDenseAiPage
               ? 'grid grid-cols-1 xl:grid-cols-[minmax(300px,380px)_1fr] gap-6 items-start'
               : 'grid grid-cols-1 lg:grid-cols-2 gap-6'
           }
         >
-          <Card className="p-6 border border-[hsl(var(--color-border)/0.7)]">
-            <label className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[hsl(var(--color-border))] p-8 cursor-pointer hover:border-[hsl(var(--color-primary)/0.5)] transition-colors">
-              <Upload className="h-10 w-10 text-[hsl(var(--color-primary))]" />
-              <span className="mt-3 font-medium">Upload PDF file</span>
-              <span className="text-sm text-[hsl(var(--color-muted-foreground))]">
-                Select one PDF for AI processing
-              </span>
-              <input
-                type="file"
-                className="hidden"
-                accept=".pdf,application/pdf"
-                onChange={(e) => handleFileSelect(e.target.files?.[0] ?? null)}
-              />
-            </label>
-
-            {file && (
-              <div className="mt-4 rounded-lg border border-[hsl(var(--color-border))] p-3 flex items-center gap-2">
-                <FileText className="h-4 w-4 shrink-0" />
-                <span className="text-sm truncate">{file.name}</span>
-              </div>
-            )}
-
-            {actionType === 'summary' && (
-              <div className="mt-4 space-y-2 rounded-lg border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.2)] p-3">
-                <WorkspaceAiLanguageSelect
-                  compact
-                  variant="light"
-                  label={tWorkspace('aiPanel.answerLanguage.label')}
-                  value={answerLanguage}
-                  onChange={(lang) => {
-                    setAnswerLanguage(lang);
-                    saveWorkspaceAiAnswerLanguage(lang, locale);
+          <Card
+            className={`border border-[hsl(var(--color-border)/0.7)] ${
+              isDenseAiPage ? 'p-4 xl:sticky xl:top-28' : 'p-6'
+            }`}
+          >
+            {isSummaryPage ? (
+              <>
+                <label
+                  className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 cursor-pointer transition-all ${
+                    uploadDragOver
+                      ? 'border-[hsl(var(--color-primary))] bg-[hsl(var(--color-primary)/0.06)]'
+                      : 'border-[hsl(var(--color-border))] hover:border-[hsl(var(--color-primary)/0.45)] hover:bg-[hsl(var(--color-muted)/0.25)]'
+                  }`}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setUploadDragOver(true);
                   }}
-                  disabled={loading}
-                />
-                <p className="text-[10px] text-[hsl(var(--color-muted-foreground))] pt-0.5">
-                  {tWorkspace('aiPanel.summaryDetail.label')}
-                </p>
-                <div className="flex gap-1">
-                  {WORKSPACE_SUMMARY_DETAIL_PRESETS.map((preset) => (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      disabled={loading}
-                      onClick={() => setSummaryTierId(preset.id)}
-                      className={`flex-1 rounded-lg py-1.5 text-[11px] font-medium border transition-all disabled:opacity-40 ${
-                        summaryTierId === preset.id
-                          ? 'bg-[hsl(var(--color-primary)/0.15)] border-[hsl(var(--color-primary)/0.4)] text-[hsl(var(--color-primary))]'
-                          : 'border-[hsl(var(--color-border))] text-[hsl(var(--color-muted-foreground))] hover:bg-[hsl(var(--color-muted))]/50'
-                      }`}
-                    >
-                      {preset.id === 'light' ? 'Gọn' : preset.id === 'balanced' ? 'Vừa' : 'Sâu'}
-                    </button>
-                  ))}
+                  onDragLeave={() => setUploadDragOver(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setUploadDragOver(false);
+                    pickFileFromDrop(e.dataTransfer.files);
+                  }}
+                >
+                  <span className="text-3xl leading-none select-none" aria-hidden>
+                    📄✨
+                  </span>
+                  <span className="mt-3 text-[15px] font-semibold text-[hsl(var(--color-foreground))]">
+                    {t('aiSummaryPage.uploadTitle')}
+                  </span>
+                  <span className="mt-1 text-center text-[12px] text-[hsl(var(--color-muted-foreground))] max-w-[240px] leading-snug">
+                    {t('aiSummaryPage.uploadSubtitle')}
+                  </span>
+                  <span className="mt-3 text-[11px] font-medium text-[hsl(var(--color-primary))]">
+                    {t('aiSummaryPage.uploadDropHint')}
+                  </span>
+                  <span className="mt-1 text-[10px] text-[hsl(var(--color-muted-foreground))]">
+                    {t('aiSummaryPage.uploadFormats')}
+                  </span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,application/pdf"
+                    onChange={(e) => handleFileSelect(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+
+                {file && (
+                  <div className="mt-3 flex items-center gap-2 rounded-lg border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.15)] px-3 py-2">
+                    <FileText className="h-4 w-4 shrink-0 text-[hsl(var(--color-primary))]" />
+                    <span className="text-[12px] truncate font-medium">{file.name}</span>
+                  </div>
+                )}
+
+                <div className="mt-3 rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.12)] p-3 space-y-3">
+                  <WorkspaceAiLanguageSelect
+                    compact
+                    variant="light"
+                    label={t('aiPanel.answerLanguage.label')}
+                    value={answerLanguage}
+                    onChange={(lang) => {
+                      setAnswerLanguage(lang);
+                      saveWorkspaceAiAnswerLanguage(lang, locale);
+                    }}
+                    disabled={loading}
+                  />
+                  <div>
+                    <p className="text-[11px] font-medium text-[hsl(var(--color-foreground))] mb-1.5">
+                      {t('aiPanel.summaryDetail.label')}
+                    </p>
+                    <div className="flex gap-1">
+                      {WORKSPACE_SUMMARY_DETAIL_PRESETS.map((preset) => (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          disabled={loading}
+                          onClick={() => setSummaryTierId(preset.id)}
+                          className={`flex-1 rounded-lg py-1.5 text-[11px] font-medium border transition-all disabled:opacity-40 ${
+                            summaryTierId === preset.id
+                              ? 'bg-[hsl(var(--color-primary)/0.15)] border-[hsl(var(--color-primary)/0.4)] text-[hsl(var(--color-primary))]'
+                              : 'border-[hsl(var(--color-border))] text-[hsl(var(--color-muted-foreground))] hover:bg-[hsl(var(--color-muted))]/50'
+                          }`}
+                        >
+                          {t(`aiPanel.summaryDetail.${preset.id}.title`)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
 
-            <Button
-              variant="primary"
-              size="lg"
-              className="mt-4 w-full"
-              onClick={() => void handleRun()}
-              disabled={!file || loading}
-            >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2 inline" /> : null}
-              {loading && actionType === 'summary' ? 'Đang tóm tắt (1–2 phút)…' : actionLabel}
-            </Button>
+                <AiGradientButton
+                  busy={loading}
+                  label={t('aiPanel.generateSummary')}
+                  onClick={() => void handleRun()}
+                  disabled={!file || loading}
+                />
 
-            {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
-            {!file && actionType === 'summary' && (
-              <p className="mt-2 text-xs text-[hsl(var(--color-muted-foreground))]">
-                Chọn file PDF trước khi bấm tóm tắt.
-              </p>
+                {error && <p className="mt-2 text-[12px] text-red-500 leading-snug">{error}</p>}
+                {!file && (
+                  <p className="mt-2 text-[11px] text-[hsl(var(--color-muted-foreground))]">
+                    {t('aiToolPage.selectFileFirst')}
+                  </p>
+                )}
+              </>
+            ) : isChatPage ? (
+              <>
+                <label
+                  className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 cursor-pointer transition-all ${
+                    uploadDragOver
+                      ? 'border-[hsl(var(--color-primary))] bg-[hsl(var(--color-primary)/0.06)]'
+                      : 'border-[hsl(var(--color-border))] hover:border-[hsl(var(--color-primary)/0.45)] hover:bg-[hsl(var(--color-muted)/0.25)]'
+                  }`}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setUploadDragOver(true);
+                  }}
+                  onDragLeave={() => setUploadDragOver(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setUploadDragOver(false);
+                    pickFileFromDrop(e.dataTransfer.files);
+                  }}
+                >
+                  <span className="text-3xl leading-none select-none" aria-hidden>
+                    📄💬
+                  </span>
+                  <span className="mt-3 text-[15px] font-semibold text-[hsl(var(--color-foreground))]">
+                    {t('aiSummaryPage.uploadTitle')}
+                  </span>
+                  <span className="mt-1 text-center text-[12px] text-[hsl(var(--color-muted-foreground))] max-w-[240px] leading-snug">
+                    {t('aiChatPage.uploadSubtitle')}
+                  </span>
+                  <span className="mt-3 text-[11px] font-medium text-[hsl(var(--color-primary))]">
+                    {t('aiSummaryPage.uploadDropHint')}
+                  </span>
+                  <span className="mt-1 text-[10px] text-[hsl(var(--color-muted-foreground))]">
+                    {t('aiSummaryPage.uploadFormats')}
+                  </span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,application/pdf"
+                    onChange={(e) => handleFileSelect(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+
+                {file && (
+                  <div className="mt-3 flex items-center gap-2 rounded-lg border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.15)] px-3 py-2">
+                    <FileText className="h-4 w-4 shrink-0 text-[hsl(var(--color-primary))]" />
+                    <span className="text-[12px] truncate font-medium">{file.name}</span>
+                  </div>
+                )}
+
+                <div className="mt-3 rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.12)] p-3 space-y-3">
+                  <WorkspaceAiLanguageSelect
+                    compact
+                    variant="light"
+                    label={t('aiPanel.answerLanguage.label')}
+                    value={answerLanguage}
+                    onChange={(lang) => {
+                      setAnswerLanguage(lang);
+                      saveWorkspaceAiAnswerLanguage(lang, locale);
+                    }}
+                    disabled={isPreparingChat || isChatThinking}
+                  />
+                  {chatReady && (
+                    <div>
+                      <p className="text-[11px] font-medium text-[hsl(var(--color-foreground))] mb-1.5">
+                        {t('aiPanel.chatContext.label')}
+                      </p>
+                      <div className="flex gap-1">
+                        {WORKSPACE_CHAT_TOP_K_PRESETS.map((preset) => (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            disabled={isPreparingChat || isChatThinking}
+                            onClick={() => setChatTierId(preset.id)}
+                            className={`flex-1 rounded-lg py-1.5 text-[11px] font-medium border transition-all disabled:opacity-40 ${
+                              chatTierId === preset.id
+                                ? 'bg-[hsl(var(--color-primary)/0.15)] border-[hsl(var(--color-primary)/0.4)] text-[hsl(var(--color-primary))]'
+                                : 'border-[hsl(var(--color-border))] text-[hsl(var(--color-muted-foreground))] hover:bg-[hsl(var(--color-muted))]/50'
+                            }`}
+                          >
+                            {t(`aiPanel.chatContext.${preset.id}.title`)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {!chatReady && file && (
+                  <p className="mt-3 text-[11px] text-[hsl(var(--color-muted-foreground))] leading-snug">
+                    {t('aiToolPage.prepareHint')}
+                  </p>
+                )}
+
+                <AiGradientButton
+                  busy={isPreparingChat}
+                  label={
+                    chatReady ? t('aiPanel.chatReady') : t('aiPanel.voice.prepareButton')
+                  }
+                  showSparkles={!chatReady}
+                  onClick={() => void prepareChatDocument()}
+                  disabled={!file || isPreparingChat || isChatThinking}
+                />
+
+                {chatHint && !error && (
+                  <p className="mt-2 text-[11px] text-[hsl(var(--color-primary))] leading-snug">{chatHint}</p>
+                )}
+                {error && <p className="mt-2 text-[12px] text-red-500 leading-snug">{error}</p>}
+                {restoredHint && (
+                  <p className="mt-2 text-[11px] text-[hsl(var(--color-muted-foreground))] leading-snug">
+                    {restoredHint}
+                  </p>
+                )}
+                {!file && (
+                  <p className="mt-2 text-[11px] text-[hsl(var(--color-muted-foreground))]">
+                    {t('aiToolPage.selectFileFirst')}
+                  </p>
+                )}
+              </>
+            ) : isVoicePage ? (
+              <>
+                <label
+                  className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 cursor-pointer transition-all ${
+                    uploadDragOver
+                      ? 'border-[hsl(var(--color-primary))] bg-[hsl(var(--color-primary)/0.06)]'
+                      : 'border-[hsl(var(--color-border))] hover:border-[hsl(var(--color-primary)/0.45)] hover:bg-[hsl(var(--color-muted)/0.25)]'
+                  }`}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setUploadDragOver(true);
+                  }}
+                  onDragLeave={() => setUploadDragOver(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setUploadDragOver(false);
+                    pickFileFromDrop(e.dataTransfer.files);
+                  }}
+                >
+                  <span className="text-3xl leading-none select-none" aria-hidden>
+                    📄🔊
+                  </span>
+                  <span className="mt-3 text-[15px] font-semibold text-[hsl(var(--color-foreground))]">
+                    {t('aiSummaryPage.uploadTitle')}
+                  </span>
+                  <span className="mt-1 text-center text-[12px] text-[hsl(var(--color-muted-foreground))] max-w-[240px] leading-snug">
+                    {t('aiVoicePage.uploadSubtitle')}
+                  </span>
+                  <span className="mt-3 text-[11px] font-medium text-[hsl(var(--color-primary))]">
+                    {t('aiSummaryPage.uploadDropHint')}
+                  </span>
+                  <span className="mt-1 text-[10px] text-[hsl(var(--color-muted-foreground))]">
+                    {t('aiSummaryPage.uploadFormats')}
+                  </span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,application/pdf"
+                    onChange={(e) => handleFileSelect(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+
+                {file && (
+                  <div className="mt-3 flex items-center gap-2 rounded-lg border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.15)] px-3 py-2">
+                    <FileText className="h-4 w-4 shrink-0 text-[hsl(var(--color-primary))]" />
+                    <span className="text-[12px] truncate font-medium">{file.name}</span>
+                  </div>
+                )}
+
+                <div className="mt-3 rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.12)] p-3">
+                  <WorkspaceAiLanguageSelect
+                    compact
+                    variant="light"
+                    label={t('aiPanel.answerLanguage.label')}
+                    value={answerLanguage}
+                    onChange={(lang) => {
+                      setAnswerLanguage(lang);
+                      saveWorkspaceAiAnswerLanguage(lang, locale);
+                      if ((speech.isActive || speech.isSynthSpeaking()) && voiceSummaryText?.trim()) {
+                        speech.continueAtRate(
+                          voiceRate,
+                          voiceSummaryText,
+                          getSpeechLangForWorkspaceAiAnswerLanguage(lang),
+                        );
+                      }
+                    }}
+                    disabled={isPreparingVoice || (speech.isPlaying && !speech.isPaused)}
+                  />
+                </div>
+
+                {voiceHint && !error && (
+                  <p className="mt-2 text-[11px] text-[hsl(var(--color-primary))] leading-snug">{voiceHint}</p>
+                )}
+                {error && <p className="mt-2 text-[12px] text-red-500 leading-snug">{error}</p>}
+                {restoredHint && (
+                  <p className="mt-2 text-[11px] text-[hsl(var(--color-muted-foreground))] leading-snug">
+                    {restoredHint}
+                  </p>
+                )}
+                {!file && (
+                  <p className="mt-2 text-[11px] text-[hsl(var(--color-muted-foreground))]">
+                    {t('aiToolPage.selectFileFirst')}
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                <label className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[hsl(var(--color-border))] p-8 cursor-pointer hover:border-[hsl(var(--color-primary)/0.5)] transition-colors">
+                  <span className="mt-3 font-medium">Upload PDF file</span>
+                  <span className="text-sm text-[hsl(var(--color-muted-foreground))]">
+                    Select one PDF for AI processing
+                  </span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,application/pdf"
+                    onChange={(e) => handleFileSelect(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  className="mt-4 w-full"
+                  onClick={() => void handleRun()}
+                  disabled={!file || loading}
+                >
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2 inline" /> : null}
+                  {actionLabel}
+                </Button>
+                {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
+              </>
             )}
           </Card>
 
           {isSummaryPage ? (
-            <div className="flex flex-col gap-3 min-h-[min(68vh,680px)]">
+            <div className="flex flex-col gap-3 min-h-[min(70vh,760px)]">
               <Card className="p-3 border border-[hsl(var(--color-border)/0.7)] shrink-0">
-                <h2 className="text-xs font-semibold text-[hsl(var(--color-foreground))] mb-1.5">
-                  {tWorkspace('aiPanel.previewPdf')}
+                <h2 className="text-[11px] font-semibold uppercase tracking-wide text-[hsl(var(--color-muted-foreground))] mb-2">
+                  {t('aiPanel.previewPdf')}
                 </h2>
                 {previewUrl ? (
                   <iframe
                     src={previewUrl}
-                    className={`w-full rounded-md border border-[hsl(var(--color-border))] transition-[height] duration-300 ${
-                      compactPreview ? 'h-52 md:h-56' : 'h-[28rem] md:h-[32rem]'
-                    }`}
+                    className={`w-full rounded-lg border border-[hsl(var(--color-border))] ${PDF_PREVIEW_HEIGHT}`}
                     title="PDF preview"
                   />
                 ) : (
                   <div
-                    className={`rounded-md border border-dashed border-[hsl(var(--color-border))] flex items-center justify-center text-xs text-[hsl(var(--color-muted-foreground))] ${
-                      compactPreview ? 'h-52 md:h-56' : 'h-[28rem] md:h-[32rem]'
-                    }`}
+                    className={`rounded-lg border border-dashed border-[hsl(var(--color-border))] flex items-center justify-center text-xs text-[hsl(var(--color-muted-foreground))] ${PDF_PREVIEW_HEIGHT}`}
                   >
-                    {tWorkspace('aiPanel.noFile')}
+                    {t('aiPanel.noFile')}
                   </div>
                 )}
               </Card>
 
-              <Card className="p-3 md:p-4 border border-[hsl(var(--color-border)/0.7)] flex flex-col flex-1 min-h-0">
-                <div className="flex flex-wrap items-center justify-between gap-1.5 mb-2 shrink-0">
-                  <h3 className="text-sm font-semibold inline-flex items-center gap-1">
-                    <Sparkles className="h-3.5 w-3.5 text-violet-500" />
-                    {tWorkspace('aiPanel.summaryByAi')}
-                  </h3>
+              <Card className={`p-4 border ${AI_UI.cardBorder} ${AI_UI.cardBg} flex flex-col flex-1 min-h-0 shadow-sm`}>
+                <div className="flex flex-wrap items-start justify-between gap-2 mb-2 shrink-0">
+                  <div>
+                    <h3 className="text-base font-semibold inline-flex items-center gap-1.5 text-[hsl(var(--color-foreground))]">
+                      <Sparkles className={`h-4 w-4 ${AI_UI.icon}`} />
+                      {t('aiPanel.summaryByAi')}
+                    </h3>
+                    {summaryText && !loading && summaryGeneratedAt && (
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-[hsl(var(--color-muted-foreground))]">
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 font-medium ${AI_UI.pill}`}>
+                          {modelLabel}
+                        </span>
+                        <span>
+                          {t('aiSummaryPage.generatedAt', {
+                            time: formatSummaryTime(summaryGeneratedAt, locale),
+                          })}
+                        </span>
+                        <span>·</span>
+                        <span>{t('aiSummaryPage.wordCount', { count: summaryWordCount })}</span>
+                      </div>
+                    )}
+                  </div>
                   {summaryText && !loading && (
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         onClick={() => void handleCopySummary()}
-                        className="gap-1.5"
+                        className="gap-1.5 h-8 text-[12px]"
                       >
                         {copyDone ? (
                           <Check className="h-3.5 w-3.5 text-emerald-600" />
                         ) : (
                           <Copy className="h-3.5 w-3.5" />
                         )}
-                        {copyDone ? tWorkspace('aiPanel.copied') : tWorkspace('aiPanel.copy')}
+                        {copyDone ? t('aiPanel.copied') : t('aiPanel.copy')}
                       </Button>
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => void handleExportSummaryPdf()}
-                        disabled={isExportingPdf}
-                        className="gap-1.5"
+                        onClick={handleDownloadSummary}
+                        className="gap-1.5 h-8 text-[12px]"
                       >
-                        {isExportingPdf ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <FileDown className="h-3.5 w-3.5" />
-                        )}
-                        {tWorkspace('aiPanel.exportPdf')}
+                        <Download className="h-3.5 w-3.5" />
+                        {t('aiSummaryPage.downloadSummary')}
                       </Button>
                     </div>
                   )}
                 </div>
 
                 {restoredHint && (
-                  <p className="text-[10px] text-[hsl(var(--color-primary))] mb-1 shrink-0 leading-snug">
+                  <p className="text-[11px] text-[hsl(var(--color-primary))] mb-2 shrink-0 leading-snug">
                     {restoredHint}
                   </p>
                 )}
-                {summaryDocId != null && summaryText && (
-                  <p className="text-[10px] text-[hsl(var(--color-muted-foreground))] mb-1.5 shrink-0">
-                    {tWorkspace('aiPanel.documentId', { id: summaryDocId })}
-                  </p>
-                )}
 
-                <div className="flex-1 min-h-0 flex flex-col rounded-lg border border-[hsl(var(--color-border))] overflow-hidden bg-[hsl(var(--color-muted)/0.2)]">
+                <div className="flex-1 min-h-0 flex flex-col rounded-xl border border-[hsl(var(--color-border))] overflow-hidden bg-[hsl(var(--color-background))]">
                   {loading ? (
-                    <div className="flex-1 flex items-center gap-2 p-4 text-xs text-[hsl(var(--color-muted-foreground))] min-h-[200px]">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
-                      {tWorkspace('aiPanel.summarizing')}
-                    </div>
+                    <AiCenteredSpinner className="min-h-[min(50vh,520px)]" size="h-9 w-9" />
                   ) : summaryText ? (
-                    <div
-                      className={`flex-1 overflow-auto scrollbar-thin ${
-                        compactPreview ? 'p-3 min-h-[min(42vh,480px)]' : 'p-3 min-h-[200px]'
-                      }`}
-                    >
-                      <WorkspaceAiMarkdown content={summaryText} />
+                    <div className="flex-1 overflow-auto p-4 md:p-5 scrollbar-thin min-h-[min(50vh,520px)]">
+                      <WorkspaceAiMarkdown content={summaryText} variant="light" />
                     </div>
                   ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center gap-1.5 p-6 text-center min-h-[200px]">
-                      <Sparkles className="h-8 w-8 text-violet-400/35" />
-                      <p className="text-xs text-[hsl(var(--color-muted-foreground))] max-w-md">
-                        {tWorkspace('aiPanel.summaryPlaceholder')}
+                    <div className="flex-1 flex flex-col items-center justify-center gap-2 p-8 text-center min-h-[min(40vh,400px)]">
+                      <Sparkles className={`h-10 w-10 ${AI_UI.iconMuted}`} />
+                      <p className="text-sm text-[hsl(var(--color-muted-foreground))] max-w-sm leading-relaxed">
+                        {t('aiPanel.summaryPlaceholder')}
                       </p>
                     </div>
                   )}
                 </div>
+              </Card>
+            </div>
+          ) : isChatPage ? (
+            <div className="flex flex-col gap-3 min-h-[min(70vh,760px)]">
+              <Card className="p-3 border border-[hsl(var(--color-border)/0.7)] shrink-0">
+                <h2 className="text-[11px] font-semibold uppercase tracking-wide text-[hsl(var(--color-muted-foreground))] mb-2">
+                  {t('aiPanel.previewPdf')}
+                </h2>
+                {previewUrl ? (
+                  <iframe
+                    src={previewUrl}
+                    className={`w-full rounded-lg border border-[hsl(var(--color-border))] ${PDF_PREVIEW_HEIGHT}`}
+                    title="PDF preview"
+                  />
+                ) : (
+                  <div
+                    className={`rounded-lg border border-dashed border-[hsl(var(--color-border))] flex items-center justify-center text-xs text-[hsl(var(--color-muted-foreground))] ${PDF_PREVIEW_HEIGHT}`}
+                  >
+                    {t('aiPanel.noFile')}
+                  </div>
+                )}
+              </Card>
+
+              <Card className={`p-4 border ${AI_UI.cardBorder} ${AI_UI.cardBg} flex flex-col flex-1 min-h-0 shadow-sm`}>
+                <h3 className="text-base font-semibold inline-flex items-center gap-1.5 text-[hsl(var(--color-foreground))] mb-2 shrink-0">
+                  <Sparkles className={`h-4 w-4 ${AI_UI.icon}`} />
+                  {t('aiPanel.askDocument')}
+                </h3>
+
+                <div
+                  className={`flex-1 min-h-0 flex flex-col rounded-xl border border-[hsl(var(--color-border))] overflow-hidden bg-[hsl(var(--color-background))] ${
+                    !chatReady ? 'opacity-95' : ''
+                  }`}
+                >
+                  <div className="flex-1 min-h-[min(42vh,400px)] flex flex-col">
+                    {isPreparingChat ? (
+                      <AiCenteredSpinner className="flex-1" size="h-9 w-9" />
+                    ) : (
+                      <div className="flex-1 overflow-auto p-3 space-y-2.5 scrollbar-thin">
+                        {!chatReady && (
+                          <div className="rounded-lg border border-dashed border-[hsl(var(--color-border))] p-4 text-center">
+                            <p className="text-[12px] text-[hsl(var(--color-muted-foreground))] leading-relaxed">
+                              {t('aiPanel.runSummaryForChat')}
+                            </p>
+                          </div>
+                        )}
+                        {chatMessages.map((m, idx) => (
+                      <div
+                        key={idx}
+                        className={`rounded-xl px-3 py-2.5 ${
+                          m.role === 'assistant'
+                            ? AI_UI.assistantBubble
+                            : AI_UI.userBubble
+                        }`}
+                      >
+                        {m.role === 'assistant' ? (
+                          <WorkspaceAiMarkdown content={m.text} variant="light" />
+                        ) : (
+                          <p className="text-[12px] leading-relaxed">{m.text}</p>
+                        )}
+                      </div>
+                        ))}
+                        {isChatThinking && (
+                          <div className="flex justify-center py-6">
+                            <Loader2 className={`h-6 w-6 animate-spin ${AI_UI.spinner}`} aria-hidden />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div
+                    className={`p-3 border-t border-[hsl(var(--color-border))] flex items-end gap-2 shrink-0 bg-[hsl(var(--color-muted)/0.08)] ${
+                      !chatReady ? 'pointer-events-none opacity-60' : ''
+                    }`}
+                  >
+                    <textarea
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (!chatReady) return;
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          void handleSendChatMessage();
+                        }
+                      }}
+                      rows={2}
+                      readOnly={!chatReady}
+                      placeholder={
+                        chatReady ? t('aiPanel.placeholder') : t('aiPanel.chatReadonlyPlaceholder')
+                      }
+                      disabled={!file || isChatThinking || isPreparingChat}
+                      className={`flex-1 min-w-0 resize-none rounded-lg border border-[hsl(var(--color-border))] bg-[hsl(var(--color-background))] px-3 py-2 text-[12px] placeholder:text-[hsl(var(--color-muted-foreground))] focus:outline-none focus:ring-2 ${AI_UI.focusRing} disabled:opacity-50 read-only:cursor-not-allowed`}
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => void handleSendChatMessage()}
+                      disabled={!chatReady || !file || isChatThinking || isPreparingChat || !chatInput.trim()}
+                      className={`h-[52px] px-3 ${AI_UI.gradientBtn}`}
+                      aria-label={t('aiPanel.send')}
+                    >
+                      {isChatThinking ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                {chatHint && !error && (
+                  <p className="mt-2 text-[11px] text-[hsl(var(--color-primary))] shrink-0 leading-snug">{chatHint}</p>
+                )}
+              </Card>
+            </div>
+          ) : isVoicePage ? (
+            <div className="flex flex-col gap-3 min-h-[min(70vh,760px)]">
+              <Card className="p-3 border border-[hsl(var(--color-border)/0.7)] shrink-0">
+                <h2 className="text-[11px] font-semibold uppercase tracking-wide text-[hsl(var(--color-muted-foreground))] mb-2">
+                  {t('aiPanel.previewPdf')}
+                </h2>
+                {previewUrl ? (
+                  <iframe
+                    src={previewUrl}
+                    className={`w-full rounded-lg border border-[hsl(var(--color-border))] ${VOICE_PDF_PREVIEW_HEIGHT}`}
+                    title={file?.name ?? 'PDF preview'}
+                  />
+                ) : (
+                  <div
+                    className={`rounded-lg border border-dashed border-[hsl(var(--color-border))] flex items-center justify-center text-xs text-[hsl(var(--color-muted-foreground))] ${PDF_PREVIEW_HEIGHT}`}
+                  >
+                    {t('aiPanel.noFile')}
+                  </div>
+                )}
+              </Card>
+
+              <Card className={`p-4 border ${AI_UI.cardBorder} ${AI_UI.cardBg} flex flex-col flex-1 min-h-0 shadow-sm`}>
+                <h3 className="text-base font-semibold inline-flex items-center gap-1.5 text-[hsl(var(--color-foreground))] mb-3 shrink-0">
+                  <Volume2 className={`h-4 w-4 ${AI_UI.icon}`} />
+                  {t('aiVoicePage.listenTitle')}
+                </h3>
+
+                {!voiceReady ? (
+                  <div className="flex-1 flex flex-col items-center justify-center text-center px-4 gap-3 min-h-[min(42vh,400px)]">
+                    {isPreparingVoice ? (
+                      <AiCenteredSpinner className="flex-1 w-full" size="h-9 w-9" />
+                    ) : error ? (
+                      <>
+                        <div
+                          className={`h-16 w-16 rounded-full flex items-center justify-center ${AI_UI.playerIconRing}`}
+                        >
+                          <Volume2 className={`h-7 w-7 ${AI_UI.icon}`} />
+                        </div>
+                        <p className="text-[12px] font-medium text-red-400">{t('aiVoicePage.prepareFailedTitle')}</p>
+                        <p className="text-[11px] text-red-300/90 max-w-sm leading-relaxed">{error}</p>
+                        <p className="text-[11px] text-[hsl(var(--color-muted-foreground))] max-w-sm leading-relaxed">
+                          {t('aiVoicePage.prepareFailedHint')}
+                        </p>
+                      </>
+                    ) : !file ? (
+                      <>
+                        <div
+                          className={`h-16 w-16 rounded-full flex items-center justify-center ${AI_UI.playerIconRing}`}
+                        >
+                          <Volume2 className={`h-7 w-7 ${AI_UI.iconMuted}`} />
+                        </div>
+                        <p className="text-[12px] font-medium text-[hsl(var(--color-foreground))]">
+                          {t('aiToolPage.selectFileFirst')}
+                        </p>
+                        <p className="text-[11px] text-[hsl(var(--color-muted-foreground))] max-w-xs leading-relaxed">
+                          {t('aiVoicePage.uploadSubtitle')}
+                        </p>
+                      </>
+                    ) : (
+                      <AiCenteredSpinner className="flex-1 w-full" size="h-9 w-9" />
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex-1 min-h-0 flex flex-col gap-4">
+                    <div className={`rounded-2xl border p-5 flex flex-col items-center gap-4 ${AI_UI.playerShell}`}>
+                      <div
+                        className={`flex items-end justify-center gap-1 h-10 ${
+                          speech.isPlaying ? '' : 'opacity-30'
+                        }`}
+                        aria-hidden
+                      >
+                        {[0, 1, 2, 3, 4].map((i) => (
+                          <span
+                            key={i}
+                            className={`w-1 rounded-full ${AI_UI.waveBar} ${
+                              speech.isPlaying ? 'h-6 animate-pulse' : 'h-2'
+                            }`}
+                            style={
+                              speech.isPlaying ? { animationDelay: `${i * 0.12}s` } : undefined
+                            }
+                          />
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleVoiceToggle}
+                        disabled={!speech.supported}
+                        className={`h-16 w-16 rounded-full flex items-center justify-center text-white hover:scale-[1.03] active:scale-[0.98] transition-transform disabled:opacity-40 ${AI_UI.playerBtn}`}
+                        aria-label={
+                          speech.isPlaying
+                            ? t('aiPanel.voice.pause')
+                            : speech.isPaused
+                              ? t('aiPanel.voice.resume')
+                              : t('aiPanel.voice.play')
+                        }
+                      >
+                        {speech.isPlaying ? (
+                          <Pause className="h-7 w-7" />
+                        ) : (
+                          <Play className="h-7 w-7 ml-0.5" />
+                        )}
+                      </button>
+
+                      <div className="text-center space-y-1 min-w-0 w-full">
+                        <p className={`text-[12px] font-medium ${AI_UI.playerStatus}`}>
+                          {voiceStatusLabel}
+                        </p>
+                        {file && speech.isPlaying && (
+                          <p className="text-[10px] text-[hsl(var(--color-muted-foreground))] truncate px-2">
+                            {t('aiPanel.voice.nowReading', { name: file.name })}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-[11px] font-medium text-[hsl(var(--color-foreground))] mb-1.5">
+                        {t('aiPanel.voice.speed')}
+                      </p>
+                      <div className="flex gap-1.5" role="radiogroup" aria-label={t('aiPanel.voice.speed')}>
+                        {VOICE_SPEEDS.map((rate) => (
+                          <button
+                            key={rate}
+                            type="button"
+                            onClick={() => handleVoiceSpeedChange(rate)}
+                            aria-pressed={voiceRate === rate}
+                            className={`flex-1 rounded-lg py-1.5 text-[11px] font-medium border transition-all ${
+                              voiceRate === rate
+                                ? AI_UI.speedOn
+                                : 'border-[hsl(var(--color-border))] text-[hsl(var(--color-muted-foreground))] hover:bg-[hsl(var(--color-muted))]/50'
+                            }`}
+                          >
+                            {rate}×
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={speech.stop}
+                      disabled={!speech.isActive && !speech.isSynthSpeaking()}
+                      className="w-full h-9 text-[12px]"
+                    >
+                      <Square className="h-3.5 w-3.5 mr-1.5" />
+                      {t('aiPanel.voice.stop')}
+                    </Button>
+                  </div>
+                )}
               </Card>
             </div>
           ) : (

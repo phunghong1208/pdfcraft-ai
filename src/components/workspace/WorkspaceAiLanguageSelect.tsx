@@ -54,7 +54,7 @@ export function WorkspaceAiLanguageSelect({
     ? [
         'group w-full flex items-center gap-2 rounded-lg border text-left transition-all',
         'border-[#30363D] bg-[#0D1117] hover:border-white/20 hover:bg-[#161B22]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/35',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-primary)/0.35)]',
         'disabled:opacity-45 disabled:cursor-not-allowed disabled:pointer-events-none',
         compact ? 'px-3 py-2 min-h-[36px]' : 'px-2.5 py-2 min-h-[36px]',
       ].join(' ')
@@ -74,7 +74,7 @@ export function WorkspaceAiLanguageSelect({
   const itemClass = (active: boolean) =>
     isDark
       ? `w-full flex items-center gap-2 px-2.5 py-2 text-[12px] transition-colors ${
-          active ? 'bg-blue-500/15 text-blue-100' : 'text-white/85 hover:bg-white/[0.06]'
+          active ? 'bg-[hsl(var(--color-primary)/0.15)] text-red-100' : 'text-white/85 hover:bg-white/[0.06]'
         }`
       : `w-full flex items-center gap-2 px-2.5 py-2 text-sm transition-colors ${
           active ? 'bg-[hsl(var(--color-primary)/0.1)]' : 'hover:bg-[hsl(var(--color-muted))]'
@@ -97,7 +97,7 @@ export function WorkspaceAiLanguageSelect({
         className={triggerClass}
       >
         <Languages
-          className={`shrink-0 ${isDark ? 'h-3.5 w-3.5 text-blue-300/90' : 'h-4 w-4 text-[hsl(var(--color-primary))]'}`}
+          className={`shrink-0 ${isDark ? 'h-3.5 w-3.5 text-red-300/90' : 'h-4 w-4 text-[hsl(var(--color-primary))]'}`}
           aria-hidden
         />
         <span className="min-w-0 flex-1">
@@ -139,7 +139,7 @@ export function WorkspaceAiLanguageSelect({
                     {lang.apiName}
                   </span>
                   {active ? (
-                    <Check className={`shrink-0 h-3.5 w-3.5 ${isDark ? 'text-blue-400' : 'text-[hsl(var(--color-primary))]'}`} />
+                    <Check className={`shrink-0 h-3.5 w-3.5 ${isDark ? 'text-[hsl(var(--color-primary))]' : 'text-[hsl(var(--color-primary))]'}`} />
                   ) : (
                     <span className="w-3.5 shrink-0" aria-hidden />
                   )}

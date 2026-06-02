@@ -17,6 +17,7 @@ const variantStyles: Record<ButtonVariant, string> = {
     bg-[hsl(var(--color-primary))] 
     text-[hsl(var(--color-primary-foreground))] 
     hover:bg-[hsl(var(--color-primary-hover))]
+    shadow-sm shadow-[hsl(var(--color-primary)/0.22)]
     focus-visible:ring-[hsl(var(--color-ring))]
   `,
   secondary: `
@@ -27,10 +28,10 @@ const variantStyles: Record<ButtonVariant, string> = {
   `,
   outline: `
     border-2 
-    border-[hsl(var(--color-border))] 
+    border-[hsl(var(--color-primary))] 
     bg-transparent 
-    text-[hsl(var(--color-foreground))]
-    hover:bg-[hsl(var(--color-muted))]
+    text-[hsl(var(--color-primary))]
+    hover:bg-[hsl(var(--color-primary)/0.08)]
     focus-visible:ring-[hsl(var(--color-ring))]
   `,
   ghost: `
@@ -89,9 +90,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ) => {
     const isDisabled = disabled || loading;
 
+    const pillRadius = variant === 'ghost' || variant === 'icon' ? 'rounded-[var(--radius-md)]' : 'rounded-full';
+
     const baseStyles = `
       inline-flex items-center justify-center gap-2
-      font-medium rounded-[var(--radius-md)]
+      font-semibold ${pillRadius}
       transition-all duration-[var(--transition-normal)]
       focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
       disabled:opacity-50 disabled:cursor-not-allowed

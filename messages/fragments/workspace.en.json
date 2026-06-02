@@ -49,6 +49,17 @@
     "permissions": "Permissions",
     "aiTools": "AI Tools"
   },
+  "viewLayers": {
+    "title": "View layers",
+    "original": "Original PDF",
+    "originalHint": "Page bitmap (canvas)",
+    "annotation": "Annotations",
+    "annotationHint": "Built-in PDF highlights and comments — rendered by PDF.js",
+    "textLayer": "Text layer",
+    "textLayerHint": "Selectable text for native PDFs",
+    "ocrLayer": "OCR layer",
+    "ocrLayerHint": "OCR text on scanned PDFs — turn off if misaligned"
+  },
   "tools": {
     "zoomIn": "Zoom In",
     "zoomOut": "Zoom Out",
@@ -190,6 +201,12 @@
       "statusPlaying": "Reading…",
       "statusPaused": "Paused",
       "nowReading": "Playing: {name}",
+      "voiceLabel": "Voice",
+      "voiceLoading": "Loading voices…",
+      "genderFemale": "Female",
+      "genderMale": "Male",
+      "genderNeutral": "Other",
+      "noVoicesHint": "No voice for this language in your browser. On macOS: System Settings → Accessibility → Spoken Content → System Voice.",
       "prepareTitle": "Document not ready to read",
       "prepareHint": "Process the PDF once first (same as enabling chat) — about 1–2 minutes.",
       "prepareButton": "Process document",
@@ -209,6 +226,39 @@
     "send": "Send",
     "welcome": "This appears to be a 3-page document. I can summarize, translate, OCR, or extract tables.",
     "reply": "Got it. I am analyzing this page and preparing a concise answer with key points."
+  },
+  "aiToolPage": {
+    "prepareHint": "Processing takes about 1–2 minutes. Keep this tab open.",
+    "selectFileFirst": "Choose a PDF file first."
+  },
+  "aiSummaryPage": {
+    "uploadTitle": "Upload PDF",
+    "uploadSubtitle": "AI reads, analyzes, and creates a structured summary",
+    "uploadDropHint": "Drag & drop or choose a file",
+    "uploadFormats": "PDF only · one file",
+    "modelLabel": "PDFCraft Document AI",
+    "generatedAt": "Created at {time}",
+    "wordCount": "{count} words",
+    "downloadSummary": "Download summary",
+    "downloadFailed": "Could not download the summary file.",
+    "restoredAt": "Restored from {time}",
+    "restoredFileHint": "Summary saved for «{name}». Re-select the file to preview the PDF."
+  },
+  "aiChatPage": {
+    "uploadSubtitle": "Upload once, prepare the document, then ask anything",
+    "documentReady": "Document ready — ask your question below.",
+    "restoredFileHint": "Chat restored for «{name}». Re-select the file to preview the PDF."
+  },
+  "aiVoicePage": {
+    "uploadSubtitle": "Upload a PDF — text is extracted automatically for browser read-aloud",
+    "documentReady": "Ready to read aloud — press play.",
+    "restoredFileHint": "Reading session restored for «{name}». Re-select the file to preview the PDF.",
+    "listenTitle": "Read aloud",
+    "readContentHint": "Press play to listen to the document.",
+    "fallbackReadHint": "Using text extracted from the PDF (AI could not summarize this file).",
+    "prepareFailedTitle": "Could not prepare audio",
+    "prepareFailedHint": "Try another PDF or run OCR if the file is scan-only.",
+    "noExtractableText": "No text could be read from this PDF. Try OCR or another file."
   },
   "inlineTools": {
     "compress": "Compress PDF",

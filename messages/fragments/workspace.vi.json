@@ -49,6 +49,17 @@
     "permissions": "Quyền",
     "aiTools": "Công cụ AI"
   },
+  "viewLayers": {
+    "title": "Lớp hiển thị",
+    "original": "PDF gốc",
+    "originalHint": "Ảnh trang PDF (canvas)",
+    "annotation": "Chú thích",
+    "annotationHint": "Highlight/comment có sẵn trong PDF — render bởi PDF.js",
+    "textLayer": "Lớp text",
+    "textLayerHint": "Text chọn được (PDF có lớp chữ)",
+    "ocrLayer": "Lớp OCR",
+    "ocrLayerHint": "Text OCR trên PDF scan — tắt nếu bị lệch/xấu"
+  },
   "tools": {
     "zoomIn": "Phóng to",
     "zoomOut": "Thu nhỏ",
@@ -190,6 +201,12 @@
       "statusPlaying": "Đang đọc…",
       "statusPaused": "Đã tạm dừng",
       "nowReading": "Đang phát: {name}",
+      "voiceLabel": "Chọn giọng đọc",
+      "voiceLoading": "Đang tải danh sách giọng…",
+      "genderFemale": "Nữ",
+      "genderMale": "Nam",
+      "genderNeutral": "Khác",
+      "noVoicesHint": "Trình duyệt chưa có giọng tiếng Việt. Trên macOS: Cài đặt hệ thống → Trợ năng → Nội dung nói → Giọng nói.",
       "prepareTitle": "Tài liệu chưa sẵn sàng để đọc",
       "prepareHint": "Cần xử lý PDF một lần (giống bước kích hoạt chat) — khoảng 1–2 phút.",
       "prepareButton": "Xử lý tài liệu",
@@ -209,6 +226,39 @@
     "send": "Gửi",
     "welcome": "Đây có vẻ là tài liệu 3 trang. Tôi có thể tóm tắt, dịch, OCR hoặc trích xuất bảng.",
     "reply": "Đã hiểu. Tôi đang phân tích trang này và chuẩn bị câu trả lời ngắn gọn với các điểm chính."
+  },
+  "aiToolPage": {
+    "prepareHint": "Xử lý mất khoảng 1–2 phút. Giữ tab này mở.",
+    "selectFileFirst": "Chọn file PDF trước."
+  },
+  "aiSummaryPage": {
+    "uploadTitle": "Tải PDF lên",
+    "uploadSubtitle": "AI sẽ đọc, phân tích và tạo tóm tắt có cấu trúc",
+    "uploadDropHint": "Kéo thả hoặc chọn tệp",
+    "uploadFormats": "Chỉ PDF · một tệp",
+    "modelLabel": "PDFCraft Document AI",
+    "generatedAt": "Tạo lúc {time}",
+    "wordCount": "{count} từ",
+    "downloadSummary": "Tải tóm tắt",
+    "downloadFailed": "Không tải được file tóm tắt.",
+    "restoredAt": "Khôi phục lúc {time}",
+    "restoredFileHint": "Đã lưu tóm tắt cho «{name}». Chọn lại file để xem PDF."
+  },
+  "aiChatPage": {
+    "uploadSubtitle": "Tải một lần, chuẩn bị tài liệu, rồi hỏi AI bất kỳ điều gì",
+    "documentReady": "Tài liệu sẵn sàng — nhập câu hỏi bên dưới.",
+    "restoredFileHint": "Đã khôi phục chat cho «{name}». Chọn lại file để xem PDF."
+  },
+  "aiVoicePage": {
+    "uploadSubtitle": "Tải PDF — app tự trích chữ và đọc bằng trình duyệt",
+    "documentReady": "Sẵn sàng đọc — nhấn phát.",
+    "restoredFileHint": "Đã khôi phục phiên đọc cho «{name}». Chọn lại file để xem PDF.",
+    "listenTitle": "Đọc bằng giọng nói",
+    "readContentHint": "Nhấn phát để nghe nội dung tài liệu.",
+    "fallbackReadHint": "Đang dùng văn bản trích từ PDF (AI không tóm tắt được file này).",
+    "prepareFailedTitle": "Chưa chuẩn bị được để đọc",
+    "prepareFailedHint": "Chọn PDF khác hoặc dùng OCR nếu file chỉ là ảnh scan.",
+    "noExtractableText": "Không đọc được chữ trong PDF này. Hãy thử OCR hoặc file khác."
   },
   "inlineTools": {
     "compress": "Nén PDF",

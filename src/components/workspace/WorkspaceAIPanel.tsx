@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import {
   Loader2,
   Volume2,
@@ -23,6 +23,15 @@ import {
   saveWorkspaceAiAnswerLanguage,
 } from '@/lib/workspace-ai-language-preference';
 import { Button } from '@/components/ui/Button';
+import { AiCenteredSpinner } from '@/components/ai/AiCenteredSpinner';
+import { AI_UI } from '@/lib/ai-ui-classes';
+import { useDocumentSpeech } from '@/lib/hooks/useDocumentSpeech';
+import { isPdfNoExtractableTextError, buildPdfSpeechIndex } from '@/lib/pdf/extract-pdf-text';
+import type { PdfSpeechSegment } from '@/lib/pdf/extract-pdf-text';
+import {
+  applyReadAlongHighlight,
+  clearReadAlongHighlight,
+} from '@/lib/pdf/pdf-read-along-highlight';
 import {
   chatWithWorkspaceDocument,
   summarizeWorkspaceDocument,
@@ -41,6 +50,8 @@ export interface WorkspaceAIPanelProps {
   file: File | null;
   pageCount: number;
   onClose: () => void;
+  /** iframe pdf.js bên trái — dùng bôi vàng read-along khi đọc */
+  pdfViewerIframeRef?: RefObject<HTMLIFrameElement | null>;
 }
 
 type AiTab = 'chat' | 'summary' | 'translate' | 'voice';
@@ -52,7 +63,7 @@ const SEGMENT_PILL_BASE =
   'flex-1 rounded-lg py-1.5 text-[11px] font-medium transition-all disabled:opacity-40';
 const segmentPillClass = (selected: boolean) =>
   selected
-    ? 'bg-blue-500/20 text-blue-100 border border-blue-500/35'
+    ? 'bg-[hsl(var(--color-primary)/0.2)] text-red-100 border border-[hsl(var(--color-primary)/0.35)]'
     : 'bg-[#161B22] text-[#9CA3AF] border border-[#30363D] hover:bg-[#1a2332] hover:text-white/80';
 const SEGMENT_LABEL_CLASS = 'text-[10px] text-[#8B949E] px-0.5';
 
@@ -108,165 +119,6 @@ function clearPersistedWorkspaceAi(file: File): void {
   }
 }
 
-type SpeechStatus = 'idle' | 'playing' | 'paused';
-
-function useDocumentSpeech() {
-  const [status, setStatus] = useState<SpeechStatus>('idle');
-  const sessionRef = useRef(0);
-  const fullTextRef = useRef('');
-  const langRef = useRef('vi-VN');
-  const charIndexRef = useRef(0);
-  const rateRef = useRef(1);
-
-  const supported =
-    typeof window !== 'undefined' && typeof window.speechSynthesis !== 'undefined';
-
-  useEffect(() => {
-    if (!supported) return;
-    const loadVoices = () => window.speechSynthesis.getVoices();
-    loadVoices();
-    window.speechSynthesis.addEventListener('voiceschanged', loadVoices);
-    return () => window.speechSynthesis.removeEventListener('voiceschanged', loadVoices);
-  }, [supported]);
-
-  const speakFromOffset = useCallback(
-    (text: string, lang: string, rate: number, fromChar: number) => {
-      if (!supported || !text.trim()) return;
-
-      fullTextRef.current = text;
-      langRef.current = lang;
-      rateRef.current = rate;
-      const offset = Math.max(0, Math.min(fromChar, text.length));
-      charIndexRef.current = offset;
-      const slice = text.slice(offset);
-      if (!slice.trim()) {
-        setStatus('idle');
-        charIndexRef.current = text.length;
-        return;
-      }
-
-      const session = ++sessionRef.current;
-      window.speechSynthesis.cancel();
-
-      window.setTimeout(() => {
-        if (session !== sessionRef.current) return;
-
-        const utterance = new SpeechSynthesisUtterance(slice);
-        utterance.lang = lang;
-        utterance.rate = Math.min(2, Math.max(0.5, rate));
-
-        const voices = window.speechSynthesis.getVoices();
-        const preferred =
-          voices.find((v) => v.lang.toLowerCase().startsWith(lang.toLowerCase().slice(0, 2))) ??
-          voices.find((v) => v.default);
-        if (preferred) utterance.voice = preferred;
-
-        utterance.onstart = () => {
-          if (session !== sessionRef.current) return;
-          setStatus('playing');
-        };
-        utterance.onboundary = (event) => {
-          if (session !== sessionRef.current) return;
-          if (event.charIndex >= 0) {
-            charIndexRef.current = Math.min(
-              offset + event.charIndex + (event.charLength ?? 0),
-              text.length,
-            );
-          }
-        };
-        utterance.onend = () => {
-          if (session !== sessionRef.current) return;
-          charIndexRef.current = text.length;
-          setStatus('idle');
-        };
-        utterance.onerror = (event) => {
-          if (session !== sessionRef.current) return;
-          if (event.error === 'interrupted' || event.error === 'canceled') return;
-          setStatus('idle');
-        };
-
-        window.speechSynthesis.speak(utterance);
-        setStatus('playing');
-      }, 100);
-    },
-    [supported],
-  );
-
-  const speakFresh = useCallback(
-    (text: string, lang: string, rate: number) => {
-      charIndexRef.current = 0;
-      speakFromOffset(text, lang, rate, 0);
-    },
-    [speakFromOffset],
-  );
-
-  const continueAtRate = useCallback(
-    (rate: number, text?: string, lang?: string) => {
-      if (text) {
-        fullTextRef.current = text;
-        if (lang) langRef.current = lang;
-      }
-      if (!fullTextRef.current) return;
-      speakFromOffset(fullTextRef.current, langRef.current, rate, charIndexRef.current);
-    },
-    [speakFromOffset],
-  );
-
-  const stop = useCallback(() => {
-    if (!supported) return;
-    sessionRef.current += 1;
-    window.speechSynthesis.cancel();
-    charIndexRef.current = 0;
-    setStatus('idle');
-  }, [supported]);
-
-  const pause = useCallback(() => {
-    if (!supported) return;
-    const synth = window.speechSynthesis;
-    if (synth.speaking && !synth.paused) {
-      synth.pause();
-      setStatus('paused');
-    }
-  }, [supported]);
-
-  const resume = useCallback(() => {
-    if (!supported) return;
-    const synth = window.speechSynthesis;
-    if (synth.paused) {
-      synth.resume();
-      setStatus('playing');
-      return;
-    }
-    if (!synth.speaking && fullTextRef.current && charIndexRef.current < fullTextRef.current.length) {
-      speakFromOffset(
-        fullTextRef.current,
-        langRef.current,
-        rateRef.current,
-        charIndexRef.current,
-      );
-    }
-  }, [speakFromOffset, supported]);
-
-  useEffect(() => () => stop(), [stop]);
-
-  const isPlaying = status === 'playing';
-  const isPaused = status === 'paused';
-  const isActive = status !== 'idle';
-
-  return {
-    supported,
-    status,
-    isPlaying,
-    isPaused,
-    isActive,
-    speakFresh,
-    continueAtRate,
-    pause,
-    resume,
-    stop,
-  };
-}
-
 function tierTitle(
   t: ReturnType<typeof useTranslations<'workspace'>>,
   mode: 'summaryDetail' | 'chatContext',
@@ -284,7 +136,7 @@ function tierTitle(
 
 function AiSectionTitle({ children }: { children: ReactNode }) {
   return (
-    <h3 className="flex items-center gap-1.5 text-[12px] font-semibold text-transparent bg-gradient-to-r from-blue-200 via-violet-200 to-fuchsia-200 bg-clip-text shrink-0">
+    <h3 className="flex items-center gap-1.5 text-[12px] font-semibold text-[hsl(var(--color-primary))] shrink-0">
       {children}
     </h3>
   );
@@ -323,7 +175,7 @@ function TierRadioGroup({
               aria-pressed={selected}
               className={`flex-1 rounded-lg py-1.5 px-1.5 text-[10px] font-medium border transition-all disabled:opacity-40 ${
                 selected
-                  ? 'bg-blue-500/20 text-blue-100 border-blue-500/35'
+                  ? 'bg-[hsl(var(--color-primary)/0.2)] text-red-100 border-[hsl(var(--color-primary)/0.35)]'
                   : 'bg-[#0D1117] text-[#9CA3AF] border-[#30363D] hover:text-white/80 hover:border-white/15'
               }`}
             >
@@ -336,7 +188,7 @@ function TierRadioGroup({
   );
 }
 
-export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelProps) {
+export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef }: WorkspaceAIPanelProps) {
   const locale = useLocale();
   const t = useTranslations('workspace');
   const [aiTab, setAiTab] = useState<AiTab>('summary');
@@ -349,12 +201,27 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiHint, setAiHint] = useState<string | null>(null);
   const [voiceRate, setVoiceRate] = useState(1);
+  const [voiceText, setVoiceText] = useState<string | null>(null);
+  const [isPreparingVoice, setIsPreparingVoice] = useState(false);
   const [summaryTierId, setSummaryTierId] = useState<WorkspacePresetTierId>(WORKSPACE_DEFAULT_PRESET_TIER);
   const [chatTierId, setChatTierId] = useState<WorkspacePresetTierId>(WORKSPACE_DEFAULT_PRESET_TIER);
   const [answerLanguage, setAnswerLanguage] = useState(() => loadWorkspaceAiAnswerLanguage(locale));
   const [copyDone, setCopyDone] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
-  const speech = useDocumentSpeech();
+  const voiceSegmentsRef = useRef<PdfSpeechSegment[]>([]);
+  const pdfViewerIframeRefStable = pdfViewerIframeRef;
+
+  const speech = useDocumentSpeech({
+    onBoundary: ({ charIndex, charLength }) => {
+      const iframe = pdfViewerIframeRefStable?.current ?? null;
+      if (charLength === 0) {
+        clearReadAlongHighlight(iframe);
+        return;
+      }
+      if (!voiceSegmentsRef.current.length) return;
+      applyReadAlongHighlight(iframe, voiceSegmentsRef.current, charIndex, charLength);
+    },
+  });
 
   const summaryPreset = getWorkspaceSummaryDetailPreset(summaryTierId);
   const chatPreset = getWorkspaceChatTopKPreset(chatTierId);
@@ -363,7 +230,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
     [answerLanguage],
   );
 
-  const voiceReady = Boolean(summaryText?.trim() && documentId != null);
+  const voiceReady = Boolean(voiceText?.trim());
   const chatReady = documentId != null && Boolean(summaryText?.trim());
 
   const voiceStatusLabel = useMemo(() => {
@@ -378,12 +245,17 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
     setAiError(null);
     setAiHint(null);
     if (typeof window !== 'undefined') window.speechSynthesis?.cancel();
+    voiceSegmentsRef.current = [];
+    clearReadAlongHighlight(pdfViewerIframeRef?.current ?? null);
 
     if (!file) {
       setSummaryText(null);
       setDocumentId(null);
+      setVoiceText(null);
       return;
     }
+
+    setVoiceText(null);
 
     const persisted = loadPersistedWorkspaceAi(file);
     if (persisted) {
@@ -398,7 +270,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
       setSummaryTierId(WORKSPACE_DEFAULT_PRESET_TIER);
       setChatTierId(WORKSPACE_DEFAULT_PRESET_TIER);
     }
-  }, [file]);
+  }, [file, pdfViewerIframeRef]);
 
   /** Mỗi lần tóm tắt xong — luôn gán document_id mới cho chat + sessionStorage */
   const commitSummaryResult = useCallback(
@@ -462,16 +334,73 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
     [file, summaryPreset.detail, answerLanguage, commitSummaryResult, t],
   );
 
+  const prepareVoiceText = useCallback(async () => {
+    if (!file) return;
+    setIsPreparingVoice(true);
+    setAiError(null);
+    setAiHint(null);
+    speech.stop();
+    setVoiceText(null);
+    voiceSegmentsRef.current = [];
+    clearReadAlongHighlight(pdfViewerIframeRef?.current ?? null);
+
+    try {
+      const { text, segments } = await buildPdfSpeechIndex(file);
+      if (text.trim()) {
+        voiceSegmentsRef.current = segments;
+        setVoiceText(text);
+        return;
+      }
+
+      const { text: apiText } = await summarizeWorkspaceDocument(file, {
+        detail: summaryPreset.detail,
+        userKey: WORKSPACE_AI_USER_KEY,
+        language: answerLanguage,
+      });
+      if (apiText.trim()) {
+        voiceSegmentsRef.current = [];
+        setVoiceText(apiText);
+        setAiHint(t('aiVoicePage.fallbackReadHint'));
+        return;
+      }
+      setAiError(t('aiVoicePage.noExtractableText'));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      if (isPdfNoExtractableTextError(msg)) {
+        try {
+          const { text: retryText, segments } = await buildPdfSpeechIndex(file);
+          if (retryText.trim()) {
+            voiceSegmentsRef.current = segments;
+            setVoiceText(retryText);
+            return;
+          }
+        } catch {
+          // ignore
+        }
+        setAiError(t('aiVoicePage.noExtractableText'));
+        return;
+      }
+      setAiError(msg || t('aiPanel.summaryError'));
+    } finally {
+      setIsPreparingVoice(false);
+    }
+  }, [file, summaryPreset.detail, answerLanguage, pdfViewerIframeRef, speech, t]);
+
+  useEffect(() => {
+    if (aiTab !== 'voice' || !file || voiceReady || isPreparingVoice) return;
+    void prepareVoiceText();
+  }, [aiTab, file, voiceReady, isPreparingVoice, prepareVoiceText]);
+
   const handleAnswerLanguageChange = useCallback(
     (language: string) => {
       setAnswerLanguage(language);
       saveWorkspaceAiAnswerLanguage(language, locale);
       const nextSpeechLang = getSpeechLangForWorkspaceAiAnswerLanguage(language);
-      if (speech.isActive && summaryText?.trim()) {
-        speech.continueAtRate(voiceRate, summaryText, nextSpeechLang);
+      if ((speech.isActive || speech.isSynthSpeaking()) && voiceText?.trim()) {
+        speech.continueAtRate(voiceRate, voiceText, nextSpeechLang);
       }
     },
-    [locale, speech, summaryText, voiceRate],
+    [locale, speech, voiceText, voiceRate],
   );
 
   useEffect(() => {
@@ -593,8 +522,8 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
 
   const startVoiceReading = useCallback(
     (rate: number) => {
-      if (!summaryText?.trim()) {
-        setAiError(t('aiPanel.voice.prepareTitle'));
+      if (!voiceText?.trim()) {
+        setAiError(t('aiVoicePage.noExtractableText'));
         return;
       }
       if (!speech.supported) {
@@ -602,9 +531,9 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
         return;
       }
       setAiError(null);
-      speech.speakFresh(summaryText, speechLang, rate);
+      speech.speakFresh(voiceText, speechLang, rate);
     },
-    [summaryText, speech, speechLang, t],
+    [voiceText, speech, speechLang, t],
   );
 
   const handleVoiceToggle = useCallback(() => {
@@ -622,10 +551,11 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
   const handleVoiceSpeedChange = useCallback(
     (rate: number) => {
       setVoiceRate(rate);
-      if (!speech.isActive || !summaryText?.trim()) return;
-      speech.continueAtRate(rate, summaryText, speechLang);
+      if (!voiceText?.trim()) return;
+      if (!(speech.isActive || speech.isSynthSpeaking())) return;
+      speech.continueAtRate(rate, voiceText, speechLang);
     },
-    [speech, speechLang, summaryText],
+    [speech, speechLang, voiceText],
   );
 
   const tabs: AiTab[] = ['summary', 'chat', 'translate', 'voice'];
@@ -635,12 +565,12 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
       className={`relative w-[min(100%,420px)] min-w-[360px] shrink-0 flex flex-col border-l ${PANEL_BORDER} bg-[#0B0E14] shadow-[-8px_0_32px_rgba(0,0,0,0.35)]`}
       aria-label={t('aiPanel.title')}
     >
-      <div className="px-4 pt-3 pb-2 border-b border-[#30363D] bg-[#0D1117] shrink-0 space-y-2.5">
+      <div className="px-4 pt-3 pb-2 bg-[#0D1117] shrink-0 space-y-2.5">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <WorkspaceAIIcon size="sm" />
             <span className="text-[12px] font-semibold text-white/90">{t('aiPanel.title')}</span>
-            <span className="shrink-0 rounded-full bg-violet-500/20 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-violet-300">
+            <span className="shrink-0 rounded-full bg-[hsl(var(--color-primary)/0.2)] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-red-300">
               AI
             </span>
           </div>
@@ -674,12 +604,13 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
               type="button"
               onClick={() => {
                 speech.stop();
+                clearReadAlongHighlight(pdfViewerIframeRef?.current ?? null);
                 setAiTab(tab);
               }}
               disabled={tab === 'translate'}
               className={`px-2.5 py-1 rounded-md font-medium transition-all ${
                 aiTab === tab
-                  ? 'text-blue-100 bg-blue-500/20 border border-blue-500/30'
+                  ? 'text-red-100 bg-[hsl(var(--color-primary)/0.2)] border border-[hsl(var(--color-primary)/0.3)]'
                   : tab === 'translate'
                     ? 'text-[#6b7280] cursor-not-allowed'
                     : tab === 'chat' && !chatReady
@@ -728,13 +659,10 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
                 size="sm"
                 onClick={() => void runSummary()}
                 disabled={!file || isSummarizing}
-                className="w-full h-8 text-[11px] font-semibold bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:via-indigo-500 hover:to-violet-500"
+                className={`w-full h-8 text-[11px] font-semibold ${AI_UI.gradientBtn}`}
               >
                 {isSummarizing ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    {t('aiPanel.analyzing')}
-                  </span>
+                  <Loader2 className={`h-4 w-4 animate-spin ${AI_UI.spinner}`} aria-hidden />
                 ) : (
                   <span className="inline-flex items-center gap-1">
                     <Sparkles className="h-3 w-3" />
@@ -750,11 +678,13 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
               <div
                 className={`flex-1 min-h-0 flex flex-col rounded-xl border overflow-hidden ${
                   summaryText
-                    ? 'border-violet-500/20 bg-gradient-to-b from-violet-500/[0.06] to-[#161B22]'
+                    ? 'border-[hsl(var(--color-primary)/0.22)] bg-gradient-to-b from-[hsl(var(--color-primary)/0.08)] to-[#161B22]'
                     : `border-dashed ${PANEL_BORDER} ${PANEL_SURFACE}`
                 }`}
               >
-                {summaryText ? (
+                {isSummarizing ? (
+                  <AiCenteredSpinner className="min-h-[140px]" size="h-9 w-9" />
+                ) : summaryText ? (
                   <>
                     <div className="flex-1 overflow-auto p-3.5 scrollbar-thin">
                       <WorkspaceAiMarkdown content={summaryText} />
@@ -763,7 +693,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
                       <button
                         type="button"
                         onClick={() => void handleCopySummary()}
-                        className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#30363D] bg-[#161B22] py-2 text-[11px] font-medium text-white/80 hover:border-blue-500/30 hover:text-white transition-all"
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#30363D] bg-[#161B22] py-2 text-[11px] font-medium text-white/80 hover:border-[hsl(var(--color-primary)/0.35)] hover:text-white transition-all"
                       >
                         {copyDone ? (
                           <Check className="h-3.5 w-3.5 text-emerald-400" />
@@ -776,7 +706,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
                         type="button"
                         onClick={() => void handleExportSummaryPdf()}
                         disabled={isExportingPdf}
-                        className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#30363D] bg-[#161B22] py-2 text-[11px] font-medium text-white/80 hover:border-violet-500/30 hover:text-white transition-all disabled:opacity-50"
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#30363D] bg-[#161B22] py-2 text-[11px] font-medium text-white/80 hover:border-[hsl(var(--color-primary)/0.35)] hover:text-white transition-all disabled:opacity-50"
                       >
                         {isExportingPdf ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -789,7 +719,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
                   </>
                 ) : (
                   <div className="flex-1 flex flex-col items-center justify-center p-6 min-h-[120px] text-center gap-2">
-                    <Sparkles className="h-8 w-8 text-violet-400/40" />
+                    <Sparkles className={`h-8 w-8 ${AI_UI.iconMuted}`} aria-hidden />
                     <p className="text-[11px] text-[#8B949E] max-w-[240px] leading-relaxed">
                       {t('aiPanel.summaryPlaceholder')}
                     </p>
@@ -834,7 +764,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
                     size="sm"
                     onClick={() => setAiTab('summary')}
                     disabled={!file || isSummarizing}
-                    className="w-full h-9 text-[12px] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500"
+                    className={`w-full h-9 text-[12px] ${AI_UI.gradientBtn}`}
                   >
                     {t('aiPanel.goToSummaryTab')}
                   </Button>
@@ -845,8 +775,8 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
                   key={idx}
                   className={`rounded-xl px-3 py-2.5 ${
                     m.role === 'assistant'
-                      ? `border border-violet-500/15 bg-gradient-to-br from-violet-500/[0.08] to-[#161B22]`
-                      : 'bg-blue-500/12 border border-blue-500/25 text-blue-100 ml-3'
+                      ? `border border-[hsl(var(--color-primary)/0.18)] bg-gradient-to-br from-[hsl(var(--color-primary)/0.1)] to-[#161B22]`
+                      : 'bg-[hsl(var(--color-primary)/0.12)] border border-[hsl(var(--color-primary)/0.25)] text-red-100 ml-3'
                   }`}
                 >
                   {m.role === 'assistant' ? (
@@ -876,13 +806,13 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
                   chatReady ? t('aiPanel.placeholder') : t('aiPanel.chatReadonlyPlaceholder')
                 }
                 disabled={!file || isAiThinking}
-                className="flex-1 min-w-0 resize-none rounded-lg border border-[#30363D] bg-[#0D1117] px-3 py-2 text-[12px] text-white/90 placeholder:text-[#6b7280] focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:opacity-50 read-only:cursor-not-allowed"
+                className={`flex-1 min-w-0 resize-none rounded-lg border border-[#30363D] bg-[#0D1117] px-3 py-2 text-[12px] text-white/90 placeholder:text-[#6b7280] focus:outline-none focus:ring-2 ${AI_UI.focusRing} disabled:opacity-50 read-only:cursor-not-allowed`}
               />
               <Button
                 size="sm"
                 onClick={() => void handleSendMessage()}
                 disabled={!chatReady || !file || isAiThinking || !chatInput.trim()}
-                className="h-[52px] px-4 text-[12px] bg-blue-600 hover:bg-blue-500"
+                className={`h-[52px] px-4 text-[12px] ${AI_UI.gradientBtn}`}
               >
                 {isAiThinking ? (
                   <Loader2 className="h-4 w-4 animate-spin" aria-label={t('aiPanel.thinking')} />
@@ -905,34 +835,29 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
                 disabled={speech.isPlaying && !speech.isPaused}
               />
             </div>
-            {!voiceReady ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center px-2 gap-4">
-                <div className="h-20 w-20 rounded-full bg-gradient-to-br from-pink-500/25 to-violet-500/15 ring-1 ring-pink-400/30 flex items-center justify-center">
-                  <Volume2 className="h-9 w-9 text-pink-300/90" />
+            {!file ? (
+              <div className="flex-1 flex items-center justify-center px-2">
+                <p className="text-[12px] text-white/45">{t('aiPanel.noFile')}</p>
+              </div>
+            ) : isPreparingVoice ? (
+              <AiCenteredSpinner className="flex-1 min-h-[200px]" size="h-9 w-9" />
+            ) : !voiceReady ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center px-2 gap-3">
+                <div
+                  className={`h-20 w-20 rounded-full flex items-center justify-center ${AI_UI.playerIconRing}`}
+                >
+                  <Volume2 className={`h-9 w-9 ${AI_UI.playerIcon}`} />
                 </div>
                 <div className="space-y-1.5 max-w-[280px]">
-                  <p className="text-[13px] font-medium text-white/90">{t('aiPanel.voice.prepareTitle')}</p>
-                  <p className="text-[11px] text-white/45 leading-relaxed">{t('aiPanel.voice.prepareHint')}</p>
+                  <p className="text-[13px] font-medium text-red-200/90">{t('aiVoicePage.prepareFailedTitle')}</p>
+                  <p className="text-[11px] text-white/45 leading-relaxed">
+                    {aiError ?? t('aiVoicePage.noExtractableText')}
+                  </p>
                 </div>
-                <Button
-                  size="sm"
-                  onClick={() => void runSummary({ keepTab: true })}
-                  disabled={!file || isSummarizing}
-                  className="h-10 px-5 text-[12px] bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500"
-                >
-                  {isSummarizing ? (
-                    <span className="inline-flex items-center gap-2">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      {t('aiPanel.summarizing')}
-                    </span>
-                  ) : (
-                    t('aiPanel.voice.prepareButton')
-                  )}
-                </Button>
               </div>
             ) : (
               <div className="flex-1 min-h-0 flex flex-col gap-4">
-                <div className="rounded-2xl border border-pink-500/20 bg-gradient-to-b from-pink-500/[0.12] to-transparent p-5 flex flex-col items-center gap-4">
+                <div className={`rounded-2xl border p-5 flex flex-col items-center gap-4 ${AI_UI.playerShell}`}>
                   <div
                     className={`flex items-end justify-center gap-1 h-10 ${
                       speech.isPlaying ? '' : 'opacity-30'
@@ -942,7 +867,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
                     {[0, 1, 2, 3, 4].map((i) => (
                       <span
                         key={i}
-                        className={`w-1 rounded-full bg-pink-400/80 ${
+                        className={`w-1 rounded-full ${AI_UI.waveBar} ${
                           speech.isPlaying ? 'h-6 animate-pulse' : 'h-2'
                         }`}
                         style={
@@ -956,7 +881,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
                     type="button"
                     onClick={handleVoiceToggle}
                     disabled={!speech.supported}
-                    className="h-[72px] w-[72px] rounded-full bg-gradient-to-br from-pink-500 to-rose-600 shadow-lg shadow-pink-500/30 ring-4 ring-pink-400/20 flex items-center justify-center text-white hover:scale-[1.03] active:scale-[0.98] transition-transform disabled:opacity-40"
+                    className={`h-[72px] w-[72px] rounded-full flex items-center justify-center text-white hover:scale-[1.03] active:scale-[0.98] transition-transform disabled:opacity-40 ${AI_UI.playerBtn}`}
                     aria-label={
                       speech.isPlaying
                         ? t('aiPanel.voice.pause')
@@ -973,7 +898,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
                   </button>
 
                   <div className="text-center space-y-1 min-w-0 w-full">
-                    <p className="text-[12px] font-medium text-pink-100/95">{voiceStatusLabel}</p>
+                    <p className={`text-[12px] font-medium ${AI_UI.playerStatus}`}>{voiceStatusLabel}</p>
                     {file && speech.isActive && (
                       <p className="text-[10px] text-white/40 truncate px-2">
                         {t('aiPanel.voice.nowReading', { name: file.name })}
@@ -1003,7 +928,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose }: WorkspaceAIPanelP
                   size="sm"
                   variant="secondary"
                   onClick={speech.stop}
-                  disabled={!speech.isActive}
+                  disabled={!speech.isActive && !speech.isSynthSpeaking()}
                   className="w-full h-9 text-[12px]"
                 >
                   <Square className="h-3.5 w-3.5 mr-1.5" />

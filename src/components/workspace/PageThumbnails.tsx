@@ -94,7 +94,7 @@ export function PageThumbnails({ pdfUrl, currentPage, onPageSelect, onPageCountC
             onClick={() => onPageSelect(page)}
             className={`group w-full rounded-md border p-1.5 text-center transition-all duration-150 ${
               active
-                ? 'border-blue-400/50 bg-blue-500/10 ring-1 ring-blue-400/20'
+                ? 'border-[hsl(var(--color-primary)/0.5)] bg-[hsl(var(--color-primary)/0.1)] ring-1 ring-[hsl(var(--color-primary)/0.22)]'
                 : 'border-white/[0.06] bg-white/[0.02] hover:border-white/15 hover:bg-white/[0.05]'
             }`}
           >
@@ -104,7 +104,7 @@ export function PageThumbnails({ pdfUrl, currentPage, onPageSelect, onPageCountC
               className="w-full rounded"
               draggable={false}
             />
-            <div className={`mt-2 text-[11px] tabular-nums ${active ? 'text-blue-300 font-medium' : 'text-white/40 group-hover:text-white/70'}`}>
+            <div className={`mt-2 text-[11px] tabular-nums ${active ? 'text-red-300 font-medium' : 'text-white/40 group-hover:text-white/70'}`}>
               {page}
             </div>
           </button>

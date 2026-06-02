@@ -144,6 +144,20 @@
     "welcome": "3ページのドキュメントのようです。要約、翻訳、OCR、表の抽出ができます。",
     "reply": "承知しました。このページを分析し、要点をまとめた回答を準備しています。"
   },
+  "aiSummaryPage": {
+    "uploadTitle": "PDFをアップロード",
+    "uploadSubtitle": "AIが読み取り、分析し、構造化された要約を作成します",
+    "uploadDropHint": "ドラッグ＆ドロップ、またはファイルを選択",
+    "uploadFormats": "PDFのみ · 1ファイル",
+    "modelLabel": "PDFCraft Document AI",
+    "generatedAt": "作成 {time}",
+    "wordCount": "{count} 語",
+    "downloadSummary": "要約をダウンロード",
+    "downloadFailed": "要約ファイルをダウンロードできませんでした。",
+    "selectFileFirst": "要約する前にPDFを選択してください。",
+    "restoredAt": "{time} に復元",
+    "restoredFileHint": "「{name}」の要約を保存済み。PDFをプレビューするにはファイルを再選択してください。"
+  },
   "inlineTools": {
     "compress": "PDFを圧縮",
     "ocr": "PDFのOCR",

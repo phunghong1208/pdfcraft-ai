@@ -2,18 +2,18 @@
 
 /* PDFCraft Design System - CSS Variables for Theming */
 :root {
-  /* Primary Colors - Deep Blue/Indigo for trust and modern tech feel */
-  --color-primary: 226 71% 55%; /* #3b82f6 - slightly more vibrant */
+  /* Primary — đỏ thương hiệu (PDF Reader style) */
+  --color-primary: 0 72% 51%;
   --color-primary-foreground: 0 0% 100%;
-  --color-primary-hover: 226 71% 45%;
+  --color-primary-hover: 0 72% 44%;
   
   /* Secondary Colors - Slate for neutral elements */
   --color-secondary: 215 20% 90%;
   --color-secondary-foreground: 215 25% 15%;
   --color-secondary-hover: 215 20% 80%;
   
-  /* Accent Colors - Teal/Cyan for highlights */
-  --color-accent: 172 66% 50%;
+  /* Accent — đồng bộ primary */
+  --color-accent: 0 72% 51%;
   --color-accent-foreground: 0 0% 100%;
   
   /* Background Colors */
@@ -31,7 +31,7 @@
   /* Border Colors */
   --color-border: 214 32% 91%;
   --color-input: 214 32% 91%;
-  --color-ring: 226 71% 55%;
+  --color-ring: 0 72% 51%;
   
   /* Destructive Colors */
   --color-destructive: 0 84% 60%;
@@ -81,16 +81,16 @@
 /* Dark Mode Theme */
 .dark {
   color-scheme: dark;
-  --color-primary: 226 71% 60%;
-  --color-primary-foreground: 222 47% 11%;
-  --color-primary-hover: 226 71% 70%;
+  --color-primary: 0 72% 55%;
+  --color-primary-foreground: 0 0% 100%;
+  --color-primary-hover: 0 72% 48%;
   
   --color-secondary: 215 20% 20%;
   --color-secondary-foreground: 210 40% 98%;
   --color-secondary-hover: 215 20% 30%;
   
-  --color-accent: 172 66% 50%;
-  --color-accent-foreground: 222 47% 11%;
+  --color-accent: 0 72% 55%;
+  --color-accent-foreground: 0 0% 100%;
   
   --color-background: 222 47% 7%; /* Darker background for more contrast */
   --color-foreground: 210 40% 98%;
@@ -103,7 +103,7 @@
   
   --color-border: 217 33% 15%;
   --color-input: 217 33% 15%;
-  --color-ring: 226 71% 60%;
+  --color-ring: 0 72% 55%;
 }
 
 /* Base Styles */
