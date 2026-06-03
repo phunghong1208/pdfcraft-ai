@@ -265,6 +265,7 @@
     "ocr": "OCR PDF",
     "merge": "Ghép PDF",
     "split": "Tách PDF",
+    "background-color": "Đổi màu nền",
     "dialogLabel": "Công cụ workspace",
     "close": "Đóng"
   },

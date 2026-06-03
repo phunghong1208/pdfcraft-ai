@@ -2500,6 +2500,7 @@
       "ocr": "OCR PDF",
       "merge": "Unisci PDF",
       "split": "Dividi PDF",
+      "background-color": "Background color",
       "dialogLabel": "Strumento area di lavoro",
       "close": "Chiudi"
     },

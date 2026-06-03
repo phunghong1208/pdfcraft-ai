@@ -2715,6 +2715,7 @@
       "ocr": "OCR de PDF",
       "merge": "Unir PDF",
       "split": "Dividir PDF",
+      "background-color": "Background color",
       "dialogLabel": "Ferramenta da área de trabalho",
       "close": "Fechar"
     },

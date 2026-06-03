@@ -265,6 +265,7 @@
     "ocr": "OCR PDF",
     "merge": "Merge PDF",
     "split": "Split PDF",
+    "background-color": "Background color",
     "dialogLabel": "Workspace tool",
     "close": "Close"
   },

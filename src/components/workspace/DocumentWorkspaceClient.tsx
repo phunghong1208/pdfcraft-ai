@@ -533,6 +533,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
   const [showThumbnails, setShowThumbnails] = useState(true);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const [workspaceTool, setWorkspaceTool] = useState<WorkspaceInlineTool | null>(null);
+  const [bgToolSession, setBgToolSession] = useState(0);
   const [isDirty, setIsDirty] = useState(false);
   const [isWorkspaceDark, setIsWorkspaceDark] = useState(false);
   const inlineToolThemeVars = useMemo(
@@ -564,6 +565,8 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     createWritable: () => Promise<{ write: (data: Blob) => Promise<void>; close: () => Promise<void> }>;
     getFile?: () => Promise<File>;
   } | null>(null);
+  /** Unmodified PDF used by background-color (not updated by inline tool applies). */
+  const pristinePdfRef = useRef<File | null>(null);
 
   const previewUrlRef = useRef('');
   const previewUrl = useMemo(() => {
@@ -600,6 +603,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
 
     const initialFile = peekUploadedPdf();
     if (initialFile) {
+      pristinePdfRef.current = initialFile;
       setFile(initialFile);
       setIsDirty(false);
       setIsBootstrapping(false);
@@ -613,15 +617,22 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     return window.confirm('Bạn có thay đổi chưa lưu. Bạn có muốn bỏ thay đổi và tiếp tục không?');
   }, [isDirty]);
 
-  function handleFileChange(nextFile: File | null, options?: { markDirty?: boolean }) {
+  const handleFileChange = useCallback((nextFile: File | null, options?: { markDirty?: boolean }) => {
     setFile(nextFile);
     setIsDirty(Boolean(options?.markDirty));
-    if (!nextFile || fileHandleRef.current?.name !== nextFile.name) {
+    if (!nextFile) {
+      pristinePdfRef.current = null;
+      fileHandleRef.current = null;
+      return;
+    }
+    if (options?.markDirty !== true) {
+      pristinePdfRef.current = nextFile;
+    }
+    if (fileHandleRef.current?.name !== nextFile.name) {
       fileHandleRef.current = null;
     }
-    if (!nextFile) return;
     setUploadedPdf(nextFile);
-  }
+  }, []);
 
   const resolveWritableHandle = useCallback(async (currentFileName: string) => {
     if (fileHandleRef.current) return fileHandleRef.current;
@@ -695,14 +706,16 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     if (!nextFile) return;
     if (!confirmDiscardUnsavedChanges()) return;
     handleFileChange(nextFile, { markDirty: false });
-  }, [confirmDiscardUnsavedChanges]);
+  }, [confirmDiscardUnsavedChanges, handleFileChange]);
 
   const handleInlineToolFileUpdated = useCallback(
-    (nextFile: File) => {
+    (nextFile: File, options?: { keepDialogOpen?: boolean }) => {
       handleFileChange(nextFile, { markDirty: true });
-      setWorkspaceTool(null);
+      if (!options?.keepDialogOpen) {
+        setWorkspaceTool(null);
+      }
     },
-    [],
+    [handleFileChange],
   );
 
   const applyPdfZoom = useCallback((direction: 'in' | 'out' | 'fit') => {
@@ -1258,6 +1271,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
         }
 
         if (slug === 'background-color') {
+          setBgToolSession((n) => n + 1);
           setWorkspaceTool('background-color');
           return;
         }
@@ -1541,12 +1555,20 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
               <button
                 type="button"
                 onClick={() => setIsRightPanelOpen(true)}
-                className="absolute right-0 top-1/2 z-20 -translate-y-1/2 flex items-center gap-2 rounded-l-xl border border-r-0 border-[hsl(var(--color-border))] dark:border-white/12 bg-[hsl(var(--color-card))/0.95] dark:bg-[#0D1117]/95 py-2 pl-2.5 pr-2 shadow-[-6px_0_20px_rgba(0,0,0,0.22)] dark:shadow-[-6px_0_20px_rgba(0,0,0,0.35)] backdrop-blur-sm hover:bg-[hsl(var(--color-muted))] dark:hover:bg-[#161B22] hover:border-[hsl(var(--color-primary)/0.35)] dark:hover:border-white/20 transition-all"
+                className={`absolute right-0 top-1/2 z-20 -translate-y-1/2 flex items-center gap-2 rounded-l-xl border border-r-0 py-2 pl-2.5 pr-2 backdrop-blur-sm transition-all ${
+                  isWorkspaceDark
+                    ? 'border-white/12 bg-[#0D1117]/95 shadow-[-6px_0_20px_rgba(0,0,0,0.35)] hover:border-white/20 hover:bg-[#161B22]'
+                    : 'border-[#DDE3EA] bg-[#F8FAFC]/95 shadow-[-4px_0_16px_rgba(15,23,42,0.08)] hover:border-[#CBD5E1] hover:bg-[#F1F5F9]'
+                }`}
                 title={t('statusBar.aiAssistant')}
                 aria-label={t('statusBar.aiAssistant')}
               >
                 <WorkspaceAIIcon size="sm" />
-                <span className="max-w-[4.5rem] text-[10px] font-medium leading-tight text-[hsl(var(--color-muted-foreground))] dark:text-white/55 pr-0.5">
+                <span
+                  className={`max-w-[4.5rem] pr-0.5 text-[10px] font-medium leading-tight ${
+                    isWorkspaceDark ? 'text-white/55' : 'text-[#475569]'
+                  }`}
+                >
                   {t('statusBar.aiAssistant')}
                 </span>
               </button>
@@ -1764,9 +1786,14 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
               )}
               {workspaceTool === 'background-color' && (
                 <BackgroundColorTool
+                  key={`bg-dialog-${bgToolSession}`}
                   initialFile={file}
+                  processSourceFile={pristinePdfRef.current ?? file}
                   lockToInitialFile
-                  onFileUpdated={handleInlineToolFileUpdated}
+                  keepDialogOpenOnApply
+                  onFileUpdated={(nextFile) =>
+                    handleInlineToolFileUpdated(nextFile, { keepDialogOpen: true })
+                  }
                 />
               )}
               {workspaceTool === 'pdf-to-docx' && <PDFToDocxTool initialFile={file} />}

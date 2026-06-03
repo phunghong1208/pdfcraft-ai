@@ -2725,6 +2725,7 @@
       "ocr": "OCR لملف PDF",
       "merge": "دمج PDF",
       "split": "تقسيم PDF",
+      "background-color": "Background color",
       "dialogLabel": "أداة مساحة العمل",
       "close": "إغلاق"
     },

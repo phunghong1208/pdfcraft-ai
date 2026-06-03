@@ -1831,7 +1831,8 @@
     "uploadDescription": "Kéo và thả tệp PDF.",
     "colorLabel": "Màu Nền",
     "applyButton": "Áp dụng Nền",
-    "successMessage": "Áp dụng màu nền thành công!"
+    "successMessage": "Áp dụng màu nền thành công!",
+    "reapplyHint": "Mỗi lần áp dụng dùng lại file gốc — đổi màu và bấm lại bao nhiêu lần cũng được."
   },
   "textColor": {
     "uploadLabel": "Tải lên Tệp PDF",
@@ -2556,6 +2557,7 @@
       "ocr": "OCR PDF",
       "merge": "Ghép PDF",
       "split": "Tách PDF",
+      "background-color": "Đổi màu nền",
       "dialogLabel": "Công cụ workspace",
       "close": "Đóng"
     },

@@ -2619,6 +2619,7 @@
       "ocr": "OCR PDF",
       "merge": "Combină PDF",
       "split": "Divizează PDF",
+      "background-color": "Background color",
       "dialogLabel": "Instrument spațiu de lucru",
       "close": "Închide"
     },

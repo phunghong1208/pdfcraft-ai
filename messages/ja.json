@@ -2725,6 +2725,7 @@
       "ocr": "PDFのOCR",
       "merge": "PDFを結合",
       "split": "PDFを分割",
+      "background-color": "Background color",
       "dialogLabel": "ワークスペースツール",
       "close": "閉じる"
     },

@@ -2590,6 +2590,7 @@
       "ocr": "PDF OCR",
       "merge": "合并 PDF",
       "split": "拆分 PDF",
+      "background-color": "Background color",
       "dialogLabel": "工作区工具",
       "close": "关闭"
     },

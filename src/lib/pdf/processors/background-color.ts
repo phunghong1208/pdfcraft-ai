@@ -1,17 +1,69 @@
 /**
  * PDF Background Color Processor
- * Requirements: 5.1
+ * Renders pages with pdf.js, replaces near-white paper pixels with the chosen color,
+ * then re-embeds as images so the result matches the selected hex (not Multiply tint).
  */
 
 import type { ProcessInput, ProcessOutput, ProgressCallback } from '@/types/pdf';
 import { PDFErrorCode } from '@/types/pdf';
 import { BasePDFProcessor } from '../processor';
-import { loadPdfLib } from '../loader';
+import { loadPdfLib, loadPdfjs } from '../loader';
 
 export interface BackgroundColorOptions {
   color: { r: number; g: number; b: number };
   pages?: number[] | 'all';
   opacity?: number;
+  /** Render scale for quality (default 2). */
+  scale?: number;
+}
+
+const DEFAULT_SCALE = 2;
+
+function rgbToCss({ r, g, b }: { r: number; g: number; b: number }) {
+  const toByte = (v: number) => Math.max(0, Math.min(255, Math.round(v * 255)));
+  return `rgb(${toByte(r)}, ${toByte(g)}, ${toByte(b)})`;
+}
+
+/** Replace paper-like pixels (bright, low saturation) with the target background color. */
+function replacePaperBackground(
+  imageData: ImageData,
+  bg: { r: number; g: number; b: number },
+  opacity: number,
+) {
+  const tr = Math.round(bg.r * 255);
+  const tg = Math.round(bg.g * 255);
+  const tb = Math.round(bg.b * 255);
+  const data = imageData.data;
+  const lumMin = 185;
+  const maxSat = 0.28;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const a = data[i + 3];
+
+    if (a < 20) {
+      data[i] = tr;
+      data[i + 1] = tg;
+      data[i + 2] = tb;
+      data[i + 3] = 255;
+      continue;
+    }
+
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    const sat = max === 0 ? 0 : (max - min) / max;
+
+    if (lum >= lumMin && sat <= maxSat) {
+      const paperness = Math.min(1, (lum - lumMin) / (255 - lumMin));
+      const blend = paperness * opacity;
+      data[i] = Math.round(r + (tr - r) * blend);
+      data[i + 1] = Math.round(g + (tg - g) * blend);
+      data[i + 2] = Math.round(b + (tb - b) * blend);
+    }
+  }
 }
 
 export class BackgroundColorProcessor extends BasePDFProcessor {
@@ -22,40 +74,45 @@ export class BackgroundColorProcessor extends BasePDFProcessor {
     const { files, options } = input;
     const inputOptions = options as Partial<BackgroundColorOptions>;
     const bgOptions: BackgroundColorOptions = {
-      color: inputOptions.color ?? { r: 1, g: 1, b: 0.9 }, // Light yellow default
+      color: inputOptions.color ?? { r: 1, g: 1, b: 0.9 },
       pages: inputOptions.pages ?? 'all',
       opacity: inputOptions.opacity ?? 1,
+      scale: inputOptions.scale ?? DEFAULT_SCALE,
     };
 
     if (files.length !== 1) {
       return this.createErrorOutput(PDFErrorCode.INVALID_OPTIONS, 'Exactly 1 PDF file is required.');
     }
 
-    try {
-      this.updateProgress(10, 'Loading PDF library...');
-      const pdfLib = await loadPdfLib();
+    if (typeof document === 'undefined') {
+      return this.createErrorOutput(
+        PDFErrorCode.PROCESSING_FAILED,
+        'Background color requires a browser environment.',
+      );
+    }
 
-      this.updateProgress(20, 'Loading PDF...');
+    try {
+      this.updateProgress(5, 'Loading PDF libraries...');
+      const [pdfLib, pdfjs] = await Promise.all([loadPdfLib(), loadPdfjs()]);
+
+      this.updateProgress(10, 'Loading PDF...');
       const file = files[0];
       const arrayBuffer = await file.arrayBuffer();
-      const sourcePdf = await pdfLib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+      const sourcePdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+      const sourcePdfLib = await pdfLib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
 
-      const totalPages = sourcePdf.getPageCount();
+      const totalPages = sourcePdf.numPages;
       const pagesToProcess = bgOptions.pages === 'all'
         ? Array.from({ length: totalPages }, (_, i) => i)
-        : (bgOptions.pages as number[]).map(p => p - 1);
+        : (bgOptions.pages as number[]).map((p) => p - 1);
 
-      // Create new PDF with background
       const newPdf = await pdfLib.PDFDocument.create();
-
-      this.updateProgress(30, 'Embedding pages...');
-
-      // Pre-embed all pages at once to avoid duplicate font embedding
-      // This is crucial for CJK PDFs where fonts can be very large
-      const sourcePages = sourcePdf.getPages();
+      const sourcePages = sourcePdfLib.getPages();
       const embeddedPages = await newPdf.embedPages(sourcePages);
+      const opacity = Math.max(0, Math.min(1, bgOptions.opacity ?? 1));
+      const bgCss = rgbToCss(bgOptions.color);
 
-      this.updateProgress(40, 'Adding background color...');
+      this.updateProgress(15, 'Applying background color...');
 
       for (let i = 0; i < totalPages; i++) {
         if (this.checkCancelled()) {
@@ -64,42 +121,74 @@ export class BackgroundColorProcessor extends BasePDFProcessor {
 
         const sourcePage = sourcePages[i];
         const { width, height } = sourcePage.getSize();
-
         const newPage = newPdf.addPage([width, height]);
-        const embeddedPage = embeddedPages[i];
-        const pageColor = pdfLib.rgb(bgOptions.color.r, bgOptions.color.g, bgOptions.color.b);
-        const opacity = Math.max(0, Math.min(1, bgOptions.opacity ?? 1));
 
-        newPage.drawPage(embeddedPage, { x: 0, y: 0, width, height });
-
-        if (pagesToProcess.includes(i)) {
-          // Multiply maps white paper to the selected color; text stays dark.
-          newPage.drawRectangle({
-            x: 0,
-            y: 0,
-            width,
-            height,
-            color: pageColor,
-            opacity,
-            blendMode: pdfLib.BlendMode.Multiply,
-          });
+        if (!pagesToProcess.includes(i)) {
+          newPage.drawPage(embeddedPages[i], { x: 0, y: 0, width, height });
+          this.updateProgress(15 + (80 * (i + 1) / totalPages), `Page ${i + 1} of ${totalPages}...`);
+          continue;
         }
 
-        this.updateProgress(40 + (50 * (i + 1) / totalPages), `Processing page ${i + 1}...`);
+        const pageNum = i + 1;
+        const page = await sourcePdf.getPage(pageNum);
+        const renderScale = bgOptions.scale ?? DEFAULT_SCALE;
+        const renderViewport = page.getViewport({ scale: renderScale });
+
+        const canvas = document.createElement('canvas');
+        canvas.width = renderViewport.width;
+        canvas.height = renderViewport.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          throw new Error('Failed to get canvas context');
+        }
+
+        ctx.fillStyle = bgCss;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        await page.render({
+          canvasContext: ctx,
+          viewport: renderViewport,
+        }).promise;
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        replacePaperBackground(imageData, bgOptions.color, opacity);
+        ctx.putImageData(imageData, 0, 0);
+
+        const pngBytes = await this.canvasToPngBytes(canvas);
+        const image = await newPdf.embedPng(pngBytes);
+        newPage.drawImage(image, { x: 0, y: 0, width, height });
+
+        this.updateProgress(15 + (80 * (i + 1) / totalPages), `Page ${i + 1} of ${totalPages}...`);
       }
 
       this.updateProgress(95, 'Saving PDF...');
-      const pdfBytes = await newPdf.save({
-        useObjectStreams: true,
-      });
+      const pdfBytes = await newPdf.save({ useObjectStreams: true });
       const blob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
 
       this.updateProgress(100, 'Complete!');
       return this.createSuccessOutput(blob, file.name.replace('.pdf', '_background.pdf'), { pageCount: totalPages });
-
     } catch (error) {
-      return this.createErrorOutput(PDFErrorCode.PROCESSING_FAILED, 'Failed to add background color.', error instanceof Error ? error.message : 'Unknown error');
+      return this.createErrorOutput(
+        PDFErrorCode.PROCESSING_FAILED,
+        'Failed to add background color.',
+        error instanceof Error ? error.message : 'Unknown error',
+      );
     }
+  }
+
+  private canvasToPngBytes(canvas: HTMLCanvasElement): Promise<Uint8Array> {
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          reject(new Error('Failed to convert canvas to blob'));
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => resolve(new Uint8Array(reader.result as ArrayBuffer));
+        reader.onerror = () => reject(new Error('Failed to read blob'));
+        reader.readAsArrayBuffer(blob);
+      }, 'image/png');
+    });
   }
 
   protected getAcceptedTypes(): string[] {
@@ -111,7 +200,11 @@ export function createBackgroundColorProcessor(): BackgroundColorProcessor {
   return new BackgroundColorProcessor();
 }
 
-export async function addBackgroundColor(file: File, options: BackgroundColorOptions, onProgress?: ProgressCallback): Promise<ProcessOutput> {
+export async function addBackgroundColor(
+  file: File,
+  options: BackgroundColorOptions,
+  onProgress?: ProgressCallback,
+): Promise<ProcessOutput> {
   const processor = createBackgroundColorProcessor();
   return processor.process({ files: [file], options: options as unknown as Record<string, unknown> }, onProgress);
 }

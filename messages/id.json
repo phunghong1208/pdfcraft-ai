@@ -1848,6 +1848,7 @@
       "ocr": "OCR PDF",
       "merge": "Gabung PDF",
       "split": "Pisah PDF",
+      "background-color": "Background color",
       "dialogLabel": "Alat ruang kerja",
       "close": "Tutup"
     },

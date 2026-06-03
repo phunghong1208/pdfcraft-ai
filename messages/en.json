@@ -1963,7 +1963,8 @@
       "uploadDescription": "Drag and drop a PDF file.",
       "colorLabel": "Background Color",
       "applyButton": "Apply Background",
-      "successMessage": "Background color applied successfully!"
+      "successMessage": "Background color applied successfully!",
+      "reapplyHint": "Each apply uses the original file — change the color and apply again as needed."
     },
     "textColor": {
       "uploadLabel": "Upload PDF File",
@@ -2782,6 +2783,7 @@
       "ocr": "OCR PDF",
       "merge": "Merge PDF",
       "split": "Split PDF",
+      "background-color": "Background color",
       "dialogLabel": "Workspace tool",
       "close": "Close"
     },

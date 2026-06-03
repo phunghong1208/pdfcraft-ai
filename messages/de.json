@@ -2506,6 +2506,7 @@
       "ocr": "PDF-OCR",
       "merge": "PDF zusammenführen",
       "split": "PDF teilen",
+      "background-color": "Background color",
       "dialogLabel": "Arbeitsbereich-Werkzeug",
       "close": "Schließen"
     },
