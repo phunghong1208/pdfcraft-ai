@@ -2572,6 +2572,8 @@
       "page": "Page",
       "insert": "Insert",
       "save": "Save",
+      "file": "File",
+      "document": "Document",
       "pages": "Pages",
       "transform": "Transform",
       "combine": "Combine",
@@ -2603,6 +2605,7 @@
       "ocrLayerHint": "OCR text on scanned PDFs — turn off if misaligned"
     },
     "tools": {
+      "open": "Open",
       "zoomIn": "Zoom In",
       "zoomOut": "Zoom Out",
       "fitPage": "Fit Page",
@@ -2627,6 +2630,7 @@
       "extract": "Extract",
       "organize": "Organize",
       "reverse": "Reverse",
+      "reverseOrder": "Reverse Order",
       "highlight": "Highlight",
       "underline": "Underline",
       "strikeout": "Strikeout",
@@ -2634,6 +2638,7 @@
       "rectangle": "Rectangle",
       "circle": "Circle",
       "text": "Text",
+      "textComment": "Text Comment",
       "note": "Note",
       "stamp": "Stamp",
       "signature": "Signature",

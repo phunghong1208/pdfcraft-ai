@@ -405,6 +405,62 @@ See https://github.com/adobe-type-tools/cmap-resources
       pointer-events: none !important;
       opacity: 0 !important;
     }
+    html.pdfcraft-embedded.pdfcraft-note-panel .CustomComment,
+    html.pdfcraft-embedded.pdfcraft-note-panel [class*="CustomComment"] {
+      display: none !important;
+    }
+    #pdfcraft-note-editor.pdfcraft-note-editor {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      position: fixed;
+      right: 16px;
+      top: 72px;
+      width: min(360px, calc(100vw - 32px));
+      max-height: min(50vh, 420px);
+      padding: 12px 14px;
+      z-index: 10003;
+      pointer-events: auto;
+      box-sizing: border-box;
+      background: #1e2128;
+      color: #e5e7eb;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+    }
+    html.pdfcraft-embedded.pdfcraft-note-panel #pdfcraft-note-editor.pdfcraft-note-editor {
+      display: flex !important;
+    }
+    #pdfcraft-note-editor textarea {
+      width: 100%;
+      min-height: 120px;
+      resize: vertical;
+      box-sizing: border-box;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: #111318;
+      color: #f3f4f6;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    #pdfcraft-note-editor button.pdfcraft-note-save {
+      background: #1677ff;
+      border-color: #1677ff;
+      color: #fff;
+      padding: 6px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    html.pdfcraft-embedded .StampPop,
+    html.pdfcraft-embedded .ant-dropdown:has(.StampPop-Container) {
+      z-index: 10050 !important;
+      pointer-events: auto !important;
+    }
+    html.pdfcraft-embedded .StampPop-Container img {
+      pointer-events: auto !important;
+      cursor: pointer !important;
+    }
     .CustomToolbar .buttons>li[data-action="save"],
     .CustomToolbar button[data-action="save"] {
       display: none !important;

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   Upload, ScanText, ZoomIn, ZoomOut, Maximize2, Minimize2,
+  FolderOpen,
   Eye, Highlighter, ArrowLeft, Save, Share2, FileDown,
   Type, FileText, FileSpreadsheet,
   Image, FileType, Plus, Trash2, RotateCw, Crop, LayoutGrid,
@@ -15,7 +16,7 @@ import {
   Underline, Strikethrough, StickyNote, Square, Circle,
   PenTool, Stamp, Table, FileImage,
   Undo2, Redo2, Printer, Settings,
-  FileCheck, PenSquare,
+  FileCheck, PenSquare, SquareStack,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -148,6 +149,9 @@ function getRibbonGroups(
     rotate: 'rotate-pdf',
     delete: 'delete-pages',
     extract: 'extract-pages',
+    extractText: 'pdf-to-markdown',
+    extractTables: 'extract-tables',
+    extractImages: 'extract-images',
     organize: 'organize-pdf',
     reverse: 'reverse-pages',
     watermark: 'add-watermark',
@@ -163,31 +167,19 @@ function getRibbonGroups(
     case 'home':
       return [
         {
+          label: tr('groups.file'),
+          tools: [
+            { icon: FolderOpen, label: tr('tools.open'), action: 'openDocument' },
+            { icon: Save, label: tr('tools.save'), action: 'save' },
+            { icon: Printer, label: tr('tools.print'), action: 'print' },
+          ],
+        },
+        {
           label: tr('groups.view'),
           tools: [
             { icon: ZoomIn, label: tr('tools.zoomIn'), action: 'zoomIn' },
             { icon: ZoomOut, label: tr('tools.zoomOut'), action: 'zoomOut' },
             { icon: Maximize2, label: tr('tools.fitPage'), action: 'fitPage' },
-          ],
-        },
-        {
-          label: tr('groups.process'),
-          tools: [
-            { icon: Minimize2, label: tr('tools.compress'), action: 'openInlineCompress' },
-            { icon: ScanText, label: tr('tools.ocr'), href: t('ocr') },
-          ],
-        },
-        {
-          label: tr('groups.organize'),
-          tools: [
-            { icon: Layers, label: tr('tools.merge'), href: t('merge') },
-            { icon: Scissors, label: tr('tools.split'), href: t('split') },
-          ],
-        },
-        {
-          label: tr('groups.output'),
-          tools: [
-            { icon: Printer, label: tr('tools.print'), action: 'print' },
           ],
         },
       ];
@@ -202,12 +194,12 @@ function getRibbonGroups(
           ],
         },
         {
-          label: tr('groups.insert'),
+          label: tr('groups.document'),
           tools: [
             { icon: Eye, label: tr('tools.watermark'), href: t('watermark') },
+            { icon: Image, label: tr('tools.background'), href: t('background-color') },
             { icon: Type, label: tr('tools.headerFooter'), href: t('header-footer') },
             { icon: FileType, label: tr('tools.pageNumbers'), href: t('page-numbers') },
-            { icon: Image, label: tr('tools.background'), href: t('background-color') },
           ],
         },
       ];
@@ -221,6 +213,7 @@ function getRibbonGroups(
             { icon: Trash2, label: tr('tools.deletePage'), href: t('delete') },
             { icon: FileDown, label: tr('tools.extract'), href: t('extract') },
             { icon: LayoutGrid, label: tr('tools.organize'), href: t('organize') },
+            { icon: Scissors, label: tr('tools.split'), href: t('split') },
           ],
         },
         {
@@ -228,7 +221,7 @@ function getRibbonGroups(
           tools: [
             { icon: RotateCw, label: tr('tools.rotate'), href: t('rotate') },
             { icon: Crop, label: tr('tools.cropPages'), href: t('crop') },
-            { icon: ArrowLeftRight, label: tr('tools.reverse'), href: t('reverse') },
+            { icon: ArrowLeftRight, label: tr('tools.reverseOrder'), href: t('reverse') },
           ],
         },
       ];
@@ -256,7 +249,7 @@ function getRibbonGroups(
             { icon: Square, label: tr('tools.rectangle'), action: 'annot:rectangle' },
             { icon: Circle, label: tr('tools.circle'), action: 'annot:circle' },
             { icon: PenTool, label: tr('tools.freehand'), action: 'annot:freehand' },
-            { icon: Type, label: tr('tools.text'), action: 'annot:freeText' },
+            { icon: Type, label: tr('tools.textComment'), action: 'annot:freeText' },
           ],
         },
         {
@@ -264,7 +257,6 @@ function getRibbonGroups(
           tools: [
             { icon: StickyNote, label: tr('tools.note'), action: 'annot:note' },
             { icon: Stamp, label: tr('tools.stamp'), action: 'annot:stamp' },
-            { icon: Pen, label: tr('tools.signature'), action: 'annot:signature' },
           ],
         },
         {
@@ -295,14 +287,6 @@ function getRibbonGroups(
             { icon: FileSpreadsheet, label: tr('tools.excelToPdf'), href: t('excel-to-pdf') },
           ],
         },
-        {
-          label: tr('groups.extract'),
-          tools: [
-            { icon: Type, label: tr('tools.extractText'), href: t('extract') },
-            { icon: Table, label: tr('tools.extractTables'), href: t('extract-tables') },
-            { icon: Image, label: tr('tools.extractImages'), href: t('extract-images') },
-          ],
-        },
       ];
 
     case 'tool':
@@ -310,13 +294,10 @@ function getRibbonGroups(
         {
           label: tr('groups.process'),
           tools: [
+            { icon: ScanText, label: tr('tools.ocr'), href: t('ocr') },
+            { icon: Minimize2, label: tr('tools.compress'), action: 'openInlineCompress' },
             { icon: Wrench, label: tr('tools.repair'), href: t('repair') },
-          ],
-        },
-        {
-          label: tr('groups.watermark'),
-          tools: [
-            { icon: Stamp, label: tr('tools.stamps'), href: t('stamps') },
+            { icon: Layers, label: tr('tools.merge'), href: t('merge') },
           ],
         },
         {
@@ -324,7 +305,21 @@ function getRibbonGroups(
           tools: [
             { icon: FileCheck, label: tr('tools.compare'), href: t('compare-pdfs') },
             { icon: Settings, label: tr('tools.metadata'), href: t('edit-metadata') },
-            { icon: Layers, label: tr('tools.flatten'), href: t('flatten') },
+            { icon: SquareStack, label: tr('tools.flatten'), href: t('flatten') },
+          ],
+        },
+        {
+          label: tr('groups.extract'),
+          tools: [
+            { icon: Type, label: tr('tools.extractText'), href: t('extractText') },
+            { icon: Table, label: tr('tools.extractTables'), href: t('extractTables') },
+            { icon: Image, label: tr('tools.extractImages'), href: t('extractImages') },
+          ],
+        },
+        {
+          label: tr('groups.watermark'),
+          tools: [
+            { icon: Stamp, label: tr('tools.stamps'), href: t('stamps') },
           ],
         },
       ];
@@ -341,7 +336,7 @@ function getRibbonGroups(
         {
           label: tr('groups.sign'),
           tools: [
-            { icon: Pen, label: tr('tools.sign'), href: t('sign') },
+            { icon: Pen, label: tr('tools.signature'), href: t('sign') },
             { icon: ShieldCheck, label: tr('tools.digitalSign'), href: t('digital-sign') },
             { icon: FileCheck, label: tr('tools.validate'), href: t('validate-signature') },
           ],
@@ -527,6 +522,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
   const [currentPage, setCurrentPage] = useState(1);
   const [pageCount, setPageCount] = useState(0);
   const editorIframeRef = useRef<HTMLIFrameElement | null>(null);
+  const openFileInputRef = useRef<HTMLInputElement | null>(null);
   const viewerFitAppliedRef = useRef(false);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [activeTab, setActiveTab] = useState<RibbonTabKey>('home');
@@ -984,6 +980,9 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     const iframeWin = () => editorIframeRef.current?.contentWindow as (Window & Record<string, unknown>) | null;
 
     switch (action) {
+      case 'openDocument':
+        openFileInputRef.current?.click();
+        break;
       case 'zoomIn': handleZoomIn(); break;
       case 'zoomOut': handleZoomOut(); break;
       case 'fitPage':
@@ -1164,6 +1163,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
         if (action === 'annot:clearAll') {
           if (!file) break;
           if (!window.confirm(t('textStyle.clearConfirm'))) break;
+          setActiveTab('comment');
           const tryClear = (attempt: number) => {
             const win = editorIframeRef.current?.contentWindow as
               | (Window & { pdfcraftClearAllAnnotations?: () => boolean })
@@ -1172,21 +1172,24 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
               if (attempt < 40) window.setTimeout(() => tryClear(attempt + 1), 150);
               return;
             }
+            let cleared = false;
             try {
-              if (win.pdfcraftClearAllAnnotations?.()) {
-                setIsDirty(true);
-                setActiveAnnotTool(null);
-                return;
-              }
+              cleared = win.pdfcraftClearAllAnnotations?.() === true;
             } catch {
               // ignore
             }
-            try {
-              win.postMessage({ type: 'pdfcraft-clear-annotations' }, '*');
+            if (!cleared) {
+              try {
+                win.postMessage({ type: 'pdfcraft-clear-annotations' }, '*');
+                cleared = true;
+              } catch {
+                // ignore
+              }
+            }
+            if (cleared) {
               setIsDirty(true);
               setActiveAnnotTool(null);
-            } catch {
-              // ignore
+              return;
             }
             if (attempt < 40) window.setTimeout(() => tryClear(attempt + 1), 150);
           };
@@ -1369,6 +1372,16 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
 
   return (
     <section className={`fixed inset-0 z-40 flex flex-col overflow-hidden ${isWorkspaceDark ? 'text-white bg-[#1e2028]' : 'text-[hsl(var(--color-foreground))] bg-[#F1F5F9]'}`}>
+      <input
+        ref={openFileInputRef}
+        type="file"
+        accept=".pdf,application/pdf"
+        className="hidden"
+        onChange={(e) => {
+          handleFilePicked(e.target.files?.[0] ?? null);
+          e.target.value = '';
+        }}
+      />
       {/* ─── Tab Bar ─── */}
       <div className={`flex items-center h-9 border-b px-2 shrink-0 ${isWorkspaceDark ? 'bg-[#2a2d35] border-white/[0.06]' : 'bg-white border-[#E5E7EB]'}`}>
         <button
@@ -1427,19 +1440,6 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
         <div className="flex-1" />
 
         <div className="hidden md:flex items-center gap-1">
-          <button
-            className={`inline-flex items-center gap-1 px-2 py-1 rounded transition-all text-[11px] ${
-              isDirty
-                ? 'text-amber-700 dark:text-amber-200 bg-amber-100 dark:bg-amber-500/15 ring-1 ring-amber-500/40 dark:ring-amber-400/35 hover:bg-amber-200/80 dark:hover:bg-amber-500/25'
-                : isWorkspaceDark
-                  ? 'text-white/55 hover:text-white hover:bg-white/[0.06]'
-                  : 'text-[#4B5563] hover:text-[#111827] hover:bg-[#F3F4F6]'
-            }`}
-            onClick={() => handleRibbonAction('save')}
-            title={isDirty ? 'Có thay đổi chưa lưu' : 'Đã lưu'}
-          >
-            <Save className="h-3 w-3" /> {t('header.save')}
-          </button>
           <button
             className={`inline-flex items-center gap-1 px-2 py-1 rounded transition-all text-[11px] ${
               isWorkspaceDark
@@ -1522,12 +1522,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
         {/* Left: Thumbnail Panel */}
         {showThumbnails && (
           <aside className={`w-[148px] shrink-0 flex flex-col ${isWorkspaceDark ? 'bg-[#1e2028]' : 'bg-[#F1F5F9]'}`}>
-            <div className="flex items-center justify-between gap-1.5 px-2 py-2 border-b border-[#E5E7EB] dark:border-white/[0.06] shrink-0">
-              <label className="inline-flex flex-1 items-center justify-center rounded-md border border-dashed border-[hsl(var(--color-border))] dark:border-white/10 p-2 cursor-pointer hover:bg-[hsl(var(--color-muted)/0.6)] dark:hover:bg-white/[0.04] hover:border-[hsl(var(--color-primary)/0.35)] dark:hover:border-white/20 transition-all">
-                <Upload className="h-4 w-4 text-[hsl(var(--color-primary)/0.85)]" />
-                <span className="sr-only">{t('sidebar.newPdf')}</span>
-                <input type="file" accept=".pdf,application/pdf" className="hidden" onChange={(e) => handleFilePicked(e.target.files?.[0] ?? null)} />
-              </label>
+            <div className="flex items-center justify-end px-2 py-2 border-b border-[#E5E7EB] dark:border-white/[0.06] shrink-0">
               <WorkspacePagesSidebarToggle
                 expanded
                 variant="header"

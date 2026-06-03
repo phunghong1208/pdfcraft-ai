@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { inter, jetbrainsMono } from '@/lib/fonts';
 import '@/app/globals.css';
 
 export const metadata: Metadata = {
@@ -38,7 +39,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className="min-h-screen bg-background text-foreground antialiased"
+        className={`${inter.variable} ${jetbrainsMono.variable} ${inter.className} min-h-screen bg-background text-foreground antialiased font-sans`}
         suppressHydrationWarning
       >
         {children}

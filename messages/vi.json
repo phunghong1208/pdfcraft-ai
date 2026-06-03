@@ -2346,6 +2346,8 @@
       "page": "Trang",
       "insert": "Chèn",
       "save": "Lưu",
+      "file": "Tệp",
+      "document": "Tài liệu",
       "pages": "Trang",
       "transform": "Biến đổi",
       "combine": "Ghép",
@@ -2377,6 +2379,7 @@
       "ocrLayerHint": "Text OCR trên PDF scan — tắt nếu bị lệch/xấu"
     },
     "tools": {
+      "open": "Mở",
       "zoomIn": "Phóng to",
       "zoomOut": "Thu nhỏ",
       "fitPage": "Vừa trang",
@@ -2401,6 +2404,7 @@
       "extract": "Trích xuất",
       "organize": "Sắp xếp",
       "reverse": "Đảo",
+      "reverseOrder": "Đảo thứ tự trang",
       "highlight": "Tô sáng",
       "underline": "Gạch chân",
       "strikeout": "Gạch ngang",
@@ -2408,6 +2412,7 @@
       "rectangle": "Hình chữ nhật",
       "circle": "Hình tròn",
       "text": "Văn bản",
+      "textComment": "Chú thích văn bản",
       "note": "Ghi chú",
       "stamp": "Con dấu",
       "signature": "Chữ ký",

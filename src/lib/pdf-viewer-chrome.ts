@@ -107,6 +107,39 @@ html.pdfcraft-annotating .CustomComment,html.pdfcraft-annotating [class*="Custom
   display:none!important;visibility:hidden!important;width:0!important;height:0!important;
   border:none!important;overflow:hidden!important;pointer-events:none!important;opacity:0!important;
 }
+html.pdfcraft-note-panel .CustomComment,html.pdfcraft-note-panel [class*="CustomComment"]{
+  display:none!important;
+}
+#pdfcraft-note-editor.pdfcraft-note-editor{
+  display:none;flex-direction:column;gap:8px;position:fixed;right:16px;top:72px;
+  width:min(360px,calc(100vw - 32px));max-height:min(50vh,420px);padding:12px 14px;
+  z-index:10003;pointer-events:auto;box-sizing:border-box;
+  background:var(--body-bg-color,#fff);color:var(--main-color,#111);
+  border:1px solid var(--toolbar-border-color,#d1d5db);border-radius:10px;
+  box-shadow:0 8px 28px rgba(0,0,0,.18);
+}
+html.pdfcraft-note-panel #pdfcraft-note-editor.pdfcraft-note-editor{display:flex!important}
+#pdfcraft-note-editor .pdfcraft-note-editor-title{font-size:13px;font-weight:600;opacity:.85;margin:0}
+#pdfcraft-note-editor textarea{
+  width:100%;min-height:120px;resize:vertical;box-sizing:border-box;padding:8px 10px;
+  border-radius:8px;border:1px solid var(--toolbar-border-color,#d1d5db);
+  background:var(--doorhanger-bg-color,#fff);color:var(--main-color,#111);font-size:14px;line-height:1.45;
+}
+#pdfcraft-note-editor .pdfcraft-note-editor-actions{display:flex;justify-content:flex-end;gap:8px}
+#pdfcraft-note-editor button{
+  pointer-events:auto;cursor:pointer;padding:6px 14px;border-radius:8px;font-size:13px;border:1px solid var(--toolbar-border-color,#d1d5db);
+  background:var(--doorhanger-bg-color,#f3f4f6);color:var(--main-color,#111);
+}
+#pdfcraft-note-editor button.pdfcraft-note-save{
+  background:#1677ff;border-color:#1677ff;color:#fff;
+}
+html.pdfcraft-embedded .StampPop,html.pdfcraft-embedded .ant-dropdown:has(.StampPop-Container),
+html.pdfcraft-embedded [class*="StampPop"]{
+  z-index:10050!important;pointer-events:auto!important;
+}
+html.pdfcraft-embedded .StampPop-Container,html.pdfcraft-embedded .StampPop-Container img{
+  pointer-events:auto!important;cursor:pointer!important;
+}
 html.pdfcraft-text-markup .CustomPopbar{display:none!important;pointer-events:none!important}
 .CustomPopbar{z-index:10000!important;pointer-events:auto!important}
 /* Menu chỉnh: comment / màu / xóa */

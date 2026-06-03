@@ -4,8 +4,7 @@ import { getMessages, setRequestLocale, getTranslations } from 'next-intl/server
 import { notFound } from 'next/navigation';
 import { localeConfig, type Locale, locales } from '@/lib/i18n/config';
 import { generateHomeMetadata } from '@/lib/seo';
-import { fontVariables } from '@/lib/fonts';
-import { SkipLink } from '@/components/common/SkipLink';
+ import { SkipLink } from '@/components/common/SkipLink';
 import { LocaleHtmlAttributes } from '@/components/layout/LocaleHtmlAttributes';
 import '@/app/globals.css';
 
@@ -71,19 +70,9 @@ export default async function LocaleLayout({
 
   return (
     <NextIntlClientProvider messages={messages} timeZone="UTC">
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `document.documentElement.lang=${JSON.stringify(locale)};document.documentElement.dir=${JSON.stringify(direction)};`,
-        }}
-      />
       <LocaleHtmlAttributes locale={locale} direction={direction} />
-      <div
-        className={`${fontVariables} min-h-screen bg-background text-foreground antialiased font-sans`}
-        suppressHydrationWarning
-      >
-        <SkipLink targetId="main-content">Skip to main content</SkipLink>
-        {children}
-      </div>
+      <SkipLink targetId="main-content">Skip to main content</SkipLink>
+      {children}
     </NextIntlClientProvider>
   );
 }
