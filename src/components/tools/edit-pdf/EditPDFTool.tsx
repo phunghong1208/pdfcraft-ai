@@ -30,7 +30,7 @@ export interface EditPDFToolProps {
 export function EditPDFTool({
   className = '',
   immersive = false,
-  theme = 'dark',
+  theme = 'light',
   onIframeRef,
   sourceFile = null,
   sourcePdfUrl = null,
@@ -114,7 +114,6 @@ export function EditPDFTool({
   }, []);
 
   const handleIframeLoad = useCallback(() => {
-    onIframeRef?.(iframeRef.current);
     loadedUrlRef.current = activeUrl;
 
     try {
@@ -126,6 +125,8 @@ export function EditPDFTool({
         injectPdfViewerChrome(doc, 'pdfcraft-viewer-chrome', theme);
         attachKonvaSeamGuard(doc);
       }
+
+      onIframeRef?.(iframeRef.current);
 
       // Page change notifier for parent workspace
       const notifierScript = doc.createElement('script');
@@ -276,6 +277,14 @@ export function EditPDFTool({
     } catch (e) {
       console.warn('Could not access iframe content', e);
     }
+  }, [activeUrl, immersive, onIframeRef, theme]);
+
+  useEffect(() => {
+    if (!immersive || !activeUrl) return;
+    const doc = iframeRef.current?.contentDocument;
+    if (!doc) return;
+    injectPdfViewerChrome(doc, 'pdfcraft-viewer-chrome', theme);
+    onIframeRef?.(iframeRef.current);
   }, [activeUrl, immersive, onIframeRef, theme]);
 
   const handleClear = useCallback(() => {

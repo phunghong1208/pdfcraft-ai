@@ -2718,6 +2718,12 @@
       "dialogLabel": "작업 공간 도구",
       "close": "닫기"
     },
+    "split": {
+      "openInWorkspace": "Open in workspace",
+      "downloadZip": "Download all as ZIP",
+      "singleApplied": "Split complete — opened in workspace.",
+      "pickFileHint": "Choose a part to continue editing, or download all as ZIP."
+    },
     "statusBar": {
       "aiAssistant": "AI 도우미"
     }

@@ -31,7 +31,8 @@ import { fetchAssembledBlob } from '../utils/asset-loader';
 import { withBasePath } from '../utils/path';
 
 const LIBREOFFICE_PATH = withBasePath('/libreoffice-wasm/');
-const ASSET_VERSION = '20240212-3';
+/** Bump when @matbee/libreoffice-converter WASM bundle changes (postinstall sync). */
+const ASSET_VERSION = 'matbee-2.6.0';
 // Request uncompressed names. In production, nginx gzip_static serves the .gz variant
 // with correct Content-Encoding and MIME headers (required for WebAssembly streaming).
 const SOFFICE_WASM_FILE = 'soffice.wasm';

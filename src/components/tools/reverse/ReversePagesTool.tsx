@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { FileUploader } from '../FileUploader';
 import { ProcessingProgress, ProcessingStatus } from '../ProcessingProgress';
@@ -14,6 +14,12 @@ import type { ProcessOutput } from '@/types/pdf';
 export interface ReversePagesToolProps {
   /** Custom class name */
   className?: string;
+  /** Pre-load a file when opened from workspace ribbon */
+  initialFile?: File | null;
+  /** Lock tool to initialFile when used inside workspace */
+  lockToInitialFile?: boolean;
+  /** Update current workspace file after successful reverse */
+  onFileUpdated?: (file: File) => void;
 }
 
 /**
@@ -22,7 +28,12 @@ export interface ReversePagesToolProps {
  * 
  * Provides the UI for reversing page order in a PDF.
  */
-export function ReversePagesTool({ className = '' }: ReversePagesToolProps) {
+export function ReversePagesTool({
+  className = '',
+  initialFile = null,
+  lockToInitialFile = false,
+  onFileUpdated,
+}: ReversePagesToolProps) {
   const t = useTranslations('common');
   const tTools = useTranslations('tools');
   
@@ -37,6 +48,7 @@ export function ReversePagesTool({ className = '' }: ReversePagesToolProps) {
   
   // Ref for cancellation
   const cancelledRef = useRef(false);
+  const initialFileSeededRef = useRef(false);
 
   /**
    * Load PDF to get page count
@@ -68,6 +80,12 @@ export function ReversePagesTool({ className = '' }: ReversePagesToolProps) {
       loadPdfInfo(selectedFile);
     }
   }, [loadPdfInfo]);
+
+  useEffect(() => {
+    if (!initialFile || initialFileSeededRef.current) return;
+    initialFileSeededRef.current = true;
+    handleFilesSelected([initialFile]);
+  }, [initialFile, handleFilesSelected]);
 
   /**
    * Handle file upload error
@@ -125,8 +143,17 @@ export function ReversePagesTool({ className = '' }: ReversePagesToolProps) {
       }
 
       if (output.success && output.result) {
-        setResult(output.result as Blob);
+        const resultBlob = output.result as Blob;
+        setResult(resultBlob);
         setStatus('complete');
+        if (lockToInitialFile && onFileUpdated && file) {
+          onFileUpdated(
+            new File([resultBlob], file.name, {
+              type: 'application/pdf',
+              lastModified: Date.now(),
+            }),
+          );
+        }
       } else {
         setError(output.error?.message || 'Failed to reverse pages.');
         setStatus('error');
@@ -163,7 +190,7 @@ export function ReversePagesTool({ className = '' }: ReversePagesToolProps) {
   return (
     <div className={`space-y-6 ${className}`.trim()}>
       {/* File Upload Area */}
-      {!file && (
+      {!file && !lockToInitialFile && (
         <FileUploader
           accept={['application/pdf', '.pdf']}
           multiple={false}
@@ -203,14 +230,16 @@ export function ReversePagesTool({ className = '' }: ReversePagesToolProps) {
                 </p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClearFile}
-              disabled={isProcessing}
-            >
-              {t('buttons.remove') || 'Remove'}
-            </Button>
+            {!lockToInitialFile ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearFile}
+                disabled={isProcessing}
+              >
+                {t('buttons.remove') || 'Remove'}
+              </Button>
+            ) : null}
           </div>
         </Card>
       )}

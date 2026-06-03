@@ -28,6 +28,8 @@ export interface SplitPDFToolProps {
   initialFile?: File | null;
   /** Lock tool to initialFile when used inside workspace */
   lockToInitialFile?: boolean;
+  /** Replace workspace PDF after split (single file auto-applies) */
+  onFileUpdated?: (file: File) => void;
 }
 
 type SplitMode = 'ranges' | 'even-odd' | 'every-page' | 'visual' | 'bookmarks' | 'n-times';
@@ -47,9 +49,11 @@ export function SplitPDFTool({
   className = '',
   initialFile = null,
   lockToInitialFile = false,
+  onFileUpdated,
 }: SplitPDFToolProps) {
   const t = useTranslations('common');
   const tTools = useTranslations('tools');
+  const tWs = useTranslations('workspace');
 
   // State
   const [file, setFile] = useState<File | null>(null);
@@ -396,6 +400,16 @@ export function SplitPDFTool({
 
         setResults(resultFiles);
         setStatus('complete');
+
+        if (lockToInitialFile && onFileUpdated && resultFiles.length === 1) {
+          const part = resultFiles[0];
+          onFileUpdated(
+            new File([part.blob], part.filename, {
+              type: 'application/pdf',
+              lastModified: Date.now(),
+            }),
+          );
+        }
       } else {
         setError(output.error?.message || 'Failed to split PDF file.');
         setStatus('error');
@@ -406,7 +420,7 @@ export function SplitPDFTool({
         setStatus('error');
       }
     }
-  }, [file, getPageRanges]);
+  }, [file, getPageRanges, lockToInitialFile, onFileUpdated]);
 
   /**
    * Handle cancel operation
@@ -1017,13 +1031,80 @@ export function SplitPDFTool({
       )}
 
       {/* Results */}
-      {status === 'complete' && results.length > 0 && (
+      {status === 'complete' && results.length > 0 && lockToInitialFile && onFileUpdated && results.length > 1 && (
+        <Card variant="outlined" size="lg">
+          <h3 className="text-lg font-medium text-[hsl(var(--color-foreground))] mb-2">
+            {tTools('splitPdf.resultsTitle') || 'Split Results'} ({results.length})
+          </h3>
+          <p className="text-sm text-[hsl(var(--color-muted-foreground))] mb-4">
+            {tWs('split.pickFileHint')}
+          </p>
+
+          <div className="mb-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                try {
+                  const zipBlob = await createZip(results);
+                  const link = document.createElement('a');
+                  link.href = URL.createObjectURL(zipBlob);
+                  link.download = `${file?.name.replace(/\.pdf$/i, '') || 'split'}-files.zip`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  URL.revokeObjectURL(link.href);
+                } catch (err) {
+                  console.error('Failed to create ZIP:', err);
+                  setError('Failed to create ZIP file.');
+                }
+              }}
+            >
+              {tWs('split.downloadZip')}
+            </Button>
+          </div>
+
+          <div className="space-y-2">
+            {results.map((result, index) => (
+              <div
+                key={index}
+                className="flex items-center justify-between gap-3 p-3 rounded-[var(--radius-md)] bg-[hsl(var(--color-muted)/0.3)]"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-[hsl(var(--color-foreground))] truncate">
+                    {result.filename}
+                  </p>
+                  <p className="text-xs text-[hsl(var(--color-muted-foreground))]">
+                    {formatSize(result.blob.size)}
+                  </p>
+                </div>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() =>
+                    onFileUpdated(
+                      new File([result.blob], result.filename, {
+                        type: 'application/pdf',
+                        lastModified: Date.now(),
+                      }),
+                    )
+                  }
+                >
+                  {tWs('split.openInWorkspace')}
+                </Button>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {status === 'complete' && results.length > 0 && !(lockToInitialFile && onFileUpdated) && (
         <Card variant="outlined" size="lg">
           <h3 className="text-lg font-medium text-[hsl(var(--color-foreground))] mb-4">
             {tTools('splitPdf.resultsTitle') || 'Split Results'} ({results.length} {results.length === 1 ? 'file' : 'files'})
           </h3>
 
-          {/* Download ZIP button if multiple files */}
           {results.length > 1 && (
             <div className="mb-4">
               <Button
@@ -1033,10 +1114,11 @@ export function SplitPDFTool({
                     const zipBlob = await createZip(results);
                     const link = document.createElement('a');
                     link.href = URL.createObjectURL(zipBlob);
-                    link.download = `${file?.name.replace('.pdf', '') || 'split'}-files.zip`;
+                    link.download = `${file?.name.replace(/\.pdf$/i, '') || 'split'}-files.zip`;
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
+                    URL.revokeObjectURL(link.href);
                   } catch (err) {
                     console.error('Failed to create ZIP:', err);
                     setError('Failed to create ZIP file.');
@@ -1088,11 +1170,16 @@ export function SplitPDFTool({
       {/* Success Message */}
       {status === 'complete' && results.length > 0 && (
         <div
-          className="p-4 rounded-[var(--radius-md)] bg-green-50 border border-green-200 text-green-700"
+          className="p-4 rounded-[var(--radius-md)] bg-green-50 border border-green-200 text-green-700 dark:bg-green-950/40 dark:border-green-800 dark:text-green-300"
           role="status"
         >
           <p className="text-sm font-medium">
-            {tTools('splitPdf.successMessage') || `PDF split successfully into ${results.length} file(s)! Click the download buttons to save your files.`}
+            {lockToInitialFile && onFileUpdated
+              ? results.length === 1
+                ? tWs('split.singleApplied')
+                : tWs('split.pickFileHint')
+              : (tTools('splitPdf.successMessage') ||
+                  `PDF split successfully into ${results.length} file(s)! Click the download buttons to save your files.`)}
           </p>
         </div>
       )}

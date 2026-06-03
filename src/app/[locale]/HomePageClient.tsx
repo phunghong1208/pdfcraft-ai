@@ -4,11 +4,13 @@ import { useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Upload, Sparkles, Languages, MessagesSquare, ScanText, Volume2, PencilLine, Minimize2, GitMerge, FileCog, ArrowRight } from 'lucide-react';
+import { Upload, Sparkles, Languages, MessagesSquare, ScanText, Volume2, PencilLine, Minimize2, GitMerge, FileCog, ShieldCheck, Scissors } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { IconBadge } from '@/components/ui/IconBadge';
+import { aiCardClass, type AiCardVariant } from '@/lib/ui/icon-tones';
 import { type Locale } from '@/lib/i18n/config';
 import { setUploadedPdf } from '@/lib/document-session';
 
@@ -25,18 +27,22 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
   const [isPreparing, setIsPreparing] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
 
-  const aiActions = [
-    { href: `/${locale}/ai-summary`, label: t('actions.summarize'), icon: Sparkles },
-    { href: `/${locale}/ai-translate`, label: t('actions.translate'), icon: Languages },
-    { href: `/${locale}/chat-pdf`, label: t('actions.chat'), icon: MessagesSquare },
-    { href: `/${locale}/smart-ocr`, label: t('actions.ocr'), icon: ScanText },
-    { href: `/${locale}/voice-reader`, label: t('actions.voice'), icon: Volume2 },
+  const aiActions: Array<{ href: string; label: string; icon: typeof Sparkles; variant: AiCardVariant; description: string }> = [
+    { href: `/${locale}/ai-summary`, label: t('actions.summarize'), icon: Sparkles, variant: 'purple', description: 'Extract key insights from any PDF.' },
+    { href: `/${locale}/ai-translate`, label: t('actions.translate'), icon: Languages, variant: 'blue', description: 'Translate entire documents into other languages.' },
+    { href: `/${locale}/voice-reader`, label: t('actions.voice'), icon: Volume2, variant: 'coral', description: 'Convert PDF to natural speech instantly.' },
+    { href: `/${locale}/smart-ocr`, label: t('actions.ocr'), icon: ScanText, variant: 'green', description: 'Convert scans to editable PDF.' },
+    { href: `/${locale}/chat-pdf`, label: t('actions.chat'), icon: MessagesSquare, variant: 'violet-wide', description: 'Ask questions about your files and get instant answers.' },
   ];
 
-  const pdfActions = [
-    { href: `/${locale}/tools?tab=edit`, label: t('actions.edit'), icon: PencilLine },
-    { href: `/${locale}/tools?tab=optimize`, label: t('actions.compress'), icon: Minimize2 },
-    { href: `/${locale}/tools?tab=edit`, label: t('actions.merge'), icon: GitMerge },
+  const pdfActions: Array<{ href: string; label: string; icon: typeof PencilLine }> = [
+    { href: `/${locale}/tools/image-to-pdf`, label: 'Scan to PDF', icon: ScanText },
+    { href: `/${locale}/tools/merge-pdf`, label: t('actions.merge'), icon: GitMerge },
+    { href: `/${locale}/tools/split-pdf`, label: 'Split', icon: Scissors },
+    { href: `/${locale}/tools/encrypt-pdf`, label: 'Protect', icon: ShieldCheck },
+    { href: `/${locale}/tools/compress-pdf`, label: t('actions.compress'), icon: Minimize2 },
+    { href: `/${locale}/smart-ocr`, label: 'OCR Text', icon: ScanText },
+    { href: `/${locale}/tools/edit-pdf`, label: t('actions.edit'), icon: PencilLine },
     { href: `/${locale}/tools?tab=convert`, label: t('actions.convert'), icon: FileCog },
   ];
 
@@ -82,7 +88,7 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
           </div>
         </section>
 
-        <section className="pb-6">
+        <section id="upload" className="pb-6 scroll-mt-28">
           <div className="container mx-auto px-4 max-w-4xl">
             <Card className="p-5 md:p-8 border border-[hsl(var(--color-border)/0.8)] shadow-sm">
               <div className="rounded-2xl border-2 border-dashed border-[hsl(var(--color-border))] px-5 py-7 text-center bg-[hsl(var(--color-muted)/0.18)]">
@@ -122,16 +128,24 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
                   {t('useInWorkspace')}
                 </Link>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {aiActions.map((item) => {
                   const Icon = item.icon;
+                  const isWide = item.variant === 'violet-wide';
                   return (
-                    <Link key={item.href} href={item.href} className="rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-card))] px-3 py-2.5 hover:bg-[hsl(var(--color-muted))]/50 transition-all">
-                      <div className="flex items-center gap-2.5">
-                        <div className="h-8 w-8 rounded-xl bg-[hsl(var(--color-primary)/0.1)] flex items-center justify-center">
-                          <Icon className="h-[18px] w-[18px] text-[hsl(var(--color-primary))]" strokeWidth={1.75} />
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`${aiCardClass(item.variant)} p-4 block ${isWide ? 'sm:col-span-2 lg:col-span-2' : ''}`}
+                    >
+                      <div className="flex h-full flex-col gap-3">
+                        <div className="h-9 w-9 rounded-lg bg-white/20 flex items-center justify-center">
+                          <Icon className="h-5 w-5 text-white" strokeWidth={1.75} />
                         </div>
-                        <div className="text-sm font-medium">{item.label}</div>
+                        <div>
+                          <div className="text-sm font-semibold">{item.label}</div>
+                          <p className="mt-1 text-xs text-white/80 leading-relaxed">{item.description}</p>
+                        </div>
                       </div>
                     </Link>
                   );
@@ -150,22 +164,24 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
                   {t('viewAllTools')}
                 </Link>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 {pdfActions.map((item) => {
                   const Icon = item.icon;
                   return (
-                  <Link key={`${item.href}-${item.label}`} href={item.href} className="rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-card))] px-3 py-2.5 hover:bg-[hsl(var(--color-muted))]/50 transition-all">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="h-8 w-8 rounded-xl bg-[hsl(var(--color-primary)/0.1)] flex items-center justify-center">
-                          <Icon className="h-[18px] w-[18px] text-[hsl(var(--color-primary))]" strokeWidth={1.75} />
-                        </div>
-                        <span className="text-sm font-medium">{item.label}</span>
+                    <Link
+                      key={`${item.href}-${item.label}`}
+                      href={item.href}
+                      className="feature-card-light rounded-2xl px-3 py-3 min-h-[96px] hover:shadow-md transition-all group"
+                    >
+                      <div className="flex flex-col gap-3 h-full justify-between">
+                        <IconBadge icon={Icon} tone="primary" size="md" />
+                        <span className="text-sm font-medium text-[hsl(var(--color-foreground))] group-hover:text-[hsl(var(--color-primary))] transition-colors">
+                          {item.label}
+                        </span>
                       </div>
-                      <ArrowRight className="h-4 w-4 text-[hsl(var(--color-muted-foreground))]" />
-                    </div>
-                  </Link>
-                )})}
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           </div>

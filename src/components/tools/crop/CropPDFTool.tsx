@@ -15,6 +15,12 @@ import type { ProcessOutput } from '@/types/pdf';
 
 export interface CropPDFToolProps {
   className?: string;
+  /** Pre-load a file when opened from workspace ribbon */
+  initialFile?: File | null;
+  /** Lock tool to initialFile when used inside workspace */
+  lockToInitialFile?: boolean;
+  /** Update current workspace file after successful crop */
+  onFileUpdated?: (file: File) => void;
 }
 
 interface CropState {
@@ -26,7 +32,12 @@ interface CropState {
   crops: Record<number, CropData>; // Store crops for each page
 }
 
-export function CropPDFTool({ className = '' }: CropPDFToolProps) {
+export function CropPDFTool({
+  className = '',
+  initialFile = null,
+  lockToInitialFile = false,
+  onFileUpdated,
+}: CropPDFToolProps) {
   const t = useTranslations('common');
   const tTools = useTranslations('tools');
 
@@ -51,6 +62,7 @@ export function CropPDFTool({ className = '' }: CropPDFToolProps) {
   const cropperRef = useRef<ReactCropperElement>(null);
   const cropperContainerRef = useRef<HTMLDivElement>(null);
   const cancelledRef = useRef(false);
+  const initialFileSeededRef = useRef(false);
 
   // Fullscreen toggle
   const handleToggleFullscreen = useCallback(() => {
@@ -179,6 +191,12 @@ export function CropPDFTool({ className = '' }: CropPDFToolProps) {
       setError('Failed to load PDF file.');
     }
   }, []);
+
+  useEffect(() => {
+    if (!initialFile || initialFileSeededRef.current) return;
+    initialFileSeededRef.current = true;
+    void handleFilesSelected([initialFile]);
+  }, [initialFile, handleFilesSelected]);
 
   // Render PDF page to image
   const renderPage = async (pdfDoc: any, pageNum: number) => {
@@ -347,8 +365,17 @@ export function CropPDFTool({ className = '' }: CropPDFToolProps) {
       );
 
       if (output.success && output.result) {
-        setResult(output.result as Blob);
+        const resultBlob = output.result as Blob;
+        setResult(resultBlob);
         setStatus('complete');
+        if (lockToInitialFile && onFileUpdated && state.file) {
+          onFileUpdated(
+            new File([resultBlob], state.file.name, {
+              type: 'application/pdf',
+              lastModified: Date.now(),
+            }),
+          );
+        }
       } else {
         setError(output.error?.message || 'Failed.');
         setStatus('error');
@@ -357,7 +384,7 @@ export function CropPDFTool({ className = '' }: CropPDFToolProps) {
       setError(err instanceof Error ? err.message : 'Error');
       setStatus('error');
     }
-  }, [state.file, state.crops, state.currentPage, state.numPages, applyToAll]);
+  }, [state.file, state.crops, state.currentPage, state.numPages, applyToAll, lockToInitialFile, onFileUpdated]);
 
   const isProcessing = status === 'processing';
 
@@ -386,7 +413,7 @@ export function CropPDFTool({ className = '' }: CropPDFToolProps) {
 
   return (
     <div className={`space-y-6 ${className}`.trim()}>
-      {!state.file && (
+      {!state.file && !lockToInitialFile && (
         <FileUploader
           accept={['application/pdf', '.pdf']}
           multiple={false}

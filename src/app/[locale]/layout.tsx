@@ -6,6 +6,7 @@ import { localeConfig, type Locale, locales } from '@/lib/i18n/config';
 import { generateHomeMetadata } from '@/lib/seo';
 import { fontVariables } from '@/lib/fonts';
 import { SkipLink } from '@/components/common/SkipLink';
+import { LocaleHtmlAttributes } from '@/components/layout/LocaleHtmlAttributes';
 import '@/app/globals.css';
 
 export function generateStaticParams() {
@@ -67,11 +68,19 @@ export default async function LocaleLayout({
 
   // Get direction for the locale
   const direction = localeConfig[locale as Locale]?.direction || 'ltr';
-  const now = new Date();
 
   return (
-    <NextIntlClientProvider messages={messages} now={now} timeZone="UTC">
-      <div lang={locale} dir={direction} className={`${fontVariables} min-h-screen bg-background text-foreground antialiased font-sans`}>
+    <NextIntlClientProvider messages={messages} timeZone="UTC">
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `document.documentElement.lang=${JSON.stringify(locale)};document.documentElement.dir=${JSON.stringify(direction)};`,
+        }}
+      />
+      <LocaleHtmlAttributes locale={locale} direction={direction} />
+      <div
+        className={`${fontVariables} min-h-screen bg-background text-foreground antialiased font-sans`}
+        suppressHydrationWarning
+      >
         <SkipLink targetId="main-content">Skip to main content</SkipLink>
         {children}
       </div>

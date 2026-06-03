@@ -2728,6 +2728,12 @@
       "dialogLabel": "ワークスペースツール",
       "close": "閉じる"
     },
+    "split": {
+      "openInWorkspace": "Open in workspace",
+      "downloadZip": "Download all as ZIP",
+      "singleApplied": "Split complete — opened in workspace.",
+      "pickFileHint": "Choose a part to continue editing, or download all as ZIP."
+    },
     "statusBar": {
       "aiAssistant": "AIアシスタント"
     }

@@ -3,9 +3,30 @@
 import React from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { Shield, Lock, FileCheck, Github, Twitter, Mail } from 'lucide-react';
-import { BrandLogo } from '@/components/layout/BrandLogo';
+import { CloudOff, Lock, ShieldCheck, type LucideIcon } from 'lucide-react';
 import { type Locale } from '@/lib/i18n/config';
+import { siteConfig } from '@/config/site';
+import { FooterStoreLink } from '@/components/layout/FooterStoreBadges';
+
+const BRAND_FILE_ICON = (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
+    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+    <polyline points="14 2 14 8 20 8" />
+    <line x1="16" y1="13" x2="8" y2="13" />
+    <line x1="16" y1="17" x2="8" y2="17" />
+    <line x1="10" y1="9" x2="8" y2="9" />
+  </svg>
+);
+
+type TrustItem = { label: string; icon: LucideIcon };
 
 export interface FooterProps {
   locale: Locale;
@@ -15,116 +36,101 @@ export const Footer: React.FC<FooterProps> = ({ locale }) => {
   const t = useTranslations('common');
   const currentYear = new Date().getFullYear();
 
-  const footerLinks = [
-    { href: `/${locale}/about`, label: t('navigation.about') },
-    { href: `/${locale}/faq`, label: t('navigation.faq') },
-    { href: `/${locale}/privacy`, label: t('navigation.privacy') },
-    { href: `/${locale}/contact`, label: t('navigation.contact') },
+  const legalLinks = [
+    { href: `/${locale}/privacy`, label: t('footer.privacyLink') },
+    { href: `/${locale}/terms`, label: t('footer.terms') },
+    { href: `/${locale}/cookies`, label: t('footer.cookies') },
+  ];
+
+  const securityItems: TrustItem[] = [
+    { icon: Lock, label: t('footer.trustLocalFirst') },
+    { icon: CloudOff, label: t('footer.trustNoCloud') },
+    { icon: ShieldCheck, label: t('footer.trustGdpr') },
   ];
 
   return (
-    <footer
-      className="w-full border-t border-[hsl(var(--color-border))] bg-[hsl(var(--color-background))] pt-16 pb-8"
-      role="contentinfo"
-    >
-      <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-          {/* Brand Column */}
-          <div className="col-span-1 md:col-span-1 flex flex-col gap-6">
-            <BrandLogo locale={locale} href={`/${locale}`} testId="footer-brand-name" />
-            <p className="text-sm text-[hsl(var(--color-muted-foreground))] leading-relaxed max-w-xs">
-              {t('tagline') || 'Professional, secure, and free PDF tools for everyone. No installation required.'}
-            </p>
-
-            <div className="flex gap-4">
-              <a href="https://github.com/PDFCraftTool/pdfcraft" className="p-2 rounded-full bg-[hsl(var(--color-muted))] text-[hsl(var(--color-muted-foreground))] hover:bg-[hsl(var(--color-primary))] hover:text-white transition-all">
-                <Github className="w-4 h-4" />
-              </a>
-              <a href="https://x.com/PDFCraftTool" className="p-2 rounded-full bg-[hsl(var(--color-muted))] text-[hsl(var(--color-muted-foreground))] hover:bg-[hsl(var(--color-primary))] hover:text-white transition-all">
-                <Twitter className="w-4 h-4" />
-              </a>
-              <a href="#" className="p-2 rounded-full bg-[hsl(var(--color-muted))] text-[hsl(var(--color-muted-foreground))] hover:bg-[hsl(var(--color-primary))] hover:text-white transition-all">
-                <Mail className="w-4 h-4" />
-              </a>
-            </div>
-          </div>
-
-          {/* Quick Links */}
-          <div>
-            <h3 className="text-sm font-bold uppercase tracking-wider text-[hsl(var(--color-foreground))] mb-6">
-              {t('footer.resources')}
-            </h3>
-            <ul className="flex flex-col gap-3">
-              {footerLinks.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-primary))] transition-colors flex items-center gap-2 group"
-                  >
-                    <span className="w-1 h-1 rounded-full bg-[hsl(var(--color-muted-foreground))] group-hover:bg-[hsl(var(--color-primary))] transition-colors" />
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Security Features */}
-          <div>
-            <h3 className="text-sm font-bold uppercase tracking-wider text-[hsl(var(--color-foreground))] mb-6">
-              {t('footer.security')}
-            </h3>
-            <ul className="flex flex-col gap-4">
-              <li className="flex items-start gap-3">
-                <div className="mt-0.5 p-1 rounded bg-[hsl(var(--color-success)/0.1)] text-[hsl(var(--color-success))]">
-                  <Lock className="h-3 w-3" />
+    <footer className="site-footer site-footer--workspace" role="contentinfo">
+      <div className="site-footer__inner">
+        <div className="site-footer__main">
+          <Link
+            href={`/${locale}`}
+            className="site-footer__brand group"
+            aria-label={t('footer.brandName')}
+          >
+            <div className="site-footer__brand-content">
+              <div className="site-footer__brand-main">
+                <div className="site-footer__brand-icon">{BRAND_FILE_ICON}</div>
+                <div className="site-footer__title" data-testid="footer-brand-name">
+                  <span className="site-footer__title-line">{t('footer.brandLine1')}</span>
+                  <span className="site-footer__title-line">{t('footer.brandLine2')}</span>
                 </div>
-                <div>
-                  <span className="block text-sm font-medium text-[hsl(var(--color-foreground))]">{t('footer.clientSideProcessing')}</span>
-                  <span className="text-xs text-[hsl(var(--color-muted-foreground))]">{t('footer.filesNeverLeave')}</span>
-                </div>
-              </li>
-              <li className="flex items-start gap-3">
-                <div className="mt-0.5 p-1 rounded bg-[hsl(var(--color-primary)/0.1)] text-[hsl(var(--color-primary))]">
-                  <FileCheck className="h-3 w-3" />
-                </div>
-                <div>
-                  <span className="block text-sm font-medium text-[hsl(var(--color-foreground))]">{t('footer.noUploads')}</span>
-                  <span className="text-xs text-[hsl(var(--color-muted-foreground))]">{t('footer.privateSecure')}</span>
-                </div>
-              </li>
-            </ul>
-          </div>
-
-          {/* Privacy Badge Block */}
-          <div className="flex flex-col justify-start">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-[hsl(var(--color-foreground))] mb-6">
-              {t('footer.compliance')}
-            </h3>
-            <div
-              className="flex items-center gap-3 p-4 bg-[hsl(var(--color-card))] border border-[hsl(var(--color-border))] rounded-xl shadow-sm"
-            >
-              <div className="h-10 w-10 rounded-full bg-[hsl(var(--color-success)/0.1)] flex items-center justify-center flex-shrink-0">
-                <Shield className="h-5 w-5 text-[hsl(var(--color-success))]" aria-hidden="true" />
               </div>
-              <div>
-                <div className="text-sm font-bold text-[hsl(var(--color-foreground))]">{t('footer.gdprCompliant')}</div>
-                <div className="text-xs text-[hsl(var(--color-muted-foreground))]">{t('footer.privacyBadge')}</div>
+              <p className="site-footer__tagline">{t('footer.tagline')}</p>
+            </div>
+          </Link>
+
+          <div className="site-footer__trust-zone" aria-label={t('footer.trustNav')}>
+            <div className="site-footer__trust-group">
+              <div className="site-footer__trust-heading">{t('footer.trustGroupSecurity')}</div>
+              <ul className="site-footer__trust" aria-label={t('footer.trustGroupSecurity')}>
+                {securityItems.map((item) => {
+                  const TrustIcon = item.icon;
+                  return (
+                    <li key={item.label} className="site-footer__trust-card">
+                      <span className="site-footer__trust-icon" aria-hidden>
+                        <TrustIcon strokeWidth={2.25} />
+                      </span>
+                      <span className="site-footer__trust-label">{item.label}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+
+            <div className="site-footer__trust-group site-footer__trust-group--download">
+              <div className="site-footer__trust-heading">{t('footer.trustGroupDownload')}</div>
+              <div
+                className="site-footer__app-badges"
+                aria-label={t('footer.downloadApp')}
+              >
+                <FooterStoreLink
+                  href={siteConfig.links.googlePlay}
+                  store="google"
+                  label={t('footer.storeGooglePlay')}
+                  ariaLabel={t('footer.googlePlayAria')}
+                />
+                <FooterStoreLink
+                  href={siteConfig.links.appStore}
+                  store="apple"
+                  label={t('footer.storeAppStore')}
+                  ariaLabel={t('footer.appStoreAria')}
+                />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Copyright */}
-        <div className="pt-8 border-t border-[hsl(var(--color-border))] flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-[hsl(var(--color-muted-foreground))]">
-            &copy; {currentYear} {t('brand')}. {t('footer.copyright', { year: '' }).replace(/^\d{4}\s*/, '')}
+        <div className="site-footer__rule" aria-hidden="true" />
+
+        <div className="site-footer__foot">
+          <nav className="site-footer__legal" aria-label={t('footer.legalNav')}>
+            {legalLinks.map((link, index) => (
+              <span key={link.href} className="site-footer__legal-item">
+                {index > 0 && (
+                  <span className="site-footer__legal-sep" aria-hidden="true">
+                    ·
+                  </span>
+                )}
+                <Link href={link.href} className="site-footer__legal-link">
+                  {link.label}
+                </Link>
+              </span>
+            ))}
+          </nav>
+
+          <p className="site-footer__copyright tabular-nums" suppressHydrationWarning>
+            {t('footer.copyright', { year: currentYear })}
           </p>
-          <div className="flex items-center gap-6">
-            <Link href={`/${locale}/terms`} className="text-xs text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))]">{t('footer.terms')}</Link>
-            <Link href={`/${locale}/privacy`} className="text-xs text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))]">{t('footer.privacyLink')}</Link>
-            <Link href={`/${locale}/cookies`} className="text-xs text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))]">{t('footer.cookies')}</Link>
-          </div>
         </div>
       </div>
     </footer>
@@ -132,4 +138,3 @@ export const Footer: React.FC<FooterProps> = ({ locale }) => {
 };
 
 export default Footer;
-

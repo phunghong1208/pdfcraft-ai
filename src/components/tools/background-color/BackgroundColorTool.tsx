@@ -30,32 +30,65 @@ export function BackgroundColorTool({
   const [color, setColor] = useState('#fffde7');
   const cancelledRef = useRef(false);
   const initialSeededRef = useRef(false);
+  /** Snapshot when tool opens — avoids stacking tints on re-apply in workspace. */
+  const processSourceRef = useRef<File | null>(null);
 
   const hexToRgb = (hex: string) => {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? { r: parseInt(result[1], 16) / 255, g: parseInt(result[2], 16) / 255, b: parseInt(result[3], 16) / 255 } : { r: 1, g: 1, b: 0.9 };
+    const normalized = hex.trim().replace(/^#/, '');
+    const expanded =
+      normalized.length === 3
+        ? normalized
+            .split('')
+            .map((c) => c + c)
+            .join('')
+        : normalized;
+    const result = /^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(expanded);
+    return result
+      ? {
+          r: parseInt(result[1], 16) / 255,
+          g: parseInt(result[2], 16) / 255,
+          b: parseInt(result[3], 16) / 255,
+        }
+      : { r: 1, g: 1, b: 0.9 };
+  };
+
+  const normalizeHex = (hex: string) => {
+    const rgb = hexToRgb(hex);
+    const toHex = (v: number) =>
+      Math.max(0, Math.min(255, Math.round(v * 255)))
+        .toString(16)
+        .padStart(2, '0');
+    return `#${toHex(rgb.r)}${toHex(rgb.g)}${toHex(rgb.b)}`;
   };
 
   useEffect(() => {
     if (!initialFile || initialSeededRef.current) return;
     initialSeededRef.current = true;
+    processSourceRef.current = initialFile;
     setFile(initialFile);
     setError(null);
     setResult(null);
   }, [initialFile]);
 
   const handleProcess = useCallback(async () => {
-    if (!file) return;
+    const sourceFile = processSourceRef.current ?? file;
+    if (!sourceFile) return;
     cancelledRef.current = false;
     setStatus('processing'); setProgress(0); setError(null); setResult(null);
     try {
-      const output: ProcessOutput = await addBackgroundColor(file, { color: hexToRgb(color), pages: 'all' }, (prog) => { if (!cancelledRef.current) setProgress(prog); });
+      const output: ProcessOutput = await addBackgroundColor(
+        sourceFile,
+        { color: hexToRgb(color), pages: 'all', opacity: 1 },
+        (prog) => {
+          if (!cancelledRef.current) setProgress(prog);
+        },
+      );
       if (output.success && output.result) {
         const nextBlob = output.result as Blob;
         setResult(nextBlob);
         setStatus('complete');
         if (lockToInitialFile && onFileUpdated) {
-          const nextFile = new File([nextBlob], file.name, {
+          const nextFile = new File([nextBlob], sourceFile.name, {
             type: 'application/pdf',
             lastModified: Date.now(),
           });
@@ -78,8 +111,21 @@ export function BackgroundColorTool({
           <Card variant="outlined" size="lg">
             <label className="block text-sm font-medium mb-2">Background Color</label>
             <div className="flex items-center gap-4">
-              <input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="w-16 h-10 border rounded cursor-pointer" disabled={isProcessing} />
-              <input type="text" value={color} onChange={(e) => setColor(e.target.value)} className="px-3 py-2 border rounded w-32" disabled={isProcessing} />
+              <input
+                type="color"
+                value={normalizeHex(color)}
+                onChange={(e) => setColor(e.target.value)}
+                className="w-16 h-10 border rounded cursor-pointer"
+                disabled={isProcessing}
+              />
+              <input
+                type="text"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                onBlur={() => setColor(normalizeHex(color))}
+                className="px-3 py-2 border rounded w-32"
+                disabled={isProcessing}
+              />
             </div>
           </Card>
         </>

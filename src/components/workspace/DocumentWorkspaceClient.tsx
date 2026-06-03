@@ -25,6 +25,9 @@ import { OCRPDFTool } from '@/components/tools/ocr/OCRPDFTool';
 import { MergePDFTool } from '@/components/tools/merge/MergePDFTool';
 import { SplitPDFTool } from '@/components/tools/split/SplitPDFTool';
 import { ExtractPagesTool } from '@/components/tools/extract/ExtractPagesTool';
+import { OrganizePDFTool } from '@/components/tools/organize/OrganizePDFTool';
+import { CropPDFTool } from '@/components/tools/crop/CropPDFTool';
+import { ReversePagesTool } from '@/components/tools/reverse/ReversePagesTool';
 import { WatermarkTool } from '@/components/tools/watermark/WatermarkTool';
 import { HeaderFooterTool } from '@/components/tools/header-footer/HeaderFooterTool';
 import { PageNumbersTool } from '@/components/tools/page-numbers/PageNumbersTool';
@@ -65,6 +68,9 @@ type WorkspaceInlineTool =
   | 'merge'
   | 'split'
   | 'extract-pages'
+  | 'organize'
+  | 'crop'
+  | 'reverse'
   | 'watermark'
   | 'header-footer'
   | 'page-numbers'
@@ -105,6 +111,12 @@ function workspaceInlineToolTitleKey(tool: WorkspaceInlineTool): string {
       return 'tools.background';
     case 'extract-pages':
       return 'tools.extract';
+    case 'organize':
+      return 'tools.organize';
+    case 'crop':
+      return 'tools.cropPages';
+    case 'reverse':
+      return 'tools.reverse';
     default:
       return `inlineTools.${tool}`;
   }
@@ -190,15 +202,6 @@ function getRibbonGroups(
           ],
         },
         {
-          label: tr('groups.page'),
-          tools: [
-            { icon: Crop, label: tr('tools.cropPages'), href: t('crop') },
-            { icon: RotateCw, label: tr('tools.rotate'), href: t('rotate') },
-            { icon: Plus, label: tr('tools.addPage'), href: t('add-blank-page') },
-            { icon: Trash2, label: tr('tools.deletePage'), href: t('delete') },
-          ],
-        },
-        {
           label: tr('groups.insert'),
           tools: [
             { icon: Eye, label: tr('tools.watermark'), href: t('watermark') },
@@ -215,7 +218,7 @@ function getRibbonGroups(
           label: tr('groups.pages'),
           tools: [
             { icon: Plus, label: tr('tools.addPage'), href: t('add-blank-page') },
-            { icon: Trash2, label: tr('tools.delete'), href: t('delete') },
+            { icon: Trash2, label: tr('tools.deletePage'), href: t('delete') },
             { icon: FileDown, label: tr('tools.extract'), href: t('extract') },
             { icon: LayoutGrid, label: tr('tools.organize'), href: t('organize') },
           ],
@@ -226,13 +229,6 @@ function getRibbonGroups(
             { icon: RotateCw, label: tr('tools.rotate'), href: t('rotate') },
             { icon: Crop, label: tr('tools.cropPages'), href: t('crop') },
             { icon: ArrowLeftRight, label: tr('tools.reverse'), href: t('reverse') },
-          ],
-        },
-        {
-          label: tr('groups.combine'),
-          tools: [
-            { icon: Layers, label: tr('tools.merge'), href: t('merge') },
-            { icon: Scissors, label: tr('tools.split'), href: t('split') },
           ],
         },
       ];
@@ -314,15 +310,12 @@ function getRibbonGroups(
         {
           label: tr('groups.process'),
           tools: [
-            { icon: ScanText, label: tr('tools.ocr'), href: t('ocr') },
-            { icon: Minimize2, label: tr('tools.compress'), action: 'openInlineCompress' },
             { icon: Wrench, label: tr('tools.repair'), href: t('repair') },
           ],
         },
         {
           label: tr('groups.watermark'),
           tools: [
-            { icon: Eye, label: tr('tools.watermark'), href: t('watermark') },
             { icon: Stamp, label: tr('tools.stamps'), href: t('stamps') },
           ],
         },
@@ -779,6 +772,11 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     viewerFitAppliedRef.current = false;
   }, [previewUrl, viewerInstanceKey]);
 
+  useEffect(() => {
+    const iframe = editorIframeRef.current;
+    if (iframe) patchViewer(iframe);
+  }, [isWorkspaceDark, patchViewer]);
+
   const handleEditorIframeRef = useCallback(
     (ref: HTMLIFrameElement | null) => {
       editorIframeRef.current = ref;
@@ -1207,8 +1205,15 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
         }
 
         if (slug === 'crop-pdf') {
-          handleRibbonAction('annot:rectangle');
-          setActiveTab('comment');
+          setWorkspaceTool('crop');
+          setActiveTab('page');
+          return;
+        }
+
+        if (slug === 'organize-pdf') {
+          setWorkspaceTool('organize');
+          setShowThumbnails(true);
+          setActiveTab('page');
           return;
         }
 
@@ -1258,11 +1263,15 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
         }
 
         if (slug === 'add-blank-page') {
+          setShowThumbnails(true);
+          setActiveTab('page');
           handleRibbonAction('addPageInline');
           return;
         }
 
         if (slug === 'delete-pages') {
+          setShowThumbnails(true);
+          setActiveTab('page');
           handleRibbonAction('deletePageInline');
           return;
         }
@@ -1277,14 +1286,8 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
           return;
         }
 
-        // For page-tab tools only, keep user in workspace and open left page panel.
-        if (activeTab === 'page' && [
-          'add-blank-page',
-          'delete-pages',
-          'extract-pages',
-          'organize-pdf',
-          'reverse-pages',
-        ].includes(slug)) {
+        if (slug === 'reverse-pages') {
+          setWorkspaceTool('reverse');
           setShowThumbnails(true);
           setActiveTab('page');
           return;
@@ -1303,7 +1306,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     [t],
   );
   const previewHeavyTools = useMemo(
-    () => new Set<WorkspaceInlineTool>(['watermark', 'header-footer', 'page-numbers']),
+    () => new Set<WorkspaceInlineTool>(['watermark', 'header-footer', 'page-numbers', 'organize', 'crop']),
     [],
   );
   const inlineDialogMaxWidthClass =
@@ -1326,7 +1329,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
   }
 
   return (
-    <section className={`fixed inset-0 z-40 flex flex-col overflow-hidden ${isWorkspaceDark ? 'text-white bg-[#1e2028]' : 'text-[hsl(var(--color-foreground))] bg-white'}`}>
+    <section className={`fixed inset-0 z-40 flex flex-col overflow-hidden ${isWorkspaceDark ? 'text-white bg-[#1e2028]' : 'text-[hsl(var(--color-foreground))] bg-[#F1F5F9]'}`}>
       {/* ─── Tab Bar ─── */}
       <div className={`flex items-center h-9 border-b px-2 shrink-0 ${isWorkspaceDark ? 'bg-[#2a2d35] border-white/[0.06]' : 'bg-white border-[#E5E7EB]'}`}>
         <button
@@ -1470,7 +1473,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
       <div className="flex-1 flex min-h-0">
         {/* Left: Thumbnail Panel */}
         {showThumbnails && (
-          <aside className={`w-[148px] shrink-0 flex flex-col ${isWorkspaceDark ? 'bg-[#1e2028]' : 'bg-white'}`}>
+          <aside className={`w-[148px] shrink-0 flex flex-col ${isWorkspaceDark ? 'bg-[#1e2028]' : 'bg-[#F1F5F9]'}`}>
             <div className="flex items-center justify-between gap-1.5 px-2 py-2 border-b border-[#E5E7EB] dark:border-white/[0.06] shrink-0">
               <label className="inline-flex flex-1 items-center justify-center rounded-md border border-dashed border-[hsl(var(--color-border))] dark:border-white/10 p-2 cursor-pointer hover:bg-[hsl(var(--color-muted)/0.6)] dark:hover:bg-white/[0.04] hover:border-[hsl(var(--color-primary)/0.35)] dark:hover:border-white/20 transition-all">
                 <Upload className="h-4 w-4 text-[hsl(var(--color-primary)/0.85)]" />
@@ -1502,7 +1505,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
         )}
 
         {/* Center: single annotation viewer (no remount on tab switch) */}
-        <div className={`flex-1 min-w-0 flex flex-col overflow-hidden ${isWorkspaceDark ? 'bg-[#16181d]' : 'bg-white'}`}>
+        <div className={`flex-1 min-w-0 flex flex-col overflow-hidden ${isWorkspaceDark ? 'bg-[#16181d]' : 'bg-[#F1F5F9]'}`}>
           <div className="relative flex-1 min-h-0 overflow-hidden">
             {!previewUrl && (
               <div className="absolute inset-0 flex items-center justify-center">
@@ -1554,6 +1557,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
                 key={viewerInstanceKey}
                 className="absolute inset-0 h-full"
                 immersive
+                theme={isWorkspaceDark ? 'dark' : 'light'}
                 sourceFile={file}
                 sourcePdfUrl={previewUrl}
                 onIframeRef={handleEditorIframeRef}
@@ -1702,9 +1706,36 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
               )}
               {workspaceTool === 'ocr' && <OCRPDFTool initialFile={file} lockToInitialFile />}
               {workspaceTool === 'merge' && <MergePDFTool initialFile={file} />}
-              {workspaceTool === 'split' && <SplitPDFTool initialFile={file} lockToInitialFile />}
+              {workspaceTool === 'split' && (
+                <SplitPDFTool
+                  initialFile={file}
+                  lockToInitialFile
+                  onFileUpdated={handleInlineToolFileUpdated}
+                />
+              )}
               {workspaceTool === 'extract-pages' && (
                 <ExtractPagesTool
+                  initialFile={file}
+                  lockToInitialFile
+                  onFileUpdated={handleInlineToolFileUpdated}
+                />
+              )}
+              {workspaceTool === 'organize' && (
+                <OrganizePDFTool
+                  initialFile={file}
+                  lockToInitialFile
+                  onFileUpdated={handleInlineToolFileUpdated}
+                />
+              )}
+              {workspaceTool === 'crop' && (
+                <CropPDFTool
+                  initialFile={file}
+                  lockToInitialFile
+                  onFileUpdated={handleInlineToolFileUpdated}
+                />
+              )}
+              {workspaceTool === 'reverse' && (
+                <ReversePagesTool
                   initialFile={file}
                   lockToInitialFile
                   onFileUpdated={handleInlineToolFileUpdated}

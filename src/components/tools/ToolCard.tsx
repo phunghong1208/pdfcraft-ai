@@ -6,6 +6,8 @@ import { Tool, ToolCategory } from '@/types/tool';
 import { Card } from '@/components/ui/Card';
 import { ArrowUpRight } from 'lucide-react';
 import { getToolIcon } from '@/config/icons';
+import { getToolIconTone } from '@/lib/ui/icon-tones';
+import { IconBadge } from '@/components/ui/IconBadge';
 import { FavoriteButton } from '@/components/ui/FavoriteButton';
 
 export interface ToolCardProps {
@@ -51,6 +53,7 @@ export function ToolCard({ tool, locale, className = '', localizedContent }: Too
     .join(', ');
 
   const IconComponent = getToolIcon(tool.icon);
+  const iconTone = getToolIconTone(tool.id, tool.category);
 
   const categoryName = t(`home.categories.${categoryTranslationKeys[tool.category]}`);
 
@@ -61,7 +64,7 @@ export function ToolCard({ tool, locale, className = '', localizedContent }: Too
       data-testid="tool-card"
     >
       <Card
-        className="h-full glass-card hover:bg-[hsl(var(--color-card))/0.8] transition-all duration-300 hover:shadow-xl hover:-translate-y-1 relative overflow-hidden border-[hsl(var(--color-border))/0.6]"
+        className="h-full hover:bg-[hsl(var(--color-card))] transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 relative overflow-hidden border border-[hsl(var(--color-border))] bg-[hsl(var(--color-card))]"
         data-testid="tool-card-container"
       >
         <div className="absolute top-0 right-0 p-3 z-10">
@@ -71,22 +74,15 @@ export function ToolCard({ tool, locale, className = '', localizedContent }: Too
           <ArrowUpRight className="w-5 h-5 text-[hsl(var(--color-primary))]" />
         </div>
 
-        <div className="flex flex-col h-full">
-          <div className="flex items-start gap-4 mb-4">
-            {/* Tool Icon */}
-            <div
-              className="flex-shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-[hsl(var(--color-primary)/0.1)] to-[hsl(var(--color-accent)/0.1)] flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
-              data-testid="tool-card-icon"
-              aria-hidden="true"
-            >
-              <IconComponent className="w-7 h-7 text-[hsl(var(--color-primary))]" />
-            </div>
+        <div className="flex flex-col h-full p-1">
+          <div className="flex items-start gap-3 mb-3">
+            <IconBadge icon={IconComponent} tone={iconTone} size="lg" />
           </div>
 
           {/* Tool Info */}
           <div className="flex-1 min-w-0">
             <h3
-              className="text-lg font-bold text-[hsl(var(--color-card-foreground))] truncate mb-2 group-hover:text-[hsl(var(--color-primary))] transition-colors"
+              className="text-base font-semibold text-[hsl(var(--color-card-foreground))] truncate mb-1.5 group-hover:text-[hsl(var(--color-primary))] transition-colors"
               data-testid="tool-card-name"
             >
               {toolName}

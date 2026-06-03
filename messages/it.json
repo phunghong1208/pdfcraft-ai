@@ -2503,6 +2503,12 @@
       "dialogLabel": "Strumento area di lavoro",
       "close": "Chiudi"
     },
+    "split": {
+      "openInWorkspace": "Open in workspace",
+      "downloadZip": "Download all as ZIP",
+      "singleApplied": "Split complete — opened in workspace.",
+      "pickFileHint": "Choose a part to continue editing, or download all as ZIP."
+    },
     "statusBar": {
       "aiAssistant": "Assistente AI"
     }

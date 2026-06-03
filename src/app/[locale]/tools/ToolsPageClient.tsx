@@ -10,6 +10,7 @@ import { Footer } from '@/components/layout/Footer';
 import { ToolGrid } from '@/components/tools/ToolGrid';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { aiCardClass, type AiCardVariant } from '@/lib/ui/icon-tones';
 import { getAllTools } from '@/config/tools';
 import { toolMatchesQuery } from '@/lib/utils/search';
 import { type Locale } from '@/lib/i18n/config';
@@ -28,14 +29,14 @@ const TAB_TOOL_IDS: Record<Exclude<ToolTab, 'ai'>, string[]> = {
   security: ['encrypt-pdf', 'decrypt-pdf', 'find-and-redact', 'remove-metadata', 'change-permissions', 'pdf-to-pdfa'],
 };
 
-const AI_ACTIONS = [
-  { icon: Sparkles, label: 'Summarize', href: '/ai-summary' },
-  { icon: Languages, label: 'Translate', href: '/ai-translate' },
-  { icon: MessagesSquare, label: 'Chat PDF', href: '/chat-pdf' },
-  { icon: ScanText, label: 'OCR', href: '/smart-ocr' },
-  { icon: Volume2, label: 'Voice Reader', href: '/voice-reader' },
-  { icon: Table2, label: 'Extract Tables', href: '/chat-pdf' },
-  { icon: Bot, label: 'Explain Terms', href: '/chat-pdf' },
+const AI_ACTIONS: Array<{ icon: typeof Sparkles; label: string; href: string; variant: AiCardVariant; description: string; wide?: boolean }> = [
+  { icon: Sparkles, label: 'AI Summary', href: '/ai-summary', variant: 'purple', description: 'Extract key insights from any PDF.' },
+  { icon: Languages, label: 'AI Translate', href: '/ai-translate', variant: 'blue', description: 'Translate entire documents into other languages.' },
+  { icon: Volume2, label: 'AI Voice Reader', href: '/voice-reader', variant: 'coral', description: 'Convert PDF to natural speech instantly.' },
+  { icon: ScanText, label: 'Smart OCR', href: '/smart-ocr', variant: 'green', description: 'Convert scans to editable PDF.' },
+  { icon: MessagesSquare, label: 'Chat with PDF', href: '/chat-pdf', variant: 'violet-wide', description: 'Ask questions about your files and get instant answers.', wide: true },
+  { icon: Table2, label: 'Extract Tables', href: '/chat-pdf', variant: 'blue', description: 'Pull tables from invoices and reports.' },
+  { icon: Bot, label: 'Explain Terms', href: '/chat-pdf', variant: 'purple', description: 'Clarify complex terms in your document.' },
 ];
 
 export default function ToolsPageClient({ locale, localizedToolContent }: ToolsPageClientProps) {
@@ -127,11 +128,11 @@ export default function ToolsPageClient({ locale, localizedToolContent }: ToolsP
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                     activeTab === tab.id
                       ? 'bg-[hsl(var(--color-primary))] text-white'
-                      : 'border border-[hsl(var(--color-border))] text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))]'
+                      : 'border border-[hsl(var(--color-border))] bg-[hsl(var(--color-card))] text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))] hover:bg-[hsl(var(--color-muted))]'
                   }`}
                 >
                   <span className="inline-flex items-center gap-2">
-                    <tab.icon className="h-[18px] w-[18px] text-[hsl(var(--color-primary))]" strokeWidth={1.75} />
+                    <tab.icon className={`h-[18px] w-[18px] ${activeTab === tab.id ? 'text-white' : 'text-[hsl(var(--color-primary))]'}`} strokeWidth={1.75} />
                     {tab.label}
                   </span>
                 </button>
@@ -140,31 +141,37 @@ export default function ToolsPageClient({ locale, localizedToolContent }: ToolsP
 
             {activeTab === 'ai' ? (
               <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
-                <Card className="p-5 border border-[hsl(var(--color-border)/0.75)]">
-                  <h2 className="text-lg font-semibold mb-3">AI Assistant</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold mb-1">Power-ups</h2>
+                  <p className="text-sm text-[hsl(var(--color-muted-foreground))] mb-4">
+                    Supercharge your documents with AI
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {AI_ACTIONS.map((action) => (
                       <Link
                         key={action.label}
                         href={`/${locale}${action.href}`}
-                        className="rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 hover:bg-white/[0.06] transition-colors"
+                        className={`${aiCardClass(action.variant)} p-4 block ${action.wide ? 'sm:col-span-2 lg:col-span-2' : ''}`}
                       >
-                        <span className="text-sm font-medium inline-flex items-center gap-2.5">
-                          <span className="h-8 w-8 rounded-xl bg-[hsl(var(--color-primary)/0.1)] flex items-center justify-center">
-                            <action.icon className="h-[18px] w-[18px] text-[hsl(var(--color-primary))]" strokeWidth={1.75} />
-                          </span>
-                          {action.label}
-                        </span>
+                        <div className="flex h-full flex-col gap-3">
+                          <div className="h-9 w-9 rounded-lg bg-white/20 flex items-center justify-center">
+                            <action.icon className="h-5 w-5 text-white" strokeWidth={1.75} />
+                          </div>
+                          <div>
+                            <div className="text-sm font-semibold">{action.label}</div>
+                            <p className="mt-1 text-xs text-white/80 leading-relaxed">{action.description}</p>
+                          </div>
+                        </div>
                       </Link>
                     ))}
                   </div>
-                </Card>
+                </div>
 
-                <Card className="p-5 border border-[hsl(var(--color-border)/0.75)]">
+                <Card className="p-5 border border-[hsl(var(--color-border))] bg-[hsl(var(--color-card))]">
                   <h3 className="text-sm font-semibold mb-3">Contextual suggestions</h3>
                   <ul className="space-y-2 text-sm text-[hsl(var(--color-muted-foreground))]">
                     {contextualSuggestions.map((item) => (
-                      <li key={item.label} className="inline-flex items-center gap-2">
+                      <li key={item.label} className="inline-flex items-center gap-2 w-full">
                         <item.icon className="h-4 w-4 text-[hsl(var(--color-primary))]" strokeWidth={1.75} />
                         {item.label}
                       </li>

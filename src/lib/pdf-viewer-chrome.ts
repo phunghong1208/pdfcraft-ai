@@ -1,5 +1,10 @@
 /** Injected into PDF.js iframe — hide chrome and remove Konva edge seam. */
 
+export const PDF_VIEWER_SHELL_BG = {
+  dark: '#16181d',
+  light: '#F1F5F9',
+} as const;
+
 export const PDF_VIEWER_CHROME_CSS = `
 html,body{margin:0!important;padding:0!important;background:var(--pdfcraft-shell-bg,#16181d)!important}
 #outerContainer,#mainContainer,#viewerContainer{
@@ -159,9 +164,9 @@ export function stripPdfViewerSeams(doc: Document) {
 export function injectPdfViewerChrome(
   doc: Document,
   styleId = 'pdfcraft-viewer-chrome',
-  theme: 'light' | 'dark' = 'dark',
+  theme: 'light' | 'dark' = 'light',
 ) {
-  const shellBg = theme === 'dark' ? '#16181d' : '#ffffff';
+  const shellBg = PDF_VIEWER_SHELL_BG[theme];
   doc.documentElement.style.setProperty('--pdfcraft-shell-bg', shellBg);
   let style = doc.getElementById(styleId) as HTMLStyleElement | null;
   if (!style) {
