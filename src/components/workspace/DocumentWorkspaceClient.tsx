@@ -28,6 +28,7 @@ import { ExtractPagesTool } from '@/components/tools/extract/ExtractPagesTool';
 import { WatermarkTool } from '@/components/tools/watermark/WatermarkTool';
 import { HeaderFooterTool } from '@/components/tools/header-footer/HeaderFooterTool';
 import { PageNumbersTool } from '@/components/tools/page-numbers/PageNumbersTool';
+import { BackgroundColorTool } from '@/components/tools/background-color/BackgroundColorTool';
 import { PDFToDocxTool } from '@/components/tools/pdf-to-docx';
 import { PDFToExcelTool } from '@/components/tools/pdf-to-excel';
 import { PDFToPptxTool } from '@/components/tools/pdf-to-pptx';
@@ -67,6 +68,7 @@ type WorkspaceInlineTool =
   | 'watermark'
   | 'header-footer'
   | 'page-numbers'
+  | 'background-color'
   | 'pdf-to-docx'
   | 'pdf-to-excel'
   | 'pdf-to-pptx'
@@ -99,6 +101,8 @@ function workspaceInlineToolTitleKey(tool: WorkspaceInlineTool): string {
       return 'tools.headerFooter';
     case 'page-numbers':
       return 'tools.pageNumbers';
+    case 'background-color':
+      return 'tools.background';
     case 'extract-pages':
       return 'tools.extract';
     default:
@@ -595,7 +599,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
       URL.revokeObjectURL(previewUrlRef.current);
       previewUrlRef.current = '';
     };
-  }, [zoom]);
+  }, [previewUrlRef]);
 
   useEffect(() => {
     if (hasInitialized.current) return;
@@ -684,6 +688,15 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     if (!confirmDiscardUnsavedChanges()) return;
     router.push(href);
   }, [confirmDiscardUnsavedChanges, router]);
+
+  const downloadPdfFallback = useCallback((blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }, []);
 
   const handleFilePicked = useCallback((nextFile: File | null) => {
     if (!nextFile) return;
@@ -1002,16 +1015,21 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
             try {
               const handle = await resolveWritableHandle(file.name);
               if (!handle) {
-                window.alert('Trình duyệt hiện tại không hỗ trợ lưu đè trực tiếp. Vui lòng dùng Chrome/Edge mới nhất.');
+                downloadPdfFallback(blob, file.name);
+                window.alert('Trình duyệt chưa hỗ trợ lưu đè trực tiếp. Đã tải file PDF mới về máy.');
+                handleFileChange(nextFile, { markDirty: false });
                 return;
               }
               const writable = await handle.createWritable();
               await writable.write(blob);
               await writable.close();
             } catch (diskErr) {
-              if ((diskErr as { name?: string })?.name !== 'AbortError') {
-                window.alert('Không thể ghi file ra ổ đĩa. Vui lòng kiểm tra quyền truy cập file.');
+              if ((diskErr as { name?: string })?.name === 'AbortError') {
+                return;
               }
+              downloadPdfFallback(blob, file.name);
+              window.alert('Không thể ghi đè trực tiếp. Đã tải file PDF mới về máy.');
+              handleFileChange(nextFile, { markDirty: false });
               return;
             }
             handleFileChange(nextFile, { markDirty: false });
@@ -1163,6 +1181,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     handleZoomOut,
     applyPdfZoom,
     file,
+    downloadPdfFallback,
     resolveWritableHandle,
     pageCount,
     currentPage,
@@ -1170,6 +1189,11 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
   ]);
 
   const handleToolClick = useCallback((tool: RibbonToolDef) => {
+    if (tool.action) {
+      handleRibbonAction(tool.action);
+      return;
+    }
+
     if (tool.href) {
       // In workspace mode, keep users in the current editing surface.
       // Clicking ribbon tools should not navigate to standalone upload pages.
@@ -1228,6 +1252,11 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
           return;
         }
 
+        if (slug === 'background-color') {
+          setWorkspaceTool('background-color');
+          return;
+        }
+
         if (slug === 'add-blank-page') {
           handleRibbonAction('addPageInline');
           return;
@@ -1266,8 +1295,6 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
         return;
       }
       navigateWithUnsavedCheck(tool.href);
-    } else if (tool.action) {
-      handleRibbonAction(tool.action);
     }
   }, [activeTab, file, handleRibbonAction, navigateWithUnsavedCheck]);
 
@@ -1699,6 +1726,13 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
               )}
               {workspaceTool === 'page-numbers' && (
                 <PageNumbersTool
+                  initialFile={file}
+                  lockToInitialFile
+                  onFileUpdated={handleInlineToolFileUpdated}
+                />
+              )}
+              {workspaceTool === 'background-color' && (
+                <BackgroundColorTool
                   initialFile={file}
                   lockToInitialFile
                   onFileUpdated={handleInlineToolFileUpdated}

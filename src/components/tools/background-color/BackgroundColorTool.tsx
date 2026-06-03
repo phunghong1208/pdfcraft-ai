@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { FileUploader } from '../FileUploader';
 import { ProcessingProgress, ProcessingStatus } from '../ProcessingProgress';
 import { DownloadButton } from '../DownloadButton';
@@ -9,21 +9,40 @@ import { Card } from '@/components/ui/Card';
 import { addBackgroundColor } from '@/lib/pdf/processors/background-color';
 import type { ProcessOutput } from '@/types/pdf';
 
-export interface BackgroundColorToolProps { className?: string; }
+export interface BackgroundColorToolProps {
+  className?: string;
+  initialFile?: File | null;
+  lockToInitialFile?: boolean;
+  onFileUpdated?: (file: File) => void;
+}
 
-export function BackgroundColorTool({ className = '' }: BackgroundColorToolProps) {
-  const [file, setFile] = useState<File | null>(null);
+export function BackgroundColorTool({
+  className = '',
+  initialFile = null,
+  lockToInitialFile = false,
+  onFileUpdated,
+}: BackgroundColorToolProps) {
+  const [file, setFile] = useState<File | null>(initialFile);
   const [status, setStatus] = useState<ProcessingStatus>('idle');
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<Blob | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [color, setColor] = useState('#fffde7');
   const cancelledRef = useRef(false);
+  const initialSeededRef = useRef(false);
 
   const hexToRgb = (hex: string) => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result ? { r: parseInt(result[1], 16) / 255, g: parseInt(result[2], 16) / 255, b: parseInt(result[3], 16) / 255 } : { r: 1, g: 1, b: 0.9 };
   };
+
+  useEffect(() => {
+    if (!initialFile || initialSeededRef.current) return;
+    initialSeededRef.current = true;
+    setFile(initialFile);
+    setError(null);
+    setResult(null);
+  }, [initialFile]);
 
   const handleProcess = useCallback(async () => {
     if (!file) return;
@@ -31,20 +50,31 @@ export function BackgroundColorTool({ className = '' }: BackgroundColorToolProps
     setStatus('processing'); setProgress(0); setError(null); setResult(null);
     try {
       const output: ProcessOutput = await addBackgroundColor(file, { color: hexToRgb(color), pages: 'all' }, (prog) => { if (!cancelledRef.current) setProgress(prog); });
-      if (output.success && output.result) { setResult(output.result as Blob); setStatus('complete'); }
+      if (output.success && output.result) {
+        const nextBlob = output.result as Blob;
+        setResult(nextBlob);
+        setStatus('complete');
+        if (lockToInitialFile && onFileUpdated) {
+          const nextFile = new File([nextBlob], file.name, {
+            type: 'application/pdf',
+            lastModified: Date.now(),
+          });
+          onFileUpdated(nextFile);
+        }
+      }
       else { setError(output.error?.message || 'Failed.'); setStatus('error'); }
     } catch (err) { setError(err instanceof Error ? err.message : 'Error'); setStatus('error'); }
-  }, [file, color]);
+  }, [file, color, lockToInitialFile, onFileUpdated]);
 
   const isProcessing = status === 'processing';
 
   return (
     <div className={`space-y-6 ${className}`.trim()}>
-      {!file && <FileUploader accept={['application/pdf', '.pdf']} multiple={false} maxFiles={1} onFilesSelected={(files) => { if (files.length > 0) { setFile(files[0]); setError(null); setResult(null); } }} onError={setError} disabled={isProcessing} label="Upload PDF File" description="Drag and drop a PDF file here." />}
+      {!file && !lockToInitialFile && <FileUploader accept={['application/pdf', '.pdf']} multiple={false} maxFiles={1} onFilesSelected={(files) => { if (files.length > 0) { setFile(files[0]); setError(null); setResult(null); } }} onError={setError} disabled={isProcessing} label="Upload PDF File" description="Drag and drop a PDF file here." />}
       {error && <div className="p-4 rounded bg-red-50 border border-red-200 text-red-700"><p className="text-sm">{error}</p></div>}
       {file && (
         <>
-          <Card variant="outlined"><div className="flex items-center justify-between"><p className="font-medium">{file.name}</p><Button variant="ghost" size="sm" onClick={() => { setFile(null); setResult(null); }} disabled={isProcessing}>Remove</Button></div></Card>
+          <Card variant="outlined"><div className="flex items-center justify-between"><p className="font-medium">{file.name}</p>{!lockToInitialFile && <Button variant="ghost" size="sm" onClick={() => { setFile(null); setResult(null); }} disabled={isProcessing}>Remove</Button>}</div></Card>
           <Card variant="outlined" size="lg">
             <label className="block text-sm font-medium mb-2">Background Color</label>
             <div className="flex items-center gap-4">

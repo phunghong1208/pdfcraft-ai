@@ -24,7 +24,9 @@ export class BackgroundColorProcessor extends BasePDFProcessor {
     const bgOptions: BackgroundColorOptions = {
       color: inputOptions.color ?? { r: 1, g: 1, b: 0.9 }, // Light yellow default
       pages: inputOptions.pages ?? 'all',
-      opacity: inputOptions.opacity ?? 1,
+      // Use a light overlay by default so color is visible
+      // even on PDFs that already paint a white page background.
+      opacity: inputOptions.opacity ?? 0.18,
     };
 
     if (files.length !== 1) {
@@ -68,21 +70,22 @@ export class BackgroundColorProcessor extends BasePDFProcessor {
         // Create new page with same dimensions
         const newPage = newPdf.addPage([width, height]);
 
-        // Add background if this page should be processed
+        // Use pre-embedded page
+        const embeddedPage = embeddedPages[i];
+        newPage.drawPage(embeddedPage, { x: 0, y: 0, width, height });
+
+        // Apply color tint on top so it is visible for most PDFs.
         if (pagesToProcess.includes(i)) {
+          const opacity = Math.max(0, Math.min(1, bgOptions.opacity ?? 0.18));
           newPage.drawRectangle({
             x: 0,
             y: 0,
             width,
             height,
             color: pdfLib.rgb(bgOptions.color.r, bgOptions.color.g, bgOptions.color.b),
-            opacity: bgOptions.opacity,
+            opacity,
           });
         }
-
-        // Use pre-embedded page
-        const embeddedPage = embeddedPages[i];
-        newPage.drawPage(embeddedPage, { x: 0, y: 0, width, height });
 
         this.updateProgress(40 + (50 * (i + 1) / totalPages), `Processing page ${i + 1}...`);
       }
