@@ -21,17 +21,33 @@ html,body{margin:0!important;padding:0!important;background:var(--pdfcraft-shell
 #toolbarContainer,#toolbarViewer,#mainContainer,#outerContainer{
   border:none!important;box-shadow:none!important;
 }
-/* Keep annotation toolbar accessible while annotating. */
-html:not(.pdfcraft-annotating) .CustomToolbar{
+/* CustomToolbar: ẩn; khi text markup → thanh 3 nút ở dưới giữa */
+html:not(.pdfcraft-text-markup) .CustomToolbar{
   position:absolute!important;top:-9999px!important;left:-9999px!important;
   opacity:0!important;pointer-events:auto!important;
 }
-html.pdfcraft-annotating .CustomToolbar{
-  position:fixed!important;top:8px!important;right:12px!important;left:auto!important;
-  z-index:60!important;opacity:1!important;pointer-events:auto!important;
+html.pdfcraft-text-markup .CustomToolbar{
+  position:fixed!important;bottom:20px!important;top:auto!important;
+  left:50%!important;right:auto!important;transform:translateX(-50%)!important;
+  z-index:10002!important;opacity:1!important;pointer-events:auto!important;
   width:auto!important;max-width:max-content!important;
-  border:none!important;box-shadow:none!important;background:transparent!important;
+  background:var(--doorhanger-bg-color,#323639)!important;
+  border-radius:8px!important;padding:4px 8px!important;
+  box-shadow:0 2px 10px rgba(0,0,0,.35)!important;
 }
+html.pdfcraft-text-markup .CustomToolbar ul.buttons{display:flex!important;flex-direction:row!important}
+html.pdfcraft-text-markup .CustomToolbar ul.buttons > li{display:none!important}
+html.pdfcraft-text-markup .CustomToolbar ul.buttons > li:nth-child(2),
+html.pdfcraft-text-markup .CustomToolbar ul.buttons > li:nth-child(3),
+html.pdfcraft-text-markup .CustomToolbar ul.buttons > li:nth-child(4){display:flex!important}
+html.pdfcraft-text-markup .CustomToolbar ul.buttons > li:nth-child(2){order:1!important}
+html.pdfcraft-text-markup .CustomToolbar ul.buttons > li:nth-child(3){order:2!important}
+html.pdfcraft-text-markup .CustomToolbar ul.buttons > li:nth-child(4){order:3!important}
+html.pdfcraft-text-markup .CustomToolbar .splitToolbarButtonSeparator{display:none!important}
+/* Konva không chặn bôi chữ trên text layer */
+html.pdfcraft-text-markup .pdfViewer .page .PdfjsAnnotationExtension_painter_wrapper,
+html.pdfcraft-text-markup .pdfViewer .page .konvajs-content,
+html.pdfcraft-text-markup .pdfViewer .page .konvajs-content>canvas{pointer-events:none!important}
 /* Remove toolbar/header separators that create an ugly top line. */
 .CustomToolbar::before,.CustomToolbar::after,.CustomToolbar hr,
 [class*="Toolbar"]::before,[class*="toolbar"]::before,
@@ -42,24 +58,25 @@ html:not(.pdfcraft-annotating) .ant-btn,
 html:not(.pdfcraft-annotating) [class*="ant-btn"]{
   display:none!important;visibility:hidden!important;pointer-events:none!important;
 }
-/* Annotation extension comment panel — gray left border = visible vertical line */
-.CustomComment,[class*="CustomComment"]{
-  display:none!important;visibility:hidden!important;width:0!important;height:0!important;
-  border:none!important;border-left-color:var(--pdfcraft-shell-bg,#16181d)!important;background:var(--pdfcraft-shell-bg,#16181d)!important;
-  overflow:hidden!important;pointer-events:none!important;opacity:0!important;
-}
+/* Comment panel — ẩn sidebar, giữ DOM */
+.CustomComment,[class*="CustomComment"],
 html.pdfcraft-annotating .CustomComment,html.pdfcraft-annotating [class*="CustomComment"]{
-  display:block!important;visibility:visible!important;width:auto!important;height:auto!important;
-  opacity:1!important;pointer-events:auto!important;
-  border-left-color:var(--pdfcraft-shell-bg,#16181d)!important;background:var(--pdfcraft-shell-bg,#16181d)!important;border-left-width:0!important;
+  display:none!important;visibility:hidden!important;width:0!important;height:0!important;
+  border:none!important;overflow:hidden!important;pointer-events:none!important;opacity:0!important;
 }
-/* Annotation popbar (edit/delete/comment toolbar) must float above Konva canvas */
+html.pdfcraft-text-markup .CustomPopbar{display:none!important;pointer-events:none!important}
 .CustomPopbar{z-index:10000!important;pointer-events:auto!important}
-.CustomPopbar .buttons li{pointer-events:auto!important;cursor:pointer!important}
-/* Make text layer selectable for text markup tools (highlight/underline/strikeout) */
-html.pdfcraft-annotating .textLayer span,
-html.pdfcraft-annotating .textLayer br{user-select:text!important;-webkit-user-select:text!important}
-html.pdfcraft-annotating .textLayer{pointer-events:auto!important;cursor:text!important}
+/* Menu chỉnh: comment / màu / xóa */
+.CustomAnnotationMenu{z-index:10001!important;pointer-events:auto!important}
+.CustomAnnotationMenu.show{display:block!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important}
+.CustomAnnotationMenu .buttons,.CustomAnnotationMenu .buttons li,
+.CustomAnnotationMenu .styleContainer,.CustomAnnotationMenu .colorPalette .cell,
+.CustomAnnotationMenu .prototypeSetting{pointer-events:auto!important}
+html.pdfcraft-annotating .ant-btn,html.pdfcraft-annotating [class*="ant-btn"]{pointer-events:auto!important}
+/* Text markup */
+html.pdfcraft-text-markup .textLayer span,html.pdfcraft-text-markup .textLayer br{user-select:text!important;-webkit-user-select:text!important}
+html.pdfcraft-text-markup .textLayer{pointer-events:auto!important;cursor:text!important}
+html.pdfcraft-annotating:not(.pdfcraft-text-markup) .textLayer{pointer-events:none!important}
 #viewerContainer{top:0!important;inset-inline-start:0!important;left:0!important;overflow:auto!important;scrollbar-width:none!important}
 #viewer,#viewerContainer .pdfViewer{padding-top:0!important;margin-top:0!important}
 #outerContainer.sidebarOpen #viewerContainer,#outerContainer.sidebarMoving #viewerContainer{inset-inline-start:0!important;left:0!important}
@@ -90,21 +107,8 @@ export function removeAnnotationPainters(_doc: Document) {
   // No-op: CSS handles visibility. Removing from DOM breaks the painter.
 }
 
-export function removeExtensionPanels(doc: Document) {
-  const shellBg = doc.documentElement.style.getPropertyValue('--pdfcraft-shell-bg') || '#16181d';
-  if (doc.documentElement.classList.contains('pdfcraft-annotating')) {
-    doc.querySelectorAll('.CustomComment, [class*="CustomComment"]').forEach((node) => {
-      const el = node as HTMLElement;
-      el.style.setProperty('border-left', '0', 'important');
-      el.style.setProperty('border-left-color', shellBg, 'important');
-      el.style.setProperty('background', shellBg, 'important');
-      el.style.setProperty('box-shadow', 'none', 'important');
-    });
-    return;
-  }
-  doc.querySelectorAll('.CustomComment, [class*="CustomComment"]').forEach((node) => {
-    node.remove();
-  });
+export function removeExtensionPanels(_doc: Document) {
+  // Giữ CustomComment — extension cần store chú thích.
 }
 
 export function coverPageCanvasSeams(doc: Document) {

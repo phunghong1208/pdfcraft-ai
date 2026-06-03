@@ -54,8 +54,8 @@ See https://github.com/adobe-type-tools/cmap-resources
       pointer-events: none !important;
       position: absolute !important;
     }
-    /* CustomToolbar: hidden visually but stays interactive for programmatic tool switching */
-    html.pdfcraft-embedded .CustomToolbar {
+    /* CustomToolbar: ẩn; khi text markup → thanh Highlight/Underline/Strikeout ở dưới */
+    html.pdfcraft-embedded:not(.pdfcraft-text-markup) .CustomToolbar {
       position: absolute !important;
       top: -9999px !important;
       left: -9999px !important;
@@ -64,6 +64,72 @@ See https://github.com/adobe-type-tools/cmap-resources
       width: auto !important;
       pointer-events: auto !important;
       overflow: visible !important;
+    }
+    html.pdfcraft-embedded.pdfcraft-text-markup .CustomToolbar {
+      position: fixed !important;
+      bottom: 20px !important;
+      top: auto !important;
+      left: 50% !important;
+      right: auto !important;
+      transform: translateX(-50%) !important;
+      z-index: 10002 !important;
+      opacity: 1 !important;
+      pointer-events: auto !important;
+      width: auto !important;
+      max-width: max-content !important;
+      background: var(--doorhanger-bg-color, #323639) !important;
+      border-radius: 8px !important;
+      padding: 4px 8px !important;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35) !important;
+    }
+    html.pdfcraft-embedded.pdfcraft-text-markup .CustomToolbar ul.buttons {
+      display: flex !important;
+      flex-direction: row !important;
+    }
+    html.pdfcraft-embedded.pdfcraft-text-markup .CustomToolbar ul.buttons > li {
+      display: none !important;
+    }
+    html.pdfcraft-embedded.pdfcraft-text-markup .CustomToolbar ul.buttons > li:nth-child(2),
+    html.pdfcraft-embedded.pdfcraft-text-markup .CustomToolbar ul.buttons > li:nth-child(3),
+    html.pdfcraft-embedded.pdfcraft-text-markup .CustomToolbar ul.buttons > li:nth-child(4) {
+      display: flex !important;
+    }
+    html.pdfcraft-embedded.pdfcraft-text-markup .CustomToolbar ul.buttons > li:nth-child(2) { order: 1 !important; }
+    html.pdfcraft-embedded.pdfcraft-text-markup .CustomToolbar ul.buttons > li:nth-child(3) { order: 2 !important; }
+    html.pdfcraft-embedded.pdfcraft-text-markup .CustomToolbar ul.buttons > li:nth-child(4) { order: 3 !important; }
+    html.pdfcraft-embedded.pdfcraft-text-markup .CustomToolbar .splitToolbarButtonSeparator {
+      display: none !important;
+    }
+    html.pdfcraft-embedded.pdfcraft-text-markup .pdfViewer .page .PdfjsAnnotationExtension_painter_wrapper,
+    html.pdfcraft-embedded.pdfcraft-text-markup .pdfViewer .page .konvajs-content,
+    html.pdfcraft-embedded.pdfcraft-text-markup .pdfViewer .page .konvajs-content > canvas {
+      pointer-events: none !important;
+    }
+    html.pdfcraft-embedded.pdfcraft-text-markup .CustomPopbar {
+      display: none !important;
+      pointer-events: none !important;
+    }
+    .CustomAnnotationMenu {
+      z-index: 10001 !important;
+      pointer-events: auto !important;
+    }
+    .CustomAnnotationMenu.show {
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      pointer-events: auto !important;
+    }
+    html.pdfcraft-embedded.pdfcraft-text-markup .textLayer span,
+    html.pdfcraft-embedded.pdfcraft-text-markup .textLayer br {
+      user-select: text !important;
+      -webkit-user-select: text !important;
+    }
+    html.pdfcraft-embedded.pdfcraft-text-markup .textLayer {
+      pointer-events: auto !important;
+      cursor: text !important;
+    }
+    html.pdfcraft-embedded.pdfcraft-annotating:not(.pdfcraft-text-markup) .textLayer {
+      pointer-events: none !important;
     }
     html.pdfcraft-embedded #viewerContainer {
       top: 0 !important;
@@ -180,18 +246,7 @@ See https://github.com/adobe-type-tools/cmap-resources
 
     function removeExtensionPanels() {
       if (!isPdfcraftEmbedded()) return;
-      if (document.documentElement.classList.contains('pdfcraft-annotating')) {
-        document.querySelectorAll('.CustomComment, [class*="CustomComment"]').forEach(function (el) {
-          el.style.borderLeft = '0';
-          el.style.borderLeftColor = '#16181d';
-          el.style.background = '#16181d';
-          el.style.boxShadow = 'none';
-        });
-        return;
-      }
-      document.querySelectorAll('.CustomComment, [class*="CustomComment"]').forEach(function (el) {
-        el.remove();
-      });
+      // Giữ CustomComment — extension cần DOM này cho store chú thích.
     }
 
     function hideEmbeddedChrome() {

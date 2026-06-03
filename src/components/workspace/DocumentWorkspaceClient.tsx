@@ -246,16 +246,16 @@ function getRibbonGroups(
           label: tr('groups.markup'),
           tools: [
             { icon: Highlighter, label: tr('tools.highlight'), action: 'annot:highlight' },
-            { icon: Underline, label: tr('tools.underline'), action: 'annot:underline' },
             { icon: Strikethrough, label: tr('tools.strikeout'), action: 'annot:strikeout' },
+            { icon: Underline, label: tr('tools.underline'), action: 'annot:underline' },
           ],
         },
         {
           label: tr('groups.drawing'),
           tools: [
-            { icon: PenTool, label: tr('tools.freehand'), action: 'annot:freehand' },
             { icon: Square, label: tr('tools.rectangle'), action: 'annot:rectangle' },
             { icon: Circle, label: tr('tools.circle'), action: 'annot:circle' },
+            { icon: PenTool, label: tr('tools.freehand'), action: 'annot:freehand' },
             { icon: Type, label: tr('tools.text'), action: 'annot:freeText' },
           ],
         },
