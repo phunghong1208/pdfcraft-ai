@@ -54,11 +54,54 @@ html.pdfcraft-text-markup .pdfViewer .page .konvajs-content>canvas{pointer-event
 [class*="Header"]::before,[class*="header"]::before{
   display:none!important;content:none!important;border:none!important;
 }
-html:not(.pdfcraft-annotating) .ant-btn,
-html:not(.pdfcraft-annotating) [class*="ant-btn"]{
+html:not(.pdfcraft-annotating) .CustomToolbar .ant-btn,
+html:not(.pdfcraft-annotating) .CustomToolbar [class*="ant-btn"]{
   display:none!important;visibility:hidden!important;pointer-events:none!important;
 }
-/* Comment panel — ẩn sidebar, giữ DOM */
+/* Ant Design modal — FreeText OK / Cancel đồng bộ */
+.ant-modal-wrap,.ant-modal-root{z-index:10050!important;pointer-events:auto!important}
+.ant-modal-footer,.ant-modal-confirm-btns{
+  display:flex!important;justify-content:flex-end!important;gap:8px!important;
+  margin-top:12px!important;pointer-events:auto!important;
+}
+.ant-modal .ant-btn,.ant-modal-confirm .ant-btn,.ant-modal-footer .ant-btn,.ant-modal-confirm-btns .ant-btn,.ant-modal-footer button{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  visibility:visible!important;min-width:72px!important;height:32px!important;padding:4px 15px!important;
+  font-size:14px!important;line-height:1.5!important;border-radius:6px!important;box-shadow:none!important;
+  max-height:none!important;width:auto!important;overflow:visible!important;pointer-events:auto!important;cursor:pointer!important;
+}
+.ant-modal-footer .ant-btn-default,.ant-modal-confirm-btns .ant-btn-default,
+.ant-modal-confirm-btns > .ant-btn:first-child{
+  color:rgba(0,0,0,.88)!important;background:#fff!important;border:1px solid #d9d9d9!important;opacity:1!important;
+}
+.ant-modal-footer .ant-btn-primary,.ant-modal-confirm-btns .ant-btn-primary,
+.ant-modal-confirm-btns > .ant-btn:last-child:not(:only-child){
+  color:#fff!important;background:#1677ff!important;border:1px solid #1677ff!important;opacity:1!important;
+}
+.ant-modal-footer .ant-btn-primary:disabled,.ant-modal-confirm-btns .ant-btn-primary:disabled,
+.ant-modal-confirm-btns > .ant-btn:last-child:disabled{
+  color:rgba(0,0,0,.25)!important;background:rgba(0,0,0,.04)!important;border:1px solid #d9d9d9!important;
+  cursor:not-allowed!important;opacity:1!important;
+}
+.EditorFreeText-Modal,.EditorFreeText-Modal-Toolbar{pointer-events:auto!important}
+.pdfcraft-freetext-dialog .ant-modal-content{display:flex!important;flex-direction:column!important;align-items:stretch!important;box-sizing:border-box!important;width:420px!important;max-width:calc(100vw - 24px)!important;padding:20px!important;border-radius:12px!important;overflow:hidden!important}
+.pdfcraft-freetext-dialog .ant-modal-body,.pdfcraft-freetext-dialog .ant-modal-confirm-body{width:100%!important;max-width:100%!important;padding:0!important;margin:0!important;box-sizing:border-box!important}
+.pdfcraft-freetext-dialog .ant-modal-confirm-title{margin:0 0 12px!important;padding:0!important;font-size:15px!important;font-weight:600!important}
+.pdfcraft-freetext-dialog .ant-modal-confirm-btns{display:flex!important;justify-content:flex-end!important;align-items:center!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important;padding:0!important;margin:16px 0 0!important;gap:8px!important;float:none!important}
+.pdfcraft-freetext-dialog .ant-modal-confirm-btns .ant-btn{float:none!important;margin:0!important;min-width:80px!important;height:34px!important;padding:0 18px!important;font-weight:500!important;border-radius:8px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important}
+.pdfcraft-freetext-dialog textarea.ant-input,.pdfcraft-freetext-dialog .ant-input{width:100%!important;max-width:100%!important;box-sizing:border-box!important}
+.EditorFreeText-Modal{width:100%;box-sizing:border-box!important}
+.EditorFreeText-Modal textarea.ant-input,.EditorFreeText-Modal .ant-input{border-radius:8px!important;min-height:88px!important}
+.EditorFreeText-Modal-Toolbar{display:flex!important;flex-direction:column!important;gap:10px!important;margin-top:12px!important;width:100%!important}
+.EditorFreeText-Modal-Toolbar>*:not(.pdfcraft-ft-style-row):not(.colorPalette),.EditorFreeText-Modal-Toolbar .ant-dropdown-trigger{display:none!important}
+.EditorFreeText-Modal-Toolbar .colorPalette{display:flex!important;flex-wrap:nowrap!important;gap:6px!important;width:100%!important;margin:0 auto!important;justify-content:center!important;overflow-x:auto!important;scrollbar-width:none!important;box-sizing:border-box!important}
+.EditorFreeText-Modal-Toolbar .colorPalette .cell{flex:0 0 auto!important;width:20px!important;height:20px!important;min-width:20px!important;margin:0!important}
+.EditorFreeText-Modal-Toolbar .colorPalette .cell span{width:11px!important;height:11px!important}
+.EditorFreeText-Modal-Toolbar .colorPalette .cell.active{border:2px solid #1677ff!important}
+.pdfcraft-ft-style-row{display:grid!important;grid-template-columns:1fr 68px!important;gap:8px!important;width:100%!important}
+.pdfcraft-ft-style-row select{height:32px!important;width:100%!important;border-radius:8px!important;box-sizing:border-box!important}
+html.pdfcraft-annotating:not(.pdfcraft-text-markup) .pdfViewer .page .konvajs-content,
+html.pdfcraft-annotating:not(.pdfcraft-text-markup) .pdfViewer .page .konvajs-content>canvas{pointer-events:auto!important}
 .CustomComment,[class*="CustomComment"],
 html.pdfcraft-annotating .CustomComment,html.pdfcraft-annotating [class*="CustomComment"]{
   display:none!important;visibility:hidden!important;width:0!important;height:0!important;
@@ -72,8 +115,7 @@ html.pdfcraft-text-markup .CustomPopbar{display:none!important;pointer-events:no
 .CustomAnnotationMenu .buttons,.CustomAnnotationMenu .buttons li,
 .CustomAnnotationMenu .styleContainer,.CustomAnnotationMenu .colorPalette .cell,
 .CustomAnnotationMenu .prototypeSetting{pointer-events:auto!important}
-html.pdfcraft-annotating .ant-btn,html.pdfcraft-annotating [class*="ant-btn"]{pointer-events:auto!important}
-/* Text markup */
+/* Comment panel — ẩn sidebar, giữ DOM */
 html.pdfcraft-text-markup .textLayer span,html.pdfcraft-text-markup .textLayer br{user-select:text!important;-webkit-user-select:text!important}
 html.pdfcraft-text-markup .textLayer{pointer-events:auto!important;cursor:text!important}
 html.pdfcraft-annotating:not(.pdfcraft-text-markup) .textLayer{pointer-events:none!important}
@@ -93,12 +135,15 @@ html.pdfcraft-annotating:not(.pdfcraft-text-markup) .textLayer{pointer-events:no
 .pdfViewer .page .PdfjsAnnotationExtension_painter_wrapper,
 .pdfViewer .page .konvajs-content,
 .pdfViewer .page .konvajs-content>canvas{opacity:0!important;overflow:hidden!important}
-html:not(.pdfcraft-annotating) .pdfViewer .page .PdfjsAnnotationExtension_painter_wrapper,
-html:not(.pdfcraft-annotating) .pdfViewer .page .konvajs-content,
-html:not(.pdfcraft-annotating) .pdfViewer .page .konvajs-content>canvas{pointer-events:none!important}
 html.pdfcraft-annotating .pdfViewer .page .PdfjsAnnotationExtension_painter_wrapper{opacity:1!important;overflow:hidden!important}
 html.pdfcraft-annotating .pdfViewer .page .konvajs-content{opacity:1!important;width:calc(100% - 1px)!important}
 html.pdfcraft-annotating .pdfViewer .page .konvajs-content>canvas{opacity:1!important;clip-path:inset(0 4px 0 0)!important}
+html.pdfcraft-annotations-visible .pdfViewer .page .PdfjsAnnotationExtension_painter_wrapper,
+html.pdfcraft-annotations-visible .pdfViewer .page .konvajs-content,
+html.pdfcraft-annotations-visible .pdfViewer .page .konvajs-content>canvas{opacity:1!important}
+html:not(.pdfcraft-annotating):not(.pdfcraft-annotations-visible) .pdfViewer .page .PdfjsAnnotationExtension_painter_wrapper,
+html:not(.pdfcraft-annotating):not(.pdfcraft-annotations-visible) .pdfViewer .page .konvajs-content,
+html:not(.pdfcraft-annotating):not(.pdfcraft-annotations-visible) .pdfViewer .page .konvajs-content>canvas{pointer-events:none!important}
 #sidebarContainer,#sidebarContent,#sidebarResizer{display:none!important;box-shadow:none!important;border:none!important}
 `;
 

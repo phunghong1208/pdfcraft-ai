@@ -42,9 +42,7 @@ See https://github.com/adobe-type-tools/cmap-resources
     html.pdfcraft-embedded #secondaryToolbar,
     html.pdfcraft-embedded #loadingBar,
     html.pdfcraft-embedded #editorModeButtons,
-    html.pdfcraft-embedded #sidebarContainer,
-    html.pdfcraft-embedded .ant-btn,
-    html.pdfcraft-embedded [class*="ant-btn"] {
+    html.pdfcraft-embedded #sidebarContainer {
       display: none !important;
       visibility: hidden !important;
       height: 0 !important;
@@ -53,6 +51,219 @@ See https://github.com/adobe-type-tools/cmap-resources
       overflow: hidden !important;
       pointer-events: none !important;
       position: absolute !important;
+    }
+    /* Ant Design modal (FreeText, confirm…) — giữ nút OK/Hủy */
+    html.pdfcraft-embedded .ant-modal-wrap,
+    html.pdfcraft-embedded .ant-modal-mask {
+      z-index: 10050 !important;
+      pointer-events: auto !important;
+    }
+    html.pdfcraft-embedded .ant-modal .ant-btn,
+    html.pdfcraft-embedded .ant-modal-confirm .ant-btn,
+    html.pdfcraft-embedded .ant-modal-footer .ant-btn,
+    html.pdfcraft-embedded .ant-modal-footer button {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      visibility: visible !important;
+      min-width: 72px !important;
+      height: 32px !important;
+      padding: 4px 15px !important;
+      font-size: 14px !important;
+      line-height: 1.5 !important;
+      border-radius: 6px !important;
+      box-shadow: none !important;
+      max-height: none !important;
+      width: auto !important;
+      overflow: visible !important;
+      pointer-events: auto !important;
+      position: relative !important;
+      cursor: pointer !important;
+    }
+    html.pdfcraft-embedded .ant-modal-footer,
+    html.pdfcraft-embedded .ant-modal-confirm-btns {
+      display: flex !important;
+      justify-content: flex-end !important;
+      gap: 8px !important;
+      margin-top: 12px !important;
+      pointer-events: auto !important;
+    }
+    html.pdfcraft-embedded .ant-modal-footer .ant-btn-default,
+    html.pdfcraft-embedded .ant-modal-confirm-btns .ant-btn-default,
+    html.pdfcraft-embedded .ant-modal-confirm-btns > .ant-btn:first-child {
+      color: rgba(0, 0, 0, 0.88) !important;
+      background: #fff !important;
+      border: 1px solid #d9d9d9 !important;
+      opacity: 1 !important;
+    }
+    html.pdfcraft-embedded .ant-modal-footer .ant-btn-primary,
+    html.pdfcraft-embedded .ant-modal-confirm-btns .ant-btn-primary,
+    html.pdfcraft-embedded .ant-modal-confirm-btns > .ant-btn:last-child:not(:only-child) {
+      color: #fff !important;
+      background: #1677ff !important;
+      border: 1px solid #1677ff !important;
+      opacity: 1 !important;
+    }
+    html.pdfcraft-embedded .ant-modal-footer .ant-btn-primary:disabled,
+    html.pdfcraft-embedded .ant-modal-confirm-btns .ant-btn-primary:disabled,
+    html.pdfcraft-embedded .ant-modal-confirm-btns > .ant-btn:last-child:disabled {
+      color: rgba(0, 0, 0, 0.25) !important;
+      background: rgba(0, 0, 0, 0.04) !important;
+      border: 1px solid #d9d9d9 !important;
+      cursor: not-allowed !important;
+      opacity: 1 !important;
+    }
+    /* Popup Text — layout căn giữa, nút không tràn */
+    html.pdfcraft-embedded .pdfcraft-freetext-dialog .ant-modal-content {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: stretch !important;
+      box-sizing: border-box !important;
+      width: 420px !important;
+      max-width: calc(100vw - 24px) !important;
+      padding: 20px !important;
+      border-radius: 12px !important;
+      overflow: hidden !important;
+    }
+    html.pdfcraft-embedded .pdfcraft-freetext-dialog .ant-modal-body,
+    html.pdfcraft-embedded .pdfcraft-freetext-dialog .ant-modal-confirm-body,
+    html.pdfcraft-embedded .pdfcraft-freetext-dialog .ant-modal-confirm-paragraph {
+      width: 100% !important;
+      max-width: 100% !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      box-sizing: border-box !important;
+    }
+    html.pdfcraft-embedded .pdfcraft-freetext-dialog .ant-modal-confirm-title {
+      font-size: 15px !important;
+      font-weight: 600 !important;
+      line-height: 1.35 !important;
+      margin: 0 0 12px !important;
+      padding: 0 !important;
+    }
+    html.pdfcraft-embedded .pdfcraft-freetext-dialog .ant-modal-confirm-btns {
+      display: flex !important;
+      flex-direction: row !important;
+      justify-content: flex-end !important;
+      align-items: center !important;
+      align-self: stretch !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+      padding: 0 !important;
+      margin: 16px 0 0 0 !important;
+      gap: 8px !important;
+      float: none !important;
+      text-align: right !important;
+    }
+    html.pdfcraft-embedded .pdfcraft-freetext-dialog .ant-modal-confirm-btns .ant-btn {
+      float: none !important;
+      margin: 0 !important;
+      flex: 0 0 auto !important;
+      min-width: 80px !important;
+      width: auto !important;
+      height: 34px !important;
+      padding: 0 18px !important;
+      font-size: 13px !important;
+      font-weight: 500 !important;
+      border-radius: 8px !important;
+      line-height: 1 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      box-sizing: border-box !important;
+    }
+    html.pdfcraft-embedded .pdfcraft-freetext-dialog .ant-modal-confirm-btns .ant-btn-primary:not(:disabled) {
+      background: #1677ff !important;
+      border-color: #1677ff !important;
+      color: #fff !important;
+      box-shadow: none !important;
+    }
+    html.pdfcraft-embedded .EditorFreeText-Modal {
+      pointer-events: auto !important;
+      width: 100%;
+      box-sizing: border-box !important;
+    }
+    html.pdfcraft-embedded .pdfcraft-freetext-dialog textarea.ant-input,
+    html.pdfcraft-embedded .pdfcraft-freetext-dialog .EditorFreeText-Modal .ant-input,
+    html.pdfcraft-embedded .EditorFreeText-Modal textarea.ant-input,
+    html.pdfcraft-embedded .EditorFreeText-Modal .ant-input {
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+      border-radius: 8px !important;
+      font-size: 14px !important;
+      padding: 8px 10px !important;
+      resize: vertical !important;
+      min-height: 88px !important;
+      margin: 0 !important;
+    }
+    html.pdfcraft-embedded .EditorFreeText-Modal-Toolbar {
+      display: flex !important;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+      margin-top: 12px;
+      width: 100%;
+      box-sizing: border-box !important;
+    }
+    /* Ẩn dropdown cỡ chữ gốc (icon T) — dùng select pdfcraft */
+    html.pdfcraft-embedded .EditorFreeText-Modal-Toolbar > *:not(.pdfcraft-ft-style-row):not(.colorPalette),
+    html.pdfcraft-embedded .EditorFreeText-Modal-Toolbar .ant-dropdown-trigger {
+      display: none !important;
+    }
+    html.pdfcraft-embedded .EditorFreeText-Modal-Toolbar .colorPalette {
+      display: flex !important;
+      flex-wrap: nowrap !important;
+      gap: 6px !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      margin: 0 auto !important;
+      overflow-x: auto !important;
+      overflow-y: hidden !important;
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+      padding: 2px 0 !important;
+      box-sizing: border-box !important;
+    }
+    html.pdfcraft-embedded .EditorFreeText-Modal-Toolbar .colorPalette::-webkit-scrollbar {
+      display: none !important;
+    }
+    html.pdfcraft-embedded .EditorFreeText-Modal-Toolbar .colorPalette .cell {
+      flex: 0 0 auto !important;
+      width: 20px !important;
+      height: 20px !important;
+      min-width: 20px !important;
+      margin: 0 !important;
+      border-radius: 50% !important;
+      border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    }
+    html.pdfcraft-embedded .EditorFreeText-Modal-Toolbar .colorPalette .cell span {
+      width: 11px !important;
+      height: 11px !important;
+    }
+    html.pdfcraft-embedded .EditorFreeText-Modal-Toolbar .colorPalette .cell.active {
+      border: 2px solid #1677ff !important;
+      box-shadow: 0 0 0 1px #fff inset !important;
+    }
+    html.pdfcraft-embedded .pdfcraft-ft-style-row {
+      display: grid;
+      grid-template-columns: 1fr 68px;
+      gap: 8px;
+      align-items: center;
+      width: 100%;
+    }
+    html.pdfcraft-embedded .pdfcraft-ft-style-row select {
+      height: 32px;
+      width: 100%;
+      border: 1px solid #d9d9d9;
+      border-radius: 8px;
+      padding: 0 8px;
+      font-size: 12px;
+      background: #fff;
+      box-sizing: border-box;
     }
     /* CustomToolbar: ẩn; khi text markup → thanh Highlight/Underline/Strikeout ở dưới */
     html.pdfcraft-embedded:not(.pdfcraft-text-markup) .CustomToolbar {
@@ -173,6 +384,10 @@ See https://github.com/adobe-type-tools/cmap-resources
     html.pdfcraft-embedded.pdfcraft-annotating .pdfViewer .page .konvajs-content > canvas {
       opacity: 1 !important;
       clip-path: inset(0 4px 0 0) !important;
+    }
+    html.pdfcraft-embedded.pdfcraft-annotating:not(.pdfcraft-text-markup) .pdfViewer .page .konvajs-content,
+    html.pdfcraft-embedded.pdfcraft-annotating:not(.pdfcraft-text-markup) .pdfViewer .page .konvajs-content > canvas {
+      pointer-events: auto !important;
     }
     html.pdfcraft-embedded #sidebarContent {
       box-shadow: none !important;

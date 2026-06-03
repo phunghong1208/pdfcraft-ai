@@ -2443,6 +2443,13 @@
       "translate": "Dịch",
       "smartOcr": "OCR thông minh"
     },
+    "textStyle": {
+      "label": "Kiểu chữ",
+      "fontFamily": "Phông",
+      "fontSize": "Cỡ",
+      "color": "Màu",
+      "clearConfirm": "Xóa tất cả chú thích trên tài liệu này?"
+    },
     "sidebar": {
       "newPdf": "PDF mới",
       "hidePages": "Ẩn trang",

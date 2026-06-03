@@ -170,7 +170,22 @@ export function EditPDFTool({
         TOOL_ORDER.forEach(function(n){ TOOL_SET[n] = true; });
 
         var TEXT_MARKUP = { highlight:1, underline:1, strikeout:1 };
+        var EXTENSION_CLICK_TOOLS = { note:1, stamp:1, signature:1 };
+        var STAMP_TYPE = 10;
+        var SIGNATURE_TYPE = 9;
+        var FREETEXT_TYPE = 4;
+        var FREE_TEXT_COLORS_EXTRA = ['#000000','#6b7280','#ffffff','#f97316','#ec4899'];
+        var FREE_TEXT_FONT_SIZES = [10,12,14,16,18,20,22,24,28,32];
+        var FREE_TEXT_FONTS = [
+          { label:'Arial', value:'Arial' },
+          { label:'Times New Roman', value:'Times New Roman' },
+          { label:'Georgia', value:'Georgia' },
+          { label:'Verdana', value:'Verdana' },
+          { label:'Tahoma', value:'Tahoma, Geneva, sans-serif' },
+          { label:'Courier New', value:'"Courier New", Courier, monospace' }
+        ];
         window.__pdfcraftActiveTool = 'select';
+        window.__pdfcraftFreeTextStyle = { color:'#1677ff', fontSize:14, fontFamily:'Arial' };
 
         // pdfjsEditorType: NONE=0, HIGHLIGHT=9, STAMP=13, INK=15
         // pdfjsAnnotationType: NONE=0, TEXT=1, FREETEXT=3, LINE=4, SQUARE=5, CIRCLE=6, POLYLINE=8, HIGHLIGHT=9, UNDERLINE=10, STRIKEOUT=12, STAMP=13, INK=15
@@ -186,7 +201,7 @@ export function EditPDFTool({
           cloud:{name:'cloud',type:13,pdfjsEditorType:15,pdfjsAnnotationType:8,subtype:'PolyLine',isOnce:true,resizable:true,draggable:true,style:{color:'#ff0000',strokeWidth:2,opacity:1},styleEditable:{color:true,opacity:true,strokeWidth:true}},
           freehand:{name:'freehand',type:7,pdfjsEditorType:15,pdfjsAnnotationType:15,subtype:'Ink',isOnce:true,resizable:true,draggable:true,style:{color:'#ff0000',strokeWidth:2,opacity:1},styleEditable:{color:true,opacity:true,strokeWidth:true}},
           freeHighlight:{name:'freeHighlight',type:8,pdfjsEditorType:15,pdfjsAnnotationType:15,subtype:'Highlight',isOnce:true,resizable:true,draggable:true,style:{color:'#ffff00',strokeWidth:10,opacity:0.5},styleEditable:{color:true,opacity:true,strokeWidth:false}},
-          freeText:{name:'freeText',type:4,pdfjsEditorType:13,pdfjsAnnotationType:3,subtype:'FreeText',isOnce:true,resizable:true,draggable:true,style:{color:'#ff0000',fontSize:14},styleEditable:{color:true,opacity:true,strokeWidth:false}},
+          freeText:{name:'freeText',type:4,pdfjsEditorType:13,pdfjsAnnotationType:3,subtype:'FreeText',isOnce:false,resizable:true,draggable:true,style:{color:'#1677ff',fontSize:14,fontFamily:'Arial'},styleEditable:{color:true,opacity:true,strokeWidth:false}},
           signature:{name:'signature',type:9,pdfjsEditorType:13,pdfjsAnnotationType:13,subtype:'Caret',isOnce:true,resizable:true,draggable:true},
           stamp:{name:'stamp',type:10,pdfjsEditorType:13,pdfjsAnnotationType:13,subtype:'Stamp',isOnce:true,resizable:true,draggable:true}
         };
@@ -194,6 +209,119 @@ export function EditPDFTool({
         function getExtension(){
           return window.pdfjsAnnotationExtensionInstance || null;
         }
+
+        function mergeFreeTextConfig(base){
+          var cfg = Object.assign({}, base || TOOL_CONFIGS.freeText);
+          var st = window.__pdfcraftFreeTextStyle || {};
+          cfg.style = Object.assign({}, cfg.style || {}, {
+            color: st.color || cfg.style.color,
+            fontSize: st.fontSize || cfg.style.fontSize || 14,
+            fontFamily: st.fontFamily || cfg.style.fontFamily || 'Arial'
+          });
+          cfg.isOnce = false;
+          return cfg;
+        }
+
+        function applyFreeTextStyleToPainter(){
+          var ext = getExtension();
+          if(!ext || !ext.painter) return;
+          var ann = ext.painter.currentAnnotation;
+          if(!ann || ann.name !== 'freeText') return;
+          var st = window.__pdfcraftFreeTextStyle || {};
+          ann.style = ann.style || {};
+          if(st.color) ann.style.color = st.color;
+          if(st.fontSize) ann.style.fontSize = st.fontSize;
+          if(st.fontFamily) ann.style.fontFamily = st.fontFamily;
+        }
+
+        function patchFreeTextEditorInput(editor){
+          if(!editor || editor.__pdfcraftInputPatched) return;
+          editor.__pdfcraftInputPatched = true;
+          var origDone = editor.inputDoneHandler;
+          if(typeof origDone !== 'function') return;
+          editor.inputDoneHandler = function(){
+            var args = arguments;
+            var textValue = args[0];
+            var done = origDone.apply(this, args);
+            var applyFont = function(){
+              try{
+                var family = (window.__pdfcraftFreeTextStyle && window.__pdfcraftFreeTextStyle.fontFamily) || 'Arial';
+                var nodes = editor.getNodesByClassName && editor.getNodesByClassName('Text');
+                if(nodes && nodes.length){
+                  for(var i=0;i<nodes.length;i++){ nodes[i].fontFamily(family); }
+                  if(editor.konvaStage && editor.konvaStage.batchDraw) editor.konvaStage.batchDraw();
+                }
+              }catch(e){}
+              if(textValue && String(textValue).trim()){
+                window.__pdfcraftSkipFreeTextReactivate = true;
+                window.setTimeout(releaseFreeTextTool, 100);
+              }
+            };
+            if(done && typeof done.then === 'function') done.then(applyFont);
+            else applyFont();
+            return done;
+          };
+        }
+
+        function patchFreeTextEditors(painter){
+          if(!painter || painter.__pdfcraftEditorsPatched) return;
+          painter.__pdfcraftEditorsPatched = true;
+          var origEnable = painter.enableEditor;
+          if(typeof origEnable !== 'function') return;
+          painter.enableEditor = function(ctx){
+            origEnable.call(painter, ctx);
+            try{
+              if(!ctx || !ctx.annotation || ctx.annotation.type !== FREETEXT_TYPE) return;
+              var editor = painter.findEditor(ctx.pageNumber, FREETEXT_TYPE);
+              patchFreeTextEditorInput(editor);
+            }catch(e){}
+          };
+        }
+
+        function hookExtensionPainter(){
+          var ext = getExtension();
+          if(!ext || !ext.painter || ext.painter.__pdfcraftHooked) return !!ext;
+          var p = ext.painter;
+          p.__pdfcraftHooked = true;
+          var origSelect = p.selectAnnotation.bind(p);
+          p.selectAnnotation = function(id){
+            if(window.__pdfcraftActiveTool === 'freeText') return;
+            origSelect(id);
+          };
+          var origDefault = p.setDefaultMode.bind(p);
+          p.setDefaultMode = function(){
+            if(window.__pdfcraftActiveTool === 'freeText' && !window.__pdfcraftSkipFreeTextReactivate){
+              setTimeout(function(){ activateTool('freeText'); }, 40);
+              return;
+            }
+            origDefault();
+          };
+          patchFreeTextEditors(p);
+          if(!p.__pdfcraftEnablePatched){
+            p.__pdfcraftEnablePatched = true;
+            var origEnableEditor = p.enableEditor.bind(p);
+            p.enableEditor = function(ctx){
+              if(ctx && ctx.annotation && !p.tempDataTransfer){
+                if(ctx.annotation.type === STAMP_TYPE){
+                  activateViaToolbarRef('stamp');
+                  openStampSignatureCreator('stamp');
+                  return;
+                }
+                if(ctx.annotation.type === SIGNATURE_TYPE){
+                  activateViaToolbarRef('signature');
+                  openStampSignatureCreator('signature');
+                  return;
+                }
+              }
+              return origEnableEditor(ctx);
+            };
+          }
+          return true;
+        }
+
+        var hookTimer = setInterval(function(){
+          if(hookExtensionPainter()) clearInterval(hookTimer);
+        }, 250);
 
         function getPainterAnnotationConfig(toolName){
           var ext = getExtension();
@@ -214,10 +342,15 @@ export function EditPDFTool({
           });
         }
 
+        function resolveToolConfig(toolName){
+          if(toolName === 'freeText') return mergeFreeTextConfig(TOOL_CONFIGS.freeText);
+          return TOOL_CONFIGS[toolName];
+        }
+
         function activateMarkupTool(toolName){
           var ext = getExtension();
           if(!ext || !ext.painter) return false;
-          var cfg = TOOL_CONFIGS[toolName];
+          var cfg = resolveToolConfig(toolName);
           if(!cfg) return false;
           try{
             if(ext.customToolbarRef && ext.customToolbarRef.current && typeof ext.customToolbarRef.current.activeAnnotation === 'function'){
@@ -280,10 +413,228 @@ export function EditPDFTool({
           return true;
         }
 
+        function activateViaToolbarRef(toolName){
+          var ext = getExtension();
+          if(!ext || !ext.customToolbarRef || !ext.customToolbarRef.current) return false;
+          var cfg = resolveToolConfig(toolName);
+          if(!cfg) return false;
+          try{
+            ext.customToolbarRef.current.activeAnnotation(cfg);
+            return true;
+          }catch(e){
+            return false;
+          }
+        }
+
+        function openStampSignatureCreator(toolName){
+          var li = getToolLi(toolName);
+          if(!li) return false;
+          var nodes = li.querySelectorAll('button, .icon, svg, [role="button"], span, div');
+          for(var i=0;i<nodes.length;i++){
+            var node = nodes[i];
+            if(node === li) continue;
+            try{
+              node.dispatchEvent(new MouseEvent('mousedown', { bubbles:true, cancelable:true, view:window }));
+              node.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true, view:window }));
+            }catch(e){}
+          }
+          return true;
+        }
+
+        function activateNoteStampSignature(toolName){
+          hookExtensionPainter();
+          activateViaToolbarRef(toolName);
+          if(toolName === 'note'){
+            var ext = getExtension();
+            if(ext && ext.painter){
+              try{ ext.painter.activate(resolveToolConfig('note'), null); }catch(e){}
+            }
+            return tryClickTool('note') || true;
+          }
+          if(toolName === 'stamp' || toolName === 'signature'){
+            openStampSignatureCreator(toolName);
+            return true;
+          }
+          return false;
+        }
+
+        function syncFreeTextStyleFromModal(){
+          var st = window.__pdfcraftFreeTextStyle || {};
+          var root = document.querySelector('.EditorFreeText-Modal');
+          if(!root) return;
+          var row = root.querySelector('.pdfcraft-ft-style-row');
+          if(row){
+            var fontSel = row.querySelector('[data-pdfcraft-font]');
+            var sizeSel = row.querySelector('[data-pdfcraft-size]');
+            if(fontSel && fontSel.value) st.fontFamily = fontSel.value;
+            if(sizeSel && sizeSel.value) st.fontSize = Number(sizeSel.value);
+          }
+          var activeCell = root.querySelector('.colorPalette .cell.active span');
+          if(activeCell && activeCell.style && activeCell.style.backgroundColor){
+            st.color = activeCell.style.backgroundColor;
+          }
+          window.__pdfcraftFreeTextStyle = st;
+          applyFreeTextStyleToPainter();
+        }
+
+        function releaseFreeTextTool(){
+          window.__pdfcraftSkipFreeTextReactivate = true;
+          window.__pdfcraftActiveTool = 'select';
+          setTool('select');
+          try{ window.parent.postMessage({ type:'pdfcraft-tool-changed', tool:'select' }, '*'); }catch(e){}
+          window.setTimeout(function(){ window.__pdfcraftSkipFreeTextReactivate = false; }, 400);
+        }
+
+        function layoutFreeTextToolbar(toolbar){
+          if(!toolbar) return;
+          var children = toolbar.children;
+          for(var i=0;i<children.length;i++){
+            var ch = children[i];
+            if(ch.classList && (ch.classList.contains('pdfcraft-ft-style-row') || ch.classList.contains('colorPalette'))) continue;
+            ch.style.display = 'none';
+          }
+          var palette = toolbar.querySelector('.colorPalette');
+          if(palette){
+            palette.style.margin = '0 auto';
+            palette.style.flexWrap = 'nowrap';
+            palette.style.gap = '6px';
+            palette.style.justifyContent = 'center';
+          }
+        }
+
+        function applyFreeTextModalLayout(confirmEl){
+          if(!confirmEl) return;
+          confirmEl.classList.add('pdfcraft-freetext-dialog');
+          var content = confirmEl.querySelector('.ant-modal-content');
+          var btns = confirmEl.querySelector('.ant-modal-confirm-btns');
+          var input = confirmEl.querySelector('textarea, .ant-input');
+          if(content){
+            content.style.setProperty('display', 'flex', 'important');
+            content.style.setProperty('flex-direction', 'column', 'important');
+            content.style.setProperty('box-sizing', 'border-box', 'important');
+            content.style.setProperty('padding', '20px', 'important');
+          }
+          if(btns){
+            btns.style.setProperty('display', 'flex', 'important');
+            btns.style.setProperty('justify-content', 'flex-end', 'important');
+            btns.style.setProperty('align-items', 'center', 'important');
+            btns.style.setProperty('width', '100%', 'important');
+            btns.style.setProperty('max-width', '100%', 'important');
+            btns.style.setProperty('margin', '16px 0 0 0', 'important');
+            btns.style.setProperty('padding', '0', 'important');
+            btns.style.setProperty('box-sizing', 'border-box', 'important');
+            btns.style.setProperty('float', 'none', 'important');
+            var btnEls = btns.querySelectorAll('.ant-btn, button');
+            for(var b=0;b<btnEls.length;b++){
+              btnEls[b].style.setProperty('margin', '0', 'important');
+              btnEls[b].style.setProperty('float', 'none', 'important');
+            }
+          }
+          if(input){
+            input.style.setProperty('width', '100%', 'important');
+            input.style.setProperty('max-width', '100%', 'important');
+            input.style.setProperty('box-sizing', 'border-box', 'important');
+          }
+        }
+
+        function enhanceFreeTextModal(){
+          var root = document.querySelector('.EditorFreeText-Modal');
+          if(!root || root.getAttribute('data-pdfcraft-enhanced')) return;
+          root.setAttribute('data-pdfcraft-enhanced', '1');
+          var toolbar = root.querySelector('.EditorFreeText-Modal-Toolbar');
+          if(!toolbar) return;
+          if(toolbar.querySelector('.pdfcraft-ft-style-row')) return;
+
+          var st = window.__pdfcraftFreeTextStyle || {};
+          var row = document.createElement('div');
+          row.className = 'pdfcraft-ft-style-row';
+
+          var fontSel = document.createElement('select');
+          fontSel.setAttribute('data-pdfcraft-font', '1');
+          FREE_TEXT_FONTS.forEach(function(f){
+            var opt = document.createElement('option');
+            opt.value = f.value;
+            opt.textContent = f.label;
+            if((st.fontFamily || 'Arial') === f.value) opt.selected = true;
+            fontSel.appendChild(opt);
+          });
+          fontSel.addEventListener('change', function(){
+            window.__pdfcraftFreeTextStyle = window.__pdfcraftFreeTextStyle || {};
+            window.__pdfcraftFreeTextStyle.fontFamily = fontSel.value;
+            applyFreeTextStyleToPainter();
+          });
+
+          var sizeSel = document.createElement('select');
+          sizeSel.setAttribute('data-pdfcraft-size', '1');
+          FREE_TEXT_FONT_SIZES.forEach(function(sz){
+            var opt = document.createElement('option');
+            opt.value = String(sz);
+            opt.textContent = String(sz);
+            if(Number(st.fontSize || 14) === sz) opt.selected = true;
+            sizeSel.appendChild(opt);
+          });
+          sizeSel.addEventListener('change', function(){
+            window.__pdfcraftFreeTextStyle = window.__pdfcraftFreeTextStyle || {};
+            window.__pdfcraftFreeTextStyle.fontSize = Number(sizeSel.value);
+            applyFreeTextStyleToPainter();
+            var title = document.querySelector('.ant-modal-confirm-title, .ant-modal-title');
+            if(title) title.textContent = 'Text-' + sizeSel.value + 'px';
+          });
+
+          row.appendChild(fontSel);
+          row.appendChild(sizeSel);
+          toolbar.insertBefore(row, toolbar.firstChild);
+
+          var palette = toolbar.querySelector('.colorPalette');
+          if(palette){
+            FREE_TEXT_COLORS_EXTRA.forEach(function(hex){
+              var cell = document.createElement('div');
+              cell.className = 'cell';
+              cell.innerHTML = '<span style="background-color:' + hex + '"></span>';
+              cell.addEventListener('click', function(){
+                palette.querySelectorAll('.cell').forEach(function(c){ c.classList.remove('active'); });
+                cell.classList.add('active');
+                window.__pdfcraftFreeTextStyle = window.__pdfcraftFreeTextStyle || {};
+                window.__pdfcraftFreeTextStyle.color = hex;
+                applyFreeTextStyleToPainter();
+              });
+              palette.appendChild(cell);
+            });
+          }
+
+          layoutFreeTextToolbar(toolbar);
+
+          var confirmRoot = root.closest('.ant-modal-confirm') || root.closest('.ant-modal');
+          applyFreeTextModalLayout(confirmRoot);
+
+          var modal = confirmRoot || root.closest('.ant-modal');
+          if(modal){
+            var okBtn = modal.querySelector('.ant-btn-primary');
+            if(okBtn && !okBtn.getAttribute('data-pdfcraft-ok')){
+              okBtn.setAttribute('data-pdfcraft-ok', '1');
+              okBtn.addEventListener('click', function(){
+                syncFreeTextStyleFromModal();
+                window.__pdfcraftSkipFreeTextReactivate = true;
+                window.setTimeout(releaseFreeTextTool, 120);
+              }, true);
+            }
+          }
+        }
+
+        var freeTextModalObserver = new MutationObserver(function(){
+          enhanceFreeTextModal();
+          var ftRoot = document.querySelector('.EditorFreeText-Modal');
+          if(ftRoot){
+            var cr = ftRoot.closest('.ant-modal-confirm') || ftRoot.closest('.ant-modal');
+            applyFreeTextModalLayout(cr);
+          }
+        });
+        freeTextModalObserver.observe(document.documentElement, { childList:true, subtree:true });
+
         function activateExtensionTool(toolName){
           var ext = getExtension();
           if(!ext || !ext.painter) return false;
-          var cfg = TOOL_CONFIGS[toolName];
+          var cfg = resolveToolConfig(toolName);
           if(!cfg) return false;
           try{
             if(ext.customToolbarRef && ext.customToolbarRef.current && typeof ext.customToolbarRef.current.activeAnnotation === 'function'){
@@ -299,8 +650,60 @@ export function EditPDFTool({
 
         function activateTool(toolName){
           if(TEXT_MARKUP[toolName]) return activateMarkupTool(toolName);
-          if(activateExtensionTool(toolName)) return true;
-          return tryClickTool(toolName);
+          hookExtensionPainter();
+          if(EXTENSION_CLICK_TOOLS[toolName]) return activateNoteStampSignature(toolName);
+          var ext = getExtension();
+          if(!ext || !ext.painter) return tryClickTool(toolName);
+          var cfg = resolveToolConfig(toolName);
+          if(!cfg) return false;
+          try{
+            if(toolName === 'freeText') applyFreeTextStyleToPainter();
+            if(ext.customToolbarRef && ext.customToolbarRef.current && typeof ext.customToolbarRef.current.activeAnnotation === 'function'){
+              ext.customToolbarRef.current.activeAnnotation(cfg);
+            }
+            ext.painter.activate(cfg, null);
+            if(toolName === 'freeText'){
+              try{
+                var page = ext.painter.pdfViewerApplication && ext.painter.pdfViewerApplication.page;
+                var editor = ext.painter.findEditor(page, FREETEXT_TYPE);
+                patchFreeTextEditorInput(editor);
+              }catch(e){}
+            }
+            return true;
+          }catch(e){
+            return tryClickTool(toolName);
+          }
+        }
+
+        function clearAllAnnotations(){
+          var ext = getExtension();
+          if(!ext || !ext.painter) return false;
+          var data = ext.painter.getData();
+          var list = [];
+          if(Array.isArray(data)) list = data.slice();
+          else if(data && typeof data === 'object') list = Object.values(data);
+          var ids = [];
+          for(var i=0;i<list.length;i++){
+            if(list[i] && list[i].id) ids.push(list[i].id);
+          }
+          for(var j=0;j<ids.length;j++){
+            try{ ext.painter.deleteAnnotation(ids[j], true); }catch(e){}
+          }
+          window.__pdfcraftActiveTool = 'select';
+          try{
+            if(typeof ext.painter.setDefaultMode === 'function') ext.painter.setDefaultMode();
+          }catch(e){}
+          try{
+            if(ext.painter.konvaCanvasStore && typeof ext.painter.konvaCanvasStore.forEach === 'function'){
+              ext.painter.konvaCanvasStore.forEach(function(canvas){
+                if(canvas && canvas.pageNumber && typeof ext.painter.reDrawAnnotation === 'function'){
+                  ext.painter.reDrawAnnotation(canvas.pageNumber);
+                }
+              });
+            }
+          }catch(e){}
+          notifyDirty();
+          return true;
         }
 
         function activateEditorMode(mode){
@@ -319,12 +722,20 @@ export function EditPDFTool({
         function setTool(toolName){
           try{
             if(!toolName || !TOOL_SET[toolName]) return false;
-            setAnnotating(toolName !== 'select');
-            setTextMarkupMode(!!TEXT_MARKUP[toolName]);
-            if(toolName === 'select') activateEditorMode(0);
+            var isSelect = toolName === 'select';
+            var isMarkup = !!TEXT_MARKUP[toolName];
+            setTextMarkupMode(isMarkup);
+            if(isSelect){
+              setAnnotating(document.documentElement.classList.contains('pdfcraft-annotations-visible'));
+              activateEditorMode(0);
+              updateMarkupToolbarSelection('');
+            } else {
+              if(toolName !== 'select') document.documentElement.classList.add('pdfcraft-annotations-visible');
+              setAnnotating(true);
+            }
             if(!activateTool(toolName)) return false;
             window.__pdfcraftActiveTool = toolName;
-            if(TEXT_MARKUP[toolName]) updateMarkupToolbarSelection(toolName);
+            if(isMarkup) updateMarkupToolbarSelection(toolName);
             return true;
           }catch(e){
             return false;
@@ -429,6 +840,7 @@ export function EditPDFTool({
         }
 
         window.pdfcraftSetAnnotationTool = setToolWithRetry;
+        window.pdfcraftClearAllAnnotations = clearAllAnnotations;
         window.pdfcraftInvokeToolbarAction = invokeToolbarAction;
         window.pdfcraftExportEditedPdf = async function(){
           try{
@@ -447,7 +859,20 @@ export function EditPDFTool({
         }, true);
         window.addEventListener('message', function(evt){
           var data = evt && evt.data;
-          if(!data || data.type !== 'pdfcraft-set-annotation-tool') return;
+          if(!data) return;
+          if(data.type === 'pdfcraft-set-freetext-style' && data.style && typeof data.style === 'object'){
+            window.__pdfcraftFreeTextStyle = Object.assign({}, window.__pdfcraftFreeTextStyle || {}, data.style);
+            applyFreeTextStyleToPainter();
+            if(window.__pdfcraftActiveTool === 'freeText') activateTool('freeText');
+            return;
+          }
+          if(data.type === 'pdfcraft-clear-annotations'){
+            clearAllAnnotations();
+            setTool('select');
+            try{ window.parent.postMessage({ type:'pdfcraft-tool-changed', tool:'select' }, '*'); }catch(e){}
+            return;
+          }
+          if(data.type !== 'pdfcraft-set-annotation-tool') return;
           if(typeof data.tool !== 'string') return;
           setToolWithRetry(data.tool);
         });

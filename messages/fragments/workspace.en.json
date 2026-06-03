@@ -127,6 +127,13 @@
     "translate": "Translate",
     "smartOcr": "Smart OCR"
   },
+  "textStyle": {
+    "label": "Text style",
+    "fontFamily": "Font",
+    "fontSize": "Size",
+    "color": "Color",
+    "clearConfirm": "Remove all annotations on this document?"
+  },
   "sidebar": {
     "newPdf": "New PDF",
     "hidePages": "Hide pages",

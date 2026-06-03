@@ -270,7 +270,7 @@ function getRibbonGroups(
         {
           label: tr('groups.manage'),
           tools: [
-            { icon: Trash2, label: tr('tools.removeAll'), href: t('remove-annotations') },
+            { icon: Trash2, label: tr('tools.removeAll'), action: 'annot:clearAll' },
           ],
         },
       ];
@@ -1159,7 +1159,40 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
       case 'annot:freeText':
       case 'annot:note':
       case 'annot:stamp':
-      case 'annot:signature': {
+      case 'annot:signature':
+      case 'annot:clearAll': {
+        if (action === 'annot:clearAll') {
+          if (!file) break;
+          if (!window.confirm(t('textStyle.clearConfirm'))) break;
+          const tryClear = (attempt: number) => {
+            const win = editorIframeRef.current?.contentWindow as
+              | (Window & { pdfcraftClearAllAnnotations?: () => boolean })
+              | undefined;
+            if (!win) {
+              if (attempt < 40) window.setTimeout(() => tryClear(attempt + 1), 150);
+              return;
+            }
+            try {
+              if (win.pdfcraftClearAllAnnotations?.()) {
+                setIsDirty(true);
+                setActiveAnnotTool(null);
+                return;
+              }
+            } catch {
+              // ignore
+            }
+            try {
+              win.postMessage({ type: 'pdfcraft-clear-annotations' }, '*');
+              setIsDirty(true);
+              setActiveAnnotTool(null);
+            } catch {
+              // ignore
+            }
+            if (attempt < 40) window.setTimeout(() => tryClear(attempt + 1), 150);
+          };
+          tryClear(0);
+          break;
+        }
         const tool = action.replace('annot:', '');
         const deselecting = activeAnnotTool === tool;
         sendAnnotationToolToViewer(deselecting ? 'select' : tool);
@@ -1188,6 +1221,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     currentPage,
     sendAnnotationToolToViewer,
     activeAnnotTool,
+    t,
   ]);
 
   const handleToolClick = useCallback((tool: RibbonToolDef) => {
@@ -1430,9 +1464,9 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
 
       {/* ─── Ribbon Toolbar (collapsible) ─── */}
       {ribbonGroups.length > 0 && (
-      <div className={`flex items-center h-[42px] border-b px-2 shrink-0 overflow-hidden ${isWorkspaceDark ? 'bg-[#252830] border-white/[0.06]' : 'bg-white border-[#E5E7EB]'}`}>
+      <div className={`flex items-center min-h-[42px] border-b px-2 shrink-0 overflow-x-auto ${isWorkspaceDark ? 'bg-[#252830] border-white/[0.06]' : 'bg-white border-[#E5E7EB]'}`}>
         {ribbonGroups.map((group, gi) => (
-          <div key={`${activeTab}-${gi}`} className="flex items-center">
+          <div key={`${activeTab}-${gi}`} className="flex items-center shrink-0">
             {gi > 0 && (
               <div className="flex items-center px-2">
                 <div className="w-px h-6 bg-[hsl(var(--color-border))] dark:bg-white/[0.08]" />
