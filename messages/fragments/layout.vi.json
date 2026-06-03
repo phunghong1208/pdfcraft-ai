@@ -34,7 +34,9 @@
     "legalNav": "Pháp lý",
     "terms": "Điều khoản sử dụng",
     "privacyLink": "Chính sách riêng tư",
-    "cookies": "Cookie"
+    "cookies": "Cookie",
+    "privacyBadge": "100% Riêng tư — Tệp không bao giờ rời khỏi thiết bị",
+    "privacyBadgeSub": "Tài liệu được xử lý an toàn ngay trong trình duyệt của bạn"
   },
   "aiMenu": {
     "aiAssistant": "Trợ lý AI",

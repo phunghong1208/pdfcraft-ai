@@ -141,8 +141,20 @@ export function EditPDFTool({
             }
           }catch(e){}
         },800);
-        window.pdfcraftUndo=function(){};
-        window.pdfcraftRedo=function(){};
+        window.pdfcraftUndo=function(){
+          try{
+            var ext=window.pdfjsAnnotationExtensionInstance;
+            if(ext&&ext.painter&&typeof ext.painter.undo==='function'){ext.painter.undo();return;}
+          }catch(e){}
+          document.dispatchEvent(new KeyboardEvent('keydown',{key:'z',code:'KeyZ',ctrlKey:true,bubbles:true}));
+        };
+        window.pdfcraftRedo=function(){
+          try{
+            var ext=window.pdfjsAnnotationExtensionInstance;
+            if(ext&&ext.painter&&typeof ext.painter.redo==='function'){ext.painter.redo();return;}
+          }catch(e){}
+          document.dispatchEvent(new KeyboardEvent('keydown',{key:'z',code:'KeyZ',ctrlKey:true,shiftKey:true,bubbles:true}));
+        };
       })();`;
       doc.body.appendChild(notifierScript);
 
@@ -150,33 +162,14 @@ export function EditPDFTool({
       const toolScript = doc.createElement('script');
       toolScript.textContent = `(function(){
         var TOOL_ORDER = [
-          'select',
-          'highlight',
-          'strikeout',
-          'underline',
-          'rectangle',
-          'circle',
-          'freehand',
-          'freeHighlight',
-          'freeText',
-          'signature',
-          'stamp',
-          'note',
-          'arrow',
-          'cloud'
+          'select','highlight','strikeout','underline',
+          'rectangle','circle','note','arrow','cloud',
+          'freehand','freeHighlight','freeText','signature','stamp'
         ];
+        var TOOL_SET = {};
+        TOOL_ORDER.forEach(function(n){ TOOL_SET[n] = true; });
 
-        function tryClickTool(toolName){
-          var idx = TOOL_ORDER.indexOf(toolName);
-          if(idx < 0) return false;
-          var toolbar = document.querySelector('.CustomToolbar');
-          if(!toolbar) return false;
-          var items = toolbar.querySelectorAll('.buttons > li');
-          var el = items && items[idx];
-          if(!el) return false;
-          el.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true, view:window }));
-          return true;
-        }
+        window.__pdfcraftActiveTool = 'select';
 
         function setAnnotating(on){
           document.documentElement.classList.toggle('pdfcraft-annotating', !!on);
@@ -192,15 +185,39 @@ export function EditPDFTool({
           }, 180);
         }
 
+        function tryClickTool(toolName){
+          var idx = TOOL_ORDER.indexOf(toolName);
+          if(idx < 0) return false;
+          var toolbar = document.querySelector('.CustomToolbar');
+          if(!toolbar) return false;
+          var items = toolbar.querySelectorAll('.buttons > li');
+          var el = items && items[idx];
+          if(!el) return false;
+          el.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true, view:window }));
+          return true;
+        }
+
         function setTool(toolName){
           try{
-            if(!toolName) return;
-            var ext = window.pdfjsAnnotationExtensionInstance;
-            var cur = ext && ext.activeAnnotation && ext.activeAnnotation.name;
-            var next = (cur === toolName) ? 'select' : toolName;
-            setAnnotating(next !== 'select');
-            tryClickTool(next);
-          }catch(e){}
+            if(!toolName || !TOOL_SET[toolName]) return false;
+            setAnnotating(true);
+            if(tryClickTool(toolName)){
+              window.__pdfcraftActiveTool = toolName;
+              return true;
+            }
+            return false;
+          }catch(e){
+            return false;
+          }
+        }
+
+        function setToolWithRetry(toolName){
+          if(setTool(toolName)) return;
+          var tries = 0;
+          var timer = setInterval(function(){
+            tries += 1;
+            if(setTool(toolName) || tries >= 60) clearInterval(timer);
+          }, 150);
         }
 
         function invokeToolbarAction(action){
@@ -245,7 +262,7 @@ export function EditPDFTool({
           }
         }
 
-        window.pdfcraftSetAnnotationTool = setTool;
+        window.pdfcraftSetAnnotationTool = setToolWithRetry;
         window.pdfcraftInvokeToolbarAction = invokeToolbarAction;
         window.pdfcraftExportEditedPdf = async function(){
           try{
@@ -270,7 +287,7 @@ export function EditPDFTool({
           var data = evt && evt.data;
           if(!data || data.type !== 'pdfcraft-set-annotation-tool') return;
           if(typeof data.tool !== 'string') return;
-          setTool(data.tool);
+          setToolWithRetry(data.tool);
         });
       })();`;
       doc.body.appendChild(toolScript);

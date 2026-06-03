@@ -88,31 +88,23 @@ See https://github.com/adobe-type-tools/cmap-resources
     html.pdfcraft-embedded .pdfViewer .page .PdfjsAnnotationExtension_painter_wrapper,
     html.pdfcraft-embedded .pdfViewer .page .konvajs-content,
     html.pdfcraft-embedded .pdfViewer .page .konvajs-content > canvas {
-      display: none !important;
-      visibility: hidden !important;
-      width: 0 !important;
-      height: 0 !important;
-      overflow: hidden !important;
+      opacity: 0 !important;
       pointer-events: none !important;
+      overflow: hidden !important;
     }
     html.pdfcraft-embedded.pdfcraft-annotating .pdfViewer .page .PdfjsAnnotationExtension_painter_wrapper {
-      display: block !important;
-      visibility: visible !important;
-      width: auto !important;
-      height: auto !important;
-      overflow: hidden !important;
+      opacity: 1 !important;
       pointer-events: auto !important;
+      overflow: hidden !important;
     }
     html.pdfcraft-embedded.pdfcraft-annotating .pdfViewer .page .konvajs-content {
-      display: block !important;
-      visibility: visible !important;
+      opacity: 1 !important;
+      pointer-events: auto !important;
       width: calc(100% - 1px) !important;
-      height: auto !important;
     }
     html.pdfcraft-embedded.pdfcraft-annotating .pdfViewer .page .konvajs-content > canvas {
-      display: block !important;
-      visibility: visible !important;
-      width: 100% !important;
+      opacity: 1 !important;
+      pointer-events: auto !important;
       clip-path: inset(0 4px 0 0) !important;
     }
     html.pdfcraft-embedded #sidebarContent {
@@ -181,10 +173,7 @@ See https://github.com/adobe-type-tools/cmap-resources
 
     function removeKonvaPainters() {
       if (!isPdfcraftEmbedded()) return;
-      if (document.documentElement.classList.contains('pdfcraft-annotating')) return;
-      document.querySelectorAll('.PdfjsAnnotationExtension_painter_wrapper, .konvajs-content').forEach(function (el) {
-        el.remove();
-      });
+      // Konva elements hidden by CSS (opacity:0) — no DOM removal, painter needs them.
       document.getElementById('pdfcraft-page-edge-rail')?.remove();
     }
 

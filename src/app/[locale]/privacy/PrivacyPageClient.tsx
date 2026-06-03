@@ -13,6 +13,7 @@ interface PrivacyPageClientProps {
 
 export default function PrivacyPageClient({ locale }: PrivacyPageClientProps) {
   const t = useTranslations();
+  const tFooter = useTranslations('common.footer');
 
   const privacyHighlights = [
     {
@@ -155,7 +156,10 @@ export default function PrivacyPageClient({ locale }: PrivacyPageClientProps) {
                 This data is stored only on your device and is not transmitted to us.
               </p>
 
-              <h2 className="text-2xl font-bold text-[hsl(var(--color-foreground))] mt-8 mb-4">
+              <h2
+                id="cookies"
+                className="text-2xl font-bold text-[hsl(var(--color-foreground))] mt-8 mb-4 scroll-mt-24"
+              >
                 5. Cookies
               </h2>
               <p className="text-[hsl(var(--color-muted-foreground))] mb-4">
@@ -239,10 +243,10 @@ export default function PrivacyPageClient({ locale }: PrivacyPageClientProps) {
                 <Shield className="h-8 w-8 text-green-600" />
                 <div className="text-left">
                   <p className="font-semibold text-green-800">
-                    {t('common.footer.privacyBadge')}
+                    {tFooter('privacyBadge')}
                   </p>
                   <p className="text-sm text-green-600">
-                    Your documents are processed securely in your browser
+                    {tFooter('privacyBadgeSub')}
                   </p>
                 </div>
               </div>

@@ -24,7 +24,7 @@ html,body{margin:0!important;padding:0!important;background:var(--pdfcraft-shell
 /* Keep annotation toolbar accessible while annotating. */
 html:not(.pdfcraft-annotating) .CustomToolbar{
   position:absolute!important;top:-9999px!important;left:-9999px!important;
-  opacity:0!important;pointer-events:none!important;
+  opacity:0!important;pointer-events:auto!important;
 }
 html.pdfcraft-annotating .CustomToolbar{
   position:fixed!important;top:8px!important;right:12px!important;left:auto!important;
@@ -53,6 +53,9 @@ html.pdfcraft-annotating .CustomComment,html.pdfcraft-annotating [class*="Custom
   opacity:1!important;pointer-events:auto!important;
   border-left-color:var(--pdfcraft-shell-bg,#16181d)!important;background:var(--pdfcraft-shell-bg,#16181d)!important;border-left-width:0!important;
 }
+/* Annotation popbar (edit/delete/comment toolbar) must float above Konva canvas */
+.CustomPopbar{z-index:10000!important;pointer-events:auto!important}
+.CustomPopbar .buttons li{pointer-events:auto!important;cursor:pointer!important}
 #viewerContainer{top:0!important;inset-inline-start:0!important;left:0!important;overflow:auto!important;scrollbar-width:none!important}
 #viewer,#viewerContainer .pdfViewer{padding-top:0!important;margin-top:0!important}
 #outerContainer.sidebarOpen #viewerContainer,#outerContainer.sidebarMoving #viewerContainer{inset-inline-start:0!important;left:0!important}
@@ -65,22 +68,19 @@ html.pdfcraft-annotating .CustomComment,html.pdfcraft-annotating [class*="Custom
 .pdfViewer .page:first-child{margin-top:0!important}
 .pdfViewer .canvasWrapper{position:relative!important;overflow:hidden!important;border:none!important}
 .pdfViewer .canvasWrapper>canvas{display:block!important;border:none!important;outline:none!important}
-/* Konva stage = black vertical line at page right — remove from view mode entirely */
+/* Konva stage — hide via opacity when not annotating so elements stay in DOM with correct dimensions */
 .pdfViewer .page .PdfjsAnnotationExtension_painter_wrapper,
 .pdfViewer .page .konvajs-content,
-.pdfViewer .page .konvajs-content>canvas{display:none!important;visibility:hidden!important;width:0!important;height:0!important;overflow:hidden!important;pointer-events:none!important}
-html.pdfcraft-annotating .pdfViewer .page .PdfjsAnnotationExtension_painter_wrapper{display:block!important;visibility:visible!important;width:auto!important;height:auto!important;overflow:hidden!important;pointer-events:auto!important}
-html.pdfcraft-annotating .pdfViewer .page .konvajs-content{display:block!important;visibility:visible!important;width:calc(100% - 1px)!important;height:auto!important}
-html.pdfcraft-annotating .pdfViewer .page .konvajs-content>canvas{display:block!important;visibility:visible!important;width:100%!important;height:auto!important;clip-path:inset(0 4px 0 0)!important}
+.pdfViewer .page .konvajs-content>canvas{opacity:0!important;pointer-events:none!important;overflow:hidden!important}
+html.pdfcraft-annotating .pdfViewer .page .PdfjsAnnotationExtension_painter_wrapper{opacity:1!important;pointer-events:auto!important;overflow:hidden!important}
+html.pdfcraft-annotating .pdfViewer .page .konvajs-content{opacity:1!important;pointer-events:auto!important;width:calc(100% - 1px)!important}
+html.pdfcraft-annotating .pdfViewer .page .konvajs-content>canvas{opacity:1!important;pointer-events:auto!important;clip-path:inset(0 4px 0 0)!important}
 #sidebarContainer,#sidebarContent,#sidebarResizer{display:none!important;box-shadow:none!important;border:none!important}
 `;
 
-/** Extension re-creates Konva layers on render — delete them unless user is annotating. */
-export function removeAnnotationPainters(doc: Document) {
-  if (doc.documentElement.classList.contains('pdfcraft-annotating')) return;
-  doc.querySelectorAll('.PdfjsAnnotationExtension_painter_wrapper, .konvajs-content').forEach((node) => {
-    node.remove();
-  });
+/** Konva layers hidden by CSS (opacity:0) — no DOM removal needed. */
+export function removeAnnotationPainters(_doc: Document) {
+  // No-op: CSS handles visibility. Removing from DOM breaks the painter.
 }
 
 export function removeExtensionPanels(doc: Document) {

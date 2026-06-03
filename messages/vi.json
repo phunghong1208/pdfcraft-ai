@@ -20,6 +20,14 @@
       "title": "Chính sách Bảo mật",
       "description": "Chính sách bảo mật của PDFCraft. Tệp của bạn không bao giờ rời khỏi thiết bị - mọi xử lý đều diễn ra cục bộ trong trình duyệt."
     },
+    "cookies": {
+      "title": "Chính sách Cookie",
+      "description": "Cách PDFCraft sử dụng cookie. Chỉ cookie thiết yếu và tùy chọn — không theo dõi hay quảng cáo."
+    },
+    "terms": {
+      "title": "Điều khoản sử dụng",
+      "description": "Điều khoản sử dụng PDFCraft. Công cụ PDF miễn phí, xử lý cục bộ trong trình duyệt."
+    },
     "contact": {
       "title": "Liên hệ Chúng tôi",
       "description": "Liên hệ với đội ngũ PDFCraft. Chúng tôi rất mong nhận được phản hồi từ bạn."
@@ -32,6 +40,32 @@
       "convertPdf": "chuyển đổi PDF",
       "freePdfTools": "công cụ PDF miễn phí",
       "onlinePdfEditor": "trình chỉnh sửa PDF trực tuyến"
+    }
+  },
+  "legalPages": {
+    "cookies": {
+      "heroTitle": "Chính sách Cookie",
+      "heroSubtitle": "Chúng tôi chỉ dùng cookie thiết yếu và tùy chọn. Không theo dõi hay quảng cáo.",
+      "essentialTitle": "Cookie thiết yếu",
+      "essentialDesc": "Cần thiết để trang web hoạt động đúng.",
+      "preferenceTitle": "Cookie tùy chọn",
+      "preferenceDesc": "Ghi nhớ cài đặt của bạn, ví dụ ngôn ngữ.",
+      "noTracking": "Chúng tôi không dùng cookie theo dõi hay cookie quảng cáo.",
+      "moreLink": "Xem thêm Chính sách riêng tư"
+    },
+    "terms": {
+      "heroTitle": "Điều khoản sử dụng",
+      "heroSubtitle": "Khi dùng PDFCraft, bạn đồng ý các điều khoản sau.",
+      "acceptanceTitle": "1. Chấp nhận",
+      "acceptanceBody": "Khi truy cập hoặc dùng trang web và công cụ PDF, bạn đồng ý Điều khoản sử dụng này.",
+      "useTitle": "2. Sử dụng dịch vụ",
+      "useBody": "Bạn có thể dùng công cụ cho mục đích cá nhân hoặc kinh doanh hợp pháp. Bạn chịu trách nhiệm về nội dung tệp xử lý.",
+      "privacyTitle": "3. Quyền riêng tư",
+      "privacyBody": "Tệp được xử lý cục bộ trong trình duyệt, không tải lên máy chủ. Xem Chính sách riêng tư để biết chi tiết.",
+      "disclaimerTitle": "4. Tuyên bố miễn trừ",
+      "disclaimerBody": "Công cụ được cung cấp \"nguyên trạng\", không bảo đảm. Chúng tôi không chịu trách nhiệm mất dữ liệu; hãy sao lưu tài liệu quan trọng.",
+      "changesTitle": "5. Thay đổi",
+      "changesBody": "Chúng tôi có thể cập nhật điều khoản. Tiếp tục sử dụng sau khi thay đổi đồng nghĩa chấp nhận."
     }
   },
   "common": {
@@ -109,6 +143,8 @@
       "badgeLocal": "Xử lý cục bộ",
       "badgeNoUpload": "Không tải cloud",
       "badgeGdpr": "Tuân thủ GDPR",
+      "privacyBadge": "100% Riêng tư — Tệp không bao giờ rời khỏi thiết bị",
+      "privacyBadgeSub": "Tài liệu được xử lý an toàn ngay trong trình duyệt của bạn",
       "localProcessingTitle": "Xử lý cục bộ",
       "localProcessingDesc": "Tệp không bao giờ rời khỏi thiết bị",
       "noCloudTitle": "Không tải lên cloud",

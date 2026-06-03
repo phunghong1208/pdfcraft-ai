@@ -20,6 +20,14 @@
       "title": "Privacy Policy",
       "description": "PDFCraft privacy policy. Your files never leave your device - all processing happens locally in your browser."
     },
+    "cookies": {
+      "title": "Cookie Policy",
+      "description": "How PDFCraft uses cookies. We only use essential and preference cookies — no tracking or advertising."
+    },
+    "terms": {
+      "title": "Terms of Service",
+      "description": "Terms of use for PDFCraft. Free PDF tools processed locally in your browser."
+    },
     "contact": {
       "title": "Contact Us",
       "description": "Get in touch with PDFCraft team. We'd love to hear from you."
@@ -32,6 +40,32 @@
       "convertPdf": "convert PDF",
       "freePdfTools": "free PDF tools",
       "onlinePdfEditor": "online PDF editor"
+    }
+  },
+  "legalPages": {
+    "cookies": {
+      "heroTitle": "Cookie Policy",
+      "heroSubtitle": "We use only essential and preference cookies. No tracking or advertising.",
+      "essentialTitle": "Essential cookies",
+      "essentialDesc": "Required for the website to function properly.",
+      "preferenceTitle": "Preference cookies",
+      "preferenceDesc": "Remember your settings, such as language preference.",
+      "noTracking": "We do not use tracking cookies or advertising cookies.",
+      "moreLink": "See also our Privacy Policy"
+    },
+    "terms": {
+      "heroTitle": "Terms of Service",
+      "heroSubtitle": "By using PDFCraft you agree to these terms.",
+      "acceptanceTitle": "1. Acceptance",
+      "acceptanceBody": "By accessing or using this website and its PDF tools, you agree to these Terms of Service.",
+      "useTitle": "2. Use of the service",
+      "useBody": "You may use our tools for lawful personal or business purposes. You are responsible for the content of files you process.",
+      "privacyTitle": "3. Privacy",
+      "privacyBody": "Files are processed locally in your browser and are not uploaded to our servers. See our Privacy Policy for details.",
+      "disclaimerTitle": "4. Disclaimer",
+      "disclaimerBody": "Tools are provided \"as is\" without warranties. We are not liable for data loss; keep backups of important documents.",
+      "changesTitle": "5. Changes",
+      "changesBody": "We may update these terms. Continued use after changes constitutes acceptance."
     }
   },
   "common": {
@@ -109,6 +143,8 @@
       "badgeLocal": "Local Processing",
       "badgeNoUpload": "No Cloud Upload",
       "badgeGdpr": "GDPR Compliant",
+      "privacyBadge": "100% Private — Files never leave your device",
+      "privacyBadgeSub": "Your documents are processed securely in your browser",
       "localProcessingTitle": "Local Processing",
       "localProcessingDesc": "Files never leave your device",
       "noCloudTitle": "No Cloud Upload",

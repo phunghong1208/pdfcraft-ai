@@ -950,21 +950,30 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
   }, [isDirty]);
 
   const sendAnnotationToolToViewer = useCallback((tool: string) => {
-    const win = editorIframeRef.current?.contentWindow as (Window & { pdfcraftSetAnnotationTool?: (t: string) => void }) | null;
-    if (!win) return;
-    try {
-      if (typeof win.pdfcraftSetAnnotationTool === 'function') {
-        win.pdfcraftSetAnnotationTool(tool);
+    const deliver = (attempt: number) => {
+      const win = editorIframeRef.current?.contentWindow as
+        | (Window & { pdfcraftSetAnnotationTool?: (t: string) => void })
+        | null;
+      if (!win) {
+        if (attempt < 40) window.setTimeout(() => deliver(attempt + 1), 150);
         return;
       }
-    } catch {
-      // ignore
-    }
-    try {
-      win.postMessage({ type: 'pdfcraft-set-annotation-tool', tool }, '*');
-    } catch {
-      // ignore
-    }
+      try {
+        if (typeof win.pdfcraftSetAnnotationTool === 'function') {
+          win.pdfcraftSetAnnotationTool(tool);
+          return;
+        }
+      } catch {
+        // ignore
+      }
+      try {
+        win.postMessage({ type: 'pdfcraft-set-annotation-tool', tool }, '*');
+      } catch {
+        // ignore
+      }
+      if (attempt < 40) window.setTimeout(() => deliver(attempt + 1), 150);
+    };
+    deliver(0);
   }, []);
 
   const handleRibbonAction = useCallback((action: string) => {

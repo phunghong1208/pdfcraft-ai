@@ -237,6 +237,26 @@ export function generatePrivacyMetadata(locale: Locale, translations?: { title: 
   });
 }
 
+export function generateCookiesMetadata(locale: Locale, translations?: { title: string; description: string }): Metadata {
+  return generateBaseMetadata({
+    locale,
+    path: '/cookies',
+    title: translations?.title || 'Cookie Policy',
+    description: translations?.description || `${siteConfig.name} cookie policy. Essential and preference cookies only.`,
+    keywords: ['cookies', 'privacy', 'essential cookies'],
+  });
+}
+
+export function generateTermsMetadata(locale: Locale, translations?: { title: string; description: string }): Metadata {
+  return generateBaseMetadata({
+    locale,
+    path: '/terms',
+    title: translations?.title || 'Terms of Service',
+    description: translations?.description || `Terms of use for ${siteConfig.name}.`,
+    keywords: ['terms', 'terms of service', 'legal'],
+  });
+}
+
 /**
  * Generate metadata for the contact page
  */
