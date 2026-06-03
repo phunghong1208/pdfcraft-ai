@@ -49,6 +49,12 @@ function normalizeHex(hex: string) {
   return `#${toHex(rgb.r)}${toHex(rgb.g)}${toHex(rgb.b)}`;
 }
 
+function formatProcessError(output: ProcessOutput) {
+  const message = output.error?.message || 'Failed to apply background color.';
+  const details = output.error?.details;
+  return details ? `${message} (${details})` : message;
+}
+
 export function BackgroundColorTool({
   className = '',
   initialFile = null,
@@ -65,7 +71,6 @@ export function BackgroundColorTool({
   const [error, setError] = useState<string | null>(null);
   const [color, setColor] = useState('#fffde7');
   const cancelledRef = useRef(false);
-  /** Frozen PDF bytes from when the dialog opened — every apply uses this, not the tinted viewer file. */
   const sourceSnapshotRef = useRef<ArrayBuffer | null>(null);
   const sourceNameRef = useRef('document.pdf');
   const snapshotReadyRef = useRef(false);
@@ -146,7 +151,7 @@ export function BackgroundColorTool({
           if (!keepDialogOpenOnApply) return;
         }
       } else {
-        setError(output.error?.message || 'Failed to apply background color.');
+        setError(formatProcessError(output));
         setStatus('error');
       }
     } catch (err) {
@@ -193,7 +198,7 @@ export function BackgroundColorTool({
         <>
           <Card variant="outlined">
             <div className="flex items-center justify-between">
-              <p className="font-medium">{file.name}</p>
+              <p className="font-medium truncate">{file.name}</p>
               {!lockToInitialFile && (
                 <Button
                   variant="ghost"
@@ -211,9 +216,9 @@ export function BackgroundColorTool({
               )}
             </div>
           </Card>
-          <Card variant="outlined" size="lg">
-            <label className="block text-sm font-medium mb-2">{tTools('colorLabel')}</label>
-            <div className="flex items-center gap-4">
+          <div className="space-y-3">
+            <label className="block text-sm font-medium">{tTools('colorLabel')}</label>
+            <div className="flex flex-wrap items-center gap-4">
               <input
                 type="color"
                 value={pickerColor}
@@ -229,19 +234,13 @@ export function BackgroundColorTool({
                 className="px-3 py-2 border rounded w-32 font-mono text-sm"
                 disabled={isProcessing}
               />
-              <span
-                className="h-10 w-14 shrink-0 rounded border border-[hsl(var(--color-border))]"
-                style={{ backgroundColor: pickerColor }}
-                title={pickerColor}
-                aria-hidden
-              />
             </div>
             {lockToInitialFile && (
-              <p className="mt-2 text-[11px] text-[hsl(var(--color-muted-foreground))]">
+              <p className="text-[11px] text-[hsl(var(--color-muted-foreground))]">
                 {tTools('reapplyHint')}
               </p>
             )}
-          </Card>
+          </div>
         </>
       )}
       {isProcessing && (
@@ -259,7 +258,7 @@ export function BackgroundColorTool({
         <div className="flex flex-wrap items-center gap-4">
           <Button
             variant="primary"
-            size="lg"
+            size="md"
             onClick={handleProcess}
             disabled={!file || isProcessing || !snapshotReadyRef.current}
             loading={isProcessing}
@@ -271,16 +270,19 @@ export function BackgroundColorTool({
               file={result}
               filename={file.name.replace('.pdf', '_background.pdf')}
               variant="secondary"
-              size="lg"
+              size="md"
               showFileSize
             />
           )}
         </div>
       )}
       {status === 'complete' && result && (
-        <div className="p-4 rounded bg-green-50 border border-green-200 text-green-700 dark:bg-green-950/40 dark:border-green-500/30 dark:text-green-200">
-          <p className="text-sm font-medium">{tTools('successMessage')}</p>
-        </div>
+        <p
+          className="text-sm font-medium text-[hsl(142_45%_38%)] dark:text-[hsl(142_50%_55%)]"
+          role="status"
+        >
+          {tTools('successMessage')}
+        </p>
       )}
     </div>
   );

@@ -1,7 +1,6 @@
 /**
  * PDF Background Color Processor
- * Renders pages with pdf.js, replaces near-white paper pixels with the chosen color,
- * then re-embeds as images so the result matches the selected hex (not Multiply tint).
+ * Renders with pdf.js, replaces near-white paper pixels with the chosen color, embeds as PNG.
  */
 
 import type { ProcessInput, ProcessOutput, ProgressCallback } from '@/types/pdf';
@@ -13,18 +12,17 @@ export interface BackgroundColorOptions {
   color: { r: number; g: number; b: number };
   pages?: number[] | 'all';
   opacity?: number;
-  /** Render scale for quality (default 2). */
   scale?: number;
 }
 
 const DEFAULT_SCALE = 2;
+const MAX_CANVAS_DIMENSION = 8192;
 
 function rgbToCss({ r, g, b }: { r: number; g: number; b: number }) {
   const toByte = (v: number) => Math.max(0, Math.min(255, Math.round(v * 255)));
   return `rgb(${toByte(r)}, ${toByte(g)}, ${toByte(b)})`;
 }
 
-/** Replace paper-like pixels (bright, low saturation) with the target background color. */
 function replacePaperBackground(
   imageData: ImageData,
   bg: { r: number; g: number; b: number },
@@ -66,6 +64,22 @@ function replacePaperBackground(
   }
 }
 
+function resolveRenderViewport(
+  page: { getViewport: (options: { scale: number }) => ReturnType<import('pdfjs-dist').PDFPageProxy['getViewport']> },
+  scale: number,
+) {
+  let renderScale = scale;
+  let viewport = page.getViewport({ scale: renderScale });
+  while (
+    (viewport.width > MAX_CANVAS_DIMENSION || viewport.height > MAX_CANVAS_DIMENSION) &&
+    renderScale > 0.35
+  ) {
+    renderScale *= 0.75;
+    viewport = page.getViewport({ scale: renderScale });
+  }
+  return viewport;
+}
+
 export class BackgroundColorProcessor extends BasePDFProcessor {
   async process(input: ProcessInput, onProgress?: ProgressCallback): Promise<ProcessOutput> {
     this.reset();
@@ -97,52 +111,43 @@ export class BackgroundColorProcessor extends BasePDFProcessor {
 
       this.updateProgress(10, 'Loading PDF...');
       const file = files[0];
-      const arrayBuffer = await file.arrayBuffer();
-      const sourcePdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
-      const sourcePdfLib = await pdfLib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
-
+      const pdfBytes = (await file.arrayBuffer()).slice(0);
+      const sourcePdf = await pdfjs.getDocument({ data: pdfBytes }).promise;
       const totalPages = sourcePdf.numPages;
+
       const pagesToProcess = bgOptions.pages === 'all'
         ? Array.from({ length: totalPages }, (_, i) => i)
         : (bgOptions.pages as number[]).map((p) => p - 1);
 
       const newPdf = await pdfLib.PDFDocument.create();
-      const sourcePages = sourcePdfLib.getPages();
-      const embeddedPages = await newPdf.embedPages(sourcePages);
       const opacity = Math.max(0, Math.min(1, bgOptions.opacity ?? 1));
       const bgCss = rgbToCss(bgOptions.color);
+      const baseScale = bgOptions.scale ?? DEFAULT_SCALE;
 
       this.updateProgress(15, 'Applying background color...');
 
-      for (let i = 0; i < totalPages; i++) {
+      for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
         if (this.checkCancelled()) {
           return this.createErrorOutput(PDFErrorCode.PROCESSING_CANCELLED, 'Processing was cancelled.');
         }
 
-        const sourcePage = sourcePages[i];
-        const { width, height } = sourcePage.getSize();
-        const newPage = newPdf.addPage([width, height]);
-
-        if (!pagesToProcess.includes(i)) {
-          newPage.drawPage(embeddedPages[i], { x: 0, y: 0, width, height });
-          this.updateProgress(15 + (80 * (i + 1) / totalPages), `Page ${i + 1} of ${totalPages}...`);
-          continue;
-        }
-
-        const pageNum = i + 1;
+        const pageIndex = pageNum - 1;
         const page = await sourcePdf.getPage(pageNum);
-        const renderScale = bgOptions.scale ?? DEFAULT_SCALE;
-        const renderViewport = page.getViewport({ scale: renderScale });
+        const originalViewport = page.getViewport({ scale: 1 });
+        const pageWidth = originalViewport.width;
+        const pageHeight = originalViewport.height;
+        const renderViewport = resolveRenderViewport(page, baseScale);
+        const applyTint = pagesToProcess.includes(pageIndex);
 
         const canvas = document.createElement('canvas');
-        canvas.width = renderViewport.width;
-        canvas.height = renderViewport.height;
-        const ctx = canvas.getContext('2d');
+        canvas.width = Math.floor(renderViewport.width);
+        canvas.height = Math.floor(renderViewport.height);
+        const ctx = canvas.getContext('2d', { willReadFrequently: applyTint });
         if (!ctx) {
           throw new Error('Failed to get canvas context');
         }
 
-        ctx.fillStyle = bgCss;
+        ctx.fillStyle = applyTint ? bgCss : '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         await page.render({
@@ -150,20 +155,23 @@ export class BackgroundColorProcessor extends BasePDFProcessor {
           viewport: renderViewport,
         }).promise;
 
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        replacePaperBackground(imageData, bgOptions.color, opacity);
-        ctx.putImageData(imageData, 0, 0);
+        if (applyTint) {
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          replacePaperBackground(imageData, bgOptions.color, opacity);
+          ctx.putImageData(imageData, 0, 0);
+        }
 
         const pngBytes = await this.canvasToPngBytes(canvas);
         const image = await newPdf.embedPng(pngBytes);
-        newPage.drawImage(image, { x: 0, y: 0, width, height });
+        const newPage = newPdf.addPage([pageWidth, pageHeight]);
+        newPage.drawImage(image, { x: 0, y: 0, width: pageWidth, height: pageHeight });
 
-        this.updateProgress(15 + (80 * (i + 1) / totalPages), `Page ${i + 1} of ${totalPages}...`);
+        this.updateProgress(15 + (80 * pageNum) / totalPages, `Page ${pageNum} of ${totalPages}...`);
       }
 
       this.updateProgress(95, 'Saving PDF...');
-      const pdfBytes = await newPdf.save({ useObjectStreams: true });
-      const blob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
+      const outBytes = await newPdf.save({ useObjectStreams: true });
+      const blob = new Blob([new Uint8Array(outBytes)], { type: 'application/pdf' });
 
       this.updateProgress(100, 'Complete!');
       return this.createSuccessOutput(blob, file.name.replace('.pdf', '_background.pdf'), { pageCount: totalPages });
