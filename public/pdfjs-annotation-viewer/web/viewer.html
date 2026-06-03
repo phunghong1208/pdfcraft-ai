@@ -89,22 +89,23 @@ See https://github.com/adobe-type-tools/cmap-resources
     html.pdfcraft-embedded .pdfViewer .page .konvajs-content,
     html.pdfcraft-embedded .pdfViewer .page .konvajs-content > canvas {
       opacity: 0 !important;
-      pointer-events: none !important;
       overflow: hidden !important;
+    }
+    html.pdfcraft-embedded:not(.pdfcraft-annotating) .pdfViewer .page .PdfjsAnnotationExtension_painter_wrapper,
+    html.pdfcraft-embedded:not(.pdfcraft-annotating) .pdfViewer .page .konvajs-content,
+    html.pdfcraft-embedded:not(.pdfcraft-annotating) .pdfViewer .page .konvajs-content > canvas {
+      pointer-events: none !important;
     }
     html.pdfcraft-embedded.pdfcraft-annotating .pdfViewer .page .PdfjsAnnotationExtension_painter_wrapper {
       opacity: 1 !important;
-      pointer-events: auto !important;
       overflow: hidden !important;
     }
     html.pdfcraft-embedded.pdfcraft-annotating .pdfViewer .page .konvajs-content {
       opacity: 1 !important;
-      pointer-events: auto !important;
       width: calc(100% - 1px) !important;
     }
     html.pdfcraft-embedded.pdfcraft-annotating .pdfViewer .page .konvajs-content > canvas {
       opacity: 1 !important;
-      pointer-events: auto !important;
       clip-path: inset(0 4px 0 0) !important;
     }
     html.pdfcraft-embedded #sidebarContent {

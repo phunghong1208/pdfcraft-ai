@@ -56,6 +56,10 @@ html.pdfcraft-annotating .CustomComment,html.pdfcraft-annotating [class*="Custom
 /* Annotation popbar (edit/delete/comment toolbar) must float above Konva canvas */
 .CustomPopbar{z-index:10000!important;pointer-events:auto!important}
 .CustomPopbar .buttons li{pointer-events:auto!important;cursor:pointer!important}
+/* Make text layer selectable for text markup tools (highlight/underline/strikeout) */
+html.pdfcraft-annotating .textLayer span,
+html.pdfcraft-annotating .textLayer br{user-select:text!important;-webkit-user-select:text!important}
+html.pdfcraft-annotating .textLayer{pointer-events:auto!important;cursor:text!important}
 #viewerContainer{top:0!important;inset-inline-start:0!important;left:0!important;overflow:auto!important;scrollbar-width:none!important}
 #viewer,#viewerContainer .pdfViewer{padding-top:0!important;margin-top:0!important}
 #outerContainer.sidebarOpen #viewerContainer,#outerContainer.sidebarMoving #viewerContainer{inset-inline-start:0!important;left:0!important}
@@ -71,10 +75,13 @@ html.pdfcraft-annotating .CustomComment,html.pdfcraft-annotating [class*="Custom
 /* Konva stage — hide via opacity when not annotating so elements stay in DOM with correct dimensions */
 .pdfViewer .page .PdfjsAnnotationExtension_painter_wrapper,
 .pdfViewer .page .konvajs-content,
-.pdfViewer .page .konvajs-content>canvas{opacity:0!important;pointer-events:none!important;overflow:hidden!important}
-html.pdfcraft-annotating .pdfViewer .page .PdfjsAnnotationExtension_painter_wrapper{opacity:1!important;pointer-events:auto!important;overflow:hidden!important}
-html.pdfcraft-annotating .pdfViewer .page .konvajs-content{opacity:1!important;pointer-events:auto!important;width:calc(100% - 1px)!important}
-html.pdfcraft-annotating .pdfViewer .page .konvajs-content>canvas{opacity:1!important;pointer-events:auto!important;clip-path:inset(0 4px 0 0)!important}
+.pdfViewer .page .konvajs-content>canvas{opacity:0!important;overflow:hidden!important}
+html:not(.pdfcraft-annotating) .pdfViewer .page .PdfjsAnnotationExtension_painter_wrapper,
+html:not(.pdfcraft-annotating) .pdfViewer .page .konvajs-content,
+html:not(.pdfcraft-annotating) .pdfViewer .page .konvajs-content>canvas{pointer-events:none!important}
+html.pdfcraft-annotating .pdfViewer .page .PdfjsAnnotationExtension_painter_wrapper{opacity:1!important;overflow:hidden!important}
+html.pdfcraft-annotating .pdfViewer .page .konvajs-content{opacity:1!important;width:calc(100% - 1px)!important}
+html.pdfcraft-annotating .pdfViewer .page .konvajs-content>canvas{opacity:1!important;clip-path:inset(0 4px 0 0)!important}
 #sidebarContainer,#sidebarContent,#sidebarResizer{display:none!important;box-shadow:none!important;border:none!important}
 `;
 

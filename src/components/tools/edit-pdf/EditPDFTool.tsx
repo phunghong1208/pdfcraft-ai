@@ -169,11 +169,18 @@ export function EditPDFTool({
         var TOOL_SET = {};
         TOOL_ORDER.forEach(function(n){ TOOL_SET[n] = true; });
 
+        var TEXT_MARKUP = { highlight:1, underline:1, strikeout:1 };
         window.__pdfcraftActiveTool = 'select';
 
         function setAnnotating(on){
           document.documentElement.classList.toggle('pdfcraft-annotating', !!on);
           try { window.dispatchEvent(new Event('pdfcraft-edge-sync')); } catch(e){}
+        }
+
+        function setPainterPointerEvents(enabled){
+          document.querySelectorAll('.PdfjsAnnotationExtension_painter_wrapper, .konvajs-content, .konvajs-content > canvas').forEach(function(el){
+            el.style.setProperty('pointer-events', enabled ? 'auto' : 'none', 'important');
+          });
         }
 
         var dirtyNotifyTimer = null;
@@ -197,15 +204,30 @@ export function EditPDFTool({
           return true;
         }
 
+        function activateEditorMode(mode){
+          try{
+            var app = window.PDFViewerApplication;
+            if(!app) return;
+            if(app.pdfViewer && typeof app.pdfViewer.annotationEditorMode !== 'undefined'){
+              app.pdfViewer.annotationEditorMode = { mode: mode };
+            }
+            if(app.eventBus){
+              app.eventBus.dispatch('switchannotationeditormode', { source: app, mode: mode });
+            }
+          }catch(e){}
+        }
+
         function setTool(toolName){
           try{
             if(!toolName || !TOOL_SET[toolName]) return false;
-            setAnnotating(true);
-            if(tryClickTool(toolName)){
-              window.__pdfcraftActiveTool = toolName;
-              return true;
+            setAnnotating(toolName !== 'select');
+            setPainterPointerEvents(!TEXT_MARKUP[toolName]);
+            if(toolName === 'select'){
+              activateEditorMode(0);
             }
-            return false;
+            tryClickTool(toolName);
+            window.__pdfcraftActiveTool = toolName;
+            return true;
           }catch(e){
             return false;
           }
@@ -289,6 +311,42 @@ export function EditPDFTool({
           if(typeof data.tool !== 'string') return;
           setToolWithRetry(data.tool);
         });
+
+        // Auto-click popbar button matching active text markup tool
+        var POPBAR_INDEX = { highlight:0, strikeout:1, underline:2 };
+        var popbarObserver = new MutationObserver(function(){
+          var tool = window.__pdfcraftActiveTool;
+          if(!TEXT_MARKUP[tool]) return;
+          var popbar = document.querySelector('.CustomPopbar.show');
+          if(!popbar) return;
+          var idx = POPBAR_INDEX[tool];
+          if(typeof idx !== 'number') return;
+          var btn = popbar.querySelectorAll('.buttons > li')[idx];
+          if(btn){
+            setTimeout(function(){ btn.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window})); }, 30);
+          }
+        });
+        setTimeout(function(){
+          popbarObserver.observe(document.body, { childList:true, subtree:true, attributes:true, attributeFilter:['class'] });
+        }, 2000);
+
+        // Sync: when user clicks extension toolbar directly, notify parent
+        document.addEventListener('click', function(evt){
+          var li = evt.target && evt.target.closest && evt.target.closest('.CustomToolbar .buttons > li');
+          if(!li) return;
+          var toolbar = document.querySelector('.CustomToolbar');
+          if(!toolbar) return;
+          var items = toolbar.querySelectorAll('.buttons > li');
+          for(var i=0;i<items.length;i++){
+            if(items[i] === li){
+              var name = TOOL_ORDER[i] || 'select';
+              window.__pdfcraftActiveTool = name;
+              setPainterPointerEvents(!TEXT_MARKUP[name]);
+              try{ window.parent.postMessage({ type:'pdfcraft-tool-changed', tool:name }, '*'); }catch(e){}
+              break;
+            }
+          }
+        }, true);
       })();`;
       doc.body.appendChild(toolScript);
     } catch (e) {

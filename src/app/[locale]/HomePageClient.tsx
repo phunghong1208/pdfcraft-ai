@@ -193,7 +193,12 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
       {isPreparing && (
         <div className="fixed inset-0 z-[100] bg-black/65 backdrop-blur-sm flex items-center justify-center px-4">
           <Card className="w-full max-w-md p-6 border border-white/15 bg-[hsl(var(--color-card))]">
-            <div className="h-9 w-9 rounded-full border-2 border-[hsl(var(--color-primary))] border-t-transparent animate-spin mb-4" />
+            <div className="relative h-10 w-10 mb-4">
+              <svg className="animate-spin h-10 w-10" viewBox="0 0 36 36">
+                <circle className="text-[hsl(var(--color-muted))]" cx="18" cy="18" r="15" fill="none" strokeWidth="3" stroke="currentColor" />
+                <circle className="text-[hsl(var(--color-primary))]" cx="18" cy="18" r="15" fill="none" strokeWidth="3" stroke="currentColor" strokeDasharray={`${Math.min((loadingStep + 1) * 31, 94)} 94`} strokeLinecap="round" style={{ transition: 'stroke-dasharray 0.6s ease' }} />
+              </svg>
+            </div>
             <h3 className="text-lg font-semibold mb-3">{t('preparingTitle')}</h3>
             <ul className="space-y-2 text-sm text-[hsl(var(--color-muted-foreground))]">
               <li className={loadingStep >= 0 ? 'text-[hsl(var(--color-foreground))]' : ''}>{t('preparingUploading')}</li>

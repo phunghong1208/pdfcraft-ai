@@ -535,6 +535,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
   const [workspaceTool, setWorkspaceTool] = useState<WorkspaceInlineTool | null>(null);
   const [bgToolSession, setBgToolSession] = useState(0);
   const [isDirty, setIsDirty] = useState(false);
+  const [activeAnnotTool, setActiveAnnotTool] = useState<string | null>(null);
   const [isWorkspaceDark, setIsWorkspaceDark] = useState(false);
   const inlineToolThemeVars = useMemo(
     () =>
@@ -934,6 +935,9 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
       if (e.data?.type === 'pdfcraft-dirty-change') {
         setIsDirty(true);
       }
+      if (e.data?.type === 'pdfcraft-tool-changed' && typeof e.data.tool === 'string') {
+        setActiveAnnotTool(e.data.tool === 'select' ? null : e.data.tool);
+      }
     }
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
@@ -1147,45 +1151,22 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
         setActiveTab('edit');
         break;
       case 'annot:highlight':
-        sendAnnotationToolToViewer('highlight');
-        setActiveTab('comment');
-        break;
       case 'annot:underline':
-        sendAnnotationToolToViewer('underline');
-        setActiveTab('comment');
-        break;
       case 'annot:strikeout':
-        sendAnnotationToolToViewer('strikeout');
-        setActiveTab('comment');
-        break;
       case 'annot:freehand':
-        sendAnnotationToolToViewer('freehand');
-        setActiveTab('comment');
-        break;
       case 'annot:rectangle':
-        sendAnnotationToolToViewer('rectangle');
-        setActiveTab('comment');
-        break;
       case 'annot:circle':
-        sendAnnotationToolToViewer('circle');
-        setActiveTab('comment');
-        break;
       case 'annot:freeText':
-        sendAnnotationToolToViewer('freeText');
-        setActiveTab('comment');
-        break;
       case 'annot:note':
-        sendAnnotationToolToViewer('note');
-        setActiveTab('comment');
-        break;
       case 'annot:stamp':
-        sendAnnotationToolToViewer('stamp');
+      case 'annot:signature': {
+        const tool = action.replace('annot:', '');
+        const deselecting = activeAnnotTool === tool;
+        sendAnnotationToolToViewer(deselecting ? 'select' : tool);
+        setActiveAnnotTool(deselecting ? null : tool);
         setActiveTab('comment');
         break;
-      case 'annot:signature':
-        sendAnnotationToolToViewer('signature');
-        setActiveTab('comment');
-        break;
+      }
       case 'openInlineCompress':
         if (file) {
           setWorkspaceTool('compress');
@@ -1206,6 +1187,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     pageCount,
     currentPage,
     sendAnnotationToolToViewer,
+    activeAnnotTool,
   ]);
 
   const handleToolClick = useCallback((tool: RibbonToolDef) => {
@@ -1385,8 +1367,8 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
                 onClick={() => {
                   if (file) setUploadedPdf(file);
                   setActiveTab(tab.key);
-                  if (tab.key === 'comment') {
-                    sendAnnotationToolToViewer('highlight');
+                  if (tab.key !== 'comment') {
+                    setActiveAnnotTool(null);
                   }
                 }}
                 className={`relative inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] whitespace-nowrap transition-all ${
@@ -1459,27 +1441,36 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
             <div className="flex items-center gap-0.5">
               {group.tools.map((tool, ti) => {
                 const Icon = tool.icon;
+                const isActive = activeTab === 'comment' && !!tool.action && tool.action.startsWith('annot:') && activeAnnotTool === tool.action.replace('annot:', '');
                 return (
                   <button
                     key={ti}
                     type="button"
                     onClick={() => handleToolClick(tool)}
                     className={`flex flex-col items-center justify-center gap-0.5 px-1.5 py-1 rounded-md active:scale-95 transition-all min-w-[42px] cursor-pointer group ${
-                      isWorkspaceDark
-                        ? 'hover:bg-white/[0.08] active:bg-white/[0.14]'
-                        : 'hover:bg-[#F3F4F6] active:bg-[#E5E7EB]'
+                      isActive
+                        ? isWorkspaceDark
+                          ? 'bg-white/[0.06]'
+                          : 'bg-[#F3F4F6]'
+                        : isWorkspaceDark
+                          ? 'hover:bg-white/[0.08] active:bg-white/[0.14]'
+                          : 'hover:bg-[#F3F4F6] active:bg-[#E5E7EB]'
                     }`}
                     title={`${group.label}: ${tool.label}`}
                   >
                     <Icon className={`h-4 w-4 transition-colors ${
-                      isWorkspaceDark
-                        ? 'text-white/75 group-hover:text-white'
-                        : 'text-[#4B5563] group-hover:text-[#111827]'
+                      isActive
+                        ? isWorkspaceDark ? 'text-white' : 'text-[#111827]'
+                        : isWorkspaceDark
+                          ? 'text-white/75 group-hover:text-white'
+                          : 'text-[#4B5563] group-hover:text-[#111827]'
                     }`} />
                     <span className={`text-[9px] leading-tight whitespace-nowrap transition-colors ${
-                      isWorkspaceDark
-                        ? 'text-white/60 group-hover:text-white/90'
-                        : 'text-[#4B5563] group-hover:text-[#111827]'
+                      isActive
+                        ? isWorkspaceDark ? 'text-white font-medium' : 'text-[#111827] font-medium'
+                        : isWorkspaceDark
+                          ? 'text-white/60 group-hover:text-white/90'
+                          : 'text-[#4B5563] group-hover:text-[#111827]'
                     }`}>
                       {tool.label}
                     </span>
