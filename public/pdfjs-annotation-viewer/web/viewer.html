@@ -461,6 +461,16 @@ See https://github.com/adobe-type-tools/cmap-resources
       pointer-events: auto !important;
       cursor: pointer !important;
     }
+    .ant-dropdown:has(.StampPop-Container),
+    .ant-dropdown:has(.StampPop),
+    .ant-popover.StampPop,
+    .ant-popover:has(.StampPop-Container) {
+      position: fixed !important;
+      top: 50% !important;
+      left: 50% !important;
+      transform: translate(-50%, -50%) !important;
+      z-index: 10050 !important;
+    }
     .CustomToolbar .buttons>li[data-action="save"],
     .CustomToolbar button[data-action="save"] {
       display: none !important;

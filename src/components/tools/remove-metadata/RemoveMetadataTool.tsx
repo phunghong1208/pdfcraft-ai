@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { FileText } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { FileUploader } from '../FileUploader';
 import { ProcessingProgress, ProcessingStatus } from '../ProcessingProgress';
@@ -13,6 +14,9 @@ import type { ProcessOutput } from '@/types/pdf';
 export interface RemoveMetadataToolProps {
   /** Custom class name */
   className?: string;
+  initialFile?: File | null;
+  lockToInitialFile?: boolean;
+  onFileUpdated?: (file: File, options?: { keepDialogOpen?: boolean }) => void;
 }
 
 /**
@@ -21,7 +25,12 @@ export interface RemoveMetadataToolProps {
  * 
  * Provides the UI for removing metadata from PDF files.
  */
-export function RemoveMetadataTool({ className = '' }: RemoveMetadataToolProps) {
+export function RemoveMetadataTool({
+  className = '',
+  initialFile = null,
+  lockToInitialFile = false,
+  onFileUpdated,
+}: RemoveMetadataToolProps) {
   const t = useTranslations('common');
   const tTools = useTranslations('tools');
   
@@ -57,6 +66,14 @@ export function RemoveMetadataTool({ className = '' }: RemoveMetadataToolProps) 
       setRemovedFields([]);
     }
   }, []);
+
+  const initialFileSeededRef = useRef<File | null>(null);
+  useEffect(() => {
+    if (!initialFile) return;
+    if (initialFileSeededRef.current === initialFile) return;
+    initialFileSeededRef.current = initialFile;
+    handleFilesSelected([initialFile]);
+  }, [initialFile, handleFilesSelected]);
 
   const handleUploadError = useCallback((errorMessage: string) => {
     setError(errorMessage);
@@ -135,10 +152,16 @@ export function RemoveMetadataTool({ className = '' }: RemoveMetadataToolProps) 
       }
 
       if (output.success && output.result) {
-        setResult(output.result as Blob);
+        const blob = output.result as Blob;
+        setResult(blob);
         setStatus('complete');
         if (output.metadata?.removedFields) {
           setRemovedFields(output.metadata.removedFields as string[]);
+        }
+        if (onFileUpdated && file) {
+          onFileUpdated(
+            new File([blob], file.name, { type: 'application/pdf', lastModified: Date.now() }),
+          );
         }
       } else {
         setError(output.error?.message || 'Failed to remove metadata.');
@@ -150,7 +173,7 @@ export function RemoveMetadataTool({ className = '' }: RemoveMetadataToolProps) 
         setStatus('error');
       }
     }
-  }, [file, options]);
+  }, [file, options, onFileUpdated]);
 
   const handleCancel = useCallback(() => {
     cancelledRef.current = true;
@@ -180,17 +203,18 @@ export function RemoveMetadataTool({ className = '' }: RemoveMetadataToolProps) 
 
   return (
     <div className={`space-y-6 ${className}`.trim()}>
-      {/* File Upload Area */}
-      <FileUploader
-        accept={['application/pdf', '.pdf']}
-        multiple={false}
-        maxFiles={1}
-        onFilesSelected={handleFilesSelected}
-        onError={handleUploadError}
-        disabled={isProcessing}
-        label={tTools('removeMetadata.uploadLabel') || 'Upload PDF File'}
-        description={tTools('removeMetadata.uploadDescription') || 'Drag and drop a PDF file here, or click to browse.'}
-      />
+      {!file && !lockToInitialFile && (
+        <FileUploader
+          accept={['application/pdf', '.pdf']}
+          multiple={false}
+          maxFiles={1}
+          onFilesSelected={handleFilesSelected}
+          onError={handleUploadError}
+          disabled={isProcessing}
+          label={tTools('removeMetadata.uploadLabel') || 'Upload PDF File'}
+          description={tTools('removeMetadata.uploadDescription') || 'Drag and drop a PDF file here, or click to browse.'}
+        />
+      )}
 
       {/* Error Message */}
       {error && (
@@ -202,37 +226,37 @@ export function RemoveMetadataTool({ className = '' }: RemoveMetadataToolProps) 
         </div>
       )}
 
-      {/* Selected File */}
       {file && (
-        <Card variant="outlined" size="lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex-shrink-0">
-                <svg className="w-10 h-10 text-red-500" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
-                  <path d="M14 2v6h6" fill="white" />
-                  <text x="7" y="17" fontSize="6" fill="white" fontWeight="bold">PDF</text>
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-[hsl(var(--color-foreground))]">
-                  {file.name}
-                </p>
-                <p className="text-xs text-[hsl(var(--color-muted-foreground))]">
-                  {formatSize(file.size)}
-                </p>
-              </div>
+        lockToInitialFile ? (
+          <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.35)] p-4">
+            <FileText className="h-10 w-10 shrink-0 text-[hsl(var(--color-primary))]" aria-hidden />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">{file.name}</p>
+              <p className="text-xs text-[hsl(var(--color-muted-foreground))]">{formatSize(file.size)}</p>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClear}
-              disabled={isProcessing}
-            >
-              {t('buttons.remove') || 'Remove'}
-            </Button>
           </div>
-        </Card>
+        ) : (
+          <Card variant="outlined" size="lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0">
+                  <svg className="w-10 h-10 text-red-500" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
+                    <path d="M14 2v6h6" fill="white" />
+                    <text x="7" y="17" fontSize="6" fill="white" fontWeight="bold">PDF</text>
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-[hsl(var(--color-foreground))]">{file.name}</p>
+                  <p className="text-xs text-[hsl(var(--color-muted-foreground))]">{formatSize(file.size)}</p>
+                </div>
+              </div>
+              <Button variant="ghost" size="sm" onClick={handleClear} disabled={isProcessing}>
+                {t('buttons.remove') || 'Remove'}
+              </Button>
+            </div>
+          </Card>
+        )
       )}
 
       {/* Metadata Options */}

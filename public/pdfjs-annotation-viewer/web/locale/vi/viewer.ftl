@@ -276,10 +276,10 @@ pdfjs-text-annotation-type =
 
 ## Password
 
-pdfjs-password-label = Nhập mật khẩu để mở tập tin PDF này.
+pdfjs-password-label = Nhập mật khẩu để mở và xem tài liệu PDF này.
 pdfjs-password-invalid = Mật khẩu không đúng. Vui lòng thử lại.
-pdfjs-password-ok-button = OK
-pdfjs-password-cancel-button = Hủy bỏ
+pdfjs-password-ok-button = Xác nhận
+pdfjs-password-cancel-button = Hủy
 pdfjs-web-fonts-disabled = Phông chữ Web bị vô hiệu hóa: không thể sử dụng các phông chữ PDF được nhúng.
 
 ## Editing

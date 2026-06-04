@@ -24,6 +24,8 @@ import { EditPDFTool } from '@/components/tools/edit-pdf/EditPDFTool';
 import { CompressPDFTool } from '@/components/tools/compress/CompressPDFTool';
 import { OCRPDFTool } from '@/components/tools/ocr/OCRPDFTool';
 import { MergePDFTool } from '@/components/tools/merge/MergePDFTool';
+import { RepairPDFTool } from '@/components/tools/repair/RepairPDFTool';
+import { ComparePDFsTool } from '@/components/tools/compare-pdfs/ComparePDFsTool';
 import { SplitPDFTool } from '@/components/tools/split/SplitPDFTool';
 import { ExtractPagesTool } from '@/components/tools/extract/ExtractPagesTool';
 import { OrganizePDFTool } from '@/components/tools/organize/OrganizePDFTool';
@@ -38,6 +40,19 @@ import { PDFToExcelTool } from '@/components/tools/pdf-to-excel';
 import { PDFToPptxTool } from '@/components/tools/pdf-to-pptx';
 import { PDFToImageTool } from '@/components/tools/pdf-to-image';
 import { PDFToMarkdownTool } from '@/components/tools/pdf-to-markdown';
+import { FlattenPDFTool } from '@/components/tools/flatten/FlattenPDFTool';
+import { ExtractTablesTool } from '@/components/tools/extract-tables/ExtractTablesTool';
+import { ExtractImagesTool } from '@/components/tools/extract-images/ExtractImagesTool';
+import { EditMetadataTool } from '@/components/tools/edit-metadata/EditMetadataTool';
+import { FormFillerTool } from '@/components/tools/form-filler/FormFillerTool';
+import { FormCreatorTool } from '@/components/tools/form-creator/FormCreatorTool';
+import { DigitalSignPDFTool } from '@/components/tools/digital-sign/DigitalSignPDFTool';
+import { ValidateSignatureTool } from '@/components/tools/validate-signature/ValidateSignatureTool';
+import { EncryptPDFTool } from '@/components/tools/encrypt/EncryptPDFTool';
+import { DecryptPDFTool } from '@/components/tools/decrypt/DecryptPDFTool';
+import { FindAndRedactTool } from '@/components/tools/find-and-redact/FindAndRedactTool';
+import { RemoveMetadataTool } from '@/components/tools/remove-metadata/RemoveMetadataTool';
+import { ChangePermissionsTool } from '@/components/tools/change-permissions/ChangePermissionsTool';
 import { PageThumbnails } from '@/components/workspace/PageThumbnails';
 import { WorkspaceAIPanel } from '@/components/workspace/WorkspaceAIPanel';
 import { WorkspaceAIIcon } from '@/components/workspace/WorkspaceAIIcon';
@@ -67,6 +82,8 @@ type WorkspaceInlineTool =
   | 'compress'
   | 'ocr'
   | 'merge'
+  | 'repair'
+  | 'compare'
   | 'split'
   | 'extract-pages'
   | 'organize'
@@ -80,15 +97,78 @@ type WorkspaceInlineTool =
   | 'pdf-to-excel'
   | 'pdf-to-pptx'
   | 'pdf-to-image'
-  | 'pdf-to-markdown';
+  | 'pdf-to-markdown'
+  | 'flatten'
+  | 'extract-tables'
+  | 'extract-images'
+  | 'stamps'
+  | 'edit-metadata'
+  | 'form-filler'
+  | 'form-creator'
+  | 'digital-sign'
+  | 'validate-signature'
+  | 'encrypt'
+  | 'decrypt'
+  | 'find-and-redact'
+  | 'remove-metadata'
+  | 'change-permissions';
 
-const WORKSPACE_PDF_EXPORT_SLUGS = new Set<string>([
-  'pdf-to-docx',
-  'pdf-to-excel',
-  'pdf-to-pptx',
-  'pdf-to-image',
-  'pdf-to-markdown',
+const FILL_SIGN_INLINE_TOOLS = new Set<WorkspaceInlineTool>([
+  'form-filler',
+  'form-creator',
+  'digital-sign',
+  'validate-signature',
 ]);
+
+const PROTECT_INLINE_TOOLS = new Set<WorkspaceInlineTool>([
+  'encrypt',
+  'decrypt',
+  'find-and-redact',
+  'remove-metadata',
+  'change-permissions',
+]);
+
+function inlineRibbonTabForTool(inlineTool: WorkspaceInlineTool): RibbonTabKey {
+  if (FILL_SIGN_INLINE_TOOLS.has(inlineTool)) return 'fillsign';
+  if (PROTECT_INLINE_TOOLS.has(inlineTool)) return 'protect';
+  return 'tool';
+}
+
+/** Ribbon href slug → inline workspace tool (uses open PDF, no standalone upload page). */
+const WORKSPACE_INLINE_BY_SLUG: Record<string, WorkspaceInlineTool> = {
+  'merge-pdf': 'merge',
+  'repair-pdf': 'repair',
+  'compare-pdfs': 'compare',
+  'compress-pdf': 'compress',
+  'ocr-pdf': 'ocr',
+  'split-pdf': 'split',
+  'extract-pages': 'extract-pages',
+  'flatten-pdf': 'flatten',
+  'extract-tables': 'extract-tables',
+  'extract-images': 'extract-images',
+  'pdf-to-markdown': 'pdf-to-markdown',
+  'pdf-to-docx': 'pdf-to-docx',
+  'pdf-to-excel': 'pdf-to-excel',
+  'pdf-to-pptx': 'pdf-to-pptx',
+  'pdf-to-image': 'pdf-to-image',
+  'add-watermark': 'watermark',
+  'header-footer': 'header-footer',
+  'page-numbers': 'page-numbers',
+  'background-color': 'background-color',
+  'organize-pdf': 'organize',
+  'crop-pdf': 'crop',
+  'reverse-pages': 'reverse',
+  'edit-metadata': 'edit-metadata',
+  'form-filler': 'form-filler',
+  'form-creator': 'form-creator',
+  'digital-sign': 'digital-sign',
+  'validate-signature': 'validate-signature',
+  'encrypt-pdf': 'encrypt',
+  'decrypt-pdf': 'decrypt',
+  'find-and-redact': 'find-and-redact',
+  'remove-metadata': 'remove-metadata',
+  'change-permissions': 'change-permissions',
+};
 
 function workspaceInlineToolTitleKey(tool: WorkspaceInlineTool): string {
   switch (tool) {
@@ -118,6 +198,38 @@ function workspaceInlineToolTitleKey(tool: WorkspaceInlineTool): string {
       return 'tools.cropPages';
     case 'reverse':
       return 'tools.reverse';
+    case 'repair':
+      return 'tools.repair';
+    case 'compare':
+      return 'tools.compare';
+    case 'flatten':
+      return 'tools.flatten';
+    case 'extract-tables':
+      return 'tools.extractTables';
+    case 'extract-images':
+      return 'tools.extractImages';
+    case 'stamps':
+      return 'tools.stamps';
+    case 'edit-metadata':
+      return 'tools.metadata';
+    case 'form-filler':
+      return 'tools.formFiller';
+    case 'form-creator':
+      return 'tools.formCreator';
+    case 'digital-sign':
+      return 'tools.digitalSign';
+    case 'validate-signature':
+      return 'tools.validate';
+    case 'encrypt':
+      return 'tools.encrypt';
+    case 'decrypt':
+      return 'tools.decrypt';
+    case 'find-and-redact':
+      return 'tools.redact';
+    case 'remove-metadata':
+      return 'tools.removeMetadata';
+    case 'change-permissions':
+      return 'tools.permissions';
     default:
       return `inlineTools.${tool}`;
   }
@@ -319,7 +431,7 @@ function getRibbonGroups(
         {
           label: tr('groups.watermark'),
           tools: [
-            { icon: Stamp, label: tr('tools.stamps'), href: t('stamps') },
+            { icon: Stamp, label: tr('tools.stamps'), action: 'annot:stamp' },
           ],
         },
       ];
@@ -336,7 +448,7 @@ function getRibbonGroups(
         {
           label: tr('groups.sign'),
           tools: [
-            { icon: Pen, label: tr('tools.signature'), href: t('sign') },
+            { icon: Pen, label: tr('tools.signature'), action: 'annot:signature' },
             { icon: ShieldCheck, label: tr('tools.digitalSign'), href: t('digital-sign') },
             { icon: FileCheck, label: tr('tools.validate'), href: t('validate-signature') },
           ],
@@ -399,13 +511,14 @@ function patchViewerIframe(
     scaleOnLoad?: boolean;
     onScaleChange?: (pct: number) => void;
     theme?: 'light' | 'dark';
+    locale?: string;
   },
 ) {
   try {
     const doc = iframe.contentDocument;
     if (!doc) return;
 
-    injectPdfViewerChrome(doc, 'pdfcraft-viewer-chrome', opts?.theme ?? 'light');
+    injectPdfViewerChrome(doc, 'pdfcraft-viewer-chrome', opts?.theme ?? 'light', opts?.locale);
 
     const win = getPdfApp(iframe);
     const app = win?.PDFViewerApplication;
@@ -523,6 +636,8 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
   const [pageCount, setPageCount] = useState(0);
   const editorIframeRef = useRef<HTMLIFrameElement | null>(null);
   const openFileInputRef = useRef<HTMLInputElement | null>(null);
+  const pendingWorkspaceToolRef = useRef<WorkspaceInlineTool | null>(null);
+  const pendingAnnotAfterLoadRef = useRef<'stamp' | 'signature' | null>(null);
   const viewerFitAppliedRef = useRef(false);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [activeTab, setActiveTab] = useState<RibbonTabKey>('home');
@@ -530,6 +645,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const [workspaceTool, setWorkspaceTool] = useState<WorkspaceInlineTool | null>(null);
   const [bgToolSession, setBgToolSession] = useState(0);
+  const [documentRevision, setDocumentRevision] = useState(0);
   const [isDirty, setIsDirty] = useState(false);
   const [activeAnnotTool, setActiveAnnotTool] = useState<string | null>(null);
   const [isWorkspaceDark, setIsWorkspaceDark] = useState(false);
@@ -576,7 +692,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
   }, [file]);
   /** Chỉ đổi khi file đổi — đổi tab Home/Edit/Convert không reload iframe */
   const viewerInstanceKey = file
-    ? `${file.name}-${file.size}-${file.lastModified}`
+    ? `${file.name}-${file.size}-${file.lastModified}-r${documentRevision}`
     : 'no-document';
   useEffect(() => {
     const prev = previewUrlRef.current;
@@ -703,11 +819,32 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     if (!nextFile) return;
     if (!confirmDiscardUnsavedChanges()) return;
     handleFileChange(nextFile, { markDirty: false });
+    const pending = pendingWorkspaceToolRef.current;
+    if (pending) {
+      pendingWorkspaceToolRef.current = null;
+      setWorkspaceTool(pending);
+      setActiveTab('tool');
+    }
   }, [confirmDiscardUnsavedChanges, handleFileChange]);
 
+  const openWorkspaceInlineTool = useCallback(
+    (inlineTool: WorkspaceInlineTool, activeTabKey?: RibbonTabKey) => {
+      if (!file) {
+        pendingWorkspaceToolRef.current = inlineTool;
+        openFileInputRef.current?.click();
+        return;
+      }
+      setUploadedPdf(file);
+      setWorkspaceTool(inlineTool);
+      if (activeTabKey) setActiveTab(activeTabKey);
+    },
+    [file],
+  );
+
   const handleInlineToolFileUpdated = useCallback(
-    (nextFile: File, options?: { keepDialogOpen?: boolean }) => {
-      handleFileChange(nextFile, { markDirty: true });
+    (nextFile: File, options?: { keepDialogOpen?: boolean; markDirty?: boolean }) => {
+      handleFileChange(nextFile, { markDirty: options?.markDirty ?? true });
+      setDocumentRevision((r) => r + 1);
       if (!options?.keepDialogOpen) {
         setWorkspaceTool(null);
       }
@@ -773,9 +910,10 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
         scaleOnLoad,
         onScaleChange: setZoom,
         theme: isWorkspaceDark ? 'dark' : 'light',
+        locale,
       });
     },
-    [isWorkspaceDark],
+    [isWorkspaceDark, locale],
   );
 
   useEffect(() => {
@@ -975,6 +1113,16 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     };
     deliver(0);
   }, []);
+
+  useEffect(() => {
+    const pendingAnnot = pendingAnnotAfterLoadRef.current;
+    if (!file || !pendingAnnot) return;
+    pendingAnnotAfterLoadRef.current = null;
+    setActiveTab('comment');
+    setActiveAnnotTool(pendingAnnot);
+    const id = window.setTimeout(() => sendAnnotationToolToViewer(pendingAnnot), 500);
+    return () => window.clearTimeout(id);
+  }, [file, sendAnnotationToolToViewer]);
 
   const handleRibbonAction = useCallback((action: string) => {
     const iframeWin = () => editorIframeRef.current?.contentWindow as (Window & Record<string, unknown>) | null;
@@ -1196,6 +1344,12 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
           tryClear(0);
           break;
         }
+        if (!file) {
+          if (action === 'annot:stamp') pendingAnnotAfterLoadRef.current = 'stamp';
+          if (action === 'annot:signature') pendingAnnotAfterLoadRef.current = 'signature';
+          openFileInputRef.current?.click();
+          break;
+        }
         const tool = action.replace('annot:', '');
         const deselecting = activeAnnotTool === tool;
         sendAnnotationToolToViewer(deselecting ? 'select' : tool);
@@ -1234,92 +1388,51 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     }
 
     if (tool.href) {
-      // In workspace mode, keep users in the current editing surface.
-      // Clicking ribbon tools should not navigate to standalone upload pages.
-      if (file) {
-        setUploadedPdf(file);
-        const slug = tool.href.split('/').filter(Boolean).pop() ?? '';
-
-        if (slug === 'rotate-pdf') {
-          handleRibbonAction('rotateCw');
-          return;
-        }
-
+      const slug = tool.href.split('/').filter(Boolean).pop() ?? '';
+      const inlineTool = WORKSPACE_INLINE_BY_SLUG[slug];
+      if (inlineTool) {
         if (slug === 'crop-pdf') {
-          setWorkspaceTool('crop');
-          setActiveTab('page');
-          return;
-        }
-
-        if (slug === 'organize-pdf') {
-          setWorkspaceTool('organize');
+          openWorkspaceInlineTool('crop', 'page');
           setShowThumbnails(true);
-          setActiveTab('page');
           return;
         }
-
-        if (slug === 'compress-pdf' || slug === 'compress') {
-          setWorkspaceTool('compress');
+        if (slug === 'organize-pdf') {
+          openWorkspaceInlineTool('organize', 'page');
+          setShowThumbnails(true);
           return;
         }
-
-        if (slug === 'ocr-pdf') {
-          setWorkspaceTool('ocr');
+        if (slug === 'reverse-pages') {
+          openWorkspaceInlineTool('reverse', 'page');
+          setShowThumbnails(true);
           return;
         }
-
-        if (slug === 'merge-pdf') {
-          setWorkspaceTool('merge');
-          return;
-        }
-
-        if (slug === 'split-pdf') {
-          setWorkspaceTool('split');
-          return;
-        }
-
-        if (slug === 'extract-pages') {
-          setWorkspaceTool('extract-pages');
-          return;
-        }
-
-        if (slug === 'add-watermark') {
-          setWorkspaceTool('watermark');
-          return;
-        }
-
-        if (slug === 'header-footer') {
-          setWorkspaceTool('header-footer');
-          return;
-        }
-
-        if (slug === 'page-numbers') {
-          setWorkspaceTool('page-numbers');
-          return;
-        }
-
         if (slug === 'background-color') {
           setBgToolSession((n) => n + 1);
-          setWorkspaceTool('background-color');
+          openWorkspaceInlineTool('background-color', 'edit');
           return;
         }
-
         if (slug === 'add-blank-page') {
           setShowThumbnails(true);
           setActiveTab('page');
           handleRibbonAction('addPageInline');
           return;
         }
-
         if (slug === 'delete-pages') {
           setShowThumbnails(true);
           setActiveTab('page');
           handleRibbonAction('deletePageInline');
           return;
         }
+        openWorkspaceInlineTool(inlineTool, inlineRibbonTabForTool(inlineTool));
+        return;
+      }
 
-        if (WORKSPACE_PDF_EXPORT_SLUGS.has(slug)) {
-          setWorkspaceTool(slug as WorkspaceInlineTool);
+      // In workspace mode, keep users in the current editing surface.
+      if (file) {
+        setUploadedPdf(file);
+
+        if (slug === 'rotate-pdf') {
+          handleRibbonAction('rotateCw');
           return;
         }
 
@@ -1328,27 +1441,30 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
           return;
         }
 
-        if (slug === 'reverse-pages') {
-          setWorkspaceTool('reverse');
-          setShowThumbnails(true);
-          setActiveTab('page');
-          return;
-        }
-
-        // Fallback: open the dedicated tool page when no inline action is wired yet.
         navigateWithUnsavedCheck(tool.href);
         return;
       }
       navigateWithUnsavedCheck(tool.href);
     }
-  }, [activeTab, file, handleRibbonAction, navigateWithUnsavedCheck]);
+  }, [activeTab, file, handleRibbonAction, navigateWithUnsavedCheck, openWorkspaceInlineTool, sendAnnotationToolToViewer]);
 
   const tabList = useMemo(
     () => TAB_KEYS.map((tab) => ({ ...tab, label: t(`tabs.${tab.key}`) })),
     [t],
   );
   const previewHeavyTools = useMemo(
-    () => new Set<WorkspaceInlineTool>(['watermark', 'header-footer', 'page-numbers', 'organize', 'crop']),
+    () =>
+      new Set<WorkspaceInlineTool>([
+        'watermark',
+        'header-footer',
+        'page-numbers',
+        'organize',
+        'crop',
+        'compare',
+        'extract-images',
+        'form-creator',
+        'find-and-redact',
+      ]),
     [],
   );
   const inlineDialogMaxWidthClass =
@@ -1475,7 +1591,10 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
             <div className="flex items-center gap-0.5">
               {group.tools.map((tool, ti) => {
                 const Icon = tool.icon;
-                const isActive = activeTab === 'comment' && !!tool.action && tool.action.startsWith('annot:') && activeAnnotTool === tool.action.replace('annot:', '');
+                const isActive =
+                  !!tool.action &&
+                  tool.action.startsWith('annot:') &&
+                  activeAnnotTool === tool.action.replace('annot:', '');
                 return (
                   <button
                     key={ti}
@@ -1725,10 +1844,12 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
           role="dialog"
           aria-modal="true"
           aria-label={t('inlineTools.dialogLabel')}
+          onClick={() => setWorkspaceTool(null)}
         >
           <div
             style={inlineToolThemeVars}
             className={`relative flex max-h-[90vh] w-full ${inlineDialogMaxWidthClass} flex-col overflow-hidden rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-card))] text-[hsl(var(--color-foreground))] shadow-2xl`}
+            onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-[hsl(var(--color-border))] px-4 py-3 shrink-0">
               <h2 className="text-[13px] font-medium text-[hsl(var(--color-foreground))]">
@@ -1757,6 +1878,14 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
               )}
               {workspaceTool === 'ocr' && <OCRPDFTool initialFile={file} lockToInitialFile />}
               {workspaceTool === 'merge' && <MergePDFTool initialFile={file} />}
+              {workspaceTool === 'repair' && (
+                <RepairPDFTool
+                  initialFile={file}
+                  lockToInitialFile
+                  onFileUpdated={handleInlineToolFileUpdated}
+                />
+              )}
+              {workspaceTool === 'compare' && <ComparePDFsTool initialFile={file} />}
               {workspaceTool === 'split' && (
                 <SplitPDFTool
                   initialFile={file}
@@ -1829,7 +1958,76 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
               {workspaceTool === 'pdf-to-excel' && <PDFToExcelTool initialFile={file} />}
               {workspaceTool === 'pdf-to-pptx' && <PDFToPptxTool initialFile={file} />}
               {workspaceTool === 'pdf-to-image' && <PDFToImageTool initialFile={file} />}
-              {workspaceTool === 'pdf-to-markdown' && <PDFToMarkdownTool initialFile={file} />}
+              {workspaceTool === 'pdf-to-markdown' && (
+                <PDFToMarkdownTool initialFile={file} lockToInitialFile />
+              )}
+              {workspaceTool === 'flatten' && (
+                <FlattenPDFTool
+                  initialFile={file}
+                  lockToInitialFile
+                  onFileUpdated={handleInlineToolFileUpdated}
+                />
+              )}
+              {workspaceTool === 'extract-tables' && (
+                <ExtractTablesTool initialFile={file} lockToInitialFile />
+              )}
+              {workspaceTool === 'extract-images' && (
+                <ExtractImagesTool initialFile={file} lockToInitialFile />
+              )}
+              {workspaceTool === 'edit-metadata' && (
+                <EditMetadataTool
+                  initialFile={file}
+                  lockToInitialFile
+                  onFileUpdated={handleInlineToolFileUpdated}
+                />
+              )}
+              {workspaceTool === 'form-filler' && (
+                <FormFillerTool
+                  initialFile={file}
+                  lockToInitialFile
+                  onFileUpdated={handleInlineToolFileUpdated}
+                />
+              )}
+              {workspaceTool === 'form-creator' && (
+                <FormCreatorTool initialFile={file} lockToInitialFile />
+              )}
+              {workspaceTool === 'digital-sign' && (
+                <DigitalSignPDFTool initialFile={file} lockToInitialFile />
+              )}
+              {workspaceTool === 'validate-signature' && (
+                <ValidateSignatureTool initialFile={file} lockToInitialFile />
+              )}
+              {workspaceTool === 'encrypt' && (
+                <EncryptPDFTool initialFile={file} lockToInitialFile />
+              )}
+              {workspaceTool === 'decrypt' && (
+                <DecryptPDFTool
+                  initialFile={file}
+                  lockToInitialFile
+                  onFileUpdated={handleInlineToolFileUpdated}
+                />
+              )}
+              {workspaceTool === 'find-and-redact' && (
+                <FindAndRedactTool
+                  initialFile={file}
+                  lockToInitialFile
+                  onFileUpdated={handleInlineToolFileUpdated}
+                />
+              )}
+              {workspaceTool === 'remove-metadata' && (
+                <RemoveMetadataTool
+                  initialFile={file}
+                  lockToInitialFile
+                  onFileUpdated={handleInlineToolFileUpdated}
+                />
+              )}
+              {workspaceTool === 'change-permissions' && (
+                <ChangePermissionsTool
+                  initialFile={file}
+                  lockToInitialFile
+                  onFileUpdated={handleInlineToolFileUpdated}
+                />
+              )}
             </div>
           </div>
         </div>

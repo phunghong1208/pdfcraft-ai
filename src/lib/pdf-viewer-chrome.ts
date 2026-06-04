@@ -5,6 +5,34 @@ export const PDF_VIEWER_SHELL_BG = {
   light: '#F1F5F9',
 } as const;
 
+const PDFCRAFT_THEME_VARS = {
+  light: {
+    '--pdfcraft-card': '0 0% 100%',
+    '--pdfcraft-fg': '222 47% 11%',
+    '--pdfcraft-muted-fg': '215 16% 47%',
+    '--pdfcraft-border': '214 32% 91%',
+    '--pdfcraft-muted': '210 40% 96%',
+    '--pdfcraft-primary': '0 72% 51%',
+    '--pdfcraft-primary-fg': '0 0% 100%',
+    '--pdfcraft-danger': '0 72% 45%',
+  },
+  dark: {
+    '--pdfcraft-card': '222 47% 10%',
+    '--pdfcraft-fg': '210 40% 98%',
+    '--pdfcraft-muted-fg': '215 20% 65%',
+    '--pdfcraft-border': '217 33% 15%',
+    '--pdfcraft-muted': '217 33% 13%',
+    '--pdfcraft-primary': '0 72% 55%',
+    '--pdfcraft-primary-fg': '0 0% 100%',
+    '--pdfcraft-danger': '0 72% 58%',
+  },
+} as const;
+
+const PASSWORD_DIALOG_TITLE: Record<string, string> = {
+  vi: 'Tài liệu được bảo vệ',
+  en: 'Protected document',
+};
+
 export const PDF_VIEWER_CHROME_CSS = `
 html,body{margin:0!important;padding:0!important;background:var(--pdfcraft-shell-bg,#16181d)!important}
 #outerContainer,#mainContainer,#viewerContainer{
@@ -140,6 +168,11 @@ html.pdfcraft-embedded [class*="StampPop"]{
 html.pdfcraft-embedded .StampPop-Container,html.pdfcraft-embedded .StampPop-Container img{
   pointer-events:auto!important;cursor:pointer!important;
 }
+.ant-dropdown:has(.StampPop-Container),.ant-dropdown:has(.StampPop),
+.ant-popover.StampPop,.ant-popover:has(.StampPop-Container){
+  position:fixed!important;top:50%!important;left:50%!important;
+  transform:translate(-50%,-50%)!important;z-index:10050!important;
+}
 html.pdfcraft-text-markup .CustomPopbar{display:none!important;pointer-events:none!important}
 .CustomPopbar{z-index:10000!important;pointer-events:auto!important}
 /* Menu chỉnh: comment / màu / xóa */
@@ -178,7 +211,226 @@ html:not(.pdfcraft-annotating):not(.pdfcraft-annotations-visible) .pdfViewer .pa
 html:not(.pdfcraft-annotating):not(.pdfcraft-annotations-visible) .pdfViewer .page .konvajs-content,
 html:not(.pdfcraft-annotating):not(.pdfcraft-annotations-visible) .pdfViewer .page .konvajs-content>canvas{pointer-events:none!important}
 #sidebarContainer,#sidebarContent,#sidebarResizer{display:none!important;box-shadow:none!important;border:none!important}
+/* Password dialog — đồng bộ workspace Modal */
+#passwordDialog.pdfcraft-password-dialog{
+  position:fixed!important;inset:auto!important;top:50%!important;left:50%!important;
+  transform:translate(-50%,-50%)!important;margin:0!important;padding:0!important;
+  border:none!important;background:transparent!important;color:hsl(var(--pdfcraft-fg))!important;
+  max-width:min(440px,calc(100vw - 32px))!important;width:calc(100% - 32px)!important;
+  overflow:visible!important;box-shadow:none!important;
+}
+#passwordDialog.pdfcraft-password-dialog::backdrop{
+  background:rgba(0,0,0,.55)!important;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);
+}
+.pdfcraft-password-panel{
+  display:flex;flex-direction:column;background:hsl(var(--pdfcraft-card));
+  border:1px solid hsl(var(--pdfcraft-border));border-radius:var(--radius-lg,12px);
+  box-shadow:0 20px 48px rgba(0,0,0,.22);overflow:hidden;
+}
+.pdfcraft-password-header{
+  display:flex;align-items:center;gap:12px;padding:16px 20px;
+  border-bottom:1px solid hsl(var(--pdfcraft-border));
+  background:hsl(var(--pdfcraft-muted)/0.45);
+}
+.pdfcraft-password-header-icon{
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  width:40px;height:40px;border-radius:10px;
+  background:hsl(var(--pdfcraft-primary)/0.12);color:hsl(var(--pdfcraft-primary));
+}
+.pdfcraft-password-title{
+  margin:0;font-size:17px;font-weight:600;line-height:1.3;color:hsl(var(--pdfcraft-fg));
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+.pdfcraft-password-body{padding:16px 20px 8px;display:flex;flex-direction:column;gap:12px}
+#passwordDialog .pdfcraft-password-label{
+  display:block;margin:0;font-size:14px;line-height:1.5;font-weight:500;
+  color:hsl(var(--pdfcraft-muted-fg));text-align:start!important;
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+#passwordDialog .pdfcraft-password-label.pdfcraft-password-error{
+  color:hsl(var(--pdfcraft-danger))!important;font-weight:600;
+}
+#passwordDialog .pdfcraft-password-input{
+  width:100%!important;max-width:none!important;box-sizing:border-box!important;
+  height:40px!important;padding:8px 12px!important;margin:0!important;
+  font-size:14px!important;line-height:1.4!important;
+  color:hsl(var(--pdfcraft-fg))!important;
+  background:hsl(var(--pdfcraft-card))!important;
+  border:1px solid hsl(var(--pdfcraft-border))!important;border-radius:8px!important;
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif!important;
+  outline:none!important;box-shadow:none!important;
+}
+#passwordDialog .pdfcraft-password-input:focus{
+  border-color:hsl(var(--pdfcraft-primary))!important;
+  box-shadow:0 0 0 2px hsl(var(--pdfcraft-primary)/0.25)!important;
+}
+.pdfcraft-password-actions{
+  display:flex!important;justify-content:flex-end!important;align-items:center!important;
+  gap:8px!important;padding:12px 20px 16px!important;margin:0!important;
+  border-top:1px solid hsl(var(--pdfcraft-border));
+}
+#passwordDialog .pdfcraft-password-btn{
+  all:unset;box-sizing:border-box!important;display:inline-flex!important;
+  align-items:center!important;justify-content:center!important;
+  min-width:88px!important;height:36px!important;padding:0 16px!important;
+  font-size:14px!important;font-weight:500!important;line-height:1!important;
+  border-radius:8px!important;cursor:pointer!important;
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif!important;
+  pointer-events:auto!important;
+}
+#passwordDialog .pdfcraft-password-btn > span{display:inline!important;color:inherit!important}
+#passwordDialog .pdfcraft-password-btn-secondary{
+  color:hsl(var(--pdfcraft-fg))!important;
+  background:hsl(var(--pdfcraft-muted))!important;
+  border:1px solid hsl(var(--pdfcraft-border))!important;
+}
+#passwordDialog .pdfcraft-password-btn-secondary:hover{
+  background:hsl(var(--pdfcraft-border))!important;
+}
+#passwordDialog .pdfcraft-password-btn-primary{
+  color:hsl(var(--pdfcraft-primary-fg))!important;
+  background:hsl(var(--pdfcraft-primary))!important;
+  border:1px solid hsl(var(--pdfcraft-primary))!important;
+}
+#passwordDialog .pdfcraft-password-btn-primary:hover{
+  filter:brightness(0.95);
+}
+#passwordDialog .row{margin:0!important;padding:0!important}
+#passwordDialog .buttonRow{display:contents!important}
 `;
+
+export function applyPdfcraftThemeVars(doc: Document, theme: 'light' | 'dark' = 'light') {
+  const vars = PDFCRAFT_THEME_VARS[theme];
+  const root = doc.documentElement;
+  for (const [key, value] of Object.entries(vars)) {
+    root.style.setProperty(key, value);
+  }
+}
+
+function passwordDialogTitle(locale: string): string {
+  return PASSWORD_DIALOG_TITLE[locale] ?? PASSWORD_DIALOG_TITLE.en;
+}
+
+/** Restyle PDF.js native password prompt to match PDFCraft workspace. */
+export function setupPasswordDialogChrome(
+  doc: Document,
+  opts?: { theme?: 'light' | 'dark'; locale?: string },
+) {
+  const theme = opts?.theme ?? 'light';
+  const locale = opts?.locale ?? 'en';
+  applyPdfcraftThemeVars(doc, theme);
+
+  const mount = () => {
+    const dialog = doc.getElementById('passwordDialog');
+    if (!dialog) return;
+
+    dialog.classList.add('pdfcraft-password-dialog');
+
+    if (dialog.querySelector('.pdfcraft-password-panel')) return;
+
+    const label = doc.getElementById('passwordText');
+    const input = doc.getElementById('password') as HTMLInputElement | null;
+    const submit = doc.getElementById('passwordSubmit');
+    const cancel = doc.getElementById('passwordCancel');
+    const rows = Array.from(dialog.querySelectorAll(':scope > .row'));
+    const buttonRow = dialog.querySelector('.buttonRow');
+
+    const panel = doc.createElement('div');
+    panel.className = 'pdfcraft-password-panel';
+
+    const header = doc.createElement('div');
+    header.className = 'pdfcraft-password-header';
+    header.innerHTML = `
+      <div class="pdfcraft-password-header-icon" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <div class="pdfcraft-password-header-text">
+        <h2 class="pdfcraft-password-title">${passwordDialogTitle(locale)}</h2>
+      </div>
+    `;
+
+    const body = doc.createElement('div');
+    body.className = 'pdfcraft-password-body';
+    for (const row of rows) body.appendChild(row);
+
+    if (label) label.classList.add('pdfcraft-password-label');
+    if (input) {
+      input.classList.remove('toolbarField');
+      input.classList.add('pdfcraft-password-input');
+      input.autocomplete = 'current-password';
+      input.placeholder = locale === 'vi' ? 'Nhập mật khẩu' : 'Enter password';
+    }
+
+    const actions = doc.createElement('div');
+    actions.className = 'pdfcraft-password-actions';
+    if (buttonRow) {
+      buttonRow.classList.remove('buttonRow');
+      actions.appendChild(buttonRow);
+    } else if (cancel && submit) {
+      actions.append(cancel, submit);
+    }
+
+    if (submit) {
+      submit.classList.add('pdfcraft-password-btn', 'pdfcraft-password-btn-primary');
+    }
+    if (cancel) {
+      cancel.classList.add('pdfcraft-password-btn', 'pdfcraft-password-btn-secondary');
+    }
+
+    panel.append(header, body, actions);
+    dialog.replaceChildren(panel);
+  };
+
+  mount();
+
+  const dialog = doc.getElementById('passwordDialog') as HTMLDialogElement | null;
+  if (dialog && !dialog.dataset.pdfcraftBound) {
+    dialog.dataset.pdfcraftBound = '1';
+    dialog.addEventListener('toggle', () => {
+      if (dialog.open) {
+        const input = doc.getElementById('password') as HTMLInputElement | null;
+        requestAnimationFrame(() => input?.focus());
+      } else {
+        doc.getElementById('passwordText')?.classList.remove('pdfcraft-password-error');
+      }
+    });
+  }
+
+  if (!doc.body.dataset.pdfcraftPwdObs) {
+    doc.body.dataset.pdfcraftPwdObs = '1';
+    const container = doc.getElementById('dialogContainer') ?? doc.body;
+    const obs = new MutationObserver(() => mount());
+    obs.observe(container, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['open'],
+    });
+  }
+
+  const label = doc.getElementById('passwordText');
+  if (label && !label.dataset.pdfcraftLabelObs) {
+    label.dataset.pdfcraftLabelObs = '1';
+    const syncInvalid = () => {
+      const text = (label.textContent ?? '').toLowerCase();
+      const invalid =
+        label.getAttribute('data-l10n-id') === 'pdfjs-password-invalid' ||
+        text.includes('invalid') ||
+        text.includes('không đúng') ||
+        text.includes('incorrect');
+      label.classList.toggle('pdfcraft-password-error', invalid);
+    };
+    syncInvalid();
+    const labelObs = new MutationObserver(syncInvalid);
+    labelObs.observe(label, {
+      childList: true,
+      characterData: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['data-l10n-id'],
+    });
+  }
+}
 
 /** Konva layers hidden by CSS (opacity:0) — no DOM removal needed. */
 export function removeAnnotationPainters(_doc: Document) {
@@ -254,9 +506,11 @@ export function injectPdfViewerChrome(
   doc: Document,
   styleId = 'pdfcraft-viewer-chrome',
   theme: 'light' | 'dark' = 'light',
+  locale?: string,
 ) {
   const shellBg = PDF_VIEWER_SHELL_BG[theme];
   doc.documentElement.style.setProperty('--pdfcraft-shell-bg', shellBg);
+  applyPdfcraftThemeVars(doc, theme);
   let style = doc.getElementById(styleId) as HTMLStyleElement | null;
   if (!style) {
     style = doc.createElement('style');
@@ -267,6 +521,7 @@ export function injectPdfViewerChrome(
 
   doc.querySelector('.pdfViewer')?.classList.add('removePageBorders');
   stripPdfViewerSeams(doc);
+  setupPasswordDialogChrome(doc, { theme, locale });
 }
 
 export function attachKonvaSeamGuard(doc: Document) {

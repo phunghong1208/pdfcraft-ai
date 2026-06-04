@@ -25,6 +25,7 @@ export interface PDFToMarkdownToolProps {
     /** Custom class name */
     className?: string;
     initialFile?: File | null;
+    lockToInitialFile?: boolean;
 }
 
 /**
@@ -32,7 +33,11 @@ export interface PDFToMarkdownToolProps {
  * 
  * Converts PDF files to Markdown format.
  */
-export function PDFToMarkdownTool({ className = '', initialFile = null }: PDFToMarkdownToolProps) {
+export function PDFToMarkdownTool({
+    className = '',
+    initialFile = null,
+    lockToInitialFile = false,
+}: PDFToMarkdownToolProps) {
     const t = useTranslations('common');
     const tTools = useTranslations('tools');
 
@@ -187,7 +192,7 @@ export function PDFToMarkdownTool({ className = '', initialFile = null }: PDFToM
 
     return (
         <div className={`space-y-8 ${className}`.trim()}>
-            {/* File Upload Area */}
+            {!file && (
             <FileUploader
                 accept={['application/pdf', '.pdf']}
                 multiple={false}
@@ -198,6 +203,7 @@ export function PDFToMarkdownTool({ className = '', initialFile = null }: PDFToM
                 label={tTools('pdfToMarkdown.uploadLabel') || 'Upload PDF'}
                 description={tTools('pdfToMarkdown.uploadDescription') || 'Drag and drop a PDF file here, or click to browse.'}
             />
+            )}
 
             {/* Error Message */}
             {error && (

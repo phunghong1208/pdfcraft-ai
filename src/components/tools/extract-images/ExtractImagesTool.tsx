@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { FileUploader } from '../FileUploader';
 import { ProcessingProgress, ProcessingStatus } from '../ProcessingProgress';
@@ -25,6 +25,8 @@ interface UploadedFile {
 export interface ExtractImagesToolProps {
     /** Custom class name */
     className?: string;
+    initialFile?: File | null;
+    lockToInitialFile?: boolean;
 }
 
 /**
@@ -33,7 +35,11 @@ export interface ExtractImagesToolProps {
  * 
  * Provides the UI for extracting images from PDF files.
  */
-export function ExtractImagesTool({ className = '' }: ExtractImagesToolProps) {
+export function ExtractImagesTool({
+    className = '',
+    initialFile = null,
+    lockToInitialFile = false,
+}: ExtractImagesToolProps) {
     const t = useTranslations('common');
     const tTools = useTranslations('tools');
 
@@ -63,10 +69,14 @@ export function ExtractImagesTool({ className = '' }: ExtractImagesToolProps) {
             id: generateId(),
             file,
         }));
-        setFiles(prev => [...prev, ...uploadedFiles]);
+        setFiles((prev) => (lockToInitialFile ? uploadedFiles : [...prev, ...uploadedFiles]));
         setError(null);
         setExtractedImages([]);
-    }, []);
+    }, [lockToInitialFile]);
+
+    useEffect(() => {
+        if (initialFile) handleFilesSelected([initialFile]);
+    }, [initialFile, handleFilesSelected]);
 
     /**
      * Handle file upload error
@@ -263,17 +273,18 @@ export function ExtractImagesTool({ className = '' }: ExtractImagesToolProps) {
 
     return (
         <div className={`space-y-6 ${className}`.trim()}>
-            {/* File Upload Area */}
+            {files.length === 0 && (
             <FileUploader
                 accept={['application/pdf', '.pdf']}
-                multiple
-                maxFiles={20}
+                multiple={!lockToInitialFile}
+                maxFiles={lockToInitialFile ? 1 : 20}
                 onFilesSelected={handleFilesSelected}
                 onError={handleUploadError}
                 disabled={isProcessing}
                 label={tTools('extractImages.uploadLabel') || 'Upload PDF Files'}
                 description={tTools('extractImages.uploadDescription') || 'Select PDF files to extract images from.'}
             />
+            )}
 
             {/* Error Message */}
             {error && (

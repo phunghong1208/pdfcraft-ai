@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { FileText } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { FileUploader } from '../FileUploader';
 import { ProcessingProgress, ProcessingStatus } from '../ProcessingProgress';
@@ -13,6 +14,9 @@ import type { ProcessOutput } from '@/types/pdf';
 export interface EncryptPDFToolProps {
   /** Custom class name */
   className?: string;
+  initialFile?: File | null;
+  lockToInitialFile?: boolean;
+  onFileUpdated?: (file: File, options?: { keepDialogOpen?: boolean }) => void;
 }
 
 /**
@@ -22,7 +26,12 @@ export interface EncryptPDFToolProps {
  * Provides the UI for encrypting PDF files with password protection.
  * All encryption is performed client-side - passwords are never transmitted.
  */
-export function EncryptPDFTool({ className = '' }: EncryptPDFToolProps) {
+export function EncryptPDFTool({
+  className = '',
+  initialFile = null,
+  lockToInitialFile = false,
+  onFileUpdated,
+}: EncryptPDFToolProps) {
   const t = useTranslations('common');
   const tTools = useTranslations('tools');
   
@@ -62,6 +71,14 @@ export function EncryptPDFTool({ className = '' }: EncryptPDFToolProps) {
     }
   }, []);
 
+  const initialFileSeededRef = useRef<File | null>(null);
+  useEffect(() => {
+    if (!initialFile) return;
+    if (initialFileSeededRef.current === initialFile) return;
+    initialFileSeededRef.current = initialFile;
+    handleFilesSelected([initialFile]);
+  }, [initialFile, handleFilesSelected]);
+
   const handleUploadError = useCallback((errorMessage: string) => {
     setError(errorMessage);
   }, []);
@@ -90,8 +107,10 @@ export function EncryptPDFTool({ className = '' }: EncryptPDFToolProps) {
       return;
     }
 
-    if (!userPassword && !ownerPassword) {
-      setError('Please provide at least one password.');
+    const userPwd = userPassword.trim();
+    const ownerPwd = ownerPassword.trim();
+    if (!userPwd && !ownerPwd) {
+      setError(tTools('encryptPdf.passwordRequired') || 'Please provide at least one password.');
       return;
     }
 
@@ -102,8 +121,8 @@ export function EncryptPDFTool({ className = '' }: EncryptPDFToolProps) {
     setResult(null);
 
     const options: EncryptPDFOptions = {
-      userPassword,
-      ownerPassword,
+      userPassword: userPwd,
+      ownerPassword: ownerPwd,
       permissions,
     };
 
@@ -125,8 +144,15 @@ export function EncryptPDFTool({ className = '' }: EncryptPDFToolProps) {
       }
 
       if (output.success && output.result) {
-        setResult(output.result as Blob);
+        const blob = output.result as Blob;
+        setResult(blob);
         setStatus('complete');
+        // Workspace: keep the open (unencrypted) document in the viewer; encrypted copy is download-only.
+        if (onFileUpdated && file && !lockToInitialFile) {
+          onFileUpdated(
+            new File([blob], file.name, { type: 'application/pdf', lastModified: Date.now() }),
+          );
+        }
       } else {
         setError(output.error?.message || 'Failed to encrypt PDF file.');
         setStatus('error');
@@ -137,7 +163,7 @@ export function EncryptPDFTool({ className = '' }: EncryptPDFToolProps) {
         setStatus('error');
       }
     }
-  }, [file, userPassword, ownerPassword, permissions]);
+  }, [file, userPassword, ownerPassword, permissions, onFileUpdated, lockToInitialFile, tTools]);
 
   const handleCancel = useCallback(() => {
     cancelledRef.current = true;
@@ -152,21 +178,22 @@ export function EncryptPDFTool({ className = '' }: EncryptPDFToolProps) {
   };
 
   const isProcessing = status === 'processing';
-  const canEncrypt = file && (userPassword || ownerPassword) && !isProcessing;
+  const canEncrypt = file && (userPassword.trim() || ownerPassword.trim()) && !isProcessing;
 
   return (
     <div className={`space-y-6 ${className}`.trim()}>
-      {/* File Upload Area */}
-      <FileUploader
-        accept={['application/pdf', '.pdf']}
-        multiple={false}
-        maxFiles={1}
-        onFilesSelected={handleFilesSelected}
-        onError={handleUploadError}
-        disabled={isProcessing}
-        label={tTools('encryptPdf.uploadLabel') || 'Upload PDF File'}
-        description={tTools('encryptPdf.uploadDescription') || 'Drag and drop a PDF file here, or click to browse.'}
-      />
+      {!file && !lockToInitialFile && (
+        <FileUploader
+          accept={['application/pdf', '.pdf']}
+          multiple={false}
+          maxFiles={1}
+          onFilesSelected={handleFilesSelected}
+          onError={handleUploadError}
+          disabled={isProcessing}
+          label={tTools('encryptPdf.uploadLabel') || 'Upload PDF File'}
+          description={tTools('encryptPdf.uploadDescription') || 'Drag and drop a PDF file here, or click to browse.'}
+        />
+      )}
 
       {/* Error Message */}
       {error && (
@@ -178,37 +205,37 @@ export function EncryptPDFTool({ className = '' }: EncryptPDFToolProps) {
         </div>
       )}
 
-      {/* Selected File */}
       {file && (
-        <Card variant="outlined" size="lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex-shrink-0">
-                <svg className="w-10 h-10 text-red-500" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
-                  <path d="M14 2v6h6" fill="white" />
-                  <text x="7" y="17" fontSize="6" fill="white" fontWeight="bold">PDF</text>
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-[hsl(var(--color-foreground))]">
-                  {file.name}
-                </p>
-                <p className="text-xs text-[hsl(var(--color-muted-foreground))]">
-                  {formatSize(file.size)}
-                </p>
-              </div>
+        lockToInitialFile ? (
+          <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.35)] p-4">
+            <FileText className="h-10 w-10 shrink-0 text-[hsl(var(--color-primary))]" aria-hidden />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">{file.name}</p>
+              <p className="text-xs text-[hsl(var(--color-muted-foreground))]">{formatSize(file.size)}</p>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClear}
-              disabled={isProcessing}
-            >
-              {t('buttons.remove') || 'Remove'}
-            </Button>
           </div>
-        </Card>
+        ) : (
+          <Card variant="outlined" size="lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0">
+                  <svg className="w-10 h-10 text-red-500" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
+                    <path d="M14 2v6h6" fill="white" />
+                    <text x="7" y="17" fontSize="6" fill="white" fontWeight="bold">PDF</text>
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-[hsl(var(--color-foreground))]">{file.name}</p>
+                  <p className="text-xs text-[hsl(var(--color-muted-foreground))]">{formatSize(file.size)}</p>
+                </div>
+              </div>
+              <Button variant="ghost" size="sm" onClick={handleClear} disabled={isProcessing}>
+                {t('buttons.remove') || 'Remove'}
+              </Button>
+            </div>
+          </Card>
+        )
       )}
 
 
@@ -369,7 +396,11 @@ export function EncryptPDFTool({ className = '' }: EncryptPDFToolProps) {
             {tTools('encryptPdf.successMessage') || 'PDF encrypted successfully!'}
           </p>
           <p className="text-xs mt-1 text-green-600">
-            {tTools('encryptPdf.successHint') || 'Remember to save your passwords securely. They cannot be recovered if lost.'}
+            {lockToInitialFile
+              ? (tTools('encryptPdf.workspaceSuccessHint') ||
+                  'Tải bản đã mã hóa bên dưới. PDF đang mở trong workspace giữ nguyên để bạn tiếp tục chỉnh sửa.')
+              : (tTools('encryptPdf.successHint') ||
+                  'Remember to save your passwords securely. They cannot be recovered if lost.')}
           </p>
         </div>
       )}

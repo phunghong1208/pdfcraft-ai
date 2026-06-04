@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { FileText } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { FileUploader } from '../FileUploader';
 import { ProcessingProgress, ProcessingStatus } from '../ProcessingProgress';
@@ -13,6 +14,9 @@ import type { ProcessOutput } from '@/types/pdf';
 export interface FlattenPDFToolProps {
   /** Custom class name */
   className?: string;
+  initialFile?: File | null;
+  lockToInitialFile?: boolean;
+  onFileUpdated?: (file: File, options?: { keepDialogOpen?: boolean }) => void;
 }
 
 /**
@@ -22,9 +26,14 @@ export interface FlattenPDFToolProps {
  * Provides the UI for flattening PDF files.
  * Converts interactive elements into static page content.
  */
-export function FlattenPDFTool({ className = '' }: FlattenPDFToolProps) {
+export function FlattenPDFTool({
+  className = '',
+  initialFile = null,
+  lockToInitialFile = false,
+  onFileUpdated,
+}: FlattenPDFToolProps) {
   const t = useTranslations('common');
-  const tTools = useTranslations('tools');
+  const tFlatten = useTranslations('tools.flattenPdf');
   
   // State
   const [file, setFile] = useState<File | null>(null);
@@ -53,6 +62,10 @@ export function FlattenPDFTool({ className = '' }: FlattenPDFToolProps) {
       setFlattenedItems([]);
     }
   }, []);
+
+  useEffect(() => {
+    if (initialFile) handleFilesSelected([initialFile]);
+  }, [initialFile, handleFilesSelected]);
 
   const handleUploadError = useCallback((errorMessage: string) => {
     setError(errorMessage);
@@ -105,10 +118,15 @@ export function FlattenPDFTool({ className = '' }: FlattenPDFToolProps) {
       }
 
       if (output.success && output.result) {
-        setResult(output.result as Blob);
+        const blob = output.result as Blob;
+        setResult(blob);
         setStatus('complete');
         if (output.metadata?.flattenedItems) {
           setFlattenedItems(output.metadata.flattenedItems as string[]);
+        }
+        if (onFileUpdated && file) {
+          const base = file.name.replace(/\.pdf$/i, '') || 'document';
+          onFileUpdated(new File([blob], `${base}_flattened.pdf`, { type: 'application/pdf' }));
         }
       } else {
         setError(output.error?.message || 'Failed to flatten PDF file.');
@@ -120,7 +138,7 @@ export function FlattenPDFTool({ className = '' }: FlattenPDFToolProps) {
         setStatus('error');
       }
     }
-  }, [file, options]);
+  }, [file, options, onFileUpdated]);
 
   const handleCancel = useCallback(() => {
     cancelledRef.current = true;
@@ -139,7 +157,7 @@ export function FlattenPDFTool({ className = '' }: FlattenPDFToolProps) {
 
   return (
     <div className={`space-y-6 ${className}`.trim()}>
-      {/* File Upload Area */}
+      {!file && (
       <FileUploader
         accept={['application/pdf', '.pdf']}
         multiple={false}
@@ -147,9 +165,10 @@ export function FlattenPDFTool({ className = '' }: FlattenPDFToolProps) {
         onFilesSelected={handleFilesSelected}
         onError={handleUploadError}
         disabled={isProcessing}
-        label={tTools('flattenPdf.uploadLabel') || 'Upload PDF File'}
-        description={tTools('flattenPdf.uploadDescription') || 'Drag and drop a PDF file here, or click to browse.'}
+        label={tFlatten('uploadLabel') || 'Upload PDF File'}
+        description={tFlatten('uploadDescription') || 'Drag and drop a PDF file here, or click to browse.'}
       />
+      )}
 
       {/* Error Message */}
       {error && (
@@ -164,17 +183,11 @@ export function FlattenPDFTool({ className = '' }: FlattenPDFToolProps) {
       {/* Selected File */}
       {file && (
         <Card variant="outlined" size="lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex-shrink-0">
-                <svg className="w-10 h-10 text-red-500" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
-                  <path d="M14 2v6h6" fill="white" />
-                  <text x="7" y="17" fontSize="6" fill="white" fontWeight="bold">PDF</text>
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-[hsl(var(--color-foreground))]">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <FileText className="h-10 w-10 shrink-0 text-[hsl(var(--color-primary))]" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-[hsl(var(--color-foreground))]">
                   {file.name}
                 </p>
                 <p className="text-xs text-[hsl(var(--color-muted-foreground))]">
@@ -182,6 +195,7 @@ export function FlattenPDFTool({ className = '' }: FlattenPDFToolProps) {
                 </p>
               </div>
             </div>
+            {!lockToInitialFile && (
             <Button
               variant="ghost"
               size="sm"
@@ -190,6 +204,7 @@ export function FlattenPDFTool({ className = '' }: FlattenPDFToolProps) {
             >
               {t('buttons.remove') || 'Remove'}
             </Button>
+            )}
           </div>
         </Card>
       )}
@@ -198,14 +213,14 @@ export function FlattenPDFTool({ className = '' }: FlattenPDFToolProps) {
       {file && (
         <Card variant="outlined">
           <h3 className="text-lg font-medium text-[hsl(var(--color-foreground))] mb-4">
-            {tTools('flattenPdf.optionsTitle') || 'Flatten Options'}
+            {tFlatten('optionsTitle') || 'Flatten Options'}
           </h3>
           
           <div className="space-y-4">
             {/* Info */}
             <div className="p-3 rounded-[var(--radius-sm)] bg-blue-50 border border-blue-200">
               <p className="text-sm text-blue-700">
-                {tTools('flattenPdf.info') || 'Flattening converts interactive elements (forms, annotations) into static page content. This makes the PDF non-editable but ensures consistent appearance across all viewers.'}
+                {tFlatten('info') || 'Flattening converts interactive elements (forms, annotations) into static page content. This makes the PDF non-editable but ensures consistent appearance across all viewers.'}
               </p>
             </div>
 
@@ -221,10 +236,10 @@ export function FlattenPDFTool({ className = '' }: FlattenPDFToolProps) {
                 />
                 <div>
                   <span className="text-sm text-[hsl(var(--color-foreground))]">
-                    {tTools('flattenPdf.flattenForms') || 'Flatten Form Fields'}
+                    {tFlatten('flattenForms') || 'Flatten Form Fields'}
                   </span>
                   <p className="text-xs text-[hsl(var(--color-muted-foreground))]">
-                    {tTools('flattenPdf.flattenFormsDesc') || 'Convert fillable form fields to static text'}
+                    {tFlatten('flattenFormsDesc') || 'Convert fillable form fields to static text'}
                   </p>
                 </div>
               </label>
@@ -239,10 +254,10 @@ export function FlattenPDFTool({ className = '' }: FlattenPDFToolProps) {
                 />
                 <div>
                   <span className="text-sm text-[hsl(var(--color-foreground))]">
-                    {tTools('flattenPdf.flattenAnnotations') || 'Flatten Annotations'}
+                    {tFlatten('flattenAnnotations') || 'Flatten Annotations'}
                   </span>
                   <p className="text-xs text-[hsl(var(--color-muted-foreground))]">
-                    {tTools('flattenPdf.flattenAnnotationsDesc') || 'Merge comments, highlights, and stamps into page content'}
+                    {tFlatten('flattenAnnotationsDesc') || 'Merge comments, highlights, and stamps into page content'}
                   </p>
                 </div>
               </label>
@@ -257,10 +272,10 @@ export function FlattenPDFTool({ className = '' }: FlattenPDFToolProps) {
                 />
                 <div>
                   <span className="text-sm text-[hsl(var(--color-foreground))]">
-                    {tTools('flattenPdf.flattenLayers') || 'Flatten Layers'}
+                    {tFlatten('flattenLayers') || 'Flatten Layers'}
                   </span>
                   <p className="text-xs text-[hsl(var(--color-muted-foreground))]">
-                    {tTools('flattenPdf.flattenLayersDesc') || 'Merge all visible layers into a single layer'}
+                    {tFlatten('flattenLayersDesc') || 'Merge all visible layers into a single layer'}
                   </p>
                 </div>
               </label>
@@ -291,7 +306,7 @@ export function FlattenPDFTool({ className = '' }: FlattenPDFToolProps) {
         >
           {isProcessing 
             ? (t('status.processing') || 'Processing...') 
-            : (tTools('flattenPdf.flattenButton') || 'Flatten PDF')
+            : (tFlatten('flattenButton') || 'Flatten PDF')
           }
         </Button>
 
@@ -313,11 +328,11 @@ export function FlattenPDFTool({ className = '' }: FlattenPDFToolProps) {
           role="status"
         >
           <p className="text-sm font-medium">
-            {tTools('flattenPdf.successMessage') || 'PDF flattened successfully!'}
+            {tFlatten('successMessage') || 'PDF flattened successfully!'}
           </p>
           {flattenedItems.length > 0 && (
             <p className="text-xs mt-1 text-green-600">
-              {tTools('flattenPdf.flattenedItems') || 'Flattened:'} {flattenedItems.join(', ')}
+              {tFlatten('flattenedItems') || 'Flattened:'} {flattenedItems.join(', ')}
             </p>
           )}
         </div>

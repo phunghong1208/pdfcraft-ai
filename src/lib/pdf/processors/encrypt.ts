@@ -186,14 +186,18 @@ export class EncryptPDFProcessor extends BasePDFProcessor {
       );
     }
 
-    // Validate at least one password is provided
-    if (!encryptOptions.userPassword && !encryptOptions.ownerPassword) {
+    const userPwd = (encryptOptions.userPassword || '').trim();
+    const ownerPwd = (encryptOptions.ownerPassword || '').trim();
+    if (!userPwd && !ownerPwd) {
       return this.createErrorOutput(
         PDFErrorCode.INVALID_OPTIONS,
         'Please provide at least one password.',
         'Either user password or owner password is required.'
       );
     }
+    // qpdf --encrypt requires non-empty user and owner strings
+    const resolvedUserPassword = userPwd || ownerPwd;
+    const resolvedOwnerPassword = ownerPwd || userPwd;
 
     const file = files[0];
     const inputPath = '/input.pdf';
@@ -234,12 +238,10 @@ export class EncryptPDFProcessor extends BasePDFProcessor {
 
       this.updateProgress(50, 'Encrypting PDF with 256-bit AES...');
 
-      // Build qpdf command arguments
-      const userPassword = encryptOptions.userPassword || '';
-      const ownerPassword = encryptOptions.ownerPassword || userPassword;
-      const hasDistinctOwnerPassword = !!encryptOptions.ownerPassword && encryptOptions.ownerPassword !== encryptOptions.userPassword;
+      const hasDistinctOwnerPassword =
+        resolvedOwnerPassword !== resolvedUserPassword;
 
-      const args = [inputPath, '--encrypt', userPassword, ownerPassword, '256'];
+      const args = [inputPath, '--encrypt', resolvedUserPassword, resolvedOwnerPassword, '256'];
 
       // Add permission restrictions if owner password is set and permissions are restricted
       if (hasDistinctOwnerPassword) {

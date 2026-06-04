@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { FileUploader } from '../FileUploader';
 import { ProcessingProgress } from '../ProcessingProgress';
@@ -8,11 +8,13 @@ import { DownloadButton } from '../DownloadButton';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { extractTables, type ExtractTablesOptions, type TableExportFormat } from '@/lib/pdf/processors/extract-tables';
-import { Table } from 'lucide-react';
+import { FileText, Table } from 'lucide-react';
 
 export interface ExtractTablesToolProps {
     /** Custom class name */
     className?: string;
+    initialFile?: File | null;
+    lockToInitialFile?: boolean;
 }
 
 /**
@@ -20,7 +22,11 @@ export interface ExtractTablesToolProps {
  * 
  * Extracts tables from PDF documents.
  */
-export function ExtractTablesTool({ className = '' }: ExtractTablesToolProps) {
+export function ExtractTablesTool({
+    className = '',
+    initialFile = null,
+    lockToInitialFile = false,
+}: ExtractTablesToolProps) {
     const t = useTranslations('common');
     const tTools = useTranslations('tools');
 
@@ -50,6 +56,10 @@ export function ExtractTablesTool({ className = '' }: ExtractTablesToolProps) {
             setError(null);
         }
     }, []);
+
+    useEffect(() => {
+        if (initialFile) handleFilesSelected([initialFile]);
+    }, [initialFile, handleFilesSelected]);
 
     /**
      * Handle file upload error
@@ -115,7 +125,7 @@ export function ExtractTablesTool({ className = '' }: ExtractTablesToolProps) {
 
     return (
         <div className={`space-y-6 ${className}`.trim()}>
-            {/* File Upload Area */}
+            {!file && (
             <FileUploader
                 accept={['application/pdf', '.pdf']}
                 multiple={false}
@@ -126,6 +136,19 @@ export function ExtractTablesTool({ className = '' }: ExtractTablesToolProps) {
                 label={tTools('extractTables.uploadLabel') || 'Upload PDF File'}
                 description={tTools('extractTables.uploadDescription') || 'Drag and drop a PDF file to extract tables from.'}
             />
+            )}
+
+            {file && lockToInitialFile && (
+              <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.35)] p-4">
+                <FileText className="h-10 w-10 shrink-0 text-[hsl(var(--color-primary))]" />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-[hsl(var(--color-foreground))]">{file.name}</p>
+                  <p className="text-xs text-[hsl(var(--color-muted-foreground))]">
+                    {(file.size / (1024 * 1024)).toFixed(2)} MB
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Error Message */}
             {error && (

@@ -343,25 +343,36 @@ export function EditPDFTool({
           try{ p.activate(cfg, stampUrl); return true; }catch(e){ return false; }
         }
 
+        function repositionStampPop(){
+          var wrapper = document.querySelector('.ant-popover.StampPop') ||
+            document.querySelector('.ant-dropdown:has(.StampPop-Container)');
+          if(!wrapper){
+            var pop = document.querySelector('.StampPop-Container, .StampPop');
+            if(pop) wrapper = pop.closest('.ant-popover') || pop.closest('.ant-dropdown') || pop.parentElement;
+          }
+          if(wrapper && wrapper !== document.body && wrapper !== document.documentElement){
+            wrapper.style.position = 'fixed';
+            wrapper.style.top = '50%';
+            wrapper.style.left = '50%';
+            wrapper.style.transform = 'translate(-50%,-50%)';
+            wrapper.style.zIndex = '10050';
+            return true;
+          }
+          return false;
+        }
+
         function activateStampPlacement(){
           var ext = getExtension();
           if(!ext || !ext.painter) return false;
           var cfg = resolveToolConfig('stamp');
           activateViaToolbarRef('stamp');
           try{ ext.painter.activate(cfg, null); }catch(e){}
-          var existing = pickDefaultStampImage();
-          if(existing && applyStampImage(existing)) return true;
           clickToolLi('stamp');
-          var tries = 0;
-          var timer = setInterval(function(){
-            tries += 1;
-            var img = pickDefaultStampImage();
-            if(img && applyStampImage(img)){
-              clearInterval(timer);
-              return;
-            }
-            if(tries >= 30) clearInterval(timer);
-          }, 120);
+          var reposTries = 0;
+          var reposTimer = setInterval(function(){
+            reposTries += 1;
+            if(repositionStampPop() || reposTries >= 20) clearInterval(reposTimer);
+          }, 80);
           return true;
         }
 
@@ -446,7 +457,12 @@ export function EditPDFTool({
               setTimeout(function(){ activateTool('note'); }, 40);
               return;
             }
+            if(window.__pdfcraftActiveTool === 'stamp' || window.__pdfcraftActiveTool === 'signature'){
+              return;
+            }
+            window.__pdfcraftActiveTool = 'select';
             origDefault();
+            try{ window.parent.postMessage({ type:'pdfcraft-tool-changed', tool:'select' }, '*'); }catch(e){}
           };
           if(!p.__pdfcraftSavePatched){
             p.__pdfcraftSavePatched = true;
@@ -459,6 +475,12 @@ export function EditPDFTool({
                     setNotePanelVisible(true);
                     openNoteEditorForId(ann.id);
                   }, 80);
+                }
+                if(window.__pdfcraftActiveTool === 'stamp' || window.__pdfcraftActiveTool === 'signature'){
+                  setTimeout(function(){
+                    window.__pdfcraftActiveTool = 'select';
+                    try{ window.parent.postMessage({ type:'pdfcraft-tool-changed', tool:'select' }, '*'); }catch(e){}
+                  }, 100);
                 }
               }catch(e){}
               return ret;

@@ -1,13 +1,24 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { FileText } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { FileUploader } from '../FileUploader';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import type { SignatureValidationResult } from '@/types/digital-signature';
 
-export function ValidateSignatureTool({ className = '' }: { className?: string }) {
+export interface ValidateSignatureToolProps {
+  className?: string;
+  initialFile?: File | null;
+  lockToInitialFile?: boolean;
+}
+
+export function ValidateSignatureTool({
+  className = '',
+  initialFile = null,
+  lockToInitialFile = false,
+}: ValidateSignatureToolProps) {
   const t = useTranslations('common');
   const tTool = useTranslations('tools.validateSign');
 
@@ -43,6 +54,14 @@ export function ValidateSignatureTool({ className = '' }: { className?: string }
       setLoading(false);
     }
   }, []);
+
+  const initialFileSeededRef = useRef<File | null>(null);
+  useEffect(() => {
+    if (!initialFile) return;
+    if (initialFileSeededRef.current === initialFile) return;
+    initialFileSeededRef.current = initialFile;
+    void handlePdfSelected([initialFile]);
+  }, [initialFile, handlePdfSelected]);
 
   const handleTrustedCert = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -102,16 +121,18 @@ export function ValidateSignatureTool({ className = '' }: { className?: string }
 
   return (
     <div className={`space-y-6 ${className}`.trim()}>
-      <FileUploader
-        accept={['application/pdf', '.pdf']}
-        multiple={false}
-        maxFiles={1}
-        onFilesSelected={handlePdfSelected}
-        onError={setError}
-        disabled={loading}
-        label={tTool('uploadLabel')}
-        description={tTool('uploadDescription')}
-      />
+      {!pdfFile && (
+        <FileUploader
+          accept={['application/pdf', '.pdf']}
+          multiple={false}
+          maxFiles={1}
+          onFilesSelected={handlePdfSelected}
+          onError={setError}
+          disabled={loading}
+          label={tTool('uploadLabel')}
+          description={tTool('uploadDescription')}
+        />
+      )}
 
       {error && (
         <div className="p-4 rounded-[var(--radius-md)] bg-red-50 border border-red-200 text-red-700 dark:bg-red-950 dark:border-red-800 dark:text-red-300" role="alert">
@@ -120,15 +141,25 @@ export function ValidateSignatureTool({ className = '' }: { className?: string }
       )}
 
       {pdfFile && (
-        <Card variant="outlined" size="lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-[hsl(var(--color-foreground))]">{pdfFile.name}</p>
+        lockToInitialFile ? (
+          <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.35)] p-4">
+            <FileText className="h-10 w-10 shrink-0 text-[hsl(var(--color-primary))]" aria-hidden />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">{pdfFile.name}</p>
               <p className="text-xs text-[hsl(var(--color-muted-foreground))]">{(pdfFile.size / 1024).toFixed(1)} KB</p>
             </div>
-            <Button variant="ghost" size="sm" onClick={handleClear} disabled={loading}>{t('buttons.remove')}</Button>
           </div>
-        </Card>
+        ) : (
+          <Card variant="outlined" size="lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-[hsl(var(--color-foreground))]">{pdfFile.name}</p>
+                <p className="text-xs text-[hsl(var(--color-muted-foreground))]">{(pdfFile.size / 1024).toFixed(1)} KB</p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={handleClear} disabled={loading}>{t('buttons.remove')}</Button>
+            </div>
+          </Card>
+        )
       )}
 
       {/* Optional Trusted Certificate */}

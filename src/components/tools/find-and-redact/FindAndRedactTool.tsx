@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { FileText } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { FileUploader } from '../FileUploader';
 import { ProcessingProgress, ProcessingStatus } from '../ProcessingProgress';
@@ -17,6 +18,9 @@ import { loadPdfjs } from '@/lib/pdf/loader';
 
 export interface FindAndRedactToolProps {
     className?: string;
+    initialFile?: File | null;
+    lockToInitialFile?: boolean;
+    onFileUpdated?: (file: File, options?: { keepDialogOpen?: boolean }) => void;
 }
 
 /**
@@ -26,7 +30,12 @@ export interface FindAndRedactToolProps {
  * and redact matching content. Useful for removing sensitive information
  * like account numbers, names, etc. from multi-page documents.
  */
-export function FindAndRedactTool({ className = '' }: FindAndRedactToolProps) {
+export function FindAndRedactTool({
+    className = '',
+    initialFile = null,
+    lockToInitialFile = false,
+    onFileUpdated,
+}: FindAndRedactToolProps) {
     const t = useTranslations('common');
     const tTools = useTranslations('tools.findAndRedact');
 
@@ -80,6 +89,14 @@ export function FindAndRedactTool({ className = '' }: FindAndRedactToolProps) {
             pdfDocRef.current = null;
         }
     }, []);
+
+    const initialFileSeededRef = useRef<File | null>(null);
+    useEffect(() => {
+        if (!initialFile) return;
+        if (initialFileSeededRef.current === initialFile) return;
+        initialFileSeededRef.current = initialFile;
+        handleFilesSelected([initialFile]);
+    }, [initialFile, handleFilesSelected]);
 
     const handleClearFile = useCallback(() => {
         setFile(null);
@@ -333,8 +350,14 @@ export function FindAndRedactTool({ className = '' }: FindAndRedactToolProps) {
             }
 
             if (redactionResult.success && redactionResult.result) {
-                setResult(redactionResult.result);
+                const blob = redactionResult.result;
+                setResult(blob);
                 setStatus('complete');
+                if (onFileUpdated && file) {
+                    onFileUpdated(
+                        new File([blob], file.name, { type: 'application/pdf', lastModified: Date.now() }),
+                    );
+                }
             } else {
                 setError(redactionResult.error || tTools('redactFailed'));
                 setStatus('error');
@@ -345,7 +368,7 @@ export function FindAndRedactTool({ className = '' }: FindAndRedactToolProps) {
                 setStatus('error');
             }
         }
-    }, [file, matches, redactionColor, addBorder, replacementText, tTools]);
+    }, [file, matches, redactionColor, addBorder, replacementText, tTools, onFileUpdated]);
 
     const formatSize = (bytes: number): string => {
         if (bytes < 1024) return `${bytes} B`;
@@ -365,7 +388,7 @@ export function FindAndRedactTool({ className = '' }: FindAndRedactToolProps) {
     return (
         <div className={`space-y-6 ${className}`.trim()}>
             {/* File Upload */}
-            {!file && (
+            {!file && !lockToInitialFile && (
                 <FileUploader
                     accept={['application/pdf', '.pdf']}
                     multiple={false}
@@ -386,23 +409,32 @@ export function FindAndRedactTool({ className = '' }: FindAndRedactToolProps) {
 
             {file && (
                 <>
-                    {/* File Info */}
-                    <Card variant="outlined">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <svg className="w-10 h-10 text-red-500" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
-                                </svg>
-                                <div>
-                                    <p className="font-medium text-gray-900 dark:text-gray-100">{file.name}</p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">{formatSize(file.size)}</p>
-                                </div>
+                    {lockToInitialFile ? (
+                        <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.35)] p-4">
+                            <FileText className="h-10 w-10 shrink-0 text-[hsl(var(--color-primary))]" aria-hidden />
+                            <div className="min-w-0">
+                                <p className="truncate text-sm font-medium">{file.name}</p>
+                                <p className="text-xs text-[hsl(var(--color-muted-foreground))]">{formatSize(file.size)}</p>
                             </div>
-                            <Button variant="ghost" size="sm" onClick={handleClearFile} disabled={isProcessing || isSearching}>
-                                {t('buttons.remove')}
-                            </Button>
                         </div>
-                    </Card>
+                    ) : (
+                        <Card variant="outlined">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <svg className="w-10 h-10 text-red-500" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
+                                    </svg>
+                                    <div>
+                                        <p className="font-medium text-gray-900 dark:text-gray-100">{file.name}</p>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">{formatSize(file.size)}</p>
+                                    </div>
+                                </div>
+                                <Button variant="ghost" size="sm" onClick={handleClearFile} disabled={isProcessing || isSearching}>
+                                    {t('buttons.remove')}
+                                </Button>
+                            </div>
+                        </Card>
+                    )}
 
                     {/* Search Section */}
                     <Card variant="outlined" size="lg">

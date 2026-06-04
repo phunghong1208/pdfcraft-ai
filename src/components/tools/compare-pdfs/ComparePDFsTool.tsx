@@ -25,6 +25,8 @@ import {
 
 export interface ComparePDFsToolProps {
   className?: string;
+  /** Pre-load the original (left) PDF when opened from workspace */
+  initialFile?: File | null;
 }
 
 interface TextWordInfo {
@@ -74,9 +76,10 @@ interface PageComparisonResult {
   diffPercentage: number;
 }
 
-export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
+export function ComparePDFsTool({ className = '', initialFile = null }: ComparePDFsToolProps) {
   const t = useTranslations('common');
   const tTools = useTranslations('tools');
+  const tCompare = useTranslations('tools.comparePdfs');
 
   // Files state
   const [file1, setFile1] = useState<PDFFile | null>(null);
@@ -249,7 +252,7 @@ export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
     cancelledRef.current = false;
     setStatus('processing');
     setProgress(0);
-    setProgressMessage('正在解构并提取源文档 (Original PDF)...');
+    setProgressMessage(tCompare('loadingFile1'));
     setError(null);
     setPairedPages([]);
 
@@ -258,17 +261,24 @@ export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
       if (loaded) setFile1(loaded);
       setStatus('idle');
     } catch (err) {
-      setError(err instanceof Error ? err.message : '无法提取源文档。');
+      setError(err instanceof Error ? err.message : tCompare('loadFile1Error'));
       setStatus('error');
     }
-  }, [loadPDF]);
+  }, [loadPDF, tTools]);
+
+  const initialFileSeededRef = useRef(false);
+  useEffect(() => {
+    if (!initialFile || initialFileSeededRef.current || file1) return;
+    initialFileSeededRef.current = true;
+    void handleFile1Selected([initialFile]);
+  }, [initialFile, file1, handleFile1Selected]);
 
   const handleFile2Selected = useCallback(async (files: File[]) => {
     if (files.length === 0) return;
     cancelledRef.current = false;
     setStatus('processing');
     setProgress(50);
-    setProgressMessage('正在解构并提取修改文档 (Modified PDF)...');
+    setProgressMessage(tCompare('loadingFile2'));
     setError(null);
     setPairedPages([]);
 
@@ -277,10 +287,10 @@ export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
       if (loaded) setFile2(loaded);
       setStatus('idle');
     } catch (err) {
-      setError(err instanceof Error ? err.message : '无法提取比对文档。');
+      setError(err instanceof Error ? err.message : tCompare('loadFile2Error'));
       setStatus('error');
     }
-  }, [loadPDF]);
+  }, [loadPDF, tTools]);
 
   /**
    * World-class Semantic Diff & smart pairing orchestrator
@@ -291,7 +301,7 @@ export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
     cancelledRef.current = false;
     setStatus('processing');
     setProgress(95);
-    setProgressMessage('正在运行智能 CJK 双端语义对齐与段落差分...');
+    setProgressMessage(tCompare('comparingProgress'));
 
     try {
       // 1. LCS Page Alignment to avoid multi-page shifts
@@ -334,10 +344,10 @@ export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
       setStatus('complete');
     } catch (err) {
       console.error(err);
-      setError('运行智能语义比对时发生算法异常。');
+      setError(tCompare('compareError'));
       setStatus('error');
     }
-  }, [file1, file2]);
+  }, [file1, file2, tTools]);
 
   const handleClearAll = () => {
     setFile1(null);
@@ -412,7 +422,7 @@ export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
           {/* File 1 */}
           <div className="space-y-3">
             <label className="text-sm font-bold text-[hsl(var(--color-foreground))] block">
-              源文档 (Original PDF / Left Version)
+              {tCompare('file1Label')}
             </label>
             {file1 ? (
               <Card variant="outlined" className="p-4 flex items-center justify-between border-2 border-[hsl(var(--color-primary)/0.35)] bg-[hsl(var(--color-muted)/0.15)] rounded-2xl">
@@ -420,10 +430,15 @@ export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
                   <FileText className="w-10 h-10 text-[hsl(var(--color-primary))]" />
                   <div>
                     <p className="font-semibold text-sm truncate max-w-[200px]" title={file1.file.name}>{file1.file.name}</p>
-                    <p className="text-xs text-[hsl(var(--color-muted-foreground))]">{file1.pageCount} 页 • {(file1.file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                    <p className="text-xs text-[hsl(var(--color-muted-foreground))]">
+                      {tCompare('pageMeta', {
+                        count: file1.pageCount,
+                        size: (file1.file.size / (1024 * 1024)).toFixed(2),
+                      })}
+                    </p>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => setFile1(null)}>移除</Button>
+                <Button variant="ghost" size="sm" onClick={() => setFile1(null)}>{t('buttons.remove')}</Button>
               </Card>
             ) : (
               <FileUploader
@@ -432,8 +447,8 @@ export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
                 onFilesSelected={handleFile1Selected}
                 onError={setError}
                 disabled={isProcessing}
-                label="上传源 PDF 文档"
-                description="作为被差分比对的基本原始版面"
+                label={tCompare('uploadFile1')}
+                description={tCompare('uploadFile1Description')}
                 className="min-h-[160px] p-6 rounded-2xl"
               />
             )}
@@ -442,7 +457,7 @@ export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
           {/* File 2 */}
           <div className="space-y-3">
             <label className="text-sm font-bold text-[hsl(var(--color-foreground))] block">
-              比对文档 (Modified PDF / Right Version)
+              {tCompare('file2Label')}
             </label>
             {file2 ? (
               <Card variant="outlined" className="p-4 flex items-center justify-between border-2 border-emerald-500/35 bg-emerald-500/5 rounded-2xl">
@@ -450,10 +465,15 @@ export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
                   <FileText className="w-10 h-10 text-emerald-500" />
                   <div>
                     <p className="font-semibold text-sm truncate max-w-[200px]" title={file2.file.name}>{file2.file.name}</p>
-                    <p className="text-xs text-[hsl(var(--color-muted-foreground))]">{file2.pageCount} 页 • {(file2.file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                    <p className="text-xs text-[hsl(var(--color-muted-foreground))]">
+                      {tCompare('pageMeta', {
+                        count: file2.pageCount,
+                        size: (file2.file.size / (1024 * 1024)).toFixed(2),
+                      })}
+                    </p>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => setFile2(null)}>移除</Button>
+                <Button variant="ghost" size="sm" onClick={() => setFile2(null)}>{t('buttons.remove')}</Button>
               </Card>
             ) : (
               <FileUploader
@@ -462,8 +482,8 @@ export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
                 onFilesSelected={handleFile2Selected}
                 onError={setError}
                 disabled={isProcessing}
-                label="上传比对 PDF 文档"
-                description="包含修改、添加、删除或位置偏移的最新版面"
+                label={tCompare('uploadFile2')}
+                description={tCompare('uploadFile2Description')}
                 className="min-h-[160px] p-6 rounded-2xl border-emerald-500/20 hover:border-emerald-500"
               />
             )}
@@ -481,7 +501,7 @@ export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
             className="px-12 py-4 font-bold shadow-lg shadow-[hsl(var(--color-primary)/0.15)] flex items-center gap-2"
           >
             <Shuffle className="w-5 h-5 animate-pulse" />
-            开始智能语义差分比对
+            {tCompare('startCompare')}
           </Button>
         </div>
       )}
@@ -508,11 +528,13 @@ export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
           >
             <div>
               <h3 className="text-md font-bold text-[hsl(var(--color-foreground))]">
-                智能语义比对完成 (Acrobat 商业级对齐)
+                {tCompare('compareCompleteTitle')}
               </h3>
               <p className="text-xs text-[hsl(var(--color-muted-foreground))] mt-1">
-                共对齐 {pairedPages.length} 页 • 
-                其中 <span className="font-bold text-red-500 mx-1">{pairedPages.filter(p => p.hasDifference).length} 页</span> 包含语义性差异
+                {tCompare('compareCompleteSummary', {
+                  total: pairedPages.length,
+                  diff: pairedPages.filter((p) => p.hasDifference).length,
+                })}
               </p>
             </div>
             
@@ -520,7 +542,7 @@ export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[10px] font-black text-zinc-400 flex items-center gap-1 uppercase tracking-wider mr-2">
                 <Filter className="w-3.5 h-3.5" />
-                高亮过滤 (Filter)
+                {tCompare('filterLabel')}
               </span>
               
               <button
@@ -531,7 +553,7 @@ export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
                     : 'bg-zinc-100 dark:bg-zinc-800/50 text-zinc-400 border border-transparent'
                 }`}
               >
-                文字增删
+                {tCompare('filterText')}
               </button>
 
               <button
@@ -542,7 +564,7 @@ export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
                     : 'bg-zinc-100 dark:bg-zinc-800/50 text-zinc-400 border border-transparent'
                 }`}
               >
-                格式变化 (Fonts)
+                {tCompare('filterFormatting')}
               </button>
 
               <button
@@ -553,7 +575,7 @@ export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
                     : 'bg-zinc-100 dark:bg-zinc-800/50 text-zinc-400 border border-transparent'
                 }`}
               >
-                页眉页脚 (低噪)
+                {tCompare('filterHeaderFooter')}
               </button>
 
               <button
@@ -564,11 +586,11 @@ export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
                     : 'bg-zinc-100 dark:bg-zinc-800/50 text-zinc-400 border border-transparent'
                 }`}
               >
-                段落位移
+                {tCompare('filterMoved')}
               </button>
 
               <Button variant="outline" size="sm" onClick={handleClearAll} className="ml-4 py-2 text-xs">
-                重置新比对
+                {tCompare('newComparison')}
               </Button>
             </div>
           </Card>
@@ -583,12 +605,15 @@ export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
               className="flex items-center gap-1 py-2"
             >
               <ChevronLeft className="w-4 h-4" />
-              上一页对齐
+              {tCompare('prevPair')}
             </Button>
 
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-[hsl(var(--color-foreground))]">
-                对齐序列 {currentPairIdx + 1} / {pairedPages.length} 页
+                {tCompare('pairSequence', {
+                  current: currentPairIdx + 1,
+                  total: pairedPages.length,
+                })}
               </span>
               {currentPair && (
                 <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg ${
@@ -596,12 +621,14 @@ export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
                     ? 'bg-red-500/15 text-red-500 border border-red-500/25'
                     : 'bg-green-500/15 text-green-500 border border-green-500/25'
                 }`}>
-                  {currentPair.pageIndex1 === -1 && '📂 插入页 (Inserted Page)'}
-                  {currentPair.pageIndex2 === -1 && '❌ 移除页 (Deleted Page)'}
+                  {currentPair.pageIndex1 === -1 && tCompare('insertedPageBadge')}
+                  {currentPair.pageIndex2 === -1 && tCompare('deletedPageBadge')}
                   {currentPair.pageIndex1 !== -1 && currentPair.pageIndex2 !== -1 && (
                     currentPair.hasDifference 
-                      ? `⚠️ 检出 ${currentPair.diffPercentage.toFixed(1)}% 语义差异`
-                      : '✅ 无差异 (完全一致)'
+                      ? tCompare('diffDetected', {
+                          percent: currentPair.diffPercentage.toFixed(1),
+                        })
+                      : tCompare('noDifference')
                   )}
                 </span>
               )}
@@ -613,7 +640,7 @@ export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
                 size="sm"
                 onClick={toggleFullscreen}
                 className="p-2"
-                title={isFullscreen ? "退出全屏" : "全屏沉浸比对"}
+                title={isFullscreen ? tCompare('exitFullscreen') : tCompare('fullscreen')}
               >
                 {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
               </Button>
@@ -625,7 +652,7 @@ export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
                 disabled={currentPairIdx >= pairedPages.length - 1}
                 className="flex items-center gap-1 py-2"
               >
-                下一页对齐
+                {tCompare('nextPair')}
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
@@ -642,10 +669,12 @@ export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
             <div className="flex flex-col space-y-2">
               <div className="flex justify-between items-center px-1">
                 <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
-                  {file1?.file.name} (原版本)
+                  {file1?.file.name} ({tCompare('originalVersion')})
                 </span>
                 <span className="text-[10px] font-bold text-zinc-500">
-                  {currentPair?.pageIndex1 !== -1 ? `第 ${currentPair.pageIndex1 + 1} 页` : '---'}
+                  {currentPair?.pageIndex1 !== -1
+                    ? tCompare('pageLabel', { page: currentPair.pageIndex1 + 1 })
+                    : '---'}
                 </span>
               </div>
               
@@ -697,9 +726,9 @@ export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
                         >
                           {/* Tooltip widget */}
                           <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1.5 hidden group-hover:block bg-zinc-950 text-white text-[9px] font-bold py-1 px-2.5 rounded-lg border border-zinc-800 shadow-xl z-30 whitespace-nowrap leading-none pointer-events-none">
-                            {hl.type === 'deleted' && '❌ 移除了文本'}
-                            {hl.type === 'modified' && '⚠️ 文本被修改'}
-                            {hl.type === 'moved' && '➡️ 段落在此处发生跨行位移'}
+                            {hl.type === 'deleted' && tCompare('tooltipDeleted')}
+                            {hl.type === 'modified' && tCompare('tooltipModified')}
+                            {hl.type === 'moved' && tCompare('tooltipMovedSource')}
                             <span className="text-zinc-400 block mt-1">"{hl.text}"</span>
                           </div>
                         </div>
@@ -710,9 +739,9 @@ export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
                   /* Deleted Page placeholder blank board */
                   <div className="flex flex-col items-center justify-center p-8 text-center text-zinc-500 w-full min-h-[500px] border border-dashed border-zinc-800 rounded-xl bg-zinc-950/60 backdrop-blur-md">
                     <AlertCircle className="w-10 h-10 text-emerald-500/70 mb-4 animate-bounce" />
-                    <p className="text-xs font-black text-emerald-400">📂 插入页面 (Inserted Page)</p>
+                    <p className="text-xs font-black text-emerald-400">{tCompare('insertedPageTitle')}</p>
                     <p className="text-[10px] text-zinc-600 mt-1 max-w-xs">
-                      此页面为修改版本中强行增加的页面。原版本在此无对应映射，已自动实现隔空对齐。
+                      {tCompare('insertedPageDesc')}
                     </p>
                   </div>
                 )}
@@ -723,10 +752,12 @@ export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
             <div className="flex flex-col space-y-2">
               <div className="flex justify-between items-center px-1">
                 <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">
-                  {file2?.file.name} (修改版)
+                  {file2?.file.name} ({tCompare('modifiedVersion')})
                 </span>
                 <span className="text-[10px] font-bold text-zinc-500">
-                  {currentPair?.pageIndex2 !== -1 ? `第 ${currentPair.pageIndex2 + 1} 页` : '---'}
+                  {currentPair?.pageIndex2 !== -1
+                    ? tCompare('pageLabel', { page: currentPair.pageIndex2 + 1 })
+                    : '---'}
                 </span>
               </div>
               
@@ -778,9 +809,9 @@ export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
                         >
                           {/* Tooltip widget */}
                           <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1.5 hidden group-hover:block bg-zinc-950 text-white text-[9px] font-bold py-1 px-2.5 rounded-lg border border-zinc-800 shadow-xl z-30 whitespace-nowrap leading-none pointer-events-none">
-                            {hl.type === 'added' && '💚 新增了文本'}
-                            {hl.type === 'modified' && '⚠️ 文本被修改'}
-                            {hl.type === 'moved' && '⬅️ 承接自前方的段落跨行位移'}
+                            {hl.type === 'added' && tCompare('tooltipAdded')}
+                            {hl.type === 'modified' && tCompare('tooltipModified')}
+                            {hl.type === 'moved' && tCompare('tooltipMovedDest')}
                             <span className="text-zinc-400 block mt-1">"{hl.text}"</span>
                           </div>
                         </div>
@@ -791,9 +822,9 @@ export function ComparePDFsTool({ className = '' }: ComparePDFsToolProps) {
                   /* Inserted Page placeholder blank board */
                   <div className="flex flex-col items-center justify-center p-8 text-center text-zinc-500 w-full min-h-[500px] border border-dashed border-zinc-800 rounded-xl bg-zinc-950/60 backdrop-blur-md">
                     <AlertCircle className="w-10 h-10 text-red-500/70 mb-4 animate-bounce" />
-                    <p className="text-xs font-black text-red-400">❌ 移除页面 (Deleted Page)</p>
+                    <p className="text-xs font-black text-red-400">{tCompare('deletedPageTitle')}</p>
                     <p className="text-[10px] text-zinc-600 mt-1 max-w-xs">
-                      此页面在修改版本中已被完全删除。系统在此处插入空白对齐，以防扰乱后续页面的比对秩序。
+                      {tCompare('deletedPageDesc')}
                     </p>
                   </div>
                 )}

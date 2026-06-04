@@ -20,6 +20,14 @@
       "title": "Politica de Confidențialitate",
       "description": "Politica de confidențialitate PDFCraft. Fișierele tale nu părăsesc niciodată dispozitivul - toată procesarea are loc local în browser."
     },
+    "cookies": {
+      "title": "Cookie Policy",
+      "description": "How PDFCraft uses cookies. We only use essential and preference cookies — no tracking or advertising."
+    },
+    "terms": {
+      "title": "Terms of Service",
+      "description": "Terms of use for PDFCraft. Free PDF tools processed locally in your browser."
+    },
     "contact": {
       "title": "Contactează-ne",
       "description": "Ia legătura cu echipa PDFCraft. Ne-ar plăcea să auzim de la tine."
@@ -32,6 +40,32 @@
       "convertPdf": "convertește PDF",
       "freePdfTools": "instrumente PDF gratuite",
       "onlinePdfEditor": "editor PDF online"
+    }
+  },
+  "legalPages": {
+    "cookies": {
+      "heroTitle": "Cookie Policy",
+      "heroSubtitle": "We use only essential and preference cookies. No tracking or advertising.",
+      "essentialTitle": "Essential cookies",
+      "essentialDesc": "Required for the website to function properly.",
+      "preferenceTitle": "Preference cookies",
+      "preferenceDesc": "Remember your settings, such as language preference.",
+      "noTracking": "We do not use tracking cookies or advertising cookies.",
+      "moreLink": "See also our Privacy Policy"
+    },
+    "terms": {
+      "heroTitle": "Terms of Service",
+      "heroSubtitle": "By using PDFCraft you agree to these terms.",
+      "acceptanceTitle": "1. Acceptance",
+      "acceptanceBody": "By accessing or using this website and its PDF tools, you agree to these Terms of Service.",
+      "useTitle": "2. Use of the service",
+      "useBody": "You may use our tools for lawful personal or business purposes. You are responsible for the content of files you process.",
+      "privacyTitle": "3. Privacy",
+      "privacyBody": "Files are processed locally in your browser and are not uploaded to our servers. See our Privacy Policy for details.",
+      "disclaimerTitle": "4. Disclaimer",
+      "disclaimerBody": "Tools are provided \"as is\" without warranties. We are not liable for data loss; keep backups of important documents.",
+      "changesTitle": "5. Changes",
+      "changesBody": "We may update these terms. Continued use after changes constitutes acceptance."
     }
   },
   "common": {
@@ -77,28 +111,93 @@
     },
     "status": {
       "idle": "Gata",
+      "ready": "Ready",
       "uploading": "Se încarcă...",
       "processing": "Se procesează...",
       "complete": "Finalizat",
       "error": "Eroare",
       "loading": "Se încarcă..."
     },
+    "workspaceBadge": "Spațiu de lucru PDF AI",
+    "upgrade": "Actualizează",
+    "upgradeTitle": "Actualizează planul",
     "footer": {
       "footer": "© 2025 PDFCraft. Toate drepturile rezervate.",
+      "tagline": "Private AI Workspace",
+      "ctaHeadline": "Ready to work smarter with PDFs?",
+      "ctaSubtitle": "Upload, edit, summarize and chat with documents using AI.",
+      "uploadCta": "Upload PDF",
+      "exploreTools": "Explore Tools",
+      "copyrightName": "PDF Reader Workspace",
+      "product": "Product",
       "copyright": "© {year} PDFCraft. Toate drepturile rezervate.",
-      "privacyBadge": "100% Privat - Fișierele nu părăsesc niciodată dispozitivul",
       "madeWith": "Creat cu <Heart /> și <Nextjs />",
       "resources": "Resurse",
       "security": "Securitate",
+      "documentation": "Documentation",
+      "editPdf": "Edit PDF",
+      "compressPdf": "Compress PDF",
+      "mergePdf": "Merge PDF",
+      "splitPdf": "Split PDF",
+      "convertPdf": "Convert PDF",
+      "badgeLocal": "Local Processing",
+      "badgeNoUpload": "No Cloud Upload",
+      "badgeGdpr": "GDPR Compliant",
+      "privacyBadge": "100% Privat - Fișierele nu părăsesc niciodată dispozitivul",
+      "privacyBadgeSub": "Your documents are processed securely in your browser",
+      "localProcessingTitle": "Local Processing",
+      "localProcessingDesc": "Files never leave your device",
+      "noCloudTitle": "No Cloud Upload",
+      "noCloudDesc": "No server storage",
+      "gdprTitle": "GDPR Ready",
+      "gdprDesc": "Privacy-first architecture",
+      "terms": "Termeni",
+      "privacyLink": "Confidențialitate",
+      "cookies": "Cookie-uri",
+      "brandName": "PDF Reader Workspace",
+      "legalNav": "Legal",
+      "brandEdition": "Private Edition",
+      "taglineSub": "Local-first architecture. Your files never leave your device.",
+      "motto": "Files stay private. AI stays useful.",
+      "ctaAiSummary": "AI Summary",
+      "ctaChatPdf": "Chat PDF",
+      "ctaLocalSafe": "Local Safe",
+      "aiNav": "AI features",
+      "ctaLocalFirst": "Local First",
+      "badgeOcr": "OCR Ready",
+      "badgeAiPowered": "AI Powered",
+      "trustNav": "Trust and security",
+      "desc": "Private AI documents • Local-first • No cloud upload",
+      "featureSummary": "Summary",
+      "featureChat": "Chat PDF",
+      "featureOcr": "OCR",
+      "featureProtect": "Protect",
+      "featuresNav": "Workspace features",
+      "copyrightShort": "© {year} PDF",
+      "trustLocalFirst": "Local First",
+      "trustNoCloud": "No Cloud Upload",
+      "trustGdpr": "GDPR Ready",
+      "trustLanguages": "100+ Languages",
+      "trustAi": "AI Powered",
+      "trustGroupSecurity": "Security",
+      "trustGroupPlatform": "Platform",
+      "brandLine1": "PDF Reader",
+      "brandLine2": "Workspace",
+      "downloadApp": "Download app",
+      "googlePlayAria": "Get it on Google Play",
+      "appStoreAria": "Download on the App Store",
+      "availableOn": "Available on",
+      "trustGroupDownload": "Download app",
+      "storeGetOn": "Get it on",
+      "storeGooglePlay": "Google Play",
+      "storeDownloadOn": "Download on the",
+      "storeAppStore": "App Store",
       "compliance": "Conformitate",
       "gdprCompliant": "Conform GDPR",
       "clientSideProcessing": "Procesare pe dispozitiv",
       "filesNeverLeave": "Fișierele nu părăsesc niciodată dispozitivul tău",
       "noUploads": "Fără încărcări de fișiere",
-      "privateSecure": "100% privat și securizat",
-      "terms": "Termeni",
-      "privacyLink": "Confidențialitate",
-      "cookies": "Cookie-uri"
+      "privateSecure": "100% privat și securizat"
     },
     "recentFiles": {
       "title": "Fișiere Recente",
@@ -147,10 +246,10 @@
     },
     "search": {
       "placeholder": "Caută instrumente...",
-      "hint": "Apasă Enter pentru a selecta, ↑↓ pentru navigare",
-      "noResults": "Niciun instrument găsit",
       "trigger": "Caută PDF-uri...",
       "placeholderExpanded": "Caută PDF-uri, instrumente, AI...",
+      "hint": "Apasă Enter pentru a selecta, ↑↓ pentru navigare",
+      "noResults": "Niciun instrument găsit",
       "open": "Deschide căutarea",
       "close": "Închide căutarea"
     },
@@ -184,9 +283,6 @@
       "portrait": "Portret",
       "landscape": "Peisaj"
     },
-    "workspaceBadge": "Spațiu de lucru PDF AI",
-    "upgrade": "Actualizează",
-    "upgradeTitle": "Actualizează planul",
     "ai": {
       "menu": {
         "aiAssistant": "Asistent AI",
@@ -204,6 +300,36 @@
         "pdfToWord": "PDF în Word",
         "ocrPdf": "OCR PDF"
       }
+    }
+  },
+  "homePage": {
+    "badge": "Spațiu de lucru PDF AI",
+    "heroTitle": "Înțelege orice PDF cu AI",
+    "heroSubtitle": "Rezumă, traduce, discută și editează documente instant.",
+    "uploadTitle": "Încarcă un document pentru a începe",
+    "uploadDescription": "Deschide spațiul de lucru pentru documente și folosește acțiuni AI contextuale.",
+    "uploadCta": "Încarcă în spațiul de lucru",
+    "uploadSecure": "Procesare securizată",
+    "uploadOcr": "OCR alimentat de AI",
+    "uploadLanguages": "Suportă peste 100 de limbi",
+    "aiActionsTitle": "Acțiuni AI",
+    "useInWorkspace": "Folosește în spațiul de lucru",
+    "coreActionsTitle": "Acțiuni PDF de bază",
+    "viewAllTools": "Vezi toate instrumentele",
+    "preparingTitle": "Se pregătește documentul...",
+    "preparingUploading": "Se încarcă...",
+    "preparingAnalyzing": "Se analizează documentul...",
+    "preparingWorkspace": "Se pregătește spațiul de lucru AI...",
+    "actions": {
+      "summarize": "Rezumă",
+      "translate": "Traduce documentul",
+      "chat": "Chat cu PDF",
+      "ocr": "Scanare OCR",
+      "voice": "Cititor vocal",
+      "edit": "Editează",
+      "compress": "Comprimă",
+      "merge": "Combină",
+      "convert": "Convertește"
     }
   },
   "toolsPage": {
@@ -378,7 +504,8 @@
     "methods": {
       "email": {
         "title": "Email",
-        "description": "Trimite-ne un e-mail și îți vom răspunde în 24-48 de ore."
+        "description": "Trimite-ne un e-mail și îți vom răspunde în 24-48 de ore.",
+        "action": "contact@pdfcraft.app"
       },
       "github": {
         "title": "GitHub",
@@ -732,6 +859,7 @@
       "uploadDescription": "Trage și plasează fișierele PDF aici, sau fă clic pentru a răsfoi. Poți adăuga mai multe fișiere.",
       "filesTitle": "Fișiere de Combinat",
       "reorderHint": "Trage și plasează pentru a reordona fișierele. Fișierele vor fi combinate în ordinea afișată.",
+      "workspaceSingleFileHint": "Workspace mode starts with the current file. Add another file to merge.",
       "optionsTitle": "Opțiuni Combinare",
       "preserveBookmarks": "Păstrează marcajele (creează marcaj pentru fiecare fișier)",
       "mergeButton": "Combină PDF-urile",
@@ -1027,7 +1155,11 @@
       "saveButton": "Salvează Metadatele",
       "editAnother": "Editează un Alt PDF",
       "modificationNote": "Data modificării va fi actualizată automat la salvare.",
-      "successMessage": "Metadate actualizate cu succes! Fă clic pe butonul de descărcare pentru a salva fișierul."
+      "whatIsThis": "This edits document properties only (title, author, keywords, etc.). It does not change visible text or images on the PDF pages.",
+      "whereToSee": "After saving, check here again or open the file in Finder/Acrobat → File → Properties. Page content will look the same.",
+      "successMessage": "Metadate actualizate cu succes! Fă clic pe butonul de descărcare pentru a salva fișierul.",
+      "workspaceSuccessMessage": "Metadata saved to the open document.",
+      "workspaceSuccessHint": "The pages look unchanged — that is normal. Reopen this tool to verify fields, or use Save on the toolbar to write the file to disk."
     },
     "editPdf": {
       "uploadLabel": "Încarcă PDF pentru Editare",
@@ -1248,8 +1380,10 @@
       "permAccessibility": "Permite Accesibilitatea",
       "permAssembly": "Permite Asamblarea",
       "encryptButton": "Criptează PDF",
+      "passwordRequired": "Please provide at least one password.",
       "successMessage": "PDF criptat cu succes!",
-      "successHint": "Nu uita să îți salvezi parolele în siguranță."
+      "successHint": "Nu uita să îți salvezi parolele în siguranță.",
+      "workspaceSuccessHint": "Download the encrypted copy below. The open document in the workspace stays unchanged so you can keep editing."
     },
     "decryptPdf": {
       "uploadLabel": "Încarcă Fișier PDF",
@@ -1379,12 +1513,48 @@
     "comparePdfs": {
       "file1Label": "Primul PDF (Original)",
       "uploadFile1": "Încarcă Primul PDF",
+      "uploadFile1Description": "Baseline document for comparison",
       "file2Label": "Al Doilea PDF (Modificat)",
       "uploadFile2": "Încarcă al Doilea PDF",
+      "uploadFile2Description": "Document with edits, additions, or deletions",
       "uploadDescription": "Trage și plasează sau fă clic pentru a răsfoi",
+      "pageMeta": "{count} pages • {size} MB",
       "compareButton": "Compară PDF-urile",
+      "startCompare": "Start comparison",
+      "loadingFile1": "Loading original PDF…",
+      "loadingFile2": "Loading modified PDF…",
+      "loadFile1Error": "Could not load the original PDF.",
+      "loadFile2Error": "Could not load the modified PDF.",
+      "comparingProgress": "Aligning pages and comparing text…",
+      "compareError": "Comparison failed. Please try again.",
       "resultsTitle": "Rezultate Comparare",
+      "compareCompleteTitle": "Comparison complete",
+      "compareCompleteSummary": "{total} pages aligned • {diff} with differences",
       "newComparison": "Comparare Nouă",
+      "filterLabel": "Highlight filter",
+      "filterText": "Text changes",
+      "filterFormatting": "Formatting",
+      "filterHeaderFooter": "Headers & footers",
+      "filterMoved": "Moved paragraphs",
+      "prevPair": "Previous",
+      "nextPair": "Next",
+      "pairSequence": "Pair {current} / {total}",
+      "insertedPageBadge": "Inserted page",
+      "deletedPageBadge": "Deleted page",
+      "diffDetected": "{percent}% difference",
+      "noDifference": "No differences",
+      "originalVersion": "Original",
+      "modifiedVersion": "Modified",
+      "pageLabel": "Page {page}",
+      "tooltipDeleted": "Text removed",
+      "tooltipModified": "Text modified",
+      "tooltipMovedSource": "Paragraph moved from here",
+      "tooltipMovedDest": "Paragraph moved here",
+      "tooltipAdded": "Text added",
+      "insertedPageTitle": "Inserted page",
+      "insertedPageDesc": "This page exists only in the modified PDF. The original has no matching page.",
+      "deletedPageTitle": "Deleted page",
+      "deletedPageDesc": "This page was removed in the modified PDF. A blank placeholder keeps alignment for following pages.",
       "viewMode": "Mod Vizualizare:",
       "sideBySide": "Alăturat",
       "overlay": "Suprapunere",
@@ -1642,10 +1812,16 @@
       "uploadLabel": "Încarcă Fișier PDF",
       "uploadDescription": "Trage și plasează un fișier PDF pentru aplatizare.",
       "optionsTitle": "Opțiuni Aplatizare",
+      "info": "Flattening converts interactive elements (forms, annotations, layers) into static page content. The PDF will no longer be editable but will look the same in every viewer.",
       "flattenForms": "Aplatizează Câmpurile Formularului",
+      "flattenFormsDesc": "Convert fillable form fields to static text",
       "flattenAnnotations": "Aplatizează Adnotările",
+      "flattenAnnotationsDesc": "Merge comments, highlights, and stamps into page content",
+      "flattenLayers": "Flatten Layers",
+      "flattenLayersDesc": "Merge all visible layers into a single layer",
       "flattenButton": "Aplatizează PDF",
-      "successMessage": "PDF aplatizat cu succes!"
+      "successMessage": "PDF aplatizat cu succes!",
+      "flattenedItems": "Flattened:"
     },
     "removeMetadata": {
       "uploadLabel": "Încarcă Fișier PDF",
@@ -1877,7 +2053,8 @@
       "uploadDescription": "Trage și plasează un fișier PDF.",
       "colorLabel": "Culoare Fundal",
       "applyButton": "Aplică Fundalul",
-      "successMessage": "Culoarea de fundal a fost aplicată cu succes!"
+      "successMessage": "Culoarea de fundal a fost aplicată cu succes!",
+      "reapplyHint": "Each apply uses the original file — change the color and apply again as needed."
     },
     "textColor": {
       "uploadLabel": "Încarcă Fișier PDF",
@@ -1919,6 +2096,13 @@
     "formFiller": {
       "uploadLabel": "Încarcă Fișier PDF",
       "uploadDescription": "Trage și plasează un formular PDF.",
+      "readError": "Could not read form fields. This PDF may not contain fillable forms.",
+      "fieldsTitle": "Form fields ({count})",
+      "fieldPlaceholder": "Enter {type}",
+      "flattenOption": "Flatten form after filling (make non-editable)",
+      "noFields": "No fillable form fields found in this PDF.",
+      "fillButton": "Fill Form",
+      "processError": "Failed to fill the form.",
       "saveButton": "Salvează Formularul",
       "successMessage": "Formular salvat cu succes!"
     },
@@ -2340,6 +2524,83 @@
       "unselectedMatch": "Neselectat"
     }
   },
+  "ai": {
+    "home": {
+      "badge": "AI-first PDF Workspace",
+      "title": "Your AI Workspace for PDFs",
+      "titleHighlight": "What do you want to do?",
+      "subtitle": "Upload your document and let AI help you instantly.",
+      "dropzone": {
+        "title": "Drop PDF here",
+        "subtitle": "Start with upload and get AI suggestions right away.",
+        "cta": "Upload to start"
+      },
+      "suggestions": {
+        "title": "AI Suggestions",
+        "hint": "Goal-first actions"
+      },
+      "actions": {
+        "summarize": {
+          "label": "Summarize",
+          "desc": "Get concise key points quickly"
+        },
+        "translate": {
+          "label": "Translate",
+          "desc": "Translate while preserving context"
+        },
+        "chat": {
+          "label": "Chat",
+          "desc": "Ask questions directly from the PDF"
+        },
+        "edit": {
+          "label": "Edit",
+          "desc": "Edit, annotate, and mark up pages"
+        },
+        "ocr": {
+          "label": "OCR",
+          "desc": "Extract text from scanned documents"
+        },
+        "voice": {
+          "label": "Read aloud",
+          "desc": "Convert PDF content to audio"
+        }
+      },
+      "core": {
+        "title": "Core PDF Tools",
+        "mergePdf": "Merge PDF",
+        "splitPdf": "Split PDF",
+        "compressPdf": "Compress PDF",
+        "pdfToWord": "PDF to Word"
+      }
+    },
+    "pages": {
+      "summary": {
+        "title": "AI Summary",
+        "description": "Upload a PDF and get a concise AI-generated summary.",
+        "action": "Generate summary"
+      },
+      "translate": {
+        "title": "AI Translate",
+        "description": "Upload a PDF and translate content with your AI server.",
+        "action": "Translate document"
+      },
+      "chat": {
+        "title": "Chat with PDF",
+        "description": "Upload a PDF and ask your AI server questions.",
+        "action": "Start chat analysis"
+      },
+      "smartOcr": {
+        "title": "Smart OCR",
+        "description": "Run OCR with AI post-processing for better structure and accuracy.",
+        "action": "Run smart OCR"
+      },
+      "voice": {
+        "title": "Voice Reader",
+        "description": "Convert PDF content to audio using your AI voice pipeline.",
+        "action": "Generate audio"
+      }
+    }
+  },
   "workspace": {
     "opening": "Se deschide spațiul de lucru pentru documente...",
     "untitled": "Fără titlu.pdf",
@@ -2372,6 +2633,8 @@
       "page": "Pagină",
       "insert": "Inserează",
       "save": "Salvează",
+      "file": "File",
+      "document": "Document",
       "pages": "Pagini",
       "transform": "Transformă",
       "combine": "Combină",
@@ -2403,6 +2666,7 @@
       "ocrLayerHint": "OCR text on scanned PDFs — turn off if misaligned"
     },
     "tools": {
+      "open": "Open",
       "zoomIn": "Mărește",
       "zoomOut": "Micșorează",
       "fitPage": "Potrivește pagina",
@@ -2427,6 +2691,7 @@
       "extract": "Extrage",
       "organize": "Organizează",
       "reverse": "Inversează",
+      "reverseOrder": "Reverse Order",
       "highlight": "Evidențiază",
       "underline": "Subliniere",
       "strikeout": "Tăiere",
@@ -2434,6 +2699,7 @@
       "rectangle": "Dreptunghi",
       "circle": "Cerc",
       "text": "Text",
+      "textComment": "Text Comment",
       "note": "Notă",
       "stamp": "Ștampilă",
       "signature": "Semnătură",
@@ -2468,6 +2734,13 @@
       "summarize": "Rezumă",
       "translate": "Traduce",
       "smartOcr": "OCR inteligent"
+    },
+    "textStyle": {
+      "label": "Text style",
+      "fontFamily": "Font",
+      "fontSize": "Size",
+      "color": "Color",
+      "clearConfirm": "Remove all annotations on this document?"
     },
     "sidebar": {
       "newPdf": "PDF nou",
@@ -2631,36 +2904,6 @@
     },
     "statusBar": {
       "aiAssistant": "Asistent AI"
-    }
-  },
-  "homePage": {
-    "badge": "Spațiu de lucru PDF AI",
-    "heroTitle": "Înțelege orice PDF cu AI",
-    "heroSubtitle": "Rezumă, traduce, discută și editează documente instant.",
-    "uploadTitle": "Încarcă un document pentru a începe",
-    "uploadDescription": "Deschide spațiul de lucru pentru documente și folosește acțiuni AI contextuale.",
-    "uploadCta": "Încarcă în spațiul de lucru",
-    "uploadSecure": "Procesare securizată",
-    "uploadOcr": "OCR alimentat de AI",
-    "uploadLanguages": "Suportă peste 100 de limbi",
-    "aiActionsTitle": "Acțiuni AI",
-    "useInWorkspace": "Folosește în spațiul de lucru",
-    "coreActionsTitle": "Acțiuni PDF de bază",
-    "viewAllTools": "Vezi toate instrumentele",
-    "preparingTitle": "Se pregătește documentul...",
-    "preparingUploading": "Se încarcă...",
-    "preparingAnalyzing": "Se analizează documentul...",
-    "preparingWorkspace": "Se pregătește spațiul de lucru AI...",
-    "actions": {
-      "summarize": "Rezumă",
-      "translate": "Traduce documentul",
-      "chat": "Chat cu PDF",
-      "ocr": "Scanare OCR",
-      "voice": "Cititor vocal",
-      "edit": "Editează",
-      "compress": "Comprimă",
-      "merge": "Combină",
-      "convert": "Convertește"
     }
   }
 }

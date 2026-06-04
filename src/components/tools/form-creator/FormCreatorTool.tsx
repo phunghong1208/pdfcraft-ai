@@ -32,6 +32,8 @@ const loadPdfjsLib = async () => {
 
 export interface FormCreatorToolProps {
   className?: string;
+  initialFile?: File | null;
+  lockToInitialFile?: boolean;
 }
 
 type FieldType = 'text' | 'checkbox' | 'dropdown' | 'radio' | 'button' | 'signature' | 'date' | 'listbox';
@@ -169,7 +171,11 @@ const formTemplates: FormTemplate[] = [
   },
 ];
 
-export function FormCreatorTool({ className = '' }: FormCreatorToolProps) {
+export function FormCreatorTool({
+  className = '',
+  initialFile = null,
+  lockToInitialFile = false,
+}: FormCreatorToolProps) {
   const t = useTranslations('common');
   const tTools = useTranslations('tools');
 
@@ -779,6 +785,14 @@ export function FormCreatorTool({ className = '' }: FormCreatorToolProps) {
     }
   }, [loadPdf]);
 
+  const initialFileSeededRef = useRef<File | null>(null);
+  useEffect(() => {
+    if (!initialFile) return;
+    if (initialFileSeededRef.current === initialFile) return;
+    initialFileSeededRef.current = initialFile;
+    handleFilesSelected([initialFile]);
+  }, [initialFile, handleFilesSelected]);
+
   // Clear file
   const handleClearFile = useCallback(() => {
     setFile(null);
@@ -951,7 +965,7 @@ export function FormCreatorTool({ className = '' }: FormCreatorToolProps) {
 
   return (
     <div className={`space-y-6 ${className}`.trim()}>
-      {!file && (
+      {!file && !lockToInitialFile && (
         <div className="space-y-4">
           <FileUploader
             accept={['application/pdf', '.pdf']}

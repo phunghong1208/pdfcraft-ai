@@ -20,6 +20,14 @@
       "title": "Informativa sulla Privacy",
       "description": "Informativa sulla privacy di PDFCraft. I tuoi file non lasciano mai il tuo dispositivo: tutto avviene localmente nel tuo browser."
     },
+    "cookies": {
+      "title": "Cookie Policy",
+      "description": "How PDFCraft uses cookies. We only use essential and preference cookies — no tracking or advertising."
+    },
+    "terms": {
+      "title": "Terms of Service",
+      "description": "Terms of use for PDFCraft. Free PDF tools processed locally in your browser."
+    },
     "contact": {
       "title": "Contattaci",
       "description": "Mettiti in contatto con il team di PDFCraft. Ci farebbe piacere sentirti."
@@ -32,6 +40,32 @@
       "convertPdf": "convertire PDF",
       "freePdfTools": "strumenti PDF gratuiti",
       "onlinePdfEditor": "editor PDF online"
+    }
+  },
+  "legalPages": {
+    "cookies": {
+      "heroTitle": "Cookie Policy",
+      "heroSubtitle": "We use only essential and preference cookies. No tracking or advertising.",
+      "essentialTitle": "Essential cookies",
+      "essentialDesc": "Required for the website to function properly.",
+      "preferenceTitle": "Preference cookies",
+      "preferenceDesc": "Remember your settings, such as language preference.",
+      "noTracking": "We do not use tracking cookies or advertising cookies.",
+      "moreLink": "See also our Privacy Policy"
+    },
+    "terms": {
+      "heroTitle": "Terms of Service",
+      "heroSubtitle": "By using PDFCraft you agree to these terms.",
+      "acceptanceTitle": "1. Acceptance",
+      "acceptanceBody": "By accessing or using this website and its PDF tools, you agree to these Terms of Service.",
+      "useTitle": "2. Use of the service",
+      "useBody": "You may use our tools for lawful personal or business purposes. You are responsible for the content of files you process.",
+      "privacyTitle": "3. Privacy",
+      "privacyBody": "Files are processed locally in your browser and are not uploaded to our servers. See our Privacy Policy for details.",
+      "disclaimerTitle": "4. Disclaimer",
+      "disclaimerBody": "Tools are provided \"as is\" without warranties. We are not liable for data loss; keep backups of important documents.",
+      "changesTitle": "5. Changes",
+      "changesBody": "We may update these terms. Continued use after changes constitutes acceptance."
     }
   },
   "common": {
@@ -77,28 +111,93 @@
     },
     "status": {
       "idle": "Pronto",
+      "ready": "Ready",
       "uploading": "Caricamento…",
       "processing": "Elaborazione…",
       "complete": "Completato",
       "error": "Errore",
       "loading": "Caricamento…"
     },
+    "workspaceBadge": "Area di lavoro PDF con AI",
+    "upgrade": "Aggiorna",
+    "upgradeTitle": "Aggiorna piano",
     "footer": {
       "footer": "© 2025 PDFCraft. Tutti i diritti riservati.",
+      "tagline": "Private AI Workspace",
+      "ctaHeadline": "Ready to work smarter with PDFs?",
+      "ctaSubtitle": "Upload, edit, summarize and chat with documents using AI.",
+      "uploadCta": "Upload PDF",
+      "exploreTools": "Explore Tools",
+      "copyrightName": "PDF Reader Workspace",
+      "product": "Product",
       "copyright": "© {year} PDFCraft. Tutti i diritti riservati.",
-      "privacyBadge": "100% Privato - I file non lasciano mai il tuo dispositivo",
       "madeWith": "Creato con <Heart /> e <Nextjs />",
       "resources": "Risorse",
       "security": "Sicurezza",
+      "documentation": "Documentation",
+      "editPdf": "Edit PDF",
+      "compressPdf": "Compress PDF",
+      "mergePdf": "Merge PDF",
+      "splitPdf": "Split PDF",
+      "convertPdf": "Convert PDF",
+      "badgeLocal": "Local Processing",
+      "badgeNoUpload": "No Cloud Upload",
+      "badgeGdpr": "GDPR Compliant",
+      "privacyBadge": "100% Privato - I file non lasciano mai il tuo dispositivo",
+      "privacyBadgeSub": "Your documents are processed securely in your browser",
+      "localProcessingTitle": "Local Processing",
+      "localProcessingDesc": "Files never leave your device",
+      "noCloudTitle": "No Cloud Upload",
+      "noCloudDesc": "No server storage",
+      "gdprTitle": "GDPR Ready",
+      "gdprDesc": "Privacy-first architecture",
+      "terms": "Termini",
+      "privacyLink": "Privacy",
+      "cookies": "Cookie",
+      "brandName": "PDF Reader Workspace",
+      "legalNav": "Legal",
+      "brandEdition": "Private Edition",
+      "taglineSub": "Local-first architecture. Your files never leave your device.",
+      "motto": "Files stay private. AI stays useful.",
+      "ctaAiSummary": "AI Summary",
+      "ctaChatPdf": "Chat PDF",
+      "ctaLocalSafe": "Local Safe",
+      "aiNav": "AI features",
+      "ctaLocalFirst": "Local First",
+      "badgeOcr": "OCR Ready",
+      "badgeAiPowered": "AI Powered",
+      "trustNav": "Trust and security",
+      "desc": "Private AI documents • Local-first • No cloud upload",
+      "featureSummary": "Summary",
+      "featureChat": "Chat PDF",
+      "featureOcr": "OCR",
+      "featureProtect": "Protect",
+      "featuresNav": "Workspace features",
+      "copyrightShort": "© {year} PDF",
+      "trustLocalFirst": "Local First",
+      "trustNoCloud": "No Cloud Upload",
+      "trustGdpr": "GDPR Ready",
+      "trustLanguages": "100+ Languages",
+      "trustAi": "AI Powered",
+      "trustGroupSecurity": "Security",
+      "trustGroupPlatform": "Platform",
+      "brandLine1": "PDF Reader",
+      "brandLine2": "Workspace",
+      "downloadApp": "Download app",
+      "googlePlayAria": "Get it on Google Play",
+      "appStoreAria": "Download on the App Store",
+      "availableOn": "Available on",
+      "trustGroupDownload": "Download app",
+      "storeGetOn": "Get it on",
+      "storeGooglePlay": "Google Play",
+      "storeDownloadOn": "Download on the",
+      "storeAppStore": "App Store",
       "compliance": "Conformità",
       "gdprCompliant": "Conforme al GDPR",
       "clientSideProcessing": "Elaborazione lato client",
       "filesNeverLeave": "I file non lasciano mai il tuo dispositivo",
       "noUploads": "Nessun caricamento di file",
-      "privateSecure": "100% privato e sicuro",
-      "terms": "Termini",
-      "privacyLink": "Privacy",
-      "cookies": "Cookie"
+      "privateSecure": "100% privato e sicuro"
     },
     "recentFiles": {
       "title": "File recenti",
@@ -147,12 +246,18 @@
     },
     "search": {
       "placeholder": "Cerca strumenti…",
-      "hint": "Premi Invio per selezionare, ↑↓ per navigare",
-      "noResults": "Nessuno strumento trovato",
       "trigger": "Cerca PDF...",
       "placeholderExpanded": "Cerca PDF, strumenti, AI...",
+      "hint": "Premi Invio per selezionare, ↑↓ per navigare",
+      "noResults": "Nessuno strumento trovato",
       "open": "Apri ricerca",
       "close": "Chiudi ricerca"
+    },
+    "fileUploader": {
+      "dragDrop": "Drag and drop files here, or click to browse",
+      "dropToUpload": "Drop files to upload",
+      "support": "Support",
+      "paste": "Paste (Ctrl+V)"
     },
     "accessibility": {
       "skipToContent": "Salta al contenuto principale",
@@ -178,9 +283,6 @@
       "portrait": "Verticale",
       "landscape": "Orizzontale"
     },
-    "workspaceBadge": "Area di lavoro PDF con AI",
-    "upgrade": "Aggiorna",
-    "upgradeTitle": "Aggiorna piano",
     "ai": {
       "menu": {
         "aiAssistant": "Assistente AI",
@@ -198,6 +300,36 @@
         "pdfToWord": "PDF in Word",
         "ocrPdf": "OCR PDF"
       }
+    }
+  },
+  "homePage": {
+    "badge": "Area di lavoro PDF con AI",
+    "heroTitle": "Comprendi qualsiasi PDF con l'AI",
+    "heroSubtitle": "Riassumi, traduci, chatta e modifica i documenti all'istante.",
+    "uploadTitle": "Carica un documento per iniziare",
+    "uploadDescription": "Apri l'area di lavoro del documento e usa azioni AI contestuali.",
+    "uploadCta": "Carica nell'area di lavoro",
+    "uploadSecure": "Elaborazione sicura",
+    "uploadOcr": "OCR basato su AI",
+    "uploadLanguages": "Supporta oltre 100 lingue",
+    "aiActionsTitle": "Azioni AI",
+    "useInWorkspace": "Usa nell'area di lavoro",
+    "coreActionsTitle": "Azioni PDF principali",
+    "viewAllTools": "Vedi tutti gli strumenti",
+    "preparingTitle": "Preparazione del documento...",
+    "preparingUploading": "Caricamento...",
+    "preparingAnalyzing": "Analisi del documento...",
+    "preparingWorkspace": "Preparazione dell'area di lavoro AI...",
+    "actions": {
+      "summarize": "Riassumi",
+      "translate": "Traduci documento",
+      "chat": "Chat con PDF",
+      "ocr": "Scansione OCR",
+      "voice": "Lettore vocale",
+      "edit": "Modifica",
+      "compress": "Comprimi",
+      "merge": "Unisci",
+      "convert": "Converti"
     }
   },
   "toolsPage": {
@@ -432,6 +564,10 @@
     }
   },
   "errors": {
+    "pageError": "Something went wrong",
+    "pageErrorDescription": "An unexpected error occurred. Please try again.",
+    "tryAgain": "Try again",
+    "goHome": "Go home",
     "fileTooLarge": "Il file è troppo grande. Dimensione massima: {maxSize}MB.",
     "fileTypeInvalid": "Tipo di file non valido. Carica un file {acceptedTypes}.",
     "fileCorrupted": "Il file sembra danneggiato o illeggibile.",
@@ -723,10 +859,12 @@
       "uploadDescription": "Trascina e rilascia file PDF qui, oppure clicca per sfogliare. Puoi aggiungere più file.",
       "filesTitle": "File da unire",
       "reorderHint": "Trascina e rilascia per riordinare i file. I file verranno uniti nell'ordine mostrato.",
+      "workspaceSingleFileHint": "Workspace mode starts with the current file. Add another file to merge.",
       "optionsTitle": "Opzioni di unione",
       "preserveBookmarks": "Conserva i segnalibri (crea un segnalibro per ogni file)",
-      "optimizedSize": "Ottimizzato:",
-      "successMessage": "PDF uniti con successo! Clicca il pulsante di download per salvare il tuo file."
+      "mergeButton": "Merge PDFs",
+      "successMessage": "PDF uniti con successo! Clicca il pulsante di download per salvare il tuo file.",
+      "optimizedSize": "Ottimizzato:"
     },
     "gridCombine": {
       "uploadLabel": "Carica file PDF",
@@ -819,6 +957,10 @@
       "bookmarksNotice": "Nota: la divisione basata sui segnalibri richiede che siano presenti segnalibri nel PDF. Se non vengono trovati segnalibri, l'intero PDF verrà restituito come un unico file.",
       "splitCountLabel": "Numero di parti",
       "splitCountHint": "Dividi in {count} parti uguali (~{pages} pagine ciascuna)",
+      "pagesPerFile": "Pages Per File",
+      "pageRanges": "Page Ranges",
+      "pageRangesPlaceholder": "e.g., 1-3, 5, 7-9",
+      "modeEveryNPages": "Every N Pages",
       "pagePreviewTitle": "Seleziona pagine",
       "splitButton": "Dividi PDF",
       "resultsTitle": "Risultati divisione",
@@ -867,6 +1009,81 @@
       "previewInfo": "Ogni pagina sarà suddivisa in {rows}×{cols} = {total} riquadri.",
       "createButton": "Posterizza PDF",
       "successMessage": "PDF posterizzato con successo! Clicca il pulsante di download per salvare il file."
+    },
+    "digitalSign": {
+      "uploadLabel": "Upload PDF to Sign",
+      "uploadDescription": "Drag and drop a PDF file here, or click to browse.",
+      "certificateTitle": "Certificate",
+      "uploadCertificateLabel": "Upload Certificate (.pfx, .p12, or .pem)",
+      "certificateLoaded": "Certificate loaded",
+      "enterPassword": "Enter password to unlock",
+      "certificatePasswordLabel": "Certificate Password",
+      "unlockButton": "Unlock",
+      "subject": "Subject",
+      "issuer": "Issuer",
+      "valid": "Valid",
+      "warningExpired": "Warning: Certificate is expired or not yet valid. Signing may still work but the signature will show as invalid.",
+      "signatureOptionsTitle": "Signature Options",
+      "reasonLabel": "Reason",
+      "reasonPlaceholder": "e.g., Document approval",
+      "locationLabel": "Location",
+      "locationPlaceholder": "e.g., New York, USA",
+      "contactInfoLabel": "Contact Info",
+      "contactInfoPlaceholder": "e.g., email@example.com",
+      "visibleSignatureLabel": "Add visible signature",
+      "xPosition": "X Position",
+      "yPosition": "Y Position",
+      "width": "Width",
+      "height": "Height",
+      "pageLabel": "Page",
+      "firstPage": "First Page",
+      "lastPage": "Last Page",
+      "allPages": "All Pages",
+      "signatureImageLabel": "Signature Image (optional, PNG/JPEG)",
+      "signatureTextLabel": "Signature Text (optional, auto-generated if empty)",
+      "signatureTextPlaceholder": "Auto-generated if empty",
+      "textColorLabel": "Text Color",
+      "textSizeLabel": "Text Size",
+      "signButton": "Sign PDF",
+      "successMessage": "PDF signed successfully! The signature can be verified in any PDF reader.",
+      "errorFetch": "Failed to fetch certificate chain. Check your internet connection and try again.",
+      "errorParse": "Failed to parse certificate",
+      "errorPEM": "Failed to read PEM file.",
+      "errorType": "Please select a .pfx, .p12, or .pem file.",
+      "errorImgType": "Please select a PNG or JPEG image."
+    },
+    "validateSign": {
+      "uploadLabel": "Upload Signed PDF",
+      "uploadDescription": "Drag and drop a signed PDF file here, or click to browse.",
+      "trustedCertTitle": "Trusted Certificate (Optional)",
+      "trustedCertDescription": "Upload a trusted CA certificate to verify the signature chain.",
+      "trustedCertLoaded": "Trusted certificate loaded: {name}",
+      "analyzing": "Analyzing signatures...",
+      "noSignaturesTitle": "No Signatures Found",
+      "noSignaturesDescription": "This PDF does not contain any digital signatures.",
+      "signaturesFound": "{count} signatures found",
+      "validCount": "{count} valid",
+      "trustedCount": "{count}/{total} trusted",
+      "validSignature": "Valid Signature",
+      "invalidSignature": "Invalid Signature",
+      "certificateExpired": "Certificate Expired",
+      "selfSigned": "Self-Signed Certificate",
+      "fullCoverage": "Full Coverage",
+      "partialCoverage": "Partial Coverage",
+      "trusted": "Trusted",
+      "notTrusted": "Not in trust chain",
+      "signedBy": "Signed By",
+      "issuer": "Issuer",
+      "signedOn": "Signed On",
+      "validFrom": "Valid From",
+      "validUntil": "Valid Until",
+      "reason": "Reason",
+      "location": "Location",
+      "technicalDetails": "Technical Details",
+      "serialNumber": "Serial Number",
+      "digestAlgorithm": "Digest Algorithm",
+      "signatureAlgorithm": "Signature Algorithm",
+      "errorType": "Please select a .pem, .crt, .cer, or .der certificate file."
     },
     "pdfMultiTool": {
       "uploadLabel": "Carica file PDF",
@@ -939,7 +1156,11 @@
       "saveButton": "Salva metadati",
       "editAnother": "Modifica un altro PDF",
       "modificationNote": "La data di modifica verrà aggiornata automaticamente al salvataggio.",
-      "successMessage": "Metadati aggiornati con successo! Clicca il pulsante di download per salvare il file."
+      "whatIsThis": "This edits document properties only (title, author, keywords, etc.). It does not change visible text or images on the PDF pages.",
+      "whereToSee": "After saving, check here again or open the file in Finder/Acrobat → File → Properties. Page content will look the same.",
+      "successMessage": "Metadati aggiornati con successo! Clicca il pulsante di download per salvare il file.",
+      "workspaceSuccessMessage": "Metadata saved to the open document.",
+      "workspaceSuccessHint": "The pages look unchanged — that is normal. Reopen this tool to verify fields, or use Save on the toolbar to write the file to disk."
     },
     "editPdf": {
       "uploadLabel": "Carica PDF da modificare",
@@ -1160,8 +1381,10 @@
       "permAccessibility": "Consenti accessibilità",
       "permAssembly": "Consenti assemblaggio",
       "encryptButton": "Cripta PDF",
+      "passwordRequired": "Please provide at least one password.",
       "successMessage": "PDF crittografato con successo!",
-      "successHint": "Ricorda di salvare le password in modo sicuro."
+      "successHint": "Ricorda di salvare le password in modo sicuro.",
+      "workspaceSuccessHint": "Download the encrypted copy below. The open document in the workspace stays unchanged so you can keep editing."
     },
     "decryptPdf": {
       "uploadLabel": "Carica file PDF",
@@ -1291,12 +1514,48 @@
     "comparePdfs": {
       "file1Label": "Primo PDF (Originale)",
       "uploadFile1": "Carica primo PDF",
+      "uploadFile1Description": "Baseline document for comparison",
       "file2Label": "Secondo PDF (Modificato)",
       "uploadFile2": "Carica secondo PDF",
+      "uploadFile2Description": "Document with edits, additions, or deletions",
       "uploadDescription": "Trascina e rilascia oppure clicca per sfogliare",
+      "pageMeta": "{count} pages • {size} MB",
       "compareButton": "Confronta PDF",
+      "startCompare": "Start comparison",
+      "loadingFile1": "Loading original PDF…",
+      "loadingFile2": "Loading modified PDF…",
+      "loadFile1Error": "Could not load the original PDF.",
+      "loadFile2Error": "Could not load the modified PDF.",
+      "comparingProgress": "Aligning pages and comparing text…",
+      "compareError": "Comparison failed. Please try again.",
       "resultsTitle": "Risultati del confronto",
+      "compareCompleteTitle": "Comparison complete",
+      "compareCompleteSummary": "{total} pages aligned • {diff} with differences",
       "newComparison": "Nuovo confronto",
+      "filterLabel": "Highlight filter",
+      "filterText": "Text changes",
+      "filterFormatting": "Formatting",
+      "filterHeaderFooter": "Headers & footers",
+      "filterMoved": "Moved paragraphs",
+      "prevPair": "Previous",
+      "nextPair": "Next",
+      "pairSequence": "Pair {current} / {total}",
+      "insertedPageBadge": "Inserted page",
+      "deletedPageBadge": "Deleted page",
+      "diffDetected": "{percent}% difference",
+      "noDifference": "No differences",
+      "originalVersion": "Original",
+      "modifiedVersion": "Modified",
+      "pageLabel": "Page {page}",
+      "tooltipDeleted": "Text removed",
+      "tooltipModified": "Text modified",
+      "tooltipMovedSource": "Paragraph moved from here",
+      "tooltipMovedDest": "Paragraph moved here",
+      "tooltipAdded": "Text added",
+      "insertedPageTitle": "Inserted page",
+      "insertedPageDesc": "This page exists only in the modified PDF. The original has no matching page.",
+      "deletedPageTitle": "Deleted page",
+      "deletedPageDesc": "This page was removed in the modified PDF. A blank placeholder keeps alignment for following pages.",
       "viewMode": "Modalità di visualizzazione:",
       "sideBySide": "Affiancato",
       "overlay": "Sovrapposizione",
@@ -1315,6 +1574,11 @@
       "totalSize": "Dimensione totale",
       "optionsTitle": "Opzioni ZIP",
       "compressionLevel": "Livello di compressione",
+      "filename": "Output Filename",
+      "filenamePlaceholder": "e.g., pdfs.zip",
+      "compressionFast": "Fast (low compression)",
+      "compressionNormal": "Normal (balanced)",
+      "compressionMax": "Maximum (smallest file)",
       "noCompression": "Nessuna compressione (più veloce)",
       "lowCompression": "Compressione bassa (rapida)",
       "mediumCompression": "Compressione media (bilanciata)",
@@ -1326,16 +1590,21 @@
       "uploadLabel": "Carica file di testo",
       "uploadDescription": "Trascina e rilascia file di testo qui, oppure clicca per sfogliare.",
       "filesTitle": "File di testo",
-      "modeLabel": "Tipo di testo",
-      "modeDark": "Testo scuro (sfondo chiaro)",
-      "modeLight": "Testo chiaro (sfondo scuro)",
-      "thresholdLabel": "Soglia di luminosità",
-      "thresholdHint": "Regola per controllare quali pixel sono interessati",
+      "preview": "Preview",
+      "optionsTitle": "PDF Options",
+      "pageSize": "Page Size",
+      "fontFamily": "Font",
+      "fontSize": "Font Size",
       "lineHeight": "Interlinea",
       "preserveLineBreaks": "Preserva interruzioni di riga",
       "wrapLines": "A capo righe lunghe",
       "convertButton": "Converti in PDF",
-      "successMessage": "Testo convertito in PDF con successo! Clicca il pulsante di download per salvare il file."
+      "successMessage": "Testo convertito in PDF con successo! Clicca il pulsante di download per salvare il file.",
+      "modeLabel": "Tipo di testo",
+      "modeDark": "Testo scuro (sfondo chiaro)",
+      "modeLight": "Testo chiaro (sfondo scuro)",
+      "thresholdLabel": "Soglia di luminosità",
+      "thresholdHint": "Regola per controllare quali pixel sono interessati"
     },
     "txtToPdf": {
       "uploadLabel": "Carica file di testo",
@@ -1549,10 +1818,16 @@
       "uploadLabel": "Carica file PDF",
       "uploadDescription": "Trascina e rilascia un file PDF da appiattire.",
       "optionsTitle": "Opzioni di appiattimento",
+      "info": "Flattening converts interactive elements (forms, annotations, layers) into static page content. The PDF will no longer be editable but will look the same in every viewer.",
       "flattenForms": "Appiattisci i campi del modulo",
+      "flattenFormsDesc": "Convert fillable form fields to static text",
       "flattenAnnotations": "Appiattisci le annotazioni",
+      "flattenAnnotationsDesc": "Merge comments, highlights, and stamps into page content",
+      "flattenLayers": "Flatten Layers",
+      "flattenLayersDesc": "Merge all visible layers into a single layer",
       "flattenButton": "Appiattisci PDF",
-      "successMessage": "PDF appiattito con successo!"
+      "successMessage": "PDF appiattito con successo!",
+      "flattenedItems": "Flattened:"
     },
     "removeMetadata": {
       "uploadLabel": "Carica file PDF",
@@ -1655,7 +1930,16 @@
       "extracting": "Estrazione dei segnalibri esistenti...",
       "replaceConfirm": "Questo sostituirà i segnalibri attuali. Continuare?",
       "noBookmarksFound": "Nessun segnalibro trovato in questo PDF.",
-      "failedExtract": "Estrazione dei segnalibri fallita."
+      "failedExtract": "Estrazione dei segnalibri fallita.",
+      "title": "Title",
+      "page": "Page",
+      "color": "Color",
+      "style": "Style",
+      "normal": "Normal",
+      "bold": "Bold",
+      "italic": "Italic",
+      "boldItalic": "Bold & Italic",
+      "setToCurrentPage": "Set to current page"
     },
     "pageNumbers": {
       "uploadLabel": "Carica file PDF",
@@ -1736,7 +2020,16 @@
       "repeatSpacingX": "Spaziatura orizzontale",
       "repeatSpacingY": "Spaziatura verticale",
       "staggerTitle": "Layout sfalsato",
-      "staggerDescription": "Sfalsa le righe alternate per un aspetto più professionale"
+      "staggerDescription": "Sfalsa le righe alternate per un aspetto più professionale",
+      "rangeTitle": "Page Range",
+      "rangeAll": "All Pages",
+      "rangeOdd": "Odd Pages",
+      "rangeEven": "Even Pages",
+      "rangeCustom": "Custom Range",
+      "rangePlaceholder": "e.g., 1, 3, 5-10",
+      "previewTitle": "Preview",
+      "previewNote": "Showing first page only for better performance",
+      "previewGenerating": "Generating preview..."
     },
     "headerFooter": {
       "uploadLabel": "Carica file PDF",
@@ -1764,25 +2057,26 @@
     "backgroundColor": {
       "uploadLabel": "Carica file PDF",
       "uploadDescription": "Trascina e rilascia un file PDF.",
-      "optionsTitle": "Colore dello sfondo",
-      "colorPicker": "Selettore colore",
+      "colorLabel": "Colore di sfondo",
       "applyButton": "Applica sfondo",
       "successMessage": "Colore di sfondo applicato con successo!",
-      "colorLabel": "Colore di sfondo"
+      "reapplyHint": "Each apply uses the original file — change the color and apply again as needed.",
+      "optionsTitle": "Colore dello sfondo",
+      "colorPicker": "Selettore colore"
     },
     "textColor": {
       "uploadLabel": "Carica file PDF",
       "uploadDescription": "Trascina e rilascia un file PDF.",
-      "optionsTitle": "Colore del testo",
-      "colorPicker": "Selettore colore",
-      "applyButton": "Applica colore del testo",
-      "successMessage": "Colore del testo applicato con successo!",
       "colorLabel": "Colore del testo",
       "modeLabel": "Tipo di testo",
       "modeDark": "Testo scuro (sfondo chiaro)",
       "modeLight": "Testo chiaro (sfondo scuro)",
       "thresholdLabel": "Soglia di luminosità",
-      "thresholdHint": "Regola per controllare quali pixel sono interessati"
+      "thresholdHint": "Regola per controllare quali pixel sono interessati",
+      "applyButton": "Applica colore del testo",
+      "successMessage": "Colore del testo applicato con successo!",
+      "optionsTitle": "Colore del testo",
+      "colorPicker": "Selettore colore"
     },
     "stamps": {
       "uploadLabel": "Carica file PDF",
@@ -1802,16 +2096,23 @@
       "uploadLabel": "Carica file PDF",
       "uploadDescription": "Trascina e rilascia un file PDF.",
       "optionsTitle": "Opzioni di rimozione",
+      "removeAllLabel": "Rimuovi tutte le annotazioni (commenti, evidenziazioni, collegamenti, ecc.)",
+      "processButton": "Rimuovi annotazioni",
       "successMessage": "Annotazioni rimosse con successo!",
       "removeComments": "Rimuovi commenti",
       "removeHighlights": "Rimuovi evidenziazioni",
-      "removeLinks": "Rimuovi link",
-      "removeAllLabel": "Rimuovi tutte le annotazioni (commenti, evidenziazioni, collegamenti, ecc.)",
-      "processButton": "Rimuovi annotazioni"
+      "removeLinks": "Rimuovi link"
     },
     "formFiller": {
       "uploadLabel": "Carica file PDF",
       "uploadDescription": "Trascina e rilascia un modulo PDF.",
+      "readError": "Could not read form fields. This PDF may not contain fillable forms.",
+      "fieldsTitle": "Form fields ({count})",
+      "fieldPlaceholder": "Enter {type}",
+      "flattenOption": "Flatten form after filling (make non-editable)",
+      "noFields": "No fillable form fields found in this PDF.",
+      "fillButton": "Fill Form",
+      "processError": "Failed to fill the form.",
       "saveButton": "Salva modulo",
       "successMessage": "Modulo salvato con successo!"
     },
@@ -1956,8 +2257,9 @@
       "showPreview": "Mostra anteprima",
       "hidePreview": "Nascondi anteprima",
       "optionsTitle": "Opzioni di conversione",
-      "themeLabel": "Tema",
+      "fontSize": "Font Size",
       "pageSizeLabel": "Dimensioni pagina",
+      "themeLabel": "Tema",
       "gfmLabel": "Abilita GitHub Flavored Markdown (tabelle, elenchi di attività, ecc.)",
       "syntaxHighlightLabel": "Abilita evidenziazione della sintassi per i blocchi di codice",
       "convertButton": "Converti in PDF",
@@ -1966,6 +2268,9 @@
     "pdfToDocx": {
       "uploadLabel": "Carica file PDF",
       "uploadDescription": "Trascina e rilascia un file PDF qui, oppure clicca per sfogliare.",
+      "optionsTitle": "Conversion Options",
+      "preserveFormatting": "Preserve formatting",
+      "extractImages": "Extract images",
       "convertButton": "Converti in DOCX",
       "successMessage": "Il tuo PDF è stato convertito in DOCX con successo! Clicca il pulsante di download per salvare il file."
     },
@@ -1987,6 +2292,8 @@
     "pdfToExcel": {
       "uploadLabel": "Carica file PDF",
       "uploadDescription": "Trascina e rilascia un file PDF qui, oppure clicca per sfogliare.",
+      "optionsTitle": "Conversion Options",
+      "detectTables": "Auto-detect tables",
       "extractNote": "Le tabelle di ogni pagina verranno estratte in fogli separati nel file Excel.",
       "convertButton": "Converti in Excel",
       "successTitle": "Conversione riuscita!",
@@ -2095,6 +2402,9 @@
       "orientationLabel": "Orientamento",
       "rotationLabel": "Rotazione pagina",
       "paddingLabel": "Spaziatura",
+      "bindingEdge": "Binding Edge",
+      "bindingLeft": "Left",
+      "bindingRight": "Right",
       "previewLabel": "Anteprima layout",
       "previewDesc": "Questa anteprima mostra come le pagine saranno disposte su ciascun foglio.",
       "createButton": "Crea opuscolo",
@@ -2119,6 +2429,7 @@
       "optionsTitle": "Opzioni di conversione",
       "pageSizeLabel": "Dimensioni pagina",
       "includeCcBccLabel": "Includi campi CC/BCC",
+      "embedAttachments": "Embed attachments in PDF",
       "includeAttachmentsLabel": "Includi elenco allegati",
       "timezoneLabel": "Fuso orario",
       "convertButton": "Converti in PDF",
@@ -2152,6 +2463,8 @@
       "filesTitle": "File",
       "optionsTitle": "Opzioni",
       "dpiLabel": "DPI di rasterizzazione",
+      "preserveSelectableText": "Preserve selectable text",
+      "pageRange": "Page Range",
       "convertButton": "Converti i font in tracciati",
       "downloadAllZip": "Scarica tutto come ZIP",
       "successMessage": "File convertiti con successo!"
@@ -2221,6 +2534,83 @@
       "unselectedMatch": "Non selezionato"
     }
   },
+  "ai": {
+    "home": {
+      "badge": "AI-first PDF Workspace",
+      "title": "Your AI Workspace for PDFs",
+      "titleHighlight": "What do you want to do?",
+      "subtitle": "Upload your document and let AI help you instantly.",
+      "dropzone": {
+        "title": "Drop PDF here",
+        "subtitle": "Start with upload and get AI suggestions right away.",
+        "cta": "Upload to start"
+      },
+      "suggestions": {
+        "title": "AI Suggestions",
+        "hint": "Goal-first actions"
+      },
+      "actions": {
+        "summarize": {
+          "label": "Summarize",
+          "desc": "Get concise key points quickly"
+        },
+        "translate": {
+          "label": "Translate",
+          "desc": "Translate while preserving context"
+        },
+        "chat": {
+          "label": "Chat",
+          "desc": "Ask questions directly from the PDF"
+        },
+        "edit": {
+          "label": "Edit",
+          "desc": "Edit, annotate, and mark up pages"
+        },
+        "ocr": {
+          "label": "OCR",
+          "desc": "Extract text from scanned documents"
+        },
+        "voice": {
+          "label": "Read aloud",
+          "desc": "Convert PDF content to audio"
+        }
+      },
+      "core": {
+        "title": "Core PDF Tools",
+        "mergePdf": "Merge PDF",
+        "splitPdf": "Split PDF",
+        "compressPdf": "Compress PDF",
+        "pdfToWord": "PDF to Word"
+      }
+    },
+    "pages": {
+      "summary": {
+        "title": "AI Summary",
+        "description": "Upload a PDF and get a concise AI-generated summary.",
+        "action": "Generate summary"
+      },
+      "translate": {
+        "title": "AI Translate",
+        "description": "Upload a PDF and translate content with your AI server.",
+        "action": "Translate document"
+      },
+      "chat": {
+        "title": "Chat with PDF",
+        "description": "Upload a PDF and ask your AI server questions.",
+        "action": "Start chat analysis"
+      },
+      "smartOcr": {
+        "title": "Smart OCR",
+        "description": "Run OCR with AI post-processing for better structure and accuracy.",
+        "action": "Run smart OCR"
+      },
+      "voice": {
+        "title": "Voice Reader",
+        "description": "Convert PDF content to audio using your AI voice pipeline.",
+        "action": "Generate audio"
+      }
+    }
+  },
   "workspace": {
     "opening": "Apertura dell'area di lavoro del documento...",
     "untitled": "Senza titolo.pdf",
@@ -2253,6 +2643,8 @@
       "page": "Pagina",
       "insert": "Inserisci",
       "save": "Salva",
+      "file": "File",
+      "document": "Document",
       "pages": "Pagine",
       "transform": "Trasforma",
       "combine": "Combina",
@@ -2284,6 +2676,7 @@
       "ocrLayerHint": "OCR text on scanned PDFs — turn off if misaligned"
     },
     "tools": {
+      "open": "Open",
       "zoomIn": "Zoom avanti",
       "zoomOut": "Zoom indietro",
       "fitPage": "Adatta alla pagina",
@@ -2308,6 +2701,7 @@
       "extract": "Estrai",
       "organize": "Organizza",
       "reverse": "Inverti",
+      "reverseOrder": "Reverse Order",
       "highlight": "Evidenzia",
       "underline": "Sottolinea",
       "strikeout": "Barrato",
@@ -2315,6 +2709,7 @@
       "rectangle": "Rettangolo",
       "circle": "Cerchio",
       "text": "Testo",
+      "textComment": "Text Comment",
       "note": "Nota",
       "stamp": "Timbro",
       "signature": "Firma",
@@ -2349,6 +2744,13 @@
       "summarize": "Riassumi",
       "translate": "Traduci",
       "smartOcr": "OCR intelligente"
+    },
+    "textStyle": {
+      "label": "Text style",
+      "fontFamily": "Font",
+      "fontSize": "Size",
+      "color": "Color",
+      "clearConfirm": "Remove all annotations on this document?"
     },
     "sidebar": {
       "newPdf": "Nuovo PDF",
@@ -2512,36 +2914,6 @@
     },
     "statusBar": {
       "aiAssistant": "Assistente AI"
-    }
-  },
-  "homePage": {
-    "badge": "Area di lavoro PDF con AI",
-    "heroTitle": "Comprendi qualsiasi PDF con l'AI",
-    "heroSubtitle": "Riassumi, traduci, chatta e modifica i documenti all'istante.",
-    "uploadTitle": "Carica un documento per iniziare",
-    "uploadDescription": "Apri l'area di lavoro del documento e usa azioni AI contestuali.",
-    "uploadCta": "Carica nell'area di lavoro",
-    "uploadSecure": "Elaborazione sicura",
-    "uploadOcr": "OCR basato su AI",
-    "uploadLanguages": "Supporta oltre 100 lingue",
-    "aiActionsTitle": "Azioni AI",
-    "useInWorkspace": "Usa nell'area di lavoro",
-    "coreActionsTitle": "Azioni PDF principali",
-    "viewAllTools": "Vedi tutti gli strumenti",
-    "preparingTitle": "Preparazione del documento...",
-    "preparingUploading": "Caricamento...",
-    "preparingAnalyzing": "Analisi del documento...",
-    "preparingWorkspace": "Preparazione dell'area di lavoro AI...",
-    "actions": {
-      "summarize": "Riassumi",
-      "translate": "Traduci documento",
-      "chat": "Chat con PDF",
-      "ocr": "Scansione OCR",
-      "voice": "Lettore vocale",
-      "edit": "Modifica",
-      "compress": "Comprimi",
-      "merge": "Unisci",
-      "convert": "Converti"
     }
   }
 }

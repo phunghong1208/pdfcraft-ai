@@ -112,10 +112,10 @@ export class EditMetadataPDFProcessor extends BasePDFProcessor {
 
       this.updateProgress(40, 'Loading PDF document...');
 
-      // Load the PDF document
+      // Load the PDF document (ignoreEncryption: many Word/exported PDFs open read-only otherwise)
       const pdfDoc = await pdfLib.PDFDocument.load(arrayBuffer, {
-        ignoreEncryption: false,
-        updateMetadata: true,
+        ignoreEncryption: true,
+        updateMetadata: false,
       });
 
       if (this.checkCancelled()) {
@@ -159,6 +159,13 @@ export class EditMetadataPDFProcessor extends BasePDFProcessor {
         pdfDoc.setModificationDate(new Date());
       }
 
+      // Drop stale XMP packet so viewers read the updated Info dictionary (Word PDFs often store title in XMP only).
+      try {
+        pdfDoc.catalog.delete(pdfLib.PDFName.of('Metadata'));
+      } catch {
+        // Catalog may not have Metadata — safe to ignore.
+      }
+
       if (this.checkCancelled()) {
         return this.createErrorOutput(
           PDFErrorCode.PROCESSING_CANCELLED,
@@ -169,7 +176,10 @@ export class EditMetadataPDFProcessor extends BasePDFProcessor {
       this.updateProgress(80, 'Saving PDF...');
 
       // Save the modified PDF
-      const modifiedPdfBytes = await pdfDoc.save({ useObjectStreams: true });
+      const modifiedPdfBytes = await pdfDoc.save({
+        useObjectStreams: false,
+        addDefaultPage: false,
+      });
       const blob = new Blob([new Uint8Array(modifiedPdfBytes)], { type: 'application/pdf' });
 
       this.updateProgress(100, 'Complete!');
