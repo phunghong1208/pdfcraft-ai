@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { CloudOff, Lock, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { CloudOff, HardDrive, ShieldCheck, type LucideIcon } from 'lucide-react';
 import { type Locale } from '@/lib/i18n/config';
 import { siteConfig } from '@/config/site';
 import { FooterStoreLink } from '@/components/layout/FooterStoreBadges';
@@ -26,7 +26,12 @@ const BRAND_FILE_ICON = (
   </svg>
 );
 
-type TrustItem = { label: string; icon: LucideIcon };
+type TrustItem = {
+  label: string;
+  desc: string;
+  icon: LucideIcon;
+  tone: 'purple' | 'blue' | 'coral';
+};
 
 export interface FooterProps {
   locale: Locale;
@@ -42,10 +47,10 @@ export const Footer: React.FC<FooterProps> = ({ locale }) => {
     { href: `/${locale}/cookies`, label: t('footer.cookies') },
   ];
 
-  const securityItems: TrustItem[] = [
-    { icon: Lock, label: t('footer.trustLocalFirst') },
-    { icon: CloudOff, label: t('footer.trustNoCloud') },
-    { icon: ShieldCheck, label: t('footer.trustGdpr') },
+  const trustItems: TrustItem[] = [
+    { icon: HardDrive, tone: 'purple', label: t('footer.trustLocalFirst'), desc: t('footer.trustLocalFirstDesc') },
+    { icon: CloudOff, tone: 'blue', label: t('footer.trustNoCloud'), desc: t('footer.trustNoCloudDesc') },
+    { icon: ShieldCheck, tone: 'purple', label: t('footer.trustGdpr'), desc: t('footer.trustGdprDesc') },
   ];
 
   return (
@@ -57,60 +62,52 @@ export const Footer: React.FC<FooterProps> = ({ locale }) => {
             className="site-footer__brand group"
             aria-label={t('footer.brandName')}
           >
-            <div className="site-footer__brand-content">
-              <div className="site-footer__brand-main">
-                <div className="site-footer__brand-icon">{BRAND_FILE_ICON}</div>
-                <div className="site-footer__title" data-testid="footer-brand-name">
-                  <span className="site-footer__title-line">{t('footer.brandLine1')}</span>
-                  <span className="site-footer__title-line">{t('footer.brandLine2')}</span>
-                </div>
-              </div>
+            <div className="site-footer__brand-icon">{BRAND_FILE_ICON}</div>
+            <div className="site-footer__brand-text">
+              <p className="site-footer__title" data-testid="footer-brand-name">
+                {t('footer.brandName')}
+              </p>
               <p className="site-footer__tagline">{t('footer.tagline')}</p>
             </div>
           </Link>
 
-          <div className="site-footer__trust-zone" aria-label={t('footer.trustNav')}>
-            <div className="site-footer__trust-group">
-              <div className="site-footer__trust-heading">{t('footer.trustGroupSecurity')}</div>
-              <ul className="site-footer__trust" aria-label={t('footer.trustGroupSecurity')}>
-                {securityItems.map((item) => {
-                  const TrustIcon = item.icon;
-                  return (
-                    <li key={item.label} className="site-footer__trust-card">
-                      <span className="site-footer__trust-icon" aria-hidden>
-                        <TrustIcon strokeWidth={2.25} />
-                      </span>
-                      <span className="site-footer__trust-label">{item.label}</span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
+          <ul className="site-footer__trust" aria-label={t('footer.trustNav')}>
+            {trustItems.map((item) => {
+              const TrustIcon = item.icon;
+              return (
+                <li key={item.label} className="site-footer__trust-item">
+                  <span className={`site-footer__trust-icon site-footer__trust-icon--${item.tone}`} aria-hidden>
+                    <TrustIcon strokeWidth={2} />
+                  </span>
+                  <span className="site-footer__trust-copy">
+                    <span className="site-footer__trust-label">{item.label}</span>
+                    <span className="site-footer__trust-desc">{item.desc}</span>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
 
-            <div className="site-footer__trust-group site-footer__trust-group--download">
-              <div className="site-footer__trust-heading">{t('footer.trustGroupDownload')}</div>
-              <div
-                className="site-footer__app-badges"
-                aria-label={t('footer.downloadApp')}
-              >
-                <FooterStoreLink
-                  href={siteConfig.links.googlePlay}
-                  store="google"
-                  label={t('footer.storeGooglePlay')}
-                  ariaLabel={t('footer.googlePlayAria')}
-                />
-                <FooterStoreLink
-                  href={siteConfig.links.appStore}
-                  store="apple"
-                  label={t('footer.storeAppStore')}
-                  ariaLabel={t('footer.appStoreAria')}
-                />
-              </div>
+          <div className="site-footer__download">
+            <p className="site-footer__download-heading">{t('footer.trustGroupDownload')}</p>
+            <div className="site-footer__app-badges" aria-label={t('footer.downloadApp')}>
+              <FooterStoreLink
+                href={siteConfig.links.googlePlay}
+                store="google"
+                prefix={t('footer.storeGetOn')}
+                label={t('footer.storeGooglePlay')}
+                ariaLabel={t('footer.googlePlayAria')}
+              />
+              <FooterStoreLink
+                href={siteConfig.links.appStore}
+                store="apple"
+                prefix={t('footer.storeDownloadOn')}
+                label={t('footer.storeAppStore')}
+                ariaLabel={t('footer.appStoreAria')}
+              />
             </div>
           </div>
         </div>
-
-        <div className="site-footer__rule" aria-hidden="true" />
 
         <div className="site-footer__foot">
           <nav className="site-footer__legal" aria-label={t('footer.legalNav')}>

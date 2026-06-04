@@ -4,13 +4,12 @@ import { useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Upload, Sparkles, Languages, MessagesSquare, ScanText, Volume2, PencilLine, Minimize2, GitMerge, FileCog, ShieldCheck, Scissors } from 'lucide-react';
+import { Upload, Sparkles, Languages, MessagesSquare, ScanText, Volume2, PencilLine, Minimize2, GitMerge, FileCog, ShieldCheck, Scissors, ArrowRight } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { IconBadge } from '@/components/ui/IconBadge';
-import { aiCardClass, type AiCardVariant } from '@/lib/ui/icon-tones';
+import { aiCardAccentClass, toolActionCardClass, type AiCardAccent, type IconTone } from '@/lib/ui/icon-tones';
 import { type Locale } from '@/lib/i18n/config';
 import { setUploadedPdf } from '@/lib/document-session';
 
@@ -27,23 +26,38 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
   const [isPreparing, setIsPreparing] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
 
-  const aiActions: Array<{ href: string; label: string; icon: typeof Sparkles; variant: AiCardVariant; description: string }> = [
-    { href: `/${locale}/ai-summary`, label: t('actions.summarize'), icon: Sparkles, variant: 'purple', description: 'Extract key insights from any PDF.' },
-    { href: `/${locale}/ai-translate`, label: t('actions.translate'), icon: Languages, variant: 'blue', description: 'Translate entire documents into other languages.' },
-    { href: `/${locale}/voice-reader`, label: t('actions.voice'), icon: Volume2, variant: 'coral', description: 'Convert PDF to natural speech instantly.' },
-    { href: `/${locale}/smart-ocr`, label: t('actions.ocr'), icon: ScanText, variant: 'green', description: 'Convert scans to editable PDF.' },
-    { href: `/${locale}/chat-pdf`, label: t('actions.chat'), icon: MessagesSquare, variant: 'violet-wide', description: 'Ask questions about your files and get instant answers.' },
+  const aiActions: Array<{
+    href: string;
+    label: string;
+    icon: typeof Sparkles;
+    accent: AiCardAccent;
+    descriptionKey: 'summarize' | 'translate' | 'voice' | 'ocr' | 'chat';
+    wide?: boolean;
+    popular?: boolean;
+    aiBadge?: boolean;
+  }> = [
+    { href: `/${locale}/ai-summary`, label: t('actions.summarize'), icon: Sparkles, accent: 'purple', descriptionKey: 'summarize', aiBadge: true },
+    { href: `/${locale}/ai-translate`, label: t('actions.translate'), icon: Languages, accent: 'blue', descriptionKey: 'translate' },
+    { href: `/${locale}/voice-reader`, label: t('actions.voice'), icon: Volume2, accent: 'coral', descriptionKey: 'voice' },
+    { href: `/${locale}/smart-ocr`, label: t('actions.ocr'), icon: ScanText, accent: 'green', descriptionKey: 'ocr' },
+    { href: `/${locale}/chat-pdf`, label: t('actions.chat'), icon: MessagesSquare, accent: 'violet', wide: true, popular: true, descriptionKey: 'chat' },
   ];
 
-  const pdfActions: Array<{ href: string; label: string; icon: typeof PencilLine }> = [
-    { href: `/${locale}/tools/image-to-pdf`, label: t('actions.scanToPdf'), icon: ScanText },
-    { href: `/${locale}/tools/merge-pdf`, label: t('actions.merge'), icon: GitMerge },
-    { href: `/${locale}/tools/split-pdf`, label: t('actions.split'), icon: Scissors },
-    { href: `/${locale}/tools/encrypt-pdf`, label: t('actions.protect'), icon: ShieldCheck },
-    { href: `/${locale}/tools/compress-pdf`, label: t('actions.compress'), icon: Minimize2 },
-    { href: `/${locale}/smart-ocr`, label: t('actions.ocrText'), icon: ScanText },
-    { href: `/${locale}/tools/edit-pdf`, label: t('actions.edit'), icon: PencilLine },
-    { href: `/${locale}/tools?tab=convert`, label: t('actions.convert'), icon: FileCog },
+  const pdfActions: Array<{
+    href: string;
+    label: string;
+    icon: typeof PencilLine;
+    tone: IconTone;
+    descriptionKey: 'scanToPdf' | 'merge' | 'split' | 'protect' | 'compress' | 'ocrText' | 'edit' | 'convert';
+  }> = [
+    { href: `/${locale}/tools/image-to-pdf`, label: t('actions.scanToPdf'), icon: ScanText, tone: 'red', descriptionKey: 'scanToPdf' },
+    { href: `/${locale}/tools/merge-pdf`, label: t('actions.merge'), icon: GitMerge, tone: 'orange', descriptionKey: 'merge' },
+    { href: `/${locale}/tools/split-pdf`, label: t('actions.split'), icon: Scissors, tone: 'orange', descriptionKey: 'split' },
+    { href: `/${locale}/tools/encrypt-pdf`, label: t('actions.protect'), icon: ShieldCheck, tone: 'green', descriptionKey: 'protect' },
+    { href: `/${locale}/tools/compress-pdf`, label: t('actions.compress'), icon: Minimize2, tone: 'blue', descriptionKey: 'compress' },
+    { href: `/${locale}/smart-ocr`, label: t('actions.ocrText'), icon: ScanText, tone: 'purple', descriptionKey: 'ocrText' },
+    { href: `/${locale}/tools/edit-pdf`, label: t('actions.edit'), icon: PencilLine, tone: 'purple', descriptionKey: 'edit' },
+    { href: `/${locale}/tools?tab=convert`, label: t('actions.convert'), icon: FileCog, tone: 'orange', descriptionKey: 'convert' },
   ];
 
   function startUpload() {
@@ -128,25 +142,31 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
                   {t('useInWorkspace')}
                 </Link>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {aiActions.map((item) => {
                   const Icon = item.icon;
-                  const isWide = item.variant === 'violet-wide';
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`${aiCardClass(item.variant)} p-4 block ${isWide ? 'sm:col-span-2 lg:col-span-2' : ''}`}
+                      className={`${aiCardAccentClass(item.accent)} p-5 md:p-6 block ${item.wide ? 'sm:col-span-2 lg:col-span-2' : ''}`}
                     >
-                      <div className="flex h-full flex-col gap-3">
-                        <div className="h-9 w-9 rounded-lg bg-white/20 flex items-center justify-center">
-                          <Icon className="h-5 w-5 text-white" strokeWidth={1.75} />
+                      {item.aiBadge && (
+                        <span className="ai-card__badge">{t('aiBadge')}</span>
+                      )}
+                      {item.popular && (
+                        <span className="ai-card__badge">{t('popularAiBadge')}</span>
+                      )}
+                      <div className="ai-card__body">
+                        <div className="ai-card__icon">
+                          <Icon className="h-5 w-5" strokeWidth={1.75} />
                         </div>
                         <div>
-                          <div className="text-sm font-semibold">{item.label}</div>
-                          <p className="mt-1 text-xs text-white/80 leading-relaxed">{item.description}</p>
+                          <div className="ai-card__title">{item.label}</div>
+                          <p className="ai-card__desc">{t(`aiDescriptions.${item.descriptionKey}`)}</p>
                         </div>
                       </div>
+                      <ArrowRight className="ai-card__arrow" strokeWidth={1.5} aria-hidden />
                     </Link>
                   );
                 })}
@@ -171,14 +191,14 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
                     <Link
                       key={`${item.href}-${item.label}`}
                       href={item.href}
-                      className="feature-card-light rounded-2xl px-3 py-3 min-h-[96px] hover:shadow-md transition-all group"
+                      className={toolActionCardClass(item.tone)}
                     >
-                      <div className="flex flex-col gap-3 h-full justify-between">
-                        <IconBadge icon={Icon} tone="primary" size="md" />
-                        <span className="text-sm font-medium text-[hsl(var(--color-foreground))] group-hover:text-[hsl(var(--color-primary))] transition-colors">
-                          {item.label}
-                        </span>
+                      <div className="tool-action-card__icon">
+                        <Icon strokeWidth={1.75} />
                       </div>
+                      <div className="tool-action-card__title">{item.label}</div>
+                      <p className="tool-action-card__desc">{t(`toolDescriptions.${item.descriptionKey}`)}</p>
+                      <ArrowRight className="tool-action-card__arrow" strokeWidth={1.5} aria-hidden />
                     </Link>
                   );
                 })}

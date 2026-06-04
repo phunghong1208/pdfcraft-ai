@@ -62,9 +62,21 @@ export function getToolIconTone(toolId: string, category?: string): IconTone {
   return TOOL_TONE_MAP[toolId] ?? (category ? CATEGORY_TONE_FALLBACK[category] : undefined) ?? 'blue';
 }
 
-/** AI power-up card gradients — theme-aware via CSS vars */
-export type AiCardVariant = 'purple' | 'blue' | 'coral' | 'green' | 'violet-wide';
+export function toolActionCardClass(tone: IconTone): string {
+  return `tool-action-card icon-tone icon-tone-${tone}`;
+}
+
+/** AI homepage cards — dark surface, accent border & glow */
+export type AiCardAccent = 'purple' | 'blue' | 'coral' | 'green' | 'violet';
+
+export function aiCardAccentClass(accent: AiCardAccent): string {
+  return `ai-card ai-card-surface ai-card-accent-${accent}`;
+}
+
+/** @deprecated Use AiCardAccent */
+export type AiCardVariant = AiCardAccent | 'violet-wide' | 'neutral';
 
 export function aiCardClass(variant: AiCardVariant): string {
-  return `ai-card ai-card-${variant}`;
+  if (variant === 'violet-wide' || variant === 'neutral') return aiCardAccentClass('purple');
+  return aiCardAccentClass(variant);
 }

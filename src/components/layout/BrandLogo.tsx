@@ -26,7 +26,7 @@ export function BrandLogo({
         icon={FileText}
         tone="primary"
         size="sm"
-        className="transition-transform duration-200 group-hover:scale-[1.03]"
+        className="site-header__logo-icon transition-transform duration-200 group-hover:scale-[1.03]"
       />
       <div className="flex min-w-0 flex-col gap-0.5 leading-none">
         <span

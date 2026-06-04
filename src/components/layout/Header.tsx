@@ -31,7 +31,6 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const [localizedTools, setLocalizedTools] = useState<Record<string, { title: string; description: string }>>({});
   const [openGroup, setOpenGroup] = useState<NavGroup | null>(null);
 
@@ -72,12 +71,6 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
 
     setLocalizedTools(contentMap);
   }, [locale]);
-
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 8);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   useEffect(() => {
     if (searchQuery.trim()) {
@@ -183,35 +176,34 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
     </div>
   );
 
+  const isHomeActive = pathname === `/${locale}` || pathname === `/${locale}/`;
   const isAIActive = pathname?.includes('/ai-') || pathname?.includes('/chat-pdf') || pathname?.includes('/smart-ocr') || pathname?.includes('/voice-reader');
   const isPDFAcitve = pathname?.includes('/tools/');
   const isWorkspaceActive = pathname?.includes('/workspace');
 
+  const navItemClass = (active: boolean) =>
+    `site-header__nav-item${active ? ' site-header__nav-item--active' : ''}`;
+
   return (
-    <header
-      className={`fixed top-0 z-50 w-full transition-all duration-300 ${scrolled
-        ? 'bg-transparent'
-        : 'bg-transparent'}`}
-      role="banner"
-    >
+    <header className="site-header fixed top-0 z-50 w-full transition-all duration-300" role="banner">
       <div className="container mx-auto px-4 pt-5">
-        <div className="flex h-[78px] items-center justify-between rounded-2xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-card))]/95 backdrop-blur-2xl px-4 shadow-sm">
+        <div className="site-header__bar flex h-16 items-center justify-between rounded-2xl px-4 shadow-sm">
           <div className="flex flex-1 items-center gap-2">
             <BrandLogo locale={locale} href={`/${locale}`} />
           </div>
 
           <nav
-            className={`hidden md:flex items-center gap-1 rounded-full border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.35)] px-1.5 py-1 transition-all duration-300 ${isSearchOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+            className={`site-header__nav hidden md:flex items-center gap-1 rounded-full border px-1.5 py-1 transition-all duration-300 ${isSearchOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
             role="navigation"
             aria-label="Main navigation"
             ref={groupRef}
           >
-            <Link href={`/${locale}`} className="px-3.5 py-1.5 text-sm font-medium rounded-full text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))] hover:bg-[hsl(var(--color-muted))]/80 transition-colors">{t('navigation.home')}</Link>
+            <Link href={`/${locale}`} className={navItemClass(isHomeActive)}>{t('navigation.home')}</Link>
 
             <div className="relative">
               <button
                 type="button"
-                className={`inline-flex items-center gap-1 px-3.5 py-1.5 text-sm font-medium rounded-full transition-all ${isAIActive ? 'text-[hsl(var(--color-primary))] bg-[hsl(var(--color-primary)/0.14)]' : 'text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))] hover:bg-[hsl(var(--color-muted))]/80'}`}
+                className={navItemClass(isAIActive)}
                 onClick={() => setOpenGroup(prev => prev === 'ai' ? null : 'ai')}
               >
                 {t('ai.menu.aiAssistant')}
@@ -223,7 +215,7 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
             <div className="relative">
               <button
                 type="button"
-                className={`inline-flex items-center gap-1 px-3.5 py-1.5 text-sm font-medium rounded-full transition-all ${isPDFAcitve ? 'text-[hsl(var(--color-primary))] bg-[hsl(var(--color-primary)/0.14)]' : 'text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))] hover:bg-[hsl(var(--color-muted))]/80'}`}
+                className={navItemClass(isPDFAcitve)}
                 onClick={() => setOpenGroup(prev => prev === 'pdf' ? null : 'pdf')}
               >
                 {t('ai.menu.pdfTools')}
@@ -232,12 +224,12 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
               {openGroup === 'pdf' && renderGroupDropdown(pdfItems)}
             </div>
 
-            <Link href={`/${locale}/workspace`} className={`px-3.5 py-1.5 text-sm font-medium rounded-full transition-all ${isWorkspaceActive ? 'text-[hsl(var(--color-primary))] bg-[hsl(var(--color-primary)/0.14)]' : 'text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))] hover:bg-[hsl(var(--color-muted))]/80'}`}>{t('ai.menu.workspace')}</Link>
+            <Link href={`/${locale}/workspace`} className={navItemClass(isWorkspaceActive)}>{t('ai.menu.workspace')}</Link>
           </nav>
 
           <div className="hidden lg:flex flex-1 items-center justify-center px-10">
             {showSearch && !isSearchOpen && (
-              <Button variant="ghost" size="sm" onClick={handleSearchToggle} aria-label={t('search.open')} className="h-11 w-[290px] justify-between rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.45)] px-3 text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))] hover:bg-[hsl(var(--color-muted))]/80 hover:border-[hsl(var(--color-primary)/0.35)] transition-colors focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-primary)/0.25)]">
+              <Button variant="ghost" size="sm" onClick={handleSearchToggle} aria-label={t('search.open')} className="site-header__search h-11 w-[290px] justify-between rounded-xl border px-3 text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))] transition-colors focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-primary)/0.25)]">
                 <span className="inline-flex items-center text-sm font-medium">{t('search.trigger')}</span>
                 <span className="text-xs font-semibold text-[hsl(var(--color-muted-foreground))/0.8] border border-[hsl(var(--color-border))] rounded px-1.5 py-0.5">⌘K</span>
               </Button>
@@ -258,7 +250,7 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onKeyDown={handleInputKeyDown}
                         placeholder={t('search.placeholderExpanded')}
-                        className="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-background))] shadow-lg focus:outline-none focus:ring-2 focus:ring-[hsl(var(--color-primary))]"
+                        className="site-header__search-input w-full pl-10 pr-10 py-2.5 text-sm rounded-xl border shadow-lg focus:outline-none"
                         aria-label={t('search.trigger')}
                         autoComplete="off"
                       />
@@ -320,12 +312,12 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
             <LanguageSelector currentLocale={locale} compact />
             <button
               type="button"
-              className="hidden sm:inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-semibold text-[hsl(var(--color-foreground))] bg-[hsl(var(--color-muted))]/60 hover:bg-[hsl(var(--color-muted))] transition-colors"
-              aria-label="Account"
+              className="site-header__upgrade-btn hidden sm:inline-flex"
+              aria-label={t('upgradeTitle')}
               title={t('upgradeTitle')}
             >
-              <UserCircle2 className="h-4 w-4" />
-              <span className="font-medium">{t('upgrade')}</span>
+              <UserCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span className="hidden lg:inline">{t('upgrade')}</span>
             </button>
 
             <Button

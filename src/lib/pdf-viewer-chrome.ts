@@ -559,9 +559,25 @@ export function fitPdfViewerPageWidth(pdfViewer: {
   currentScaleValue: string;
   currentScale?: number;
   scrollMode?: number;
+  update?: () => void;
 }): void {
   pdfViewer.currentScaleValue = 'page-width';
   if (typeof pdfViewer.scrollMode !== 'undefined') {
     pdfViewer.scrollMode = 0;
   }
+  pdfViewer.update?.();
+}
+
+/** Vừa toàn trang trong khung viewer. */
+export function fitPdfViewerPageFit(pdfViewer: {
+  currentScaleValue: string;
+  currentScale?: number;
+  scrollMode?: number;
+  update?: () => void;
+}): void {
+  pdfViewer.currentScaleValue = 'page-fit';
+  if (typeof pdfViewer.scrollMode !== 'undefined') {
+    pdfViewer.scrollMode = 0;
+  }
+  pdfViewer.update?.();
 }

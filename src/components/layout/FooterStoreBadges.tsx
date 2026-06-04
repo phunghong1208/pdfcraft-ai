@@ -10,7 +10,7 @@ function GooglePlayIcon() {
         fill="#34A853"
       />
       <path
-        d="M22.1 10.6c.4.3.4.9 0 1.2l-2.4 1.4-3-2.8 3-2.8 2.4 1.4c.4.3.4.9 0 1.2Z"
+        d="M22.1 10.6c.4.3.4.9 0 1.2l-2.4 1.4-3-2.8 3-2.8 2.4 1.4c.4.9 0 1.2Z"
         fill="#FBBC04"
       />
       <path
@@ -35,11 +35,12 @@ function AppStoreIcon() {
 export interface FooterStoreLinkProps {
   href: string;
   store: 'google' | 'apple';
+  prefix: string;
   label: string;
   ariaLabel: string;
 }
 
-export function FooterStoreLink({ href, store, label, ariaLabel }: FooterStoreLinkProps) {
+export function FooterStoreLink({ href, store, prefix, label, ariaLabel }: FooterStoreLinkProps) {
   return (
     <a
       href={href}
@@ -49,7 +50,10 @@ export function FooterStoreLink({ href, store, label, ariaLabel }: FooterStoreLi
       aria-label={ariaLabel}
     >
       {store === 'google' ? <GooglePlayIcon /> : <AppStoreIcon />}
-      <span className="site-footer__store-name">{label}</span>
+      <span className="site-footer__store-text">
+        <span className="site-footer__store-prefix">{prefix}</span>
+        <span className="site-footer__store-name">{label}</span>
+      </span>
     </a>
   );
 }

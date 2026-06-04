@@ -4,11 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
-  Upload, ScanText, ZoomIn, ZoomOut, Maximize2, Minimize2,
+  Upload, ScanText, Minimize2, ZoomIn, ZoomOut, Plus,
   FolderOpen,
   Eye, Highlighter, ArrowLeft, Save, Share2, FileDown,
   Type, FileText, FileSpreadsheet,
-  Image, FileType, Plus, Trash2, RotateCw, Crop, LayoutGrid,
+  Image, FileType, Trash2, RotateCw, Crop, LayoutGrid,
   ArrowLeftRight, Lock, Unlock, EyeOff, Pen, ShieldCheck,
   Languages, Layers, Scissors, Wrench,
   ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight,
@@ -69,6 +69,7 @@ import {
   attachKonvaSeamGuard,
   snapPdfViewerScale,
   fitPdfViewerPageWidth,
+  fitPdfViewerPageFit,
   stripPdfViewerSeams,
 } from '@/lib/pdf-viewer-chrome';
 
@@ -77,6 +78,8 @@ interface DocumentWorkspaceClientProps {
 }
 
 type RibbonTabKey = 'home' | 'edit' | 'page' | 'comment' | 'convert' | 'tool' | 'fillsign' | 'protect';
+
+const ZOOM_PRESETS = [50, 75, 100, 125, 150, 200] as const;
 
 type WorkspaceInlineTool =
   | 'compress'
@@ -277,24 +280,7 @@ function getRibbonGroups(
 
   switch (tab) {
     case 'home':
-      return [
-        {
-          label: tr('groups.file'),
-          tools: [
-            { icon: FolderOpen, label: tr('tools.open'), action: 'openDocument' },
-            { icon: Save, label: tr('tools.save'), action: 'save' },
-            { icon: Printer, label: tr('tools.print'), action: 'print' },
-          ],
-        },
-        {
-          label: tr('groups.view'),
-          tools: [
-            { icon: ZoomIn, label: tr('tools.zoomIn'), action: 'zoomIn' },
-            { icon: ZoomOut, label: tr('tools.zoomOut'), action: 'zoomOut' },
-            { icon: Maximize2, label: tr('tools.fitPage'), action: 'fitPage' },
-          ],
-        },
-      ];
+      return [];
 
     case 'edit':
       return [
@@ -626,6 +612,69 @@ const TAB_KEYS: { key: RibbonTabKey; icon: LucideIcon }[] = [
   { key: 'protect', icon: Lock },
 ];
 
+function WorkspaceHomeRibbon({
+  zoom,
+  onZoomIn,
+  onZoomOut,
+  onZoomPreset,
+  onFitWidth,
+  onFitPage,
+  onAction,
+  t,
+}: {
+  zoom: number;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onZoomPreset: (percent: number) => void;
+  onFitWidth: () => void;
+  onFitPage: () => void;
+  onAction: (action: string) => void;
+  t: ReturnType<typeof useTranslations<'workspace'>>;
+}) {
+  const nearestPreset = ZOOM_PRESETS.reduce((prev, cur) =>
+    Math.abs(cur - zoom) < Math.abs(prev - zoom) ? cur : prev,
+  );
+
+  return (
+    <div className="ws-home-ribbon w-fit max-w-full px-2 pb-1.5 pt-0.5">
+      <button type="button" className="ws-ribbon-icon-btn" onClick={() => onAction('openDocument')} title={t('tools.open')}>
+        <FolderOpen className="h-3.5 w-3.5" />
+        <span>{t('tools.open')}</span>
+      </button>
+      <button type="button" className="ws-ribbon-icon-btn" onClick={() => onAction('save')} title={t('tools.save')}>
+        <Save className="h-3.5 w-3.5" />
+        <span>{t('tools.save')}</span>
+      </button>
+      <button type="button" className="ws-ribbon-icon-btn" onClick={() => onAction('print')} title={t('tools.print')}>
+        <Printer className="h-3.5 w-3.5" />
+        <span>{t('tools.print')}</span>
+      </button>
+
+      <div className="ws-zoom-inline">
+        <select
+          className="ws-zoom-select"
+          value={nearestPreset}
+          onChange={(e) => onZoomPreset(Number(e.target.value))}
+          aria-label={t('tools.zoom')}
+        >
+          {ZOOM_PRESETS.map((preset) => (
+            <option key={preset} value={preset}>{preset}%</option>
+          ))}
+        </select>
+        <button type="button" className="ws-ribbon-icon-btn ws-ribbon-icon-btn--icon" onClick={onZoomOut} aria-label={t('tools.zoomOut')}>
+          <ZoomOut className="h-3.5 w-3.5" strokeWidth={1.75} />
+        </button>
+        <button type="button" className="ws-ribbon-icon-btn ws-ribbon-icon-btn--icon" onClick={onZoomIn} aria-label={t('tools.zoomIn')}>
+          <ZoomIn className="h-3.5 w-3.5" strokeWidth={1.75} />
+        </button>
+      </div>
+
+      <button type="button" className="ws-fit-btn" onClick={onFitWidth}>{t('tools.fitWidth')}</button>
+      <button type="button" className="ws-fit-btn" onClick={onFitPage}>{t('tools.fitPage')}</button>
+    </div>
+  );
+}
+
 export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps) {
   const router = useRouter();
   const t = useTranslations('workspace');
@@ -852,20 +901,26 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     [handleFileChange],
   );
 
-  const applyPdfZoom = useCallback((direction: 'in' | 'out' | 'fit') => {
+  const applyPdfZoom = useCallback((direction: 'in' | 'out' | 'fitWidth' | 'fitPage') => {
     const app = getPdfApp(editorIframeRef.current)?.PDFViewerApplication;
     const pdfViewer = app?.pdfViewer;
     if (!pdfViewer) {
       setZoom((z) => {
         if (direction === 'in') return Math.min(200, z + 10);
         if (direction === 'out') return Math.max(50, z - 10);
-        return 100;
+        if (direction === 'fitWidth' || direction === 'fitPage') return 100;
+        return z;
       });
       return;
     }
 
-    if (direction === 'fit') {
+    if (direction === 'fitWidth') {
       fitPdfViewerPageWidth(pdfViewer);
+      setZoom(Math.round((pdfViewer.currentScale ?? 1) * 100));
+      return;
+    }
+    if (direction === 'fitPage') {
+      fitPdfViewerPageFit(pdfViewer);
       setZoom(Math.round((pdfViewer.currentScale ?? 1) * 100));
       return;
     }
@@ -900,6 +955,23 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
 
   const handleZoomIn = useCallback(() => applyPdfZoom('in'), [applyPdfZoom]);
   const handleZoomOut = useCallback(() => applyPdfZoom('out'), [applyPdfZoom]);
+  const handleFitWidth = useCallback(() => applyPdfZoom('fitWidth'), [applyPdfZoom]);
+  const handleFitPage = useCallback(() => applyPdfZoom('fitPage'), [applyPdfZoom]);
+
+  const handleZoomPreset = useCallback((percent: number) => {
+    const app = getPdfApp(editorIframeRef.current)?.PDFViewerApplication;
+    const pdfViewer = app?.pdfViewer;
+    if (!pdfViewer) {
+      setZoom(percent);
+      return;
+    }
+    const scale = percent / 100;
+    pdfViewer.currentScale = scale;
+    pdfViewer.currentScaleValue = `${scale}`;
+    pdfViewer.update?.();
+    (app as { forceRendering?: () => void } | undefined)?.forceRendering?.();
+    setZoom(percent);
+  }, []);
 
   const patchViewer = useCallback(
     (iframe: HTMLIFrameElement) => {
@@ -1134,7 +1206,10 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
       case 'zoomIn': handleZoomIn(); break;
       case 'zoomOut': handleZoomOut(); break;
       case 'fitPage':
-        applyPdfZoom('fit');
+        applyPdfZoom('fitPage');
+        break;
+      case 'fitWidth':
+        applyPdfZoom('fitWidth');
         break;
       case 'undo':
         try { (iframeWin() as { pdfcraftUndo?: () => void } | null)?.pdfcraftUndo?.(); } catch { /* noop */ }
@@ -1487,7 +1562,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
   }
 
   return (
-    <section className={`fixed inset-0 z-40 flex flex-col overflow-hidden ${isWorkspaceDark ? 'text-white bg-[#1e2028]' : 'text-[hsl(var(--color-foreground))] bg-[#F1F5F9]'}`}>
+    <section className={`workspace-shell ${isWorkspaceDark ? 'workspace-shell--dark text-white bg-[#1e2028]' : 'workspace-shell--light text-[hsl(var(--color-foreground))] bg-[#F1F5F9]'} fixed inset-0 z-40 flex flex-col overflow-hidden`}>
       <input
         ref={openFileInputRef}
         type="file"
@@ -1498,8 +1573,9 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
           e.target.value = '';
         }}
       />
-      {/* ─── Tab Bar ─── */}
-      <div className={`flex items-center h-9 border-b px-2 shrink-0 ${isWorkspaceDark ? 'bg-[#2a2d35] border-white/[0.06]' : 'bg-white border-[#E5E7EB]'}`}>
+      {/* ─── Tab bar + ribbon (shared chrome) ─── */}
+      <div className={`ws-chrome shrink-0 ${isWorkspaceDark ? 'bg-[#2a2d35]' : 'bg-white'}`}>
+      <div className="flex items-center h-9 px-2">
         <button
           type="button"
           onClick={() => navigateWithUnsavedCheck(`/${locale}`)}
@@ -1512,15 +1588,11 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
           <ArrowLeft className="h-3.5 w-3.5" />
         </button>
 
-        <div className="w-px h-4 bg-[hsl(var(--color-border))] dark:bg-white/[0.08] mr-2" />
-
-        <span className={`text-[12px] font-medium truncate max-w-[180px] mr-3 ${isWorkspaceDark ? 'text-white/75' : 'text-[#111827]'}`}>
+        <span className="ws-filename mr-3 ml-1">
           {file?.name || t('untitled')}
         </span>
 
-        <div className="w-px h-4 bg-[hsl(var(--color-border))] dark:bg-white/[0.08] mr-1" />
-
-        <nav className="flex items-center gap-0 overflow-x-auto">
+        <nav className="flex items-center gap-0.5 overflow-x-auto">
           {tabList.map((tab) => {
             const active = activeTab === tab.key;
             return (
@@ -1534,20 +1606,9 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
                     setActiveAnnotTool(null);
                   }
                 }}
-                className={`relative inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] whitespace-nowrap transition-all ${
-                  active
-                    ? isWorkspaceDark
-                      ? 'text-white font-medium'
-                      : 'text-[#111827] font-semibold'
-                    : isWorkspaceDark
-                      ? 'text-white/50 hover:text-white/85 hover:bg-white/[0.04]'
-                      : 'text-[#4B5563] hover:text-[#111827] hover:bg-[#F3F4F6]'
-                }`}
+                className={`ws-tab${active ? ' ws-tab--active' : ''}`}
               >
                 {tab.label}
-                {active && (
-                  <span className="absolute bottom-0 left-1 right-1 h-[2px] bg-[hsl(var(--color-primary))] rounded-t" />
-                )}
               </button>
             );
           })}
@@ -1578,9 +1639,19 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
         </div>
       </div>
 
-      {/* ─── Ribbon Toolbar (collapsible) ─── */}
-      {ribbonGroups.length > 0 && (
-      <div className={`flex items-center min-h-[42px] border-b px-2 shrink-0 overflow-x-auto ${isWorkspaceDark ? 'bg-[#252830] border-white/[0.06]' : 'bg-white border-[#E5E7EB]'}`}>
+      {activeTab === 'home' ? (
+        <WorkspaceHomeRibbon
+          zoom={zoom}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onZoomPreset={handleZoomPreset}
+          onFitWidth={handleFitWidth}
+          onFitPage={handleFitPage}
+          onAction={handleRibbonAction}
+          t={t}
+        />
+      ) : ribbonGroups.length > 0 ? (
+      <div className="flex items-center w-fit max-w-full min-h-[42px] px-2 overflow-x-auto">
         {ribbonGroups.map((group, gi) => (
           <div key={`${activeTab}-${gi}`} className="flex items-center shrink-0">
             {gi > 0 && (
@@ -1634,7 +1705,8 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
           </div>
         ))}
       </div>
-      )}
+      ) : null}
+      </div>
 
       {/* ─── Main Content Area ─── */}
       <div className="flex-1 flex min-h-0">
@@ -1806,35 +1878,8 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
         </div>
 
         {/* Center: info */}
-          <div className="text-[hsl(var(--color-muted-foreground))] dark:text-white/30 text-[10px]">
+        <div className="flex-1 text-center text-[hsl(var(--color-muted-foreground))] dark:text-white/30 text-[10px]">
           {file ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` : ''}
-        </div>
-
-        {/* Right: Zoom */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={handleZoomOut}
-              className={`p-1 rounded transition-all ${
-                isWorkspaceDark
-                  ? 'text-white/55 hover:text-white/85'
-                  : 'text-[#4B5563] hover:text-[#111827] hover:bg-[#F3F4F6]'
-              }`}
-            >
-              <ZoomOut className="h-4 w-4" />
-            </button>
-            <span className={`w-10 text-center tabular-nums text-[11px] ${isWorkspaceDark ? 'text-white/65' : 'text-[#374151]'}`}>{zoom}%</span>
-            <button
-              onClick={handleZoomIn}
-              className={`p-1 rounded transition-all ${
-                isWorkspaceDark
-                  ? 'text-white/55 hover:text-white/85'
-                  : 'text-[#4B5563] hover:text-[#111827] hover:bg-[#F3F4F6]'
-              }`}
-            >
-              <ZoomIn className="h-4 w-4" />
-            </button>
-          </div>
         </div>
       </div>
 

@@ -10,7 +10,7 @@ import { Footer } from '@/components/layout/Footer';
 import { ToolGrid } from '@/components/tools/ToolGrid';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { aiCardClass, type AiCardVariant } from '@/lib/ui/icon-tones';
+import { aiCardAccentClass, type AiCardAccent } from '@/lib/ui/icon-tones';
 import { getAllTools } from '@/config/tools';
 import { toolMatchesQuery } from '@/lib/utils/search';
 import { type Locale } from '@/lib/i18n/config';
@@ -29,14 +29,14 @@ const TAB_TOOL_IDS: Record<Exclude<ToolTab, 'ai'>, string[]> = {
   security: ['encrypt-pdf', 'decrypt-pdf', 'find-and-redact', 'remove-metadata', 'change-permissions', 'pdf-to-pdfa'],
 };
 
-const AI_ACTIONS: Array<{ icon: typeof Sparkles; label: string; href: string; variant: AiCardVariant; description: string; wide?: boolean }> = [
-  { icon: Sparkles, label: 'AI Summary', href: '/ai-summary', variant: 'purple', description: 'Extract key insights from any PDF.' },
-  { icon: Languages, label: 'AI Translate', href: '/ai-translate', variant: 'blue', description: 'Translate entire documents into other languages.' },
-  { icon: Volume2, label: 'AI Voice Reader', href: '/voice-reader', variant: 'coral', description: 'Convert PDF to natural speech instantly.' },
-  { icon: ScanText, label: 'Smart OCR', href: '/smart-ocr', variant: 'green', description: 'Convert scans to editable PDF.' },
-  { icon: MessagesSquare, label: 'Chat with PDF', href: '/chat-pdf', variant: 'violet-wide', description: 'Ask questions about your files and get instant answers.', wide: true },
-  { icon: Table2, label: 'Extract Tables', href: '/chat-pdf', variant: 'blue', description: 'Pull tables from invoices and reports.' },
-  { icon: Bot, label: 'Explain Terms', href: '/chat-pdf', variant: 'purple', description: 'Clarify complex terms in your document.' },
+const AI_ACTIONS: Array<{ icon: typeof Sparkles; label: string; href: string; accent: AiCardAccent; description: string; wide?: boolean; popular?: boolean }> = [
+  { icon: Sparkles, label: 'AI Summary', href: '/ai-summary', accent: 'purple', description: 'Extract key insights from any PDF.' },
+  { icon: Languages, label: 'AI Translate', href: '/ai-translate', accent: 'blue', description: 'Translate entire documents into other languages.' },
+  { icon: Volume2, label: 'AI Voice Reader', href: '/voice-reader', accent: 'coral', description: 'Convert PDF to natural speech instantly.' },
+  { icon: ScanText, label: 'Smart OCR', href: '/smart-ocr', accent: 'green', description: 'Convert scans to editable PDF.' },
+  { icon: MessagesSquare, label: 'Chat with PDF', href: '/chat-pdf', accent: 'purple', description: 'Ask questions about your files and get instant answers.', wide: true, popular: true },
+  { icon: Table2, label: 'Extract Tables', href: '/chat-pdf', accent: 'blue', description: 'Pull tables from invoices and reports.' },
+  { icon: Bot, label: 'Explain Terms', href: '/chat-pdf', accent: 'purple', description: 'Clarify complex terms in your document.' },
 ];
 
 export default function ToolsPageClient({ locale, localizedToolContent }: ToolsPageClientProps) {
@@ -151,15 +151,18 @@ export default function ToolsPageClient({ locale, localizedToolContent }: ToolsP
                       <Link
                         key={action.label}
                         href={`/${locale}${action.href}`}
-                        className={`${aiCardClass(action.variant)} p-4 block ${action.wide ? 'sm:col-span-2 lg:col-span-2' : ''}`}
+                        className={`${aiCardAccentClass(action.accent)} p-4 block ${action.wide ? 'sm:col-span-2 lg:col-span-2' : ''}`}
                       >
+                        {action.popular && (
+                          <span className="ai-card__badge">Popular AI</span>
+                        )}
                         <div className="flex h-full flex-col gap-3">
-                          <div className="h-9 w-9 rounded-lg bg-white/20 flex items-center justify-center">
-                            <action.icon className="h-5 w-5 text-white" strokeWidth={1.75} />
+                          <div className="ai-card__icon">
+                            <action.icon className="h-5 w-5" strokeWidth={1.75} />
                           </div>
                           <div>
                             <div className="text-sm font-semibold">{action.label}</div>
-                            <p className="mt-1 text-xs text-white/80 leading-relaxed">{action.description}</p>
+                            <p className="ai-card__desc">{action.description}</p>
                           </div>
                         </div>
                       </Link>

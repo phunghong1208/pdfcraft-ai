@@ -191,7 +191,12 @@
       "storeGetOn": "Get it on",
       "storeGooglePlay": "Google Play",
       "storeDownloadOn": "Download on the",
-      "storeAppStore": "App Store"
+      "storeAppStore": "App Store",
+      "trustLocalFirstDesc": "No server uploads",
+      "trustNoCloudDesc": "Maximum security",
+      "trustGdprDesc": "Your data is protected",
+      "trustSupport": "24/7 Support",
+      "trustSupportDesc": "Always here to help"
     },
     "recentFiles": {
       "title": "Recent Files",
@@ -307,9 +312,34 @@
     "uploadOcr": "AI-powered OCR",
     "uploadLanguages": "Supports 100+ languages",
     "aiActionsTitle": "AI Actions",
+    "popularAiBadge": "Popular AI",
+    "aiBadge": "AI",
     "useInWorkspace": "Use in Workspace",
     "coreActionsTitle": "Core PDF Actions",
     "viewAllTools": "View all tools",
+    "trustBar": {
+      "secure": "Secure & Private",
+      "fast": "Lightning Fast",
+      "cloud": "Cloud Based",
+      "trusted": "Trusted by Millions"
+    },
+    "aiDescriptions": {
+      "summarize": "Extract key insights from any PDF.",
+      "translate": "Translate entire documents into other languages.",
+      "voice": "Convert PDF to natural speech instantly.",
+      "ocr": "Convert scans to editable PDF.",
+      "chat": "Ask questions about your files and get instant answers."
+    },
+    "toolDescriptions": {
+      "scanToPdf": "Convert images to PDF instantly",
+      "merge": "Combine multiple PDFs into one",
+      "split": "Divide PDF into separate files",
+      "protect": "Encrypt and secure your PDFs",
+      "compress": "Reduce PDF file size",
+      "ocrText": "Extract text from scanned PDFs",
+      "edit": "Modify text and images in PDFs",
+      "convert": "Transform PDFs to other formats"
+    },
     "preparingTitle": "Preparing document...",
     "preparingUploading": "Uploading...",
     "preparingAnalyzing": "Analyzing document...",
@@ -2667,7 +2697,9 @@
       "open": "Open",
       "zoomIn": "Zoom In",
       "zoomOut": "Zoom Out",
+      "zoom": "Zoom",
       "fitPage": "Fit Page",
+      "fitWidth": "Fit Width",
       "compress": "Compress",
       "ocr": "OCR",
       "merge": "Merge",
