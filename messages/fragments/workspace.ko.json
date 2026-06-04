@@ -114,7 +114,8 @@
     "chatPdf": "PDF 채팅",
     "summarize": "요약",
     "translate": "번역",
-    "smartOcr": "스마트 OCR"
+    "smartOcr": "스마트 OCR",
+    "open": "열기"
   },
   "sidebar": {
     "newPdf": "새 PDF",
@@ -142,7 +143,38 @@
     "placeholder": "이 문서에 대해 질문하세요...",
     "send": "보내기",
     "welcome": "3페이지 문서로 보입니다. 요약, 번역, OCR 또는 표 추출을 도와드릴 수 있습니다.",
-    "reply": "알겠습니다. 이 페이지를 분석하고 핵심 요점을 담은 간결한 답변을 준비하고 있습니다."
+    "reply": "알겠습니다. 이 페이지를 분석하고 핵심 요점을 담은 간결한 답변을 준비하고 있습니다.",
+    "answerLanguage": {
+      "label": "답변 언어",
+      "hint": "요약과 채팅 답변이 이 언어로 제공됩니다."
+    },
+    "generateSummary": "요약 생성",
+    "summaryByAi": "✨ AI 요약",
+    "askDocument": "✨ 문서에게 질문",
+    "summaryDetail": {
+      "label": "상세 수준",
+      "light": {
+        "title": "짧게"
+      },
+      "balanced": {
+        "title": "보통"
+      },
+      "deep": {
+        "title": "자세히"
+      }
+    },
+    "summaryPlaceholder": "요약을 실행하여 이 PDF의 AI 하이라이트를 확인하세요.",
+    "runSummaryForChat": "채팅을 사용하려면 먼저 요약이 필요합니다(약 1–2분). 요약 탭에서 요약을 생성한 후 채팅으로 돌아가세요.",
+    "goToSummaryTab": "요약 탭 열기",
+    "chatReadonlyPlaceholder": "이 문서에 대해 질문하려면 먼저 요약을 실행하세요…",
+    "voice": {
+      "speed": "속도",
+      "statusIdle": "재생 준비됨",
+      "stop": "중지",
+      "play": "읽기 시작",
+      "pause": "일시 정지",
+      "resume": "계속"
+    }
   },
   "inlineTools": {
     "compress": "PDF 압축",

@@ -64,7 +64,11 @@
       "edit": "編集",
       "compress": "圧縮",
       "merge": "結合",
-      "convert": "変換"
+      "convert": "変換",
+      "scanToPdf": "スキャンしてPDF",
+      "split": "分割",
+      "protect": "保護",
+      "ocrText": "OCRテキスト"
     }
   }
 }

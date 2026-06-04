@@ -8,6 +8,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import https from 'node:https';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -76,6 +77,26 @@ function shouldSkipKey(key, value) {
   return false;
 }
 
+function httpsGet(url) {
+  return new Promise((resolve, reject) => {
+    https
+      .get(url, { headers: { 'User-Agent': 'PDFCraft-i18n-sync/1.0' } }, (res) => {
+        let body = '';
+        res.on('data', (chunk) => {
+          body += chunk;
+        });
+        res.on('end', () => {
+          if (res.statusCode && res.statusCode >= 400) {
+            reject(new Error(`Translate HTTP ${res.statusCode}`));
+            return;
+          }
+          resolve(body);
+        });
+      })
+      .on('error', reject);
+  });
+}
+
 async function googleTranslateOne(text, targetLang) {
   const url = new URL('https://translate.googleapis.com/translate_a/single');
   url.searchParams.set('client', 'gtx');
@@ -84,13 +105,8 @@ async function googleTranslateOne(text, targetLang) {
   url.searchParams.set('dt', 't');
   url.searchParams.set('q', text);
 
-  const res = await fetch(url.toString(), {
-    headers: { 'User-Agent': 'PDFCraft-i18n-sync/1.0' },
-  });
-  if (!res.ok) {
-    throw new Error(`Translate HTTP ${res.status}`);
-  }
-  const data = await res.json();
+  const body = await httpsGet(url.toString());
+  const data = JSON.parse(body);
   if (!Array.isArray(data?.[0])) {
     throw new Error('Unexpected translate response');
   }

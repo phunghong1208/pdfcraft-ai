@@ -64,7 +64,11 @@
       "edit": "Editar",
       "compress": "Comprimir",
       "merge": "Unir",
-      "convert": "Converter"
+      "convert": "Converter",
+      "scanToPdf": "Digitalizar para PDF",
+      "split": "Dividir",
+      "protect": "Proteger",
+      "ocrText": "OCR texto"
     }
   }
 }

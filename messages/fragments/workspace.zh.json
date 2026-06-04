@@ -114,7 +114,8 @@
     "chatPdf": "与 PDF 对话",
     "summarize": "摘要",
     "translate": "翻译",
-    "smartOcr": "智能 OCR"
+    "smartOcr": "智能 OCR",
+    "open": "打开"
   },
   "sidebar": {
     "newPdf": "新建 PDF",
@@ -142,7 +143,90 @@
     "placeholder": "询问此文档...",
     "send": "发送",
     "welcome": "这似乎是一份 3 页文档。我可以进行摘要、翻译、OCR 或提取表格。",
-    "reply": "好的。我正在分析此页并准备包含要点的简明回答。"
+    "reply": "好的。我正在分析此页并准备包含要点的简明回答。",
+    "newBadge": "新",
+    "indexing": "正在为 AI 对话建立文档索引...",
+    "summarizing": "正在摘要（可能需要 1–2 分钟，请保持此标签页打开）...",
+    "indexError": "无法为对话准备文档。",
+    "runSummaryForChat": "对话需先运行摘要（约 1–2 分钟）。打开「摘要」标签，生成摘要后返回「对话」。",
+    "goToSummaryTab": "打开摘要标签",
+    "chatReadonlyPlaceholder": "请先运行摘要，再询问此文档…",
+    "startSummaryForChat": "摘要以启用对话",
+    "chatReady": "对话已就绪 — 请输入问题。",
+    "summaryMissingDocumentId": "摘要完成但服务器未返回 document_id — 无法对话。",
+    "chatReindexing": "正在同步文档以进行对话（重新运行摘要）…",
+    "chatNoContext": "对话在索引中找不到此文档。",
+    "chatNoContextHint": "在摘要标签再次点击「生成摘要」，等待完成后提问。",
+    "chatError": "对话请求失败。",
+    "summaryError": "摘要请求失败。",
+    "noFile": "请先上传 PDF。",
+    "noDocumentId": "文档尚未建立索引。请等待或先运行摘要。",
+    "answerLanguage": {
+      "label": "回答语言",
+      "hint": "摘要和对话回复将使用此语言。"
+    },
+    "languageShort": "语言",
+    "analyzing": "✨ AI 正在分析您的文档…",
+    "thinkingAi": "✨ AI 正在思考…",
+    "summaryByAi": "✨ AI 摘要",
+    "askDocument": "✨ 询问文档",
+    "copy": "复制",
+    "copied": "已复制",
+    "copyFailed": "无法复制到剪贴板。",
+    "exportPdf": "导出 PDF",
+    "exportFailed": "PDF 导出失败。",
+    "summaryDetail": {
+      "label": "详细程度",
+      "light": {
+        "title": "简短"
+      },
+      "balanced": {
+        "title": "中等"
+      },
+      "deep": {
+        "title": "详细"
+      }
+    },
+    "chatContext": {
+      "label": "对话深度",
+      "light": {
+        "title": "浅"
+      },
+      "balanced": {
+        "title": "中"
+      },
+      "deep": {
+        "title": "深"
+      }
+    },
+    "generateSummary": "生成摘要",
+    "summaryPlaceholder": "运行摘要以查看 AI 为此 PDF 生成的要点。",
+    "summaryDone": "摘要已就绪。打开摘要标签阅读。",
+    "documentId": "文档 ID：{id}",
+    "previewPdf": "PDF 预览",
+    "translateComingSoon": "文档翻译 — 即将推出。",
+    "voice": {
+      "subtitle": "使用浏览器语音朗读文档内容",
+      "play": "开始朗读",
+      "pause": "暂停",
+      "resume": "继续",
+      "stop": "停止",
+      "speed": "语速",
+      "statusIdle": "准备播放",
+      "statusPlaying": "正在朗读…",
+      "statusPaused": "已暂停",
+      "nowReading": "正在播放：{name}",
+      "voiceLabel": "语音",
+      "voiceLoading": "正在加载语音…",
+      "genderFemale": "女声",
+      "genderMale": "男声",
+      "genderNeutral": "其他",
+      "noVoicesHint": "浏览器没有此语言的语音。macOS：系统设置 → 辅助功能 → 朗读内容。",
+      "prepareTitle": "文档尚未准备好朗读",
+      "prepareHint": "需先处理 PDF 一次（与启用对话相同）— 约 1–2 分钟。",
+      "prepareButton": "处理文档",
+      "unsupported": "此浏览器不支持语音合成。"
+    }
   },
   "inlineTools": {
     "compress": "压缩 PDF",

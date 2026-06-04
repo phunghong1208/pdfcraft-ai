@@ -114,7 +114,8 @@
     "chatPdf": "Chat con PDF",
     "summarize": "Riassumi",
     "translate": "Traduci",
-    "smartOcr": "OCR intelligente"
+    "smartOcr": "OCR intelligente",
+    "open": "Apri"
   },
   "sidebar": {
     "newPdf": "Nuovo PDF",
@@ -142,7 +143,38 @@
     "placeholder": "Chiedi informazioni su questo documento...",
     "send": "Invia",
     "welcome": "Sembra un documento di 3 pagine. Posso riassumere, tradurre, eseguire OCR o estrarre tabelle.",
-    "reply": "Capito. Sto analizzando questa pagina e preparo una risposta concisa con i punti chiave."
+    "reply": "Capito. Sto analizzando questa pagina e preparo una risposta concisa con i punti chiave.",
+    "answerLanguage": {
+      "label": "Lingua della risposta",
+      "hint": "Riepilogo e chat risponderanno in questa lingua."
+    },
+    "generateSummary": "Genera riepilogo",
+    "summaryByAi": "✨ Riepilogo IA",
+    "askDocument": "✨ Chiedi al documento",
+    "summaryDetail": {
+      "label": "Livello di dettaglio",
+      "light": {
+        "title": "Breve"
+      },
+      "balanced": {
+        "title": "Medio"
+      },
+      "deep": {
+        "title": "Dettagliato"
+      }
+    },
+    "summaryPlaceholder": "Esegui il riepilogo per vedere i punti chiave generati dall’IA.",
+    "runSummaryForChat": "La chat richiede prima un riepilogo (1–2 min). Apri la scheda Riepilogo, generalo e torna alla Chat.",
+    "goToSummaryTab": "Apri scheda Riepilogo",
+    "chatReadonlyPlaceholder": "Esegui prima il riepilogo per chiedere informazioni su questo documento…",
+    "voice": {
+      "speed": "Velocità",
+      "statusIdle": "Pronto per la riproduzione",
+      "stop": "Stop",
+      "play": "Avvia lettura",
+      "pause": "Pausa",
+      "resume": "Riprendi"
+    }
   },
   "inlineTools": {
     "compress": "Comprimi PDF",

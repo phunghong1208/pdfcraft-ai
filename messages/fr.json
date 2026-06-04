@@ -547,7 +547,11 @@
       "edit": "Modifier",
       "compress": "Compresser",
       "merge": "Fusionner",
-      "convert": "Convertir"
+      "convert": "Convertir",
+      "scanToPdf": "Numériser en PDF",
+      "split": "Diviser",
+      "protect": "Protéger",
+      "ocrText": "OCR texte"
     }
   },
   "toolsPage": {
@@ -2885,7 +2889,7 @@
       "ocrLayerHint": "OCR text on scanned PDFs — turn off if misaligned"
     },
     "tools": {
-      "open": "Open",
+      "open": "Ouvrir",
       "zoomIn": "Zoom avant",
       "zoomOut": "Zoom arrière",
       "fitPage": "Ajuster à la page",
@@ -2972,9 +2976,9 @@
       "indexing": "Indexing document for AI chat...",
       "summarizing": "Summarizing (may take 1–2 minutes, keep this tab open)...",
       "indexError": "Could not prepare document for chat.",
-      "runSummaryForChat": "Chat requires Summary first (about 1–2 minutes). Open the Summary tab, generate a summary, then return to Chat.",
-      "goToSummaryTab": "Open Summary tab",
-      "chatReadonlyPlaceholder": "Run Summary first to ask about this document…",
+      "runSummaryForChat": "Le chat nécessite d’abord un résumé (1–2 min). Ouvrez l’onglet Résumé, générez-le, puis revenez au Chat.",
+      "goToSummaryTab": "Ouvrir l’onglet Résumé",
+      "chatReadonlyPlaceholder": "Lancez d’abord le résumé pour poser des questions sur ce document…",
       "startSummaryForChat": "Summarize to enable chat",
       "chatReady": "Chat is ready — type your question.",
       "summaryMissingDocumentId": "Summary finished but the server did not return document_id — chat is unavailable.",
@@ -2986,29 +2990,29 @@
       "noFile": "Upload a PDF first.",
       "noDocumentId": "Document is not indexed yet. Wait or run Summary first.",
       "answerLanguage": {
-        "label": "Answer language",
-        "hint": "Summary and chat replies will be in this language."
+        "label": "Langue de réponse",
+        "hint": "Le résumé et le chat répondront dans cette langue."
       },
       "languageShort": "Language",
       "analyzing": "✨ AI is analyzing your document…",
       "thinkingAi": "✨ AI is thinking…",
-      "summaryByAi": "✨ Summary by AI",
-      "askDocument": "✨ Ask your document",
+      "summaryByAi": "✨ Résumé par IA",
+      "askDocument": "✨ Interroger le document",
       "copy": "Copy",
       "copied": "Copied",
       "copyFailed": "Could not copy to clipboard.",
       "exportPdf": "Export PDF",
       "exportFailed": "PDF export failed.",
       "summaryDetail": {
-        "label": "Detail level",
+        "label": "Niveau de détail",
         "light": {
-          "title": "Short"
+          "title": "Court"
         },
         "balanced": {
-          "title": "Medium"
+          "title": "Moyen"
         },
         "deep": {
-          "title": "Detailed"
+          "title": "Détaillé"
         }
       },
       "chatContext": {
@@ -3023,8 +3027,8 @@
           "title": "Deep"
         }
       },
-      "generateSummary": "Generate summary",
-      "summaryPlaceholder": "Run summary to see AI-generated highlights for this PDF.",
+      "generateSummary": "Générer le résumé",
+      "summaryPlaceholder": "Lancez le résumé pour voir les points clés générés par l’IA.",
       "summaryDone": "Summary is ready. Open the Summary tab to read it.",
       "documentId": "Document ID: {id}",
       "previewPdf": "PDF preview",
@@ -3038,12 +3042,12 @@
       "translateComingSoon": "Document translation — coming soon.",
       "voice": {
         "subtitle": "Listen to your document with built-in browser speech",
-        "play": "Start reading",
+        "play": "Commencer la lecture",
         "pause": "Pause",
-        "resume": "Resume",
-        "stop": "Stop",
-        "speed": "Speed",
-        "statusIdle": "Ready to play",
+        "resume": "Reprendre",
+        "stop": "Arrêter",
+        "speed": "Vitesse",
+        "statusIdle": "Prêt à lire",
         "statusPlaying": "Reading…",
         "statusPaused": "Paused",
         "nowReading": "Playing: {name}",

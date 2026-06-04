@@ -64,7 +64,11 @@
       "edit": "編輯",
       "compress": "壓縮",
       "merge": "合併",
-      "convert": "轉換"
+      "convert": "轉換",
+      "scanToPdf": "掃描為 PDF",
+      "split": "拆分",
+      "protect": "保護",
+      "ocrText": "OCR 文字"
     }
   }
 }

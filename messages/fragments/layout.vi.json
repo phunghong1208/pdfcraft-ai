@@ -12,10 +12,10 @@
     "brandName": "PDF Reader Workspace",
     "brandLine1": "PDF Reader",
     "brandLine2": "Workspace",
-    "tagline": "Private AI Workspace",
-    "trustLocalFirst": "Local First",
-    "trustNoCloud": "No Cloud Upload",
-    "trustGdpr": "GDPR Ready",
+    "tagline": "Không gian AI riêng tư",
+    "trustLocalFirst": "Xử lý cục bộ",
+    "trustNoCloud": "Không tải lên đám mây",
+    "trustGdpr": "Tuân thủ GDPR",
     "trustLanguages": "100+ Languages",
     "trustAi": "AI Powered",
     "trustGroupSecurity": "Bảo mật",
@@ -81,7 +81,11 @@
       "edit": "Chỉnh sửa",
       "compress": "Nén",
       "merge": "Ghép",
-      "convert": "Chuyển đổi"
+      "convert": "Chuyển đổi",
+      "scanToPdf": "Quét sang PDF",
+      "split": "Tách",
+      "protect": "Bảo vệ",
+      "ocrText": "OCR văn bản"
     }
   }
 }

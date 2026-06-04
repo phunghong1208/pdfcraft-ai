@@ -64,7 +64,11 @@
       "edit": "편집",
       "compress": "압축",
       "merge": "병합",
-      "convert": "변환"
+      "convert": "변환",
+      "scanToPdf": "스캔 PDF",
+      "split": "분할",
+      "protect": "보호",
+      "ocrText": "OCR 텍스트"
     }
   }
 }

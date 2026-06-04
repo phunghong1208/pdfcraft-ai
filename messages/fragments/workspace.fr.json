@@ -114,7 +114,8 @@
     "chatPdf": "Discuter avec le PDF",
     "summarize": "Résumer",
     "translate": "Traduire",
-    "smartOcr": "OCR intelligent"
+    "smartOcr": "OCR intelligent",
+    "open": "Ouvrir"
   },
   "sidebar": {
     "newPdf": "Nouveau PDF",
@@ -142,7 +143,38 @@
     "placeholder": "Posez une question sur ce document...",
     "send": "Envoyer",
     "welcome": "Il s'agit apparemment d'un document de 3 pages. Je peux le résumer, le traduire, appliquer l'OCR ou extraire les tableaux.",
-    "reply": "Compris. J'analyse cette page et prépare une réponse concise avec les points clés."
+    "reply": "Compris. J'analyse cette page et prépare une réponse concise avec les points clés.",
+    "answerLanguage": {
+      "label": "Langue de réponse",
+      "hint": "Le résumé et le chat répondront dans cette langue."
+    },
+    "generateSummary": "Générer le résumé",
+    "summaryByAi": "✨ Résumé par IA",
+    "askDocument": "✨ Interroger le document",
+    "summaryDetail": {
+      "label": "Niveau de détail",
+      "light": {
+        "title": "Court"
+      },
+      "balanced": {
+        "title": "Moyen"
+      },
+      "deep": {
+        "title": "Détaillé"
+      }
+    },
+    "summaryPlaceholder": "Lancez le résumé pour voir les points clés générés par l’IA.",
+    "runSummaryForChat": "Le chat nécessite d’abord un résumé (1–2 min). Ouvrez l’onglet Résumé, générez-le, puis revenez au Chat.",
+    "goToSummaryTab": "Ouvrir l’onglet Résumé",
+    "chatReadonlyPlaceholder": "Lancez d’abord le résumé pour poser des questions sur ce document…",
+    "voice": {
+      "speed": "Vitesse",
+      "statusIdle": "Prêt à lire",
+      "stop": "Arrêter",
+      "play": "Commencer la lecture",
+      "pause": "Pause",
+      "resume": "Reprendre"
+    }
   },
   "inlineTools": {
     "compress": "Compresser le PDF",

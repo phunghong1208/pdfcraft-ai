@@ -329,7 +329,11 @@
       "edit": "Bearbeiten",
       "compress": "Komprimieren",
       "merge": "Zusammenführen",
-      "convert": "Konvertieren"
+      "convert": "Konvertieren",
+      "scanToPdf": "Als PDF scannen",
+      "split": "Teilen",
+      "protect": "Schützen",
+      "ocrText": "OCR-Text"
     }
   },
   "toolsPage": {
@@ -2667,7 +2671,7 @@
       "ocrLayerHint": "OCR text on scanned PDFs — turn off if misaligned"
     },
     "tools": {
-      "open": "Open",
+      "open": "Öffnen",
       "zoomIn": "Vergrößern",
       "zoomOut": "Verkleinern",
       "fitPage": "Seite anpassen",
@@ -2754,9 +2758,9 @@
       "indexing": "Indexing document for AI chat...",
       "summarizing": "Summarizing (may take 1–2 minutes, keep this tab open)...",
       "indexError": "Could not prepare document for chat.",
-      "runSummaryForChat": "Chat requires Summary first (about 1–2 minutes). Open the Summary tab, generate a summary, then return to Chat.",
-      "goToSummaryTab": "Open Summary tab",
-      "chatReadonlyPlaceholder": "Run Summary first to ask about this document…",
+      "runSummaryForChat": "Chat erfordert zuerst eine Zusammenfassung (1–2 Min.). Öffnen Sie den Tab Zusammenfassung, erstellen Sie sie und kehren Sie zum Chat zurück.",
+      "goToSummaryTab": "Tab Zusammenfassung öffnen",
+      "chatReadonlyPlaceholder": "Führen Sie zuerst die Zusammenfassung aus, um Fragen zu stellen…",
       "startSummaryForChat": "Summarize to enable chat",
       "chatReady": "Chat is ready — type your question.",
       "summaryMissingDocumentId": "Summary finished but the server did not return document_id — chat is unavailable.",
@@ -2768,29 +2772,29 @@
       "noFile": "Upload a PDF first.",
       "noDocumentId": "Document is not indexed yet. Wait or run Summary first.",
       "answerLanguage": {
-        "label": "Answer language",
-        "hint": "Summary and chat replies will be in this language."
+        "label": "Antwortsprache",
+        "hint": "Zusammenfassung und Chat antworten in dieser Sprache."
       },
       "languageShort": "Language",
       "analyzing": "✨ AI is analyzing your document…",
       "thinkingAi": "✨ AI is thinking…",
-      "summaryByAi": "✨ Summary by AI",
-      "askDocument": "✨ Ask your document",
+      "summaryByAi": "✨ Zusammenfassung durch KI",
+      "askDocument": "✨ Dokument fragen",
       "copy": "Copy",
       "copied": "Copied",
       "copyFailed": "Could not copy to clipboard.",
       "exportPdf": "Export PDF",
       "exportFailed": "PDF export failed.",
       "summaryDetail": {
-        "label": "Detail level",
+        "label": "Detailgrad",
         "light": {
-          "title": "Short"
+          "title": "Kurz"
         },
         "balanced": {
-          "title": "Medium"
+          "title": "Mittel"
         },
         "deep": {
-          "title": "Detailed"
+          "title": "Ausführlich"
         }
       },
       "chatContext": {
@@ -2805,8 +2809,8 @@
           "title": "Deep"
         }
       },
-      "generateSummary": "Generate summary",
-      "summaryPlaceholder": "Run summary to see AI-generated highlights for this PDF.",
+      "generateSummary": "Zusammenfassung erstellen",
+      "summaryPlaceholder": "Zusammenfassung ausführen, um KI-Highlights für dieses PDF zu sehen.",
       "summaryDone": "Summary is ready. Open the Summary tab to read it.",
       "documentId": "Document ID: {id}",
       "previewPdf": "PDF preview",
@@ -2820,12 +2824,12 @@
       "translateComingSoon": "Document translation — coming soon.",
       "voice": {
         "subtitle": "Listen to your document with built-in browser speech",
-        "play": "Start reading",
+        "play": "Lesen starten",
         "pause": "Pause",
-        "resume": "Resume",
-        "stop": "Stop",
-        "speed": "Speed",
-        "statusIdle": "Ready to play",
+        "resume": "Fortsetzen",
+        "stop": "Stopp",
+        "speed": "Geschwindigkeit",
+        "statusIdle": "Bereit zur Wiedergabe",
         "statusPlaying": "Reading…",
         "statusPaused": "Paused",
         "nowReading": "Playing: {name}",

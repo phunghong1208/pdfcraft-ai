@@ -17,9 +17,19 @@
     "filesNeverLeave": "文件永不离开您的设备",
     "noUploads": "不上传文件",
     "privateSecure": "100% 私密且安全",
-    "terms": "条款",
-    "privacyLink": "隐私",
-    "cookies": "Cookie"
+    "terms": "服务条款",
+    "privacyLink": "隐私政策",
+    "cookies": "Cookie",
+    "brandName": "PDF Reader 工作区",
+    "tagline": "私密 AI 工作区",
+    "trustLocalFirst": "本地优先",
+    "trustNoCloud": "不上传云端",
+    "trustGdpr": "符合 GDPR",
+    "trustGroupSecurity": "安全",
+    "trustGroupDownload": "下载应用",
+    "downloadApp": "下载应用",
+    "legalNav": "法律信息",
+    "copyright": "© {year} PDFCraft. 保留所有权利。"
   },
   "aiMenu": {
     "aiAssistant": "AI 助手",
@@ -64,7 +74,11 @@
       "edit": "编辑",
       "compress": "压缩",
       "merge": "合并",
-      "convert": "转换"
+      "convert": "转换",
+      "scanToPdf": "扫描为 PDF",
+      "split": "拆分",
+      "protect": "保护",
+      "ocrText": "OCR 文字"
     }
   }
 }

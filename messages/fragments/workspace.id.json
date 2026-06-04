@@ -114,7 +114,8 @@
     "chatPdf": "Obrolan PDF",
     "summarize": "Ringkas",
     "translate": "Terjemahkan",
-    "smartOcr": "OCR Cerdas"
+    "smartOcr": "OCR Cerdas",
+    "open": "Buka"
   },
   "sidebar": {
     "newPdf": "PDF Baru",
@@ -142,7 +143,38 @@
     "placeholder": "Tanyakan tentang dokumen ini...",
     "send": "Kirim",
     "welcome": "Ini tampaknya dokumen 3 halaman. Saya dapat meringkas, menerjemahkan, OCR, atau mengekstrak tabel.",
-    "reply": "Mengerti. Saya sedang menganalisis halaman ini dan menyiapkan jawaban ringkas dengan poin utama."
+    "reply": "Mengerti. Saya sedang menganalisis halaman ini dan menyiapkan jawaban ringkas dengan poin utama.",
+    "answerLanguage": {
+      "label": "Bahasa jawaban",
+      "hint": "Ringkasan dan chat akan menjawab dalam bahasa ini."
+    },
+    "generateSummary": "Buat ringkasan",
+    "summaryByAi": "✨ Ringkasan oleh AI",
+    "askDocument": "✨ Tanya dokumen",
+    "summaryDetail": {
+      "label": "Tingkat detail",
+      "light": {
+        "title": "Singkat"
+      },
+      "balanced": {
+        "title": "Sedang"
+      },
+      "deep": {
+        "title": "Detail"
+      }
+    },
+    "summaryPlaceholder": "Jalankan ringkasan untuk melihat sorotan AI untuk PDF ini.",
+    "runSummaryForChat": "Chat memerlukan Ringkasan terlebih dahulu (1–2 menit). Buka tab Ringkasan, buat ringkasan, lalu kembali ke Chat.",
+    "goToSummaryTab": "Buka tab Ringkasan",
+    "chatReadonlyPlaceholder": "Jalankan Ringkasan dulu untuk bertanya tentang dokumen ini…",
+    "voice": {
+      "speed": "Kecepatan",
+      "statusIdle": "Siap diputar",
+      "stop": "Berhenti",
+      "play": "Mulai baca",
+      "pause": "Jeda",
+      "resume": "Lanjutkan"
+    }
   },
   "inlineTools": {
     "compress": "Kompres PDF",

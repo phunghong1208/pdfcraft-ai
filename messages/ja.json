@@ -547,7 +547,11 @@
       "edit": "編集",
       "compress": "圧縮",
       "merge": "結合",
-      "convert": "変換"
+      "convert": "変換",
+      "scanToPdf": "スキャンしてPDF",
+      "split": "分割",
+      "protect": "保護",
+      "ocrText": "OCRテキスト"
     }
   },
   "toolsPage": {
@@ -2885,7 +2889,7 @@
       "ocrLayerHint": "OCR text on scanned PDFs — turn off if misaligned"
     },
     "tools": {
-      "open": "Open",
+      "open": "開く",
       "zoomIn": "拡大",
       "zoomOut": "縮小",
       "fitPage": "ページに合わせる",
@@ -2972,9 +2976,9 @@
       "indexing": "Indexing document for AI chat...",
       "summarizing": "Summarizing (may take 1–2 minutes, keep this tab open)...",
       "indexError": "Could not prepare document for chat.",
-      "runSummaryForChat": "Chat requires Summary first (about 1–2 minutes). Open the Summary tab, generate a summary, then return to Chat.",
-      "goToSummaryTab": "Open Summary tab",
-      "chatReadonlyPlaceholder": "Run Summary first to ask about this document…",
+      "runSummaryForChat": "チャットには先に要約が必要です（約1〜2分）。「要約」タブで要約を生成し、「チャット」に戻ってください。",
+      "goToSummaryTab": "要約タブを開く",
+      "chatReadonlyPlaceholder": "このドキュメントについて質問するには、先に要約を実行してください…",
       "startSummaryForChat": "Summarize to enable chat",
       "chatReady": "Chat is ready — type your question.",
       "summaryMissingDocumentId": "Summary finished but the server did not return document_id — chat is unavailable.",
@@ -2986,29 +2990,29 @@
       "noFile": "Upload a PDF first.",
       "noDocumentId": "Document is not indexed yet. Wait or run Summary first.",
       "answerLanguage": {
-        "label": "Answer language",
-        "hint": "Summary and chat replies will be in this language."
+        "label": "回答言語",
+        "hint": "要約とチャットの返答はこの言語で行われます。"
       },
       "languageShort": "Language",
       "analyzing": "✨ AI is analyzing your document…",
       "thinkingAi": "✨ AI is thinking…",
-      "summaryByAi": "✨ Summary by AI",
-      "askDocument": "✨ Ask your document",
+      "summaryByAi": "✨ AI による要約",
+      "askDocument": "✨ ドキュメントに質問",
       "copy": "Copy",
       "copied": "Copied",
       "copyFailed": "Could not copy to clipboard.",
       "exportPdf": "Export PDF",
       "exportFailed": "PDF export failed.",
       "summaryDetail": {
-        "label": "Detail level",
+        "label": "詳細レベル",
         "light": {
-          "title": "Short"
+          "title": "短い"
         },
         "balanced": {
-          "title": "Medium"
+          "title": "標準"
         },
         "deep": {
-          "title": "Detailed"
+          "title": "詳細"
         }
       },
       "chatContext": {
@@ -3023,8 +3027,8 @@
           "title": "Deep"
         }
       },
-      "generateSummary": "Generate summary",
-      "summaryPlaceholder": "Run summary to see AI-generated highlights for this PDF.",
+      "generateSummary": "要約を生成",
+      "summaryPlaceholder": "要約を実行して、この PDF の AI ハイライトを表示します。",
       "summaryDone": "Summary is ready. Open the Summary tab to read it.",
       "documentId": "Document ID: {id}",
       "previewPdf": "PDF preview",
@@ -3038,12 +3042,12 @@
       "translateComingSoon": "Document translation — coming soon.",
       "voice": {
         "subtitle": "Listen to your document with built-in browser speech",
-        "play": "Start reading",
-        "pause": "Pause",
-        "resume": "Resume",
-        "stop": "Stop",
-        "speed": "Speed",
-        "statusIdle": "Ready to play",
+        "play": "読み上げ開始",
+        "pause": "一時停止",
+        "resume": "再開",
+        "stop": "停止",
+        "speed": "速度",
+        "statusIdle": "再生準備完了",
         "statusPlaying": "Reading…",
         "statusPaused": "Paused",
         "nowReading": "Playing: {name}",

@@ -323,7 +323,11 @@
       "edit": "Edit",
       "compress": "Compress",
       "merge": "Merge",
-      "convert": "Convert"
+      "convert": "Convert",
+      "scanToPdf": "Scan to PDF",
+      "split": "Split",
+      "protect": "Protect",
+      "ocrText": "OCR Text"
     }
   },
   "toolsPage": {

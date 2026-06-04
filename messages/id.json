@@ -329,7 +329,11 @@
       "edit": "Edit",
       "compress": "Kompres",
       "merge": "Gabung",
-      "convert": "Konversi"
+      "convert": "Konversi",
+      "scanToPdf": "Pindai ke PDF",
+      "split": "Pisah",
+      "protect": "Lindungi",
+      "ocrText": "OCR teks"
     }
   },
   "toolsPage": {
@@ -2699,7 +2703,7 @@
       "ocrLayerHint": "OCR text on scanned PDFs — turn off if misaligned"
     },
     "tools": {
-      "open": "Open",
+      "open": "Buka",
       "zoomIn": "Perbesar",
       "zoomOut": "Perkecil",
       "fitPage": "Sesuaikan Halaman",
@@ -2786,9 +2790,9 @@
       "indexing": "Indexing document for AI chat...",
       "summarizing": "Summarizing (may take 1–2 minutes, keep this tab open)...",
       "indexError": "Could not prepare document for chat.",
-      "runSummaryForChat": "Chat requires Summary first (about 1–2 minutes). Open the Summary tab, generate a summary, then return to Chat.",
-      "goToSummaryTab": "Open Summary tab",
-      "chatReadonlyPlaceholder": "Run Summary first to ask about this document…",
+      "runSummaryForChat": "Chat memerlukan Ringkasan terlebih dahulu (1–2 menit). Buka tab Ringkasan, buat ringkasan, lalu kembali ke Chat.",
+      "goToSummaryTab": "Buka tab Ringkasan",
+      "chatReadonlyPlaceholder": "Jalankan Ringkasan dulu untuk bertanya tentang dokumen ini…",
       "startSummaryForChat": "Summarize to enable chat",
       "chatReady": "Chat is ready — type your question.",
       "summaryMissingDocumentId": "Summary finished but the server did not return document_id — chat is unavailable.",
@@ -2800,29 +2804,29 @@
       "noFile": "Upload a PDF first.",
       "noDocumentId": "Document is not indexed yet. Wait or run Summary first.",
       "answerLanguage": {
-        "label": "Answer language",
-        "hint": "Summary and chat replies will be in this language."
+        "label": "Bahasa jawaban",
+        "hint": "Ringkasan dan chat akan menjawab dalam bahasa ini."
       },
       "languageShort": "Language",
       "analyzing": "✨ AI is analyzing your document…",
       "thinkingAi": "✨ AI is thinking…",
-      "summaryByAi": "✨ Summary by AI",
-      "askDocument": "✨ Ask your document",
+      "summaryByAi": "✨ Ringkasan oleh AI",
+      "askDocument": "✨ Tanya dokumen",
       "copy": "Copy",
       "copied": "Copied",
       "copyFailed": "Could not copy to clipboard.",
       "exportPdf": "Export PDF",
       "exportFailed": "PDF export failed.",
       "summaryDetail": {
-        "label": "Detail level",
+        "label": "Tingkat detail",
         "light": {
-          "title": "Short"
+          "title": "Singkat"
         },
         "balanced": {
-          "title": "Medium"
+          "title": "Sedang"
         },
         "deep": {
-          "title": "Detailed"
+          "title": "Detail"
         }
       },
       "chatContext": {
@@ -2837,8 +2841,8 @@
           "title": "Deep"
         }
       },
-      "generateSummary": "Generate summary",
-      "summaryPlaceholder": "Run summary to see AI-generated highlights for this PDF.",
+      "generateSummary": "Buat ringkasan",
+      "summaryPlaceholder": "Jalankan ringkasan untuk melihat sorotan AI untuk PDF ini.",
       "summaryDone": "Summary is ready. Open the Summary tab to read it.",
       "documentId": "Document ID: {id}",
       "previewPdf": "PDF preview",
@@ -2852,12 +2856,12 @@
       "translateComingSoon": "Document translation — coming soon.",
       "voice": {
         "subtitle": "Listen to your document with built-in browser speech",
-        "play": "Start reading",
-        "pause": "Pause",
-        "resume": "Resume",
-        "stop": "Stop",
-        "speed": "Speed",
-        "statusIdle": "Ready to play",
+        "play": "Mulai baca",
+        "pause": "Jeda",
+        "resume": "Lanjutkan",
+        "stop": "Berhenti",
+        "speed": "Kecepatan",
+        "statusIdle": "Siap diputar",
         "statusPlaying": "Reading…",
         "statusPaused": "Paused",
         "nowReading": "Playing: {name}",

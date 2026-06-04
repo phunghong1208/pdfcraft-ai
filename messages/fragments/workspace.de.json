@@ -114,7 +114,8 @@
     "chatPdf": "Mit PDF chatten",
     "summarize": "Zusammenfassen",
     "translate": "Übersetzen",
-    "smartOcr": "Intelligente OCR"
+    "smartOcr": "Intelligente OCR",
+    "open": "Öffnen"
   },
   "sidebar": {
     "newPdf": "Neue PDF",
@@ -142,7 +143,38 @@
     "placeholder": "Fragen Sie zu diesem Dokument...",
     "send": "Senden",
     "welcome": "Dies scheint ein 3-seitiges Dokument zu sein. Ich kann es zusammenfassen, übersetzen, per OCR erfassen oder Tabellen extrahieren.",
-    "reply": "Verstanden. Ich analysiere diese Seite und bereite eine prägnante Antwort mit den wichtigsten Punkten vor."
+    "reply": "Verstanden. Ich analysiere diese Seite und bereite eine prägnante Antwort mit den wichtigsten Punkten vor.",
+    "answerLanguage": {
+      "label": "Antwortsprache",
+      "hint": "Zusammenfassung und Chat antworten in dieser Sprache."
+    },
+    "generateSummary": "Zusammenfassung erstellen",
+    "summaryByAi": "✨ Zusammenfassung durch KI",
+    "askDocument": "✨ Dokument fragen",
+    "summaryDetail": {
+      "label": "Detailgrad",
+      "light": {
+        "title": "Kurz"
+      },
+      "balanced": {
+        "title": "Mittel"
+      },
+      "deep": {
+        "title": "Ausführlich"
+      }
+    },
+    "summaryPlaceholder": "Zusammenfassung ausführen, um KI-Highlights für dieses PDF zu sehen.",
+    "runSummaryForChat": "Chat erfordert zuerst eine Zusammenfassung (1–2 Min.). Öffnen Sie den Tab Zusammenfassung, erstellen Sie sie und kehren Sie zum Chat zurück.",
+    "goToSummaryTab": "Tab Zusammenfassung öffnen",
+    "chatReadonlyPlaceholder": "Führen Sie zuerst die Zusammenfassung aus, um Fragen zu stellen…",
+    "voice": {
+      "speed": "Geschwindigkeit",
+      "statusIdle": "Bereit zur Wiedergabe",
+      "stop": "Stopp",
+      "play": "Lesen starten",
+      "pause": "Pause",
+      "resume": "Fortsetzen"
+    }
   },
   "inlineTools": {
     "compress": "PDF komprimieren",

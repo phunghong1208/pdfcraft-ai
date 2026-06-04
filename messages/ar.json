@@ -361,7 +361,11 @@
       "edit": "تحرير",
       "compress": "ضغط",
       "merge": "دمج",
-      "convert": "تحويل"
+      "convert": "تحويل",
+      "scanToPdf": "مسح إلى PDF",
+      "split": "تقسيم",
+      "protect": "حماية",
+      "ocrText": "OCR نص"
     }
   },
   "toolsPage": {
@@ -2895,7 +2899,7 @@
       "ocrLayerHint": "OCR text on scanned PDFs — turn off if misaligned"
     },
     "tools": {
-      "open": "Open",
+      "open": "فتح",
       "zoomIn": "تكبير",
       "zoomOut": "تصغير",
       "fitPage": "ملاءمة الصفحة",
@@ -2982,9 +2986,9 @@
       "indexing": "Indexing document for AI chat...",
       "summarizing": "Summarizing (may take 1–2 minutes, keep this tab open)...",
       "indexError": "Could not prepare document for chat.",
-      "runSummaryForChat": "Chat requires Summary first (about 1–2 minutes). Open the Summary tab, generate a summary, then return to Chat.",
-      "goToSummaryTab": "Open Summary tab",
-      "chatReadonlyPlaceholder": "Run Summary first to ask about this document…",
+      "runSummaryForChat": "يتطلب الدردشة ملخصًا أولاً (1–2 دقيقة). افتح تبويب الملخص، أنشئه، ثم عد إلى الدردشة.",
+      "goToSummaryTab": "فتح تبويب الملخص",
+      "chatReadonlyPlaceholder": "شغّل الملخص أولاً لطرح أسئلة حول هذا المستند…",
       "startSummaryForChat": "Summarize to enable chat",
       "chatReady": "Chat is ready — type your question.",
       "summaryMissingDocumentId": "Summary finished but the server did not return document_id — chat is unavailable.",
@@ -2996,29 +3000,29 @@
       "noFile": "Upload a PDF first.",
       "noDocumentId": "Document is not indexed yet. Wait or run Summary first.",
       "answerLanguage": {
-        "label": "Answer language",
-        "hint": "Summary and chat replies will be in this language."
+        "label": "لغة الإجابة",
+        "hint": "سيكون الملخص والدردشة بهذه اللغة."
       },
       "languageShort": "Language",
       "analyzing": "✨ AI is analyzing your document…",
       "thinkingAi": "✨ AI is thinking…",
-      "summaryByAi": "✨ Summary by AI",
-      "askDocument": "✨ Ask your document",
+      "summaryByAi": "✨ ملخص بالذكاء الاصطناعي",
+      "askDocument": "✨ اسأل المستند",
       "copy": "Copy",
       "copied": "Copied",
       "copyFailed": "Could not copy to clipboard.",
       "exportPdf": "Export PDF",
       "exportFailed": "PDF export failed.",
       "summaryDetail": {
-        "label": "Detail level",
+        "label": "مستوى التفصيل",
         "light": {
-          "title": "Short"
+          "title": "قصير"
         },
         "balanced": {
-          "title": "Medium"
+          "title": "متوسط"
         },
         "deep": {
-          "title": "Detailed"
+          "title": "مفصل"
         }
       },
       "chatContext": {
@@ -3033,8 +3037,8 @@
           "title": "Deep"
         }
       },
-      "generateSummary": "Generate summary",
-      "summaryPlaceholder": "Run summary to see AI-generated highlights for this PDF.",
+      "generateSummary": "إنشاء ملخص",
+      "summaryPlaceholder": "شغّل الملخص لرؤية النقاط الرئيسية التي أنشأها الذكاء الاصطناعي.",
       "summaryDone": "Summary is ready. Open the Summary tab to read it.",
       "documentId": "Document ID: {id}",
       "previewPdf": "PDF preview",
@@ -3048,12 +3052,12 @@
       "translateComingSoon": "Document translation — coming soon.",
       "voice": {
         "subtitle": "Listen to your document with built-in browser speech",
-        "play": "Start reading",
-        "pause": "Pause",
-        "resume": "Resume",
-        "stop": "Stop",
-        "speed": "Speed",
-        "statusIdle": "Ready to play",
+        "play": "بدء القراءة",
+        "pause": "إيقاف مؤقت",
+        "resume": "استئناف",
+        "stop": "إيقاف",
+        "speed": "السرعة",
+        "statusIdle": "جاهز للتشغيل",
         "statusPlaying": "Reading…",
         "statusPaused": "Paused",
         "nowReading": "Playing: {name}",

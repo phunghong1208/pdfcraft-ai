@@ -114,7 +114,8 @@
     "chatPdf": "與 PDF 對話",
     "summarize": "摘要",
     "translate": "翻譯",
-    "smartOcr": "智慧 OCR"
+    "smartOcr": "智慧 OCR",
+    "open": "開啟"
   },
   "sidebar": {
     "newPdf": "新建 PDF",
@@ -142,7 +143,38 @@
     "placeholder": "詢問此文件...",
     "send": "傳送",
     "welcome": "這似乎是一份 3 頁文件。我可以進行摘要、翻譯、OCR 或擷取表格。",
-    "reply": "好的。我正在分析此頁並準備包含要點的簡明回答。"
+    "reply": "好的。我正在分析此頁並準備包含要點的簡明回答。",
+    "answerLanguage": {
+      "label": "回答語言",
+      "hint": "摘要與對話回覆將使用此語言。"
+    },
+    "generateSummary": "產生摘要",
+    "summaryByAi": "✨ AI 摘要",
+    "askDocument": "✨ 詢問文件",
+    "summaryDetail": {
+      "label": "詳細程度",
+      "light": {
+        "title": "簡短"
+      },
+      "balanced": {
+        "title": "中等"
+      },
+      "deep": {
+        "title": "詳細"
+      }
+    },
+    "summaryPlaceholder": "執行摘要以查看 AI 為此 PDF 產生的重點。",
+    "runSummaryForChat": "對話需先執行摘要（約 1–2 分鐘）。開啟「摘要」分頁，產生摘要後返回「對話」。",
+    "goToSummaryTab": "開啟摘要分頁",
+    "chatReadonlyPlaceholder": "請先執行摘要，再詢問此文件…",
+    "voice": {
+      "speed": "語速",
+      "statusIdle": "準備播放",
+      "stop": "停止",
+      "play": "開始朗讀",
+      "pause": "暫停",
+      "resume": "繼續"
+    }
   },
   "inlineTools": {
     "compress": "壓縮 PDF",

@@ -567,7 +567,7 @@ select option {
 .site-footer__trust-zone {
   display: flex;
   flex-wrap: nowrap;
-  align-items: flex-start;
+  align-items: center;
   justify-content: flex-end;
   gap: 16px 24px;
   flex: 1 1 0;
@@ -592,7 +592,7 @@ select option {
   flex: 0 1 auto;
 }
 .site-footer__trust-heading {
-  margin: 0 0 8px;
+  margin: 0 0 6px;
   width: 100%;
   min-height: 11px;
   line-height: 1;
@@ -608,7 +608,7 @@ select option {
 .site-footer__app-badges {
   display: flex;
   margin: 0;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
 }
 .site-footer__trust {
@@ -616,7 +616,8 @@ select option {
   gap: 12px;
   padding: 0;
   list-style: none;
-  margin-top: -5px;
+  margin-top: 0;
+  min-height: 42px;
 }
 .site-footer__trust-group--download .site-footer__app-badges {
   margin-top: 0;
@@ -638,8 +639,8 @@ select option {
   flex: 0 0 auto;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  gap: 8px;
+  justify-content: center;
+  gap: 3px;
   width: 76px;
   text-align: center;
 }
@@ -648,13 +649,13 @@ select option {
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   color: var(--footer-trust-icon);
 }
 .site-footer__trust-icon svg {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   stroke-width: 2.25;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -664,21 +665,20 @@ select option {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 28px;
+  min-height: 0;
   max-width: 76px;
   margin: 0;
   font-size: 10px;
   font-weight: 500;
-  line-height: 1.2;
+  line-height: 1.15;
   color: var(--footer-muted);
   letter-spacing: 0.01em;
   text-align: center;
 }
 @media (min-width: 640px) {
   .site-footer__trust-label {
-    min-height: 26px;
     font-size: 11px;
-    line-height: 1.25;
+    line-height: 1.2;
   }
 }
 .site-footer__app-badges {

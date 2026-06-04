@@ -15,8 +15,9 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "predev": "node scripts/sync-libreoffice-wasm.mjs && node scripts/decompress-wasm-dev.mjs && node scripts/ensure-pdfjs-viewer-js.js public",
-    "sync:i18n": "node scripts/sync-messages-from-en.mjs",
+    "sync:i18n": "node scripts/sync-messages-from-en.mjs && node scripts/sync-workspace-i18n.mjs && node scripts/sync-layout-i18n.mjs",
     "sync:i18n:translate": "node scripts/translate-missing-i18n.mjs",
+    "sync:i18n:patch": "node scripts/patch-workspace-ai-i18n.mjs && node scripts/sync-workspace-i18n.mjs && node scripts/sync-layout-i18n.mjs",
     "postinstall": "node scripts/sync-pdfjs-workers.js && node scripts/sync-libreoffice-wasm.mjs && node scripts/ensure-pdfjs-viewer-js.js public",
     "postbuild": "node scripts/decompress-wasm.mjs && node scripts/chunk-assets.mjs && node scripts/ensure-pdfjs-viewer-js.js out"
   },

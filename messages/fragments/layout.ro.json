@@ -64,7 +64,11 @@
       "edit": "Editează",
       "compress": "Comprimă",
       "merge": "Combină",
-      "convert": "Convertește"
+      "convert": "Convertește",
+      "scanToPdf": "Scanează în PDF",
+      "split": "Împarte",
+      "protect": "Protejează",
+      "ocrText": "OCR text"
     }
   }
 }

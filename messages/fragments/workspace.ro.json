@@ -114,7 +114,8 @@
     "chatPdf": "Chat cu PDF",
     "summarize": "Rezumă",
     "translate": "Traduce",
-    "smartOcr": "OCR inteligent"
+    "smartOcr": "OCR inteligent",
+    "open": "Deschide"
   },
   "sidebar": {
     "newPdf": "PDF nou",
@@ -142,7 +143,38 @@
     "placeholder": "Întreabă despre acest document...",
     "send": "Trimite",
     "welcome": "Acesta pare a fi un document de 3 pagini. Pot rezuma, traduce, face OCR sau extrage tabele.",
-    "reply": "Am înțeles. Analizez această pagină și pregătesc un răspuns concis cu punctele cheie."
+    "reply": "Am înțeles. Analizez această pagină și pregătesc un răspuns concis cu punctele cheie.",
+    "answerLanguage": {
+      "label": "Limba răspunsului",
+      "hint": "Rezumatul și chatul vor răspunde în această limbă."
+    },
+    "generateSummary": "Generează rezumat",
+    "summaryByAi": "✨ Rezumat de AI",
+    "askDocument": "✨ Întreabă documentul",
+    "summaryDetail": {
+      "label": "Nivel de detaliu",
+      "light": {
+        "title": "Scurt"
+      },
+      "balanced": {
+        "title": "Mediu"
+      },
+      "deep": {
+        "title": "Detaliat"
+      }
+    },
+    "summaryPlaceholder": "Rulează rezumatul pentru a vedea punctele cheie generate de AI.",
+    "runSummaryForChat": "Chatul necesită mai întâi un rezumat (1–2 min). Deschide fila Rezumat, generează-l, apoi revino la Chat.",
+    "goToSummaryTab": "Deschide fila Rezumat",
+    "chatReadonlyPlaceholder": "Rulează mai întâi rezumatul pentru a întreba despre acest document…",
+    "voice": {
+      "speed": "Viteză",
+      "statusIdle": "Gata de redare",
+      "stop": "Oprește",
+      "play": "Începe citirea",
+      "pause": "Pauză",
+      "resume": "Continuă"
+    }
   },
   "inlineTools": {
     "compress": "Comprimă PDF",

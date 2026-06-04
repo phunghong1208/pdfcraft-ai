@@ -547,7 +547,11 @@
       "edit": "편집",
       "compress": "압축",
       "merge": "병합",
-      "convert": "변환"
+      "convert": "변환",
+      "scanToPdf": "스캔 PDF",
+      "split": "분할",
+      "protect": "보호",
+      "ocrText": "OCR 텍스트"
     }
   },
   "toolsPage": {
@@ -2885,7 +2889,7 @@
       "ocrLayerHint": "OCR text on scanned PDFs — turn off if misaligned"
     },
     "tools": {
-      "open": "Open",
+      "open": "열기",
       "zoomIn": "확대",
       "zoomOut": "축소",
       "fitPage": "페이지에 맞춤",
@@ -2972,9 +2976,9 @@
       "indexing": "Indexing document for AI chat...",
       "summarizing": "Summarizing (may take 1–2 minutes, keep this tab open)...",
       "indexError": "Could not prepare document for chat.",
-      "runSummaryForChat": "Chat requires Summary first (about 1–2 minutes). Open the Summary tab, generate a summary, then return to Chat.",
-      "goToSummaryTab": "Open Summary tab",
-      "chatReadonlyPlaceholder": "Run Summary first to ask about this document…",
+      "runSummaryForChat": "채팅을 사용하려면 먼저 요약이 필요합니다(약 1–2분). 요약 탭에서 요약을 생성한 후 채팅으로 돌아가세요.",
+      "goToSummaryTab": "요약 탭 열기",
+      "chatReadonlyPlaceholder": "이 문서에 대해 질문하려면 먼저 요약을 실행하세요…",
       "startSummaryForChat": "Summarize to enable chat",
       "chatReady": "Chat is ready — type your question.",
       "summaryMissingDocumentId": "Summary finished but the server did not return document_id — chat is unavailable.",
@@ -2986,29 +2990,29 @@
       "noFile": "Upload a PDF first.",
       "noDocumentId": "Document is not indexed yet. Wait or run Summary first.",
       "answerLanguage": {
-        "label": "Answer language",
-        "hint": "Summary and chat replies will be in this language."
+        "label": "답변 언어",
+        "hint": "요약과 채팅 답변이 이 언어로 제공됩니다."
       },
       "languageShort": "Language",
       "analyzing": "✨ AI is analyzing your document…",
       "thinkingAi": "✨ AI is thinking…",
-      "summaryByAi": "✨ Summary by AI",
-      "askDocument": "✨ Ask your document",
+      "summaryByAi": "✨ AI 요약",
+      "askDocument": "✨ 문서에게 질문",
       "copy": "Copy",
       "copied": "Copied",
       "copyFailed": "Could not copy to clipboard.",
       "exportPdf": "Export PDF",
       "exportFailed": "PDF export failed.",
       "summaryDetail": {
-        "label": "Detail level",
+        "label": "상세 수준",
         "light": {
-          "title": "Short"
+          "title": "짧게"
         },
         "balanced": {
-          "title": "Medium"
+          "title": "보통"
         },
         "deep": {
-          "title": "Detailed"
+          "title": "자세히"
         }
       },
       "chatContext": {
@@ -3023,8 +3027,8 @@
           "title": "Deep"
         }
       },
-      "generateSummary": "Generate summary",
-      "summaryPlaceholder": "Run summary to see AI-generated highlights for this PDF.",
+      "generateSummary": "요약 생성",
+      "summaryPlaceholder": "요약을 실행하여 이 PDF의 AI 하이라이트를 확인하세요.",
       "summaryDone": "Summary is ready. Open the Summary tab to read it.",
       "documentId": "Document ID: {id}",
       "previewPdf": "PDF preview",
@@ -3038,12 +3042,12 @@
       "translateComingSoon": "Document translation — coming soon.",
       "voice": {
         "subtitle": "Listen to your document with built-in browser speech",
-        "play": "Start reading",
-        "pause": "Pause",
-        "resume": "Resume",
-        "stop": "Stop",
-        "speed": "Speed",
-        "statusIdle": "Ready to play",
+        "play": "읽기 시작",
+        "pause": "일시 정지",
+        "resume": "계속",
+        "stop": "중지",
+        "speed": "속도",
+        "statusIdle": "재생 준비됨",
         "statusPlaying": "Reading…",
         "statusPaused": "Paused",
         "nowReading": "Playing: {name}",

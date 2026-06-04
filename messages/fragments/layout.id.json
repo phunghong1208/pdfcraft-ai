@@ -64,7 +64,11 @@
       "edit": "Edit",
       "compress": "Kompres",
       "merge": "Gabung",
-      "convert": "Konversi"
+      "convert": "Konversi",
+      "scanToPdf": "Pindai ke PDF",
+      "split": "Pisah",
+      "protect": "Lindungi",
+      "ocrText": "OCR teks"
     }
   }
 }

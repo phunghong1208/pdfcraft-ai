@@ -123,7 +123,7 @@
     "upgradeTitle": "升级套餐",
     "footer": {
       "footer": "© 2025 PDFCraft. 保留所有权利。",
-      "tagline": "Private AI Workspace",
+      "tagline": "私密 AI 工作区",
       "ctaHeadline": "Ready to work smarter with PDFs?",
       "ctaSubtitle": "Upload, edit, summarize and chat with documents using AI.",
       "uploadCta": "Upload PDF",
@@ -151,11 +151,11 @@
       "noCloudDesc": "No server storage",
       "gdprTitle": "GDPR Ready",
       "gdprDesc": "Privacy-first architecture",
-      "terms": "条款",
-      "privacyLink": "隐私",
+      "terms": "服务条款",
+      "privacyLink": "隐私政策",
       "cookies": "Cookie",
-      "brandName": "PDF Reader Workspace",
-      "legalNav": "Legal",
+      "brandName": "PDF Reader 工作区",
+      "legalNav": "法律信息",
       "brandEdition": "Private Edition",
       "taglineSub": "Local-first architecture. Your files never leave your device.",
       "motto": "Files stay private. AI stays useful.",
@@ -174,20 +174,20 @@
       "featureProtect": "Protect",
       "featuresNav": "Workspace features",
       "copyrightShort": "© {year} PDF",
-      "trustLocalFirst": "Local First",
-      "trustNoCloud": "No Cloud Upload",
-      "trustGdpr": "GDPR Ready",
+      "trustLocalFirst": "本地优先",
+      "trustNoCloud": "不上传云端",
+      "trustGdpr": "符合 GDPR",
       "trustLanguages": "100+ Languages",
       "trustAi": "AI Powered",
-      "trustGroupSecurity": "Security",
+      "trustGroupSecurity": "安全",
       "trustGroupPlatform": "Platform",
       "brandLine1": "PDF Reader",
       "brandLine2": "Workspace",
-      "downloadApp": "Download app",
+      "downloadApp": "下载应用",
       "googlePlayAria": "Get it on Google Play",
       "appStoreAria": "Download on the App Store",
       "availableOn": "Available on",
-      "trustGroupDownload": "Download app",
+      "trustGroupDownload": "下载应用",
       "storeGetOn": "Get it on",
       "storeGooglePlay": "Google Play",
       "storeDownloadOn": "Download on the",
@@ -329,7 +329,11 @@
       "edit": "编辑",
       "compress": "压缩",
       "merge": "合并",
-      "convert": "转换"
+      "convert": "转换",
+      "scanToPdf": "扫描为 PDF",
+      "split": "拆分",
+      "protect": "保护",
+      "ocrText": "OCR 文字"
     }
   },
   "toolsPage": {
@@ -2667,7 +2671,7 @@
       "ocrLayerHint": "OCR text on scanned PDFs — turn off if misaligned"
     },
     "tools": {
-      "open": "Open",
+      "open": "打开",
       "zoomIn": "放大",
       "zoomOut": "缩小",
       "fitPage": "适应页面",
@@ -2750,66 +2754,66 @@
       "openPages": "Open pages panel"
     },
     "aiPanel": {
-      "newBadge": "New",
-      "indexing": "Indexing document for AI chat...",
-      "summarizing": "Summarizing (may take 1–2 minutes, keep this tab open)...",
-      "indexError": "Could not prepare document for chat.",
-      "runSummaryForChat": "Chat requires Summary first (about 1–2 minutes). Open the Summary tab, generate a summary, then return to Chat.",
-      "goToSummaryTab": "Open Summary tab",
-      "chatReadonlyPlaceholder": "Run Summary first to ask about this document…",
-      "startSummaryForChat": "Summarize to enable chat",
-      "chatReady": "Chat is ready — type your question.",
-      "summaryMissingDocumentId": "Summary finished but the server did not return document_id — chat is unavailable.",
-      "chatReindexing": "Syncing document for chat (re-running summary)…",
-      "chatNoContext": "Chat could not find this document in the index.",
-      "chatNoContextHint": "Tap “Generate summary” again on the Summary tab, wait until it finishes, then ask your question.",
-      "chatError": "Chat request failed.",
-      "summaryError": "Summary request failed.",
-      "noFile": "Upload a PDF first.",
-      "noDocumentId": "Document is not indexed yet. Wait or run Summary first.",
+      "newBadge": "新",
+      "indexing": "正在为 AI 对话建立文档索引...",
+      "summarizing": "正在摘要（可能需要 1–2 分钟，请保持此标签页打开）...",
+      "indexError": "无法为对话准备文档。",
+      "runSummaryForChat": "对话需先运行摘要（约 1–2 分钟）。打开「摘要」标签，生成摘要后返回「对话」。",
+      "goToSummaryTab": "打开摘要标签",
+      "chatReadonlyPlaceholder": "请先运行摘要，再询问此文档…",
+      "startSummaryForChat": "摘要以启用对话",
+      "chatReady": "对话已就绪 — 请输入问题。",
+      "summaryMissingDocumentId": "摘要完成但服务器未返回 document_id — 无法对话。",
+      "chatReindexing": "正在同步文档以进行对话（重新运行摘要）…",
+      "chatNoContext": "对话在索引中找不到此文档。",
+      "chatNoContextHint": "在摘要标签再次点击「生成摘要」，等待完成后提问。",
+      "chatError": "对话请求失败。",
+      "summaryError": "摘要请求失败。",
+      "noFile": "请先上传 PDF。",
+      "noDocumentId": "文档尚未建立索引。请等待或先运行摘要。",
       "answerLanguage": {
-        "label": "Answer language",
-        "hint": "Summary and chat replies will be in this language."
+        "label": "回答语言",
+        "hint": "摘要和对话回复将使用此语言。"
       },
-      "languageShort": "Language",
-      "analyzing": "✨ AI is analyzing your document…",
-      "thinkingAi": "✨ AI is thinking…",
-      "summaryByAi": "✨ Summary by AI",
-      "askDocument": "✨ Ask your document",
-      "copy": "Copy",
-      "copied": "Copied",
-      "copyFailed": "Could not copy to clipboard.",
-      "exportPdf": "Export PDF",
-      "exportFailed": "PDF export failed.",
+      "languageShort": "语言",
+      "analyzing": "✨ AI 正在分析您的文档…",
+      "thinkingAi": "✨ AI 正在思考…",
+      "summaryByAi": "✨ AI 摘要",
+      "askDocument": "✨ 询问文档",
+      "copy": "复制",
+      "copied": "已复制",
+      "copyFailed": "无法复制到剪贴板。",
+      "exportPdf": "导出 PDF",
+      "exportFailed": "PDF 导出失败。",
       "summaryDetail": {
-        "label": "Detail level",
+        "label": "详细程度",
         "light": {
-          "title": "Short"
+          "title": "简短"
         },
         "balanced": {
-          "title": "Medium"
+          "title": "中等"
         },
         "deep": {
-          "title": "Detailed"
+          "title": "详细"
         }
       },
       "chatContext": {
-        "label": "Chat depth",
+        "label": "对话深度",
         "light": {
-          "title": "Light"
+          "title": "浅"
         },
         "balanced": {
-          "title": "Mid"
+          "title": "中"
         },
         "deep": {
-          "title": "Deep"
+          "title": "深"
         }
       },
-      "generateSummary": "Generate summary",
-      "summaryPlaceholder": "Run summary to see AI-generated highlights for this PDF.",
-      "summaryDone": "Summary is ready. Open the Summary tab to read it.",
-      "documentId": "Document ID: {id}",
-      "previewPdf": "PDF preview",
+      "generateSummary": "生成摘要",
+      "summaryPlaceholder": "运行摘要以查看 AI 为此 PDF 生成的要点。",
+      "summaryDone": "摘要已就绪。打开摘要标签阅读。",
+      "documentId": "文档 ID：{id}",
+      "previewPdf": "PDF 预览",
       "title": "AI 助手",
       "tabs": {
         "chat": "对话",
@@ -2817,28 +2821,28 @@
         "translate": "翻译",
         "voice": "洞察"
       },
-      "translateComingSoon": "Document translation — coming soon.",
+      "translateComingSoon": "文档翻译 — 即将推出。",
       "voice": {
-        "subtitle": "Listen to your document with built-in browser speech",
-        "play": "Start reading",
-        "pause": "Pause",
-        "resume": "Resume",
-        "stop": "Stop",
-        "speed": "Speed",
-        "statusIdle": "Ready to play",
-        "statusPlaying": "Reading…",
-        "statusPaused": "Paused",
-        "nowReading": "Playing: {name}",
-        "voiceLabel": "Voice",
-        "voiceLoading": "Loading voices…",
-        "genderFemale": "Female",
-        "genderMale": "Male",
-        "genderNeutral": "Other",
-        "noVoicesHint": "No voice for this language in your browser. On macOS: System Settings → Accessibility → Spoken Content → System Voice.",
-        "prepareTitle": "Document not ready to read",
-        "prepareHint": "Process the PDF once first (same as enabling chat) — about 1–2 minutes.",
-        "prepareButton": "Process document",
-        "unsupported": "Speech synthesis is not supported in this browser."
+        "subtitle": "使用浏览器语音朗读文档内容",
+        "play": "开始朗读",
+        "pause": "暂停",
+        "resume": "继续",
+        "stop": "停止",
+        "speed": "语速",
+        "statusIdle": "准备播放",
+        "statusPlaying": "正在朗读…",
+        "statusPaused": "已暂停",
+        "nowReading": "正在播放：{name}",
+        "voiceLabel": "语音",
+        "voiceLoading": "正在加载语音…",
+        "genderFemale": "女声",
+        "genderMale": "男声",
+        "genderNeutral": "其他",
+        "noVoicesHint": "浏览器没有此语言的语音。macOS：系统设置 → 辅助功能 → 朗读内容。",
+        "prepareTitle": "文档尚未准备好朗读",
+        "prepareHint": "需先处理 PDF 一次（与启用对话相同）— 约 1–2 分钟。",
+        "prepareButton": "处理文档",
+        "unsupported": "此浏览器不支持语音合成。"
       },
       "detected": "已检测",
       "documentLoaded": "文档已加载",

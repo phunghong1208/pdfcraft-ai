@@ -36,12 +36,12 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
   ];
 
   const pdfActions: Array<{ href: string; label: string; icon: typeof PencilLine }> = [
-    { href: `/${locale}/tools/image-to-pdf`, label: 'Scan to PDF', icon: ScanText },
+    { href: `/${locale}/tools/image-to-pdf`, label: t('actions.scanToPdf'), icon: ScanText },
     { href: `/${locale}/tools/merge-pdf`, label: t('actions.merge'), icon: GitMerge },
-    { href: `/${locale}/tools/split-pdf`, label: 'Split', icon: Scissors },
-    { href: `/${locale}/tools/encrypt-pdf`, label: 'Protect', icon: ShieldCheck },
+    { href: `/${locale}/tools/split-pdf`, label: t('actions.split'), icon: Scissors },
+    { href: `/${locale}/tools/encrypt-pdf`, label: t('actions.protect'), icon: ShieldCheck },
     { href: `/${locale}/tools/compress-pdf`, label: t('actions.compress'), icon: Minimize2 },
-    { href: `/${locale}/smart-ocr`, label: 'OCR Text', icon: ScanText },
+    { href: `/${locale}/smart-ocr`, label: t('actions.ocrText'), icon: ScanText },
     { href: `/${locale}/tools/edit-pdf`, label: t('actions.edit'), icon: PencilLine },
     { href: `/${locale}/tools?tab=convert`, label: t('actions.convert'), icon: FileCog },
   ];

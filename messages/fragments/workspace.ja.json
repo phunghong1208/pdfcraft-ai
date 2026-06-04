@@ -114,7 +114,8 @@
     "chatPdf": "PDFとチャット",
     "summarize": "要約",
     "translate": "翻訳",
-    "smartOcr": "スマートOCR"
+    "smartOcr": "スマートOCR",
+    "open": "開く"
   },
   "sidebar": {
     "newPdf": "新規PDF",
@@ -142,7 +143,38 @@
     "placeholder": "このドキュメントについて質問...",
     "send": "送信",
     "welcome": "3ページのドキュメントのようです。要約、翻訳、OCR、表の抽出ができます。",
-    "reply": "承知しました。このページを分析し、要点をまとめた回答を準備しています。"
+    "reply": "承知しました。このページを分析し、要点をまとめた回答を準備しています。",
+    "answerLanguage": {
+      "label": "回答言語",
+      "hint": "要約とチャットの返答はこの言語で行われます。"
+    },
+    "generateSummary": "要約を生成",
+    "summaryByAi": "✨ AI による要約",
+    "askDocument": "✨ ドキュメントに質問",
+    "summaryDetail": {
+      "label": "詳細レベル",
+      "light": {
+        "title": "短い"
+      },
+      "balanced": {
+        "title": "標準"
+      },
+      "deep": {
+        "title": "詳細"
+      }
+    },
+    "summaryPlaceholder": "要約を実行して、この PDF の AI ハイライトを表示します。",
+    "runSummaryForChat": "チャットには先に要約が必要です（約1〜2分）。「要約」タブで要約を生成し、「チャット」に戻ってください。",
+    "goToSummaryTab": "要約タブを開く",
+    "chatReadonlyPlaceholder": "このドキュメントについて質問するには、先に要約を実行してください…",
+    "voice": {
+      "speed": "速度",
+      "statusIdle": "再生準備完了",
+      "stop": "停止",
+      "play": "読み上げ開始",
+      "pause": "一時停止",
+      "resume": "再開"
+    }
   },
   "aiSummaryPage": {
     "uploadTitle": "PDFをアップロード",

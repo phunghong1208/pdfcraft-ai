@@ -64,7 +64,11 @@
       "edit": "تحرير",
       "compress": "ضغط",
       "merge": "دمج",
-      "convert": "تحويل"
+      "convert": "تحويل",
+      "scanToPdf": "مسح إلى PDF",
+      "split": "تقسيم",
+      "protect": "حماية",
+      "ocrText": "OCR نص"
     }
   }
 }

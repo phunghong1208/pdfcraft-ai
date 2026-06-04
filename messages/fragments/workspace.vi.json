@@ -61,6 +61,7 @@
     "ocrLayerHint": "Text OCR trên PDF scan — tắt nếu bị lệch/xấu"
   },
   "tools": {
+    "open": "Mở",
     "zoomIn": "Phóng to",
     "zoomOut": "Thu nhỏ",
     "fitPage": "Vừa trang",
@@ -174,15 +175,27 @@
     "exportFailed": "Xuất PDF thất bại.",
     "summaryDetail": {
       "label": "Độ chi tiết",
-      "light": { "title": "Ngắn" },
-      "balanced": { "title": "Vừa" },
-      "deep": { "title": "Chi tiết" }
+      "light": {
+        "title": "Ngắn"
+      },
+      "balanced": {
+        "title": "Vừa"
+      },
+      "deep": {
+        "title": "Chi tiết"
+      }
     },
     "chatContext": {
       "label": "Độ sâu chat",
-      "light": { "title": "Gọn" },
-      "balanced": { "title": "Vừa" },
-      "deep": { "title": "Sâu" }
+      "light": {
+        "title": "Gọn"
+      },
+      "balanced": {
+        "title": "Vừa"
+      },
+      "deep": {
+        "title": "Sâu"
+      }
     },
     "generateSummary": "Tạo tóm tắt",
     "summaryPlaceholder": "Chạy tóm tắt để xem nội dung chính do AI tạo cho PDF này.",

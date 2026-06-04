@@ -114,7 +114,8 @@
     "chatPdf": "Chat con PDF",
     "summarize": "Resumir",
     "translate": "Traducir",
-    "smartOcr": "OCR inteligente"
+    "smartOcr": "OCR inteligente",
+    "open": "Abrir"
   },
   "sidebar": {
     "newPdf": "Nuevo PDF",
@@ -142,7 +143,38 @@
     "placeholder": "Pregunta sobre este documento...",
     "send": "Enviar",
     "welcome": "Parece ser un documento de 3 páginas. Puedo resumir, traducir, aplicar OCR o extraer tablas.",
-    "reply": "Entendido. Estoy analizando esta página y preparando una respuesta concisa con los puntos clave."
+    "reply": "Entendido. Estoy analizando esta página y preparando una respuesta concisa con los puntos clave.",
+    "answerLanguage": {
+      "label": "Idioma de respuesta",
+      "hint": "El resumen y el chat responderán en este idioma."
+    },
+    "generateSummary": "Generar resumen",
+    "summaryByAi": "✨ Resumen por IA",
+    "askDocument": "✨ Pregunta a tu documento",
+    "summaryDetail": {
+      "label": "Nivel de detalle",
+      "light": {
+        "title": "Corto"
+      },
+      "balanced": {
+        "title": "Medio"
+      },
+      "deep": {
+        "title": "Detallado"
+      }
+    },
+    "summaryPlaceholder": "Ejecuta el resumen para ver los puntos clave generados por IA.",
+    "runSummaryForChat": "El chat requiere un resumen primero (1–2 min). Abre la pestaña Resumen, genera el resumen y vuelve al Chat.",
+    "goToSummaryTab": "Abrir pestaña Resumen",
+    "chatReadonlyPlaceholder": "Ejecuta el resumen primero para preguntar sobre este documento…",
+    "voice": {
+      "speed": "Velocidad",
+      "statusIdle": "Listo para reproducir",
+      "stop": "Detener",
+      "play": "Iniciar lectura",
+      "pause": "Pausar",
+      "resume": "Reanudar"
+    }
   },
   "inlineTools": {
     "compress": "Comprimir PDF",
