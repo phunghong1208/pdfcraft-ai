@@ -161,12 +161,14 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
                         <div className="ai-card__icon">
                           <Icon className="h-5 w-5" strokeWidth={1.75} />
                         </div>
-                        <div>
+                        <div className="ai-card__copy">
                           <div className="ai-card__title">{item.label}</div>
                           <p className="ai-card__desc">{t(`aiDescriptions.${item.descriptionKey}`)}</p>
                         </div>
+                        <div className="ai-card__foot">
+                          <ArrowRight className="action-card-arrow__icon" strokeWidth={1.75} aria-hidden />
+                        </div>
                       </div>
-                      <ArrowRight className="ai-card__arrow" strokeWidth={1.5} aria-hidden />
                     </Link>
                   );
                 })}
@@ -198,7 +200,9 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
                       </div>
                       <div className="tool-action-card__title">{item.label}</div>
                       <p className="tool-action-card__desc">{t(`toolDescriptions.${item.descriptionKey}`)}</p>
-                      <ArrowRight className="tool-action-card__arrow" strokeWidth={1.5} aria-hidden />
+                      <div className="tool-action-card__foot">
+                        <ArrowRight className="action-card-arrow__icon" strokeWidth={1.75} aria-hidden />
+                      </div>
                     </Link>
                   );
                 })}

@@ -44,6 +44,8 @@
   "aiMenu": {
     "aiAssistant": "AI Assistant",
     "pdfTools": "PDF Tools",
+    "edit": "Edit",
+    "convert": "Convert",
     "workspace": "Workspace",
     "summarizePdf": "Summarize PDF",
     "translatePdf": "Translate PDF",
@@ -55,7 +57,19 @@
     "splitPdf": "Split PDF",
     "compressPdf": "Compress PDF",
     "pdfToWord": "PDF to Word",
-    "ocrPdf": "OCR PDF"
+    "ocrPdf": "OCR PDF",
+    "rotatePdf": "Rotate PDF",
+    "organizePdf": "Organize Pages",
+    "extractPages": "Extract Pages",
+    "deletePages": "Delete Pages",
+    "signPdf": "Sign PDF",
+    "cropPdf": "Crop PDF",
+    "addWatermark": "Add Watermark",
+    "formFiller": "Fill Forms",
+    "pageNumbers": "Page Numbers",
+    "headerFooter": "Header & Footer",
+    "convertToPdf": "Convert to PDF",
+    "convertFromPdf": "Convert from PDF"
   },
   "homePage": {
     "badge": "AI PDF Workspace",

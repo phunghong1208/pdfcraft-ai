@@ -44,6 +44,8 @@
   "aiMenu": {
     "aiAssistant": "Trợ lý AI",
     "pdfTools": "Công cụ PDF",
+    "edit": "Chỉnh sửa",
+    "convert": "Chuyển đổi",
     "workspace": "Không gian làm việc",
     "summarizePdf": "Tóm tắt PDF",
     "translatePdf": "Dịch PDF",
@@ -55,7 +57,19 @@
     "splitPdf": "Tách PDF",
     "compressPdf": "Nén PDF",
     "pdfToWord": "PDF sang Word",
-    "ocrPdf": "OCR PDF"
+    "ocrPdf": "OCR PDF",
+    "rotatePdf": "Xoay PDF",
+    "organizePdf": "Sắp xếp trang",
+    "extractPages": "Trích xuất trang",
+    "deletePages": "Xóa trang",
+    "signPdf": "Ký PDF",
+    "cropPdf": "Cắt PDF",
+    "addWatermark": "Thêm hình mờ",
+    "formFiller": "Điền biểu mẫu",
+    "pageNumbers": "Số trang",
+    "headerFooter": "Tiêu đề & Chân trang",
+    "convertToPdf": "Chuyển sang PDF",
+    "convertFromPdf": "Chuyển từ PDF"
   },
   "homePage": {
     "badge": "Không gian làm việc PDF AI",

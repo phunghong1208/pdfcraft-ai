@@ -11,6 +11,7 @@ import {
   Copy,
   FileDown,
   Check,
+  User,
 } from 'lucide-react';
 import { WorkspaceAiMarkdown } from '@/components/workspace/WorkspaceAiMarkdown';
 import { markdownToPDF } from '@/lib/pdf/processors/markdown-to-pdf';
@@ -835,22 +836,57 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
                   </Button>
                 </div>
               )}
-              {messages.map((m, idx) => (
-                <div
-                  key={idx}
-                  className={`rounded-xl px-3 py-2.5 ${
-                    m.role === 'assistant'
-                      ? `border ${isDarkTheme ? 'border-[hsl(var(--color-primary)/0.18)] bg-gradient-to-br from-[hsl(var(--color-primary)/0.1)] to-[#161B22]' : 'border-[#E5E7EB] bg-white'}`
-                      : `bg-[hsl(var(--color-primary)/0.12)] border border-[hsl(var(--color-primary)/0.25)] ${isDarkTheme ? 'text-[#F8FAFC]' : 'text-[hsl(var(--color-foreground))]'} ml-3`
-                  }`}
-                >
-                  {m.role === 'assistant' ? (
-                    <WorkspaceAiMarkdown content={m.text} variant={isDarkTheme ? 'dark' : 'light'} />
-                  ) : (
-                    <p className="text-[12px] leading-relaxed">{m.text}</p>
-                  )}
-                </div>
-              ))}
+              {messages.map((m, idx) => {
+                const isAssistant = m.role === 'assistant';
+                return (
+                  <div
+                    key={idx}
+                    className={`flex flex-col gap-1 max-w-full ${isAssistant ? 'items-start' : 'items-end ml-2'}`}
+                  >
+                    <div
+                      className={`flex items-center gap-1.5 px-0.5 ${isAssistant ? '' : 'flex-row-reverse'}`}
+                    >
+                      {isAssistant ? (
+                        <Sparkles
+                          className={`h-3.5 w-3.5 shrink-0 ${isDarkTheme ? 'text-violet-400' : 'text-violet-600'}`}
+                          aria-hidden
+                        />
+                      ) : (
+                        <User
+                          className={`h-3.5 w-3.5 shrink-0 ${isDarkTheme ? 'text-blue-300' : 'text-blue-600'}`}
+                          aria-hidden
+                        />
+                      )}
+                      <span
+                        className={`text-[10px] font-semibold uppercase tracking-wide ${
+                          isAssistant
+                            ? isDarkTheme
+                              ? 'text-violet-300/95'
+                              : 'text-violet-700'
+                            : isDarkTheme
+                              ? 'text-blue-200/95'
+                              : 'text-blue-700'
+                        }`}
+                      >
+                        {isAssistant ? t('aiPanel.chatRoleAssistant') : t('aiPanel.chatRoleUser')}
+                      </span>
+                    </div>
+                    <div
+                      className={`w-full rounded-xl px-3 py-2.5 ${
+                        isAssistant
+                          ? `border ${isDarkTheme ? 'border-[hsl(var(--color-primary)/0.18)] bg-gradient-to-br from-[hsl(var(--color-primary)/0.1)] to-[#161B22]' : 'border-[#E5E7EB] bg-white'}`
+                          : `bg-[hsl(var(--color-primary)/0.12)] border border-[hsl(var(--color-primary)/0.25)] ${isDarkTheme ? 'text-[#F8FAFC]' : 'text-[hsl(var(--color-foreground))]'}`
+                      }`}
+                    >
+                      {isAssistant ? (
+                        <WorkspaceAiMarkdown content={m.text} variant={isDarkTheme ? 'dark' : 'light'} />
+                      ) : (
+                        <p className="text-[12px] leading-relaxed">{m.text}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
             <div
               className={`pt-3 border-t flex items-end gap-2 shrink-0 ${isDarkTheme ? 'border-[#263241]' : 'border-[#E5E7EB]'} ${!chatReady ? 'pointer-events-none opacity-60' : ''}`}

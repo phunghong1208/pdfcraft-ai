@@ -170,6 +170,8 @@
     "thinkingAi": "✨ AI đang suy nghĩ…",
     "summaryByAi": "✨ Tóm tắt bởi AI",
     "askDocument": "✨ Hỏi tài liệu",
+    "chatRoleUser": "Bạn",
+    "chatRoleAssistant": "Trợ lý AI",
     "copy": "Sao chép",
     "copied": "Đã sao chép",
     "copyFailed": "Không sao chép được.",

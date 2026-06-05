@@ -1,16 +1,34 @@
 'use client';
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Search, Menu, X, ChevronDown, UserCircle2 } from 'lucide-react';
+import {
+  Search,
+  Menu,
+  X,
+  ChevronDown,
+  Crown,
+  Home,
+  Sparkles,
+  Wrench,
+  PencilLine,
+  ArrowLeftRight,
+  Languages,
+  MessageCircle,
+  Volume2,
+  type LucideIcon,
+} from 'lucide-react';
+import { getToolIcon } from '@/config/icons';
+import { getToolIconTone } from '@/lib/ui/icon-tones';
+import { IconBadge } from '@/components/ui/IconBadge';
 import { type Locale } from '@/lib/i18n/config';
 import { Button } from '@/components/ui/Button';
 import { RecentFilesDropdown } from '@/components/common/RecentFilesDropdown';
 import { searchTools, SearchResult } from '@/lib/utils/search';
 import { getToolContent } from '@/config/tool-content';
-import { getAllTools } from '@/config/tools';
+import { getAllTools, getToolBySlug, getToolsByCategory } from '@/config/tools';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { BrandLogo } from '@/components/layout/BrandLogo';
 import { LanguageSelector } from '@/components/layout/LanguageSelector';
@@ -20,7 +38,34 @@ export interface HeaderProps {
   showSearch?: boolean;
 }
 
-type NavGroup = 'ai' | 'pdf';
+type NavGroup = 'ai' | 'pdf' | 'edit' | 'convert';
+
+type NavDropdownItem = {
+  href: string;
+  label: string;
+  iconKey?: string;
+  lucideIcon?: LucideIcon;
+  toolId?: string;
+};
+
+function resolveDropdownLucideIcon(item: NavDropdownItem): LucideIcon | null {
+  if (item.lucideIcon) return item.lucideIcon;
+  if (item.iconKey) return getToolIcon(item.iconKey);
+  return null;
+}
+
+const PDF_NAV_SLUGS = new Set(['merge-pdf', 'split-pdf', 'compress-pdf', 'rotate-pdf', 'organize-pdf', 'extract-pages', 'delete-pages', 'ocr-pdf']);
+
+const PDF_NAV_SLUG_ORDER = ['merge-pdf', 'split-pdf', 'compress-pdf', 'rotate-pdf', 'organize-pdf', 'extract-pages', 'delete-pages', 'ocr-pdf'] as const;
+
+const EDIT_NAV_SLUGS = new Set(['edit-pdf', 'sign-pdf', 'crop-pdf', 'add-watermark', 'form-filler', 'page-numbers', 'header-footer']);
+
+const EDIT_NAV_SLUG_ORDER = ['edit-pdf', 'sign-pdf', 'crop-pdf', 'add-watermark', 'form-filler', 'page-numbers', 'header-footer'] as const;
+
+function toolHref(locale: Locale, toolId: string, slug: string): string {
+  if (toolId === 'edit-pdf') return `/${locale}/editor`;
+  return `/${locale}/tools/${slug}`;
+}
 
 export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => {
   const t = useTranslations('common');
@@ -38,28 +83,93 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const groupRef = useRef<HTMLDivElement>(null);
 
-  const aiItems = [
-    { href: `/${locale}/ai-summary`, label: t('ai.menu.summarizePdf') },
-    { href: `/${locale}/ai-translate`, label: t('ai.menu.translatePdf') },
-    { href: `/${locale}/chat-pdf`, label: t('ai.menu.chatWithPdf') },
-    { href: `/${locale}/smart-ocr`, label: t('ai.menu.smartOcr') },
-    { href: `/${locale}/voice-reader`, label: t('ai.menu.voiceReader') },
+  const aiItems: NavDropdownItem[] = [
+    { href: `/${locale}/ai-summary`, label: t('ai.menu.summarizePdf'), iconKey: 'file-text' },
+    { href: `/${locale}/ai-translate`, label: t('ai.menu.translatePdf'), lucideIcon: Languages },
+    { href: `/${locale}/chat-pdf`, label: t('ai.menu.chatWithPdf'), lucideIcon: MessageCircle },
+    { href: `/${locale}/smart-ocr`, label: t('ai.menu.smartOcr'), iconKey: 'scan-text' },
+    { href: `/${locale}/voice-reader`, label: t('ai.menu.voiceReader'), lucideIcon: Volume2 },
   ];
 
-  const pdfItems = [
-    { href: `/${locale}/editor`, label: t('ai.menu.editPdf') },
-    { href: `/${locale}/tools/merge-pdf`, label: t('ai.menu.mergePdf') },
-    { href: `/${locale}/tools/split-pdf`, label: t('ai.menu.splitPdf') },
-    { href: `/${locale}/tools/compress-pdf`, label: t('ai.menu.compressPdf') },
-    { href: `/${locale}/tools/pdf-to-docx`, label: t('ai.menu.pdfToWord') },
-    { href: `/${locale}/tools/ocr-pdf`, label: t('ai.menu.ocrPdf') },
-  ];
+  const pdfItems: NavDropdownItem[] = useMemo(
+    () =>
+      PDF_NAV_SLUG_ORDER.map((slug) => {
+        const tool = getToolBySlug(slug);
+        const labels: Record<(typeof PDF_NAV_SLUG_ORDER)[number], string> = {
+          'merge-pdf': t('ai.menu.mergePdf'),
+          'split-pdf': t('ai.menu.splitPdf'),
+          'compress-pdf': t('ai.menu.compressPdf'),
+          'rotate-pdf': t('ai.menu.rotatePdf'),
+          'organize-pdf': t('ai.menu.organizePdf'),
+          'extract-pages': t('ai.menu.extractPages'),
+          'delete-pages': t('ai.menu.deletePages'),
+          'ocr-pdf': t('ai.menu.ocrPdf'),
+        };
+        return {
+          href: `/${locale}/tools/${slug}`,
+          label: labels[slug],
+          iconKey: tool?.icon ?? 'file-text',
+          toolId: slug,
+        };
+      }),
+    [locale, t],
+  );
+
+  const editItems: NavDropdownItem[] = useMemo(
+    () =>
+      EDIT_NAV_SLUG_ORDER.map((slug) => {
+        const tool = getToolBySlug(slug);
+        const labels: Record<(typeof EDIT_NAV_SLUG_ORDER)[number], string> = {
+          'edit-pdf': t('ai.menu.editPdf'),
+          'sign-pdf': t('ai.menu.signPdf'),
+          'crop-pdf': t('ai.menu.cropPdf'),
+          'add-watermark': t('ai.menu.addWatermark'),
+          'form-filler': t('ai.menu.formFiller'),
+          'page-numbers': t('ai.menu.pageNumbers'),
+          'header-footer': t('ai.menu.headerFooter'),
+        };
+        return {
+          href: toolHref(locale, tool?.id ?? slug, slug),
+          label: labels[slug],
+          iconKey: tool?.icon ?? 'file-text',
+          toolId: slug,
+        };
+      }),
+    [locale, t],
+  );
+
+  const convertToItems = useMemo(
+    () =>
+      getToolsByCategory('convert-to-pdf').map((tool) => ({
+        href: toolHref(locale, tool.id, tool.slug),
+        label: localizedTools[tool.id]?.title ?? tool.slug.replace(/-/g, ' '),
+        iconKey: tool.icon,
+        toolId: tool.id,
+      })),
+    [locale, localizedTools],
+  );
+
+  const convertFromItems = useMemo(
+    () =>
+      getToolsByCategory('convert-from-pdf').map((tool) => ({
+        href: toolHref(locale, tool.id, tool.slug),
+        label: localizedTools[tool.id]?.title ?? tool.slug.replace(/-/g, ' '),
+        iconKey: tool.icon,
+        toolId: tool.id,
+      })),
+    [locale, localizedTools],
+  );
+
+  const toolSlugFromPath = useMemo(() => {
+    const match = pathname?.match(/\/tools\/([^/?#]+)/);
+    return match?.[1] ?? null;
+  }, [pathname]);
 
   useEffect(() => {
     const allTools = getAllTools();
     const contentMap: Record<string, { title: string; description: string }> = {};
 
-    allTools.forEach(tool => {
+    allTools.forEach((tool) => {
       const content = getToolContent(locale, tool.id);
       if (content) {
         contentMap[tool.id] = {
@@ -99,12 +209,15 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const navigateToTool = useCallback((slug: string) => {
-    router.push(`/${locale}/tools/${slug}`);
-    setIsSearchOpen(false);
-    setSearchQuery('');
-    setSearchResults([]);
-  }, [locale, router]);
+  const navigateToTool = useCallback(
+    (slug: string) => {
+      router.push(`/${locale}/tools/${slug}`);
+      setIsSearchOpen(false);
+      setSearchQuery('');
+      setSearchResults([]);
+    },
+    [locale, router],
+  );
 
   const handleSearchToggle = useCallback(() => {
     setIsSearchOpen((prev) => !prev);
@@ -128,26 +241,29 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const handleInputKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setSelectedIndex(prev => Math.min(prev + 1, searchResults.length - 1));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setSelectedIndex(prev => Math.max(prev - 1, -1));
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (selectedIndex >= 0 && searchResults[selectedIndex]) {
-        navigateToTool(searchResults[selectedIndex].tool.slug);
-      } else if (searchResults.length > 0) {
-        navigateToTool(searchResults[0].tool.slug);
+  const handleInputKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedIndex((prev) => Math.min(prev + 1, searchResults.length - 1));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedIndex((prev) => Math.max(prev - 1, -1));
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (selectedIndex >= 0 && searchResults[selectedIndex]) {
+          navigateToTool(searchResults[selectedIndex].tool.slug);
+        } else if (searchResults.length > 0) {
+          navigateToTool(searchResults[0].tool.slug);
+        }
+      } else if (e.key === 'Escape') {
+        setIsSearchOpen(false);
+        setSearchQuery('');
+        setSearchResults([]);
       }
-    } else if (e.key === 'Escape') {
-      setIsSearchOpen(false);
-      setSearchQuery('');
-      setSearchResults([]);
-    }
-  }, [navigateToTool, searchResults, selectedIndex]);
+    },
+    [navigateToTool, searchResults, selectedIndex],
+  );
 
   const getToolIcon = (category: string) => {
     const icons: Record<string, string> = {
@@ -161,88 +277,164 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
     return icons[category] || '📄';
   };
 
-  const renderGroupDropdown = (items: Array<{ href: string; label: string }>) => (
-    <div className="absolute top-full left-0 mt-2 w-64 rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-background))] shadow-xl p-2 z-50">
+  const renderDropdownIcon = (item: NavDropdownItem) => {
+    const ResolvedIcon = resolveDropdownLucideIcon(item);
+    if (!ResolvedIcon) return null;
+    const tone = item.toolId ? getToolIconTone(item.toolId) : 'gray';
+    return <IconBadge icon={ResolvedIcon} tone={tone} size="xs" />;
+  };
+
+  const renderGroupDropdown = (items: NavDropdownItem[]) => (
+    <div className="site-header__dropdown absolute top-full left-0 mt-2 w-72 rounded-xl border p-1.5 z-50 flex flex-col gap-0.5">
       {items.map((item) => (
         <Link
           key={item.href}
           href={item.href}
-          className="block rounded-lg px-3 py-2 text-sm text-[hsl(var(--color-foreground))] hover:bg-[hsl(var(--color-muted))/0.6]"
+          className="site-header__dropdown-item rounded-lg px-2.5 py-2 text-sm"
           onClick={() => setOpenGroup(null)}
         >
-          {item.label}
+          {renderDropdownIcon(item)}
+          <span className="min-w-0 truncate">{item.label}</span>
         </Link>
       ))}
     </div>
   );
 
+  const renderConvertDropdown = () => (
+    <div className="site-header__dropdown site-header__dropdown--convert absolute top-full left-1/2 -translate-x-1/2 mt-2 rounded-xl border p-2 z-50">
+      <div className="grid grid-cols-2 gap-x-3 gap-y-0">
+        <div>
+          <div className="px-2.5 py-1.5 text-[0.625rem] font-bold tracking-wider uppercase text-[hsl(var(--color-muted-foreground))]">
+            {t('ai.menu.convertToPdf')}
+          </div>
+          {convertToItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="site-header__dropdown-item rounded-lg px-2.5 py-1.5 text-sm"
+              onClick={() => setOpenGroup(null)}
+            >
+              {renderDropdownIcon(item)}
+              <span className="min-w-0 truncate">{item.label}</span>
+            </Link>
+          ))}
+        </div>
+        <div>
+          <div className="px-2.5 py-1.5 text-[0.625rem] font-bold tracking-wider uppercase text-[hsl(var(--color-muted-foreground))]">
+            {t('ai.menu.convertFromPdf')}
+          </div>
+          {convertFromItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="site-header__dropdown-item rounded-lg px-2.5 py-1.5 text-sm"
+              onClick={() => setOpenGroup(null)}
+            >
+              {renderDropdownIcon(item)}
+              <span className="min-w-0 truncate">{item.label}</span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
   const isHomeActive = pathname === `/${locale}` || pathname === `/${locale}/`;
-  const isAIActive = pathname?.includes('/ai-') || pathname?.includes('/chat-pdf') || pathname?.includes('/smart-ocr') || pathname?.includes('/voice-reader');
-  const isPDFAcitve = pathname?.includes('/tools/');
-  const isWorkspaceActive = pathname?.includes('/workspace');
+  const isAIActive =
+    pathname?.includes('/ai-') ||
+    pathname?.includes('/chat-pdf') ||
+    pathname?.includes('/smart-ocr') ||
+    pathname?.includes('/voice-reader');
+  const isPDFActive = toolSlugFromPath != null && PDF_NAV_SLUGS.has(toolSlugFromPath);
+  const isEditActive =
+    pathname?.includes('/editor') ||
+    (toolSlugFromPath != null && EDIT_NAV_SLUGS.has(toolSlugFromPath));
+  const isConvertActive =
+    toolSlugFromPath != null &&
+    (getToolBySlug(toolSlugFromPath)?.category === 'convert-to-pdf' ||
+      getToolBySlug(toolSlugFromPath)?.category === 'convert-from-pdf');
 
   const navItemClass = (active: boolean) =>
     `site-header__nav-item${active ? ' site-header__nav-item--active' : ''}`;
 
+  const toggleGroup = (group: NavGroup) => {
+    setOpenGroup((prev) => (prev === group ? null : group));
+  };
+
+  const renderNavDropdown = (
+    group: NavGroup,
+    active: boolean,
+    label: string,
+    icon: React.ReactNode,
+    items: NavDropdownItem[],
+  ) => (
+    <div className="relative">
+      <button type="button" className={navItemClass(active)} onClick={() => toggleGroup(group)}>
+        {icon}
+        <span>{label}</span>
+        <ChevronDown className={`site-header__nav-chevron ${openGroup === group ? 'site-header__nav-chevron--open' : ''}`} />
+      </button>
+      {openGroup === group && renderGroupDropdown(items)}
+    </div>
+  );
+
   return (
     <header className="site-header fixed top-0 z-50 w-full transition-all duration-300" role="banner">
-      <div className="container mx-auto px-4 pt-5">
-        <div className="site-header__bar flex h-16 items-center justify-between rounded-2xl px-4 shadow-sm">
-          <div className="flex flex-1 items-center gap-2">
+      <div className="container mx-auto px-4 pt-4">
+        <div className="site-header__bar flex h-[3.75rem] items-center gap-3 px-4 md:px-5">
+          <div className="site-header__brand shrink-0">
             <BrandLogo locale={locale} href={`/${locale}`} />
           </div>
 
           <nav
-            className={`site-header__nav hidden md:flex items-center gap-1 rounded-full border px-1.5 py-1 transition-all duration-300 ${isSearchOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+            className={`site-header__nav hidden lg:flex flex-1 items-center justify-center gap-0.5 min-w-0 transition-opacity duration-300 ${isSearchOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
             role="navigation"
             aria-label="Main navigation"
             ref={groupRef}
           >
-            <Link href={`/${locale}`} className={navItemClass(isHomeActive)}>{t('navigation.home')}</Link>
+            <Link href={`/${locale}`} className={navItemClass(isHomeActive)}>
+              <Home className="site-header__nav-icon" strokeWidth={1.75} aria-hidden />
+              <span>{t('navigation.home')}</span>
+            </Link>
 
+            {renderNavDropdown(
+              'ai',
+              !!isAIActive,
+              t('ai.menu.aiAssistant'),
+              <Sparkles className="site-header__nav-icon" strokeWidth={1.75} aria-hidden />,
+              aiItems,
+            )}
+            {renderNavDropdown(
+              'pdf',
+              !!isPDFActive,
+              t('ai.menu.pdfTools'),
+              <Wrench className="site-header__nav-icon" strokeWidth={1.75} aria-hidden />,
+              pdfItems,
+            )}
+            {renderNavDropdown(
+              'edit',
+              !!isEditActive,
+              t('ai.menu.edit'),
+              <PencilLine className="site-header__nav-icon" strokeWidth={1.75} aria-hidden />,
+              editItems,
+            )}
             <div className="relative">
-              <button
-                type="button"
-                className={navItemClass(isAIActive)}
-                onClick={() => setOpenGroup(prev => prev === 'ai' ? null : 'ai')}
-              >
-                {t('ai.menu.aiAssistant')}
-                <ChevronDown className={`h-4 w-4 transition-transform ${openGroup === 'ai' ? 'rotate-180' : ''}`} />
+              <button type="button" className={navItemClass(!!isConvertActive)} onClick={() => toggleGroup('convert')}>
+                <ArrowLeftRight className="site-header__nav-icon" strokeWidth={1.75} aria-hidden />
+                <span>{t('ai.menu.convert')}</span>
+                <ChevronDown className={`site-header__nav-chevron ${openGroup === 'convert' ? 'site-header__nav-chevron--open' : ''}`} />
               </button>
-              {openGroup === 'ai' && renderGroupDropdown(aiItems)}
+              {openGroup === 'convert' && renderConvertDropdown()}
             </div>
-
-            <div className="relative">
-              <button
-                type="button"
-                className={navItemClass(isPDFAcitve)}
-                onClick={() => setOpenGroup(prev => prev === 'pdf' ? null : 'pdf')}
-              >
-                {t('ai.menu.pdfTools')}
-                <ChevronDown className={`h-4 w-4 transition-transform ${openGroup === 'pdf' ? 'rotate-180' : ''}`} />
-              </button>
-              {openGroup === 'pdf' && renderGroupDropdown(pdfItems)}
-            </div>
-
-            <Link href={`/${locale}/workspace`} className={navItemClass(isWorkspaceActive)}>{t('ai.menu.workspace')}</Link>
           </nav>
 
-          <div className="hidden lg:flex flex-1 items-center justify-center px-10">
-            {showSearch && !isSearchOpen && (
-              <Button variant="ghost" size="sm" onClick={handleSearchToggle} aria-label={t('search.open')} className="site-header__search h-11 w-[290px] justify-between rounded-xl border px-3 text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))] transition-colors focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-primary)/0.25)]">
-                <span className="inline-flex items-center text-sm font-medium">{t('search.trigger')}</span>
-                <span className="text-xs font-semibold text-[hsl(var(--color-muted-foreground))/0.8] border border-[hsl(var(--color-border))] rounded px-1.5 py-0.5">⌘K</span>
-              </Button>
-            )}
-          </div>
-
-          <div className="flex flex-1 items-center justify-end gap-2">
+          <div className="site-header__actions flex shrink-0 items-center justify-end gap-2">
             {showSearch && (
-              <div className="relative" ref={searchContainerRef}>
+              <div className="relative hidden md:block" ref={searchContainerRef}>
                 {isSearchOpen ? (
-                  <div className="fixed md:absolute left-4 right-4 md:left-auto md:right-0 top-[22px] md:top-1/2 md:-translate-y-1/2 z-50 md:origin-right animate-in fade-in slide-in-from-right-4 duration-200">
-                    <div className="relative w-full md:w-96">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[hsl(var(--color-muted-foreground))]" />
+                  <div className="absolute right-0 top-1/2 z-50 w-[min(100vw-2rem,22rem)] -translate-y-1/2 origin-right animate-in fade-in slide-in-from-right-4 duration-200">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[hsl(var(--color-muted-foreground))]" />
                       <input
                         ref={searchInputRef}
                         type="search"
@@ -250,21 +442,30 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onKeyDown={handleInputKeyDown}
                         placeholder={t('search.placeholderExpanded')}
-                        className="site-header__search-input w-full pl-10 pr-10 py-2.5 text-sm rounded-xl border shadow-lg focus:outline-none"
+                        className="site-header__search-input w-full rounded-full border py-2.5 pl-10 pr-10 text-sm shadow-lg focus:outline-none"
                         aria-label={t('search.trigger')}
                         autoComplete="off"
                       />
-                      <Button variant="ghost" size="sm" onClick={handleSearchToggle} aria-label={t('search.close')} className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-transparent">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleSearchToggle}
+                        aria-label={t('search.close')}
+                        className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 p-0 hover:bg-transparent"
+                      >
                         <X className="h-4 w-4 text-[hsl(var(--color-muted-foreground))]" aria-hidden="true" />
                       </Button>
 
                       {searchResults.length > 0 && (
-                        <div className="absolute top-full left-0 right-0 mt-2 bg-[hsl(var(--color-background))] border border-[hsl(var(--color-border))] rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 max-h-[60vh] overflow-y-auto">
+                        <div className="absolute top-full left-0 right-0 mt-2 max-h-[60vh] overflow-hidden overflow-y-auto rounded-xl border bg-[hsl(var(--color-background))] shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
                           <ul className="py-2" role="listbox">
                             {searchResults.map((result, index) => {
                               const localized = localizedTools[result.tool.id];
-                              const toolName = localized?.title || result.tool.id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-                              const toolDescription = localized?.description || result.tool.features.slice(0, 3).join(' • ');
+                              const toolName =
+                                localized?.title ||
+                                result.tool.id.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+                              const toolDescription =
+                                localized?.description || result.tool.features.slice(0, 3).join(' • ');
 
                               return (
                                 <li key={result.tool.id}>
@@ -278,7 +479,9 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
                                     <span className="text-xl">{getToolIcon(result.tool.category)}</span>
                                     <div className="flex-1 min-w-0">
                                       <div className="font-semibold text-sm truncate">{toolName}</div>
-                                      <div className="text-xs text-[hsl(var(--color-muted-foreground))] truncate">{toolDescription}</div>
+                                      <div className="text-xs text-[hsl(var(--color-muted-foreground))] truncate">
+                                        {toolDescription}
+                                      </div>
                                     </div>
                                   </button>
                                 </li>
@@ -290,41 +493,60 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
                     </div>
                   </div>
                 ) : (
-                  <Button variant="ghost" size="sm" onClick={handleSearchToggle} aria-label={t('search.open')} className="lg:hidden relative text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))] hover:bg-[hsl(var(--color-muted))/0.6] transition-colors rounded-full">
-                    <Search className="h-4 w-4" aria-hidden="true" />
-                  </Button>
+                  <button
+                    type="button"
+                    onClick={handleSearchToggle}
+                    aria-label={t('search.open')}
+                    className="site-header__search hidden lg:inline-flex"
+                  >
+                    <Search className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
+                    <span className="site-header__search-label">{t('search.trigger')}</span>
+                    <kbd className="site-header__search-kbd">⌘K</kbd>
+                  </button>
                 )}
               </div>
             )}
 
-            <RecentFilesDropdown
-              locale={locale}
-              showLabel={false}
-              translations={{
-                title: t('recentFiles.title') || 'Recent Files',
-                empty: t('recentFiles.empty') || 'No recent files',
-                clearAll: t('recentFiles.clearAll') || 'Clear all',
-                processedWith: t('recentFiles.processedWith') || 'Processed with',
-              }}
-            />
+            {showSearch && !isSearchOpen && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSearchToggle}
+                aria-label={t('search.open')}
+                className="lg:hidden h-9 w-9 rounded-lg p-0 text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))]"
+              >
+                <Search className="h-4 w-4" aria-hidden />
+              </Button>
+            )}
 
-            <ThemeToggle />
-            <LanguageSelector currentLocale={locale} compact />
-            <button
-              type="button"
-              className="site-header__upgrade-btn hidden sm:inline-flex"
-              aria-label={t('upgradeTitle')}
-              title={t('upgradeTitle')}
-            >
-              <UserCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
-              <span className="hidden lg:inline">{t('upgrade')}</span>
+            <div className="hidden xl:flex">
+              <RecentFilesDropdown
+                locale={locale}
+                showLabel={false}
+                translations={{
+                  title: t('recentFiles.title') || 'Recent Files',
+                  empty: t('recentFiles.empty') || 'No recent files',
+                  clearAll: t('recentFiles.clearAll') || 'Clear all',
+                  processedWith: t('recentFiles.processedWith') || 'Processed with',
+                }}
+              />
+            </div>
+
+            <ThemeToggle className="site-header__theme-btn" />
+            <div className="hidden sm:block">
+              <LanguageSelector currentLocale={locale} compact />
+            </div>
+
+            <button type="button" className="site-header__upgrade-btn" aria-label={t('upgradeTitle')} title={t('upgradeTitle')}>
+              <Crown className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden />
+              <span className="hidden xl:inline">{t('upgrade')}</span>
             </button>
 
             <Button
               variant="ghost"
               size="sm"
-              className="md:hidden"
-              onClick={() => setIsMobileMenuOpen(prev => !prev)}
+              className="lg:hidden h-9 w-9 rounded-lg p-0"
+              onClick={() => setIsMobileMenuOpen((prev) => !prev)}
               aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={isMobileMenuOpen}
               aria-controls="mobile-menu"
@@ -335,20 +557,98 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
         </div>
 
         {isMobileMenuOpen && (
-          <nav id="mobile-menu" className="md:hidden py-4 border-t border-[hsl(var(--color-border))] bg-[hsl(var(--color-background))] shadow-lg" role="navigation" aria-label="Mobile navigation">
-            <div className="px-2 space-y-1">
-              <Link href={`/${locale}`} className="block px-4 py-2.5 text-base font-medium rounded-lg hover:bg-[hsl(var(--color-muted))]" onClick={() => setIsMobileMenuOpen(false)}>{t('navigation.home')}</Link>
-              <Link href={`/${locale}/workspace`} className="block px-4 py-2.5 text-base font-medium rounded-lg hover:bg-[hsl(var(--color-muted))]" onClick={() => setIsMobileMenuOpen(false)}>{t('ai.menu.workspace')}</Link>
+          <nav
+            id="mobile-menu"
+            className="site-header__mobile lg:hidden mt-2 rounded-2xl border px-2 py-3 shadow-lg"
+            role="navigation"
+            aria-label="Mobile navigation"
+          >
+            <div className="space-y-1">
+              <Link
+                href={`/${locale}`}
+                className="block rounded-lg px-4 py-2.5 text-base font-medium hover:bg-[hsl(var(--color-muted))]"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                {t('navigation.home')}
+              </Link>
+              <Link
+                href={`/${locale}/workspace`}
+                className="block rounded-lg px-4 py-2.5 text-base font-medium hover:bg-[hsl(var(--color-muted))]"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                {t('ai.menu.workspace')}
+              </Link>
 
-              <div className="px-4 pt-2 text-xs font-semibold text-[hsl(var(--color-muted-foreground))]">{t('ai.menu.aiAssistant')}</div>
-              {aiItems.map(item => (
-                <Link key={item.href} href={item.href} className="block px-4 py-2 text-sm rounded-lg hover:bg-[hsl(var(--color-muted))]" onClick={() => setIsMobileMenuOpen(false)}>{item.label}</Link>
+              <div className="px-4 pt-2 text-xs font-semibold text-[hsl(var(--color-muted-foreground))]">
+                {t('ai.menu.aiAssistant')}
+              </div>
+              {aiItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="flex items-center gap-2.5 rounded-lg px-4 py-2 text-sm hover:bg-[hsl(var(--color-muted))]"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {renderDropdownIcon(item)}
+                  <span>{item.label}</span>
+                </Link>
               ))}
 
               <div className="px-4 pt-2 text-xs font-semibold text-[hsl(var(--color-muted-foreground))]">{t('ai.menu.pdfTools')}</div>
-              {pdfItems.map(item => (
-                <Link key={item.href} href={item.href} className="block px-4 py-2 text-sm rounded-lg hover:bg-[hsl(var(--color-muted))]" onClick={() => setIsMobileMenuOpen(false)}>{item.label}</Link>
+              {pdfItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="flex items-center gap-2.5 rounded-lg px-4 py-2 text-sm hover:bg-[hsl(var(--color-muted))]"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {renderDropdownIcon(item)}
+                  <span>{item.label}</span>
+                </Link>
               ))}
+
+              <div className="px-4 pt-2 text-xs font-semibold text-[hsl(var(--color-muted-foreground))]">{t('ai.menu.edit')}</div>
+              {editItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="flex items-center gap-2.5 rounded-lg px-4 py-2 text-sm hover:bg-[hsl(var(--color-muted))]"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {renderDropdownIcon(item)}
+                  <span>{item.label}</span>
+                </Link>
+              ))}
+
+              <div className="px-4 pt-2 text-xs font-semibold text-[hsl(var(--color-muted-foreground))]">{t('ai.menu.convertToPdf')}</div>
+              {convertToItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="flex items-center gap-2.5 rounded-lg px-4 py-2 text-sm hover:bg-[hsl(var(--color-muted))]"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {renderDropdownIcon(item)}
+                  <span>{item.label}</span>
+                </Link>
+              ))}
+
+              <div className="px-4 pt-2 text-xs font-semibold text-[hsl(var(--color-muted-foreground))]">{t('ai.menu.convertFromPdf')}</div>
+              {convertFromItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="flex items-center gap-2.5 rounded-lg px-4 py-2 text-sm hover:bg-[hsl(var(--color-muted))]"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {renderDropdownIcon(item)}
+                  <span>{item.label}</span>
+                </Link>
+              ))}
+
+              <div className="border-t border-[hsl(var(--color-border))] pt-3 mt-2 px-2 flex flex-wrap gap-2">
+                <LanguageSelector currentLocale={locale} compact />
+              </div>
             </div>
           </nav>
         )}

@@ -68,7 +68,13 @@ import {
     ImageDown,
     Table,
     LayoutDashboard,
-    TabletSmartphone
+    TabletSmartphone,
+    FileScan,
+    BookText,
+    FileCode2,
+    Mail,
+    BookImage,
+    Grid2X2,
 } from 'lucide-react';
 
 export const ICON_MAP: Record<string, LucideIcon> = {
@@ -143,7 +149,13 @@ export const ICON_MAP: Record<string, LucideIcon> = {
     'image-down': ImageDown,
     'table': Table,
     'layout-dashboard': LayoutDashboard,
-    'tablet-smartphone': TabletSmartphone
+    'tablet-smartphone': TabletSmartphone,
+    'file-scan': FileScan,
+    'book-text': BookText,
+    'file-code-2': FileCode2,
+    'mail': Mail,
+    'book-image': BookImage,
+    'grid-2x2': Grid2X2,
 };
 
 export const getToolIcon = (iconName: string): LucideIcon => {
