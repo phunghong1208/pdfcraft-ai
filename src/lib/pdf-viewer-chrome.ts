@@ -135,32 +135,81 @@ html.pdfcraft-annotating .CustomComment,html.pdfcraft-annotating [class*="Custom
   display:none!important;visibility:hidden!important;width:0!important;height:0!important;
   border:none!important;overflow:hidden!important;pointer-events:none!important;opacity:0!important;
 }
-html.pdfcraft-note-panel .CustomComment,html.pdfcraft-note-panel [class*="CustomComment"]{
-  display:none!important;
+/* ── Note popup ── */
+html.pdfcraft-note-panel .CustomComment{
+  display:flex!important;flex-direction:column!important;visibility:visible!important;opacity:1!important;
+  pointer-events:auto!important;position:fixed!important;top:120px!important;left:auto!important;right:24px!important;
+  transform:none!important;width:min(300px,calc(100vw - 48px))!important;height:auto!important;
+  max-height:220px!important;border:1px solid #e5e7eb!important;border-radius:12px!important;
+  box-shadow:0 6px 20px rgba(0,0,0,.12)!important;background:#fff!important;color:#111827!important;
+  overflow:hidden!important;z-index:9990!important;padding:0!important;
+  font-family:system-ui,-apple-system,sans-serif!important;-webkit-font-smoothing:antialiased!important;
+  scrollbar-width:none!important;
 }
-#pdfcraft-note-editor.pdfcraft-note-editor{
-  display:none;flex-direction:column;gap:8px;position:fixed;right:16px;top:72px;
-  width:min(360px,calc(100vw - 32px));max-height:min(50vh,420px);padding:12px 14px;
-  z-index:10003;pointer-events:auto;box-sizing:border-box;
-  background:var(--body-bg-color,#fff);color:var(--main-color,#111);
-  border:1px solid var(--toolbar-border-color,#d1d5db);border-radius:10px;
-  box-shadow:0 8px 28px rgba(0,0,0,.18);
+html.pdfcraft-note-panel .CustomComment::-webkit-scrollbar{display:none!important;width:0!important}
+html.pdfcraft-note-panel .CustomComment .filters{display:none!important}
+html.pdfcraft-note-panel .CustomComment .list{padding:0!important;margin:0!important;overflow:hidden!important;flex:1 1 auto!important;min-height:0!important}
+html.pdfcraft-note-panel .CustomComment .list .group{margin:0!important}
+html.pdfcraft-note-panel .CustomComment .list .group h3{display:none!important}
+html.pdfcraft-note-panel .CustomComment .list .comment:not(.selected){display:none!important}
+html.pdfcraft-note-panel .CustomComment .list .comment{background:#fff!important;color:#111827!important;opacity:1!important;border:none!important}
+html.pdfcraft-note-panel .CustomComment .list .comment .reply{display:none!important}
+html.pdfcraft-note-panel .CustomComment .list .comment.selected{
+  display:flex!important;flex-direction:column!important;margin:0!important;border:none!important;
+  border-radius:12px!important;background:#fff!important;padding:0!important;box-shadow:none!important;
+  overflow:hidden!important;max-height:220px!important;
 }
-html.pdfcraft-note-panel #pdfcraft-note-editor.pdfcraft-note-editor{display:flex!important}
-#pdfcraft-note-editor .pdfcraft-note-editor-title{font-size:13px;font-weight:600;opacity:.85;margin:0}
-#pdfcraft-note-editor textarea{
-  width:100%;min-height:120px;resize:vertical;box-sizing:border-box;padding:8px 10px;
-  border-radius:8px;border:1px solid var(--toolbar-border-color,#d1d5db);
-  background:var(--doorhanger-bg-color,#fff);color:var(--main-color,#111);font-size:14px;line-height:1.45;
+html.pdfcraft-note-panel .CustomComment .list .comment .title{
+  display:flex!important;align-items:flex-start!important;justify-content:space-between!important;
+  gap:8px!important;padding:14px 14px 10px!important;margin:0!important;
+  border-bottom:1px solid #f3f4f6!important;
 }
-#pdfcraft-note-editor .pdfcraft-note-editor-actions{display:flex;justify-content:flex-end;gap:8px}
-#pdfcraft-note-editor button{
-  pointer-events:auto;cursor:pointer;padding:6px 14px;border-radius:8px;font-size:13px;border:1px solid var(--toolbar-border-color,#d1d5db);
-  background:var(--doorhanger-bg-color,#f3f4f6);color:var(--main-color,#111);
+html.pdfcraft-note-panel .CustomComment .list .comment .title .annotation-icon{display:none!important}
+html.pdfcraft-note-panel .CustomComment .list .comment .title .username{
+  flex:1!important;min-width:0!important;font-weight:700!important;font-size:13.5px!important;
+  color:#111827!important;line-height:1.35!important;white-space:nowrap!important;
+  overflow:hidden!important;text-overflow:ellipsis!important;
 }
-#pdfcraft-note-editor button.pdfcraft-note-save{
-  background:#1677ff;border-color:#1677ff;color:#fff;
+html.pdfcraft-note-panel .CustomComment .list .comment .title .username span{
+  display:block!important;font-size:11px!important;font-weight:400!important;color:#6b7280!important;
+  opacity:1!important;margin-top:3px!important;letter-spacing:.01em!important;
 }
+html.pdfcraft-note-panel .CustomComment .list .comment .title .tool{
+  display:flex!important;align-items:center!important;gap:4px!important;flex-shrink:0!important;
+}
+html.pdfcraft-note-panel .CustomComment .list .comment .title .tool .icon:first-child{display:none!important}
+html.pdfcraft-note-panel .CustomComment .list .comment .title .tool .icon{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  width:28px!important;height:28px!important;border-radius:7px!important;color:#6b7280!important;
+  cursor:pointer!important;background:transparent!important;padding:0!important;border:none!important;
+}
+html.pdfcraft-note-panel .CustomComment .list .comment .title .tool .icon:hover{background:#f3f4f6!important;color:#374151!important}
+html.pdfcraft-note-panel .CustomComment .list .comment>.ant-typography,
+html.pdfcraft-note-panel .CustomComment .list .comment>p{
+  display:block!important;padding:8px 14px!important;margin:0!important;font-size:13px!important;
+  line-height:1.5!important;color:#1f2937!important;white-space:pre-wrap!important;
+  word-break:break-word!important;min-height:28px!important;max-height:100px!important;
+  overflow-y:auto!important;overflow-x:hidden!important;scrollbar-width:none!important;flex:1 1 auto!important;
+}
+html.pdfcraft-note-panel .CustomComment .list .comment>.ant-typography::-webkit-scrollbar,
+html.pdfcraft-note-panel .CustomComment .list .comment>p::-webkit-scrollbar{display:none!important;width:0!important}
+html.pdfcraft-note-panel .CustomComment textarea,html.pdfcraft-note-panel .CustomComment .ant-input{
+  display:block!important;width:calc(100% - 28px)!important;margin:0 14px!important;
+  background:#fff!important;color:#1f2937!important;border:none!important;
+  border-radius:0!important;outline:none!important;box-shadow:none!important;
+  resize:none!important;min-height:56px!important;max-height:100px!important;overflow-y:auto!important;
+  padding:8px 0!important;font-size:13px!important;line-height:1.5!important;font-family:inherit!important;
+  scrollbar-width:none!important;flex:1 1 auto!important;
+}
+html.pdfcraft-note-panel .CustomComment textarea::-webkit-scrollbar,
+html.pdfcraft-note-panel .CustomComment .ant-input::-webkit-scrollbar{display:none!important;width:0!important}
+html.pdfcraft-note-panel .CustomComment textarea::placeholder,html.pdfcraft-note-panel .CustomComment .ant-input::placeholder{
+  color:#9ca3af!important;font-size:13px!important;
+}
+html.pdfcraft-note-panel .CustomComment .list .comment .ant-btn-primary{display:none!important}
+html.pdfcraft-note-panel #pdfcraft-note-footer{flex-shrink:0!important;border-top:1px solid #f3f4f6!important;background:#fff!important}
+html.pdfcraft-note-panel #connector-svg path{stroke:#d97706!important;stroke-width:1.5px!important;opacity:.7!important}
+html.pdfcraft-note-panel .CustomAnnotationMenu{display:none!important}
 html.pdfcraft-embedded .StampPop,html.pdfcraft-embedded .ant-dropdown:has(.StampPop-Container),
 html.pdfcraft-embedded [class*="StampPop"]{
   z-index:10050!important;pointer-events:auto!important;
