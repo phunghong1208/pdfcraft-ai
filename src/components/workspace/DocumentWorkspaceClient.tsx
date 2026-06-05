@@ -16,7 +16,7 @@ import {
   Underline, Strikethrough, StickyNote, Square, Circle,
   PenTool, Stamp, Table, FileImage,
   Undo2, Redo2, Printer, Settings,
-  FileCheck, PenSquare, SquareStack,
+  FileCheck, PenSquare, SquareStack, Link2,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -309,7 +309,7 @@ function getRibbonGroups(
             { icon: Plus, label: tr('tools.addPage'), href: t('add-blank-page') },
             { icon: Trash2, label: tr('tools.deletePage'), href: t('delete') },
             { icon: FileDown, label: tr('tools.extract'), href: t('extract') },
-            { icon: LayoutGrid, label: tr('tools.organize'), href: t('organize') },
+            { icon: LayoutGrid, label: tr('tools.reorderPages'), href: t('organize') },
             { icon: Scissors, label: tr('tools.split'), href: t('split') },
           ],
         },
@@ -319,6 +319,15 @@ function getRibbonGroups(
             { icon: RotateCw, label: tr('tools.rotate'), href: t('rotate') },
             { icon: Crop, label: tr('tools.cropPages'), href: t('crop') },
             { icon: ArrowLeftRight, label: tr('tools.reverseOrder'), href: t('reverse') },
+          ],
+        },
+        {
+          label: tr('groups.document'),
+          tools: [
+            { icon: Eye, label: tr('tools.watermark'), href: t('watermark') },
+            { icon: Image, label: tr('tools.background'), href: t('background-color') },
+            { icon: Type, label: tr('tools.headerFooter'), href: t('header-footer') },
+            { icon: FileType, label: tr('tools.pageNumbers'), href: t('page-numbers') },
           ],
         },
       ];
@@ -359,7 +368,7 @@ function getRibbonGroups(
         {
           label: tr('groups.manage'),
           tools: [
-            { icon: Trash2, label: tr('tools.removeAll'), action: 'annot:clearAll' },
+            { icon: Trash2, label: tr('tools.clearComments'), action: 'annot:clearAll' },
           ],
         },
       ];
@@ -408,15 +417,8 @@ function getRibbonGroups(
         {
           label: tr('groups.extract'),
           tools: [
-            { icon: Type, label: tr('tools.extractText'), href: t('extractText') },
             { icon: Table, label: tr('tools.extractTables'), href: t('extractTables') },
             { icon: Image, label: tr('tools.extractImages'), href: t('extractImages') },
-          ],
-        },
-        {
-          label: tr('groups.watermark'),
-          tools: [
-            { icon: Stamp, label: tr('tools.stamps'), action: 'annot:stamp' },
           ],
         },
       ];
@@ -433,7 +435,7 @@ function getRibbonGroups(
         {
           label: tr('groups.sign'),
           tools: [
-            { icon: Pen, label: tr('tools.signature'), action: 'annot:signature' },
+            { icon: Pen, label: tr('tools.eSign'), action: 'annot:signature' },
             { icon: ShieldCheck, label: tr('tools.digitalSign'), href: t('digital-sign') },
             { icon: FileCheck, label: tr('tools.validate'), href: t('validate-signature') },
           ],
@@ -445,7 +447,7 @@ function getRibbonGroups(
         {
           label: tr('groups.security'),
           tools: [
-            { icon: Lock, label: tr('tools.encrypt'), href: t('encrypt') },
+            { icon: Lock, label: tr('tools.passwordProtect'), href: t('encrypt') },
             { icon: Unlock, label: tr('tools.decrypt'), href: t('decrypt') },
           ],
         },
