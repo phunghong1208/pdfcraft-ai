@@ -294,10 +294,9 @@ function getRibbonGroups(
         {
           label: tr('groups.document'),
           tools: [
-            { icon: Eye, label: tr('tools.watermark'), href: t('watermark') },
-            { icon: Image, label: tr('tools.background'), href: t('background-color') },
-            { icon: Type, label: tr('tools.headerFooter'), href: t('header-footer') },
-            { icon: FileType, label: tr('tools.pageNumbers'), href: t('page-numbers') },
+            { icon: Type, label: tr('tools.editText'), action: 'annot:freeText' },
+            { icon: Image, label: tr('tools.editImages'), action: 'annot:stamp' },
+            { icon: Link2, label: tr('tools.addLink'), action: 'annot:freeText' },
           ],
         },
       ];

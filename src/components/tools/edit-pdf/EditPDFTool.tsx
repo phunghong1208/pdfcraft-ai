@@ -1513,10 +1513,7 @@ export function EditPDFTool({
           try{
             ext.painter.highlightRange(range, cfg);
             notifyDirty();
-            setTimeout(function(){
-              openAnnotationMenuForNewest();
-              try{ sel.removeAllRanges(); }catch(e){}
-            }, 120);
+            try{ sel.removeAllRanges(); }catch(e){}
             return true;
           }catch(e){
             return false;
