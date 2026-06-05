@@ -173,6 +173,67 @@ html.pdfcraft-embedded .StampPop-Container,html.pdfcraft-embedded .StampPop-Cont
   position:fixed!important;top:50%!important;left:50%!important;
   transform:translate(-50%,-50%)!important;z-index:10050!important;
 }
+html.pdfcraft-stamp-active #pdfcraft-stamp-picker.pdfcraft-stamp-picker{
+  position:fixed!important;inset:0!important;z-index:10060!important;display:flex!important;
+  align-items:center!important;justify-content:center!important;background:rgba(15,18,24,.55)!important;
+  backdrop-filter:blur(2px)!important;pointer-events:auto!important;padding:20px!important;box-sizing:border-box!important;
+}
+#pdfcraft-stamp-picker .pdfcraft-stamp-picker-panel{
+  width:min(560px,100%)!important;max-height:min(78vh,560px)!important;display:flex!important;flex-direction:column!important;
+  overflow:hidden!important;background:#2a2e35!important;color:#f3f4f6!important;border-radius:14px!important;
+  border:1px solid rgba(255,255,255,.08)!important;box-shadow:0 20px 50px rgba(0,0,0,.45)!important;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif!important;
+}
+#pdfcraft-stamp-picker .pdfcraft-stamp-picker-header{
+  display:flex!important;align-items:center!important;justify-content:space-between!important;
+  padding:14px 16px 10px!important;border-bottom:1px solid rgba(255,255,255,.08)!important;
+}
+#pdfcraft-stamp-picker .pdfcraft-stamp-picker-title{margin:0!important;font-size:15px!important;font-weight:600!important;color:#f9fafb!important}
+#pdfcraft-stamp-picker .pdfcraft-stamp-close{
+  width:32px!important;height:32px!important;border:none!important;border-radius:8px!important;
+  background:rgba(255,255,255,.06)!important;color:#d1d5db!important;font-size:20px!important;cursor:pointer!important;
+}
+#pdfcraft-stamp-picker .pdfcraft-stamp-tabs{display:flex!important;gap:8px!important;padding:10px 16px 0!important}
+#pdfcraft-stamp-picker .pdfcraft-stamp-tab{
+  flex:1!important;border:1px solid rgba(255,255,255,.1)!important;background:rgba(255,255,255,.04)!important;
+  color:#cbd5e1!important;border-radius:8px!important;padding:8px 10px!important;font-size:13px!important;font-weight:500!important;cursor:pointer!important;
+}
+#pdfcraft-stamp-picker .pdfcraft-stamp-tab.active{background:#1677ff!important;border-color:#1677ff!important;color:#fff!important}
+#pdfcraft-stamp-picker .pdfcraft-stamp-body{overflow:auto!important;padding:12px 16px 16px!important}
+#pdfcraft-stamp-picker .pdfcraft-stamp-section{display:none!important}
+#pdfcraft-stamp-picker .pdfcraft-stamp-section.active{display:block!important}
+#pdfcraft-stamp-picker .pdfcraft-stamp-section-label{
+  margin:0 0 10px!important;font-size:12px!important;font-weight:600!important;color:#9ca3af!important;
+  text-transform:uppercase!important;letter-spacing:.04em!important;
+}
+#pdfcraft-stamp-picker .pdfcraft-stamp-upload-btn{
+  width:100%!important;display:flex!important;flex-direction:column!important;align-items:center!important;
+  justify-content:center!important;gap:4px!important;margin:0 0 14px!important;padding:18px 12px!important;
+  border:2px dashed rgba(255,255,255,.22)!important;border-radius:10px!important;background:rgba(255,255,255,.03)!important;
+  color:#e5e7eb!important;cursor:pointer!important;
+}
+#pdfcraft-stamp-picker .pdfcraft-stamp-upload-btn:hover{border-color:#1677ff!important;background:rgba(22,119,255,.08)!important}
+#pdfcraft-stamp-picker .pdfcraft-stamp-upload-icon{font-size:22px!important;color:#93c5fd!important}
+#pdfcraft-stamp-picker .pdfcraft-stamp-upload-text{font-size:14px!important;font-weight:600!important}
+#pdfcraft-stamp-picker .pdfcraft-stamp-upload-hint{font-size:11px!important;color:#9ca3af!important}
+#pdfcraft-stamp-picker .pdfcraft-stamp-file-input{display:none!important}
+#pdfcraft-stamp-picker .pdfcraft-stamp-grid{
+  display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px!important;
+  margin:0!important;padding:0!important;list-style:none!important;
+}
+#pdfcraft-stamp-picker .pdfcraft-stamp-tile,#pdfcraft-stamp-picker .pdfcraft-stamp-grid li{
+  aspect-ratio:1.35/1!important;min-height:72px!important;display:flex!important;align-items:center!important;justify-content:center!important;
+  background:#fff!important;border-radius:10px!important;border:1px solid rgba(0,0,0,.06)!important;
+  cursor:pointer!important;padding:8px!important;box-sizing:border-box!important;
+}
+#pdfcraft-stamp-picker .pdfcraft-stamp-tile:hover,#pdfcraft-stamp-picker .pdfcraft-stamp-grid li:hover{
+  transform:translateY(-1px)!important;box-shadow:0 6px 16px rgba(0,0,0,.18)!important;outline:2px solid #1677ff!important;
+}
+#pdfcraft-stamp-picker .pdfcraft-stamp-grid img{width:100%!important;height:100%!important;object-fit:contain!important;pointer-events:none!important}
+#pdfcraft-stamp-picker .pdfcraft-stamp-empty{
+  grid-column:1/-1!important;background:transparent!important;border:none!important;color:#9ca3af!important;
+  font-size:13px!important;cursor:default!important;min-height:auto!important;padding:8px 0!important;
+}
 html.pdfcraft-text-markup .CustomPopbar{display:none!important;pointer-events:none!important}
 .CustomPopbar{z-index:10000!important;pointer-events:auto!important}
 /* Menu chỉnh: comment / màu / xóa */

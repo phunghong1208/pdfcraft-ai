@@ -461,6 +461,225 @@ See https://github.com/adobe-type-tools/cmap-resources
       pointer-events: auto !important;
       cursor: pointer !important;
     }
+    html.pdfcraft-embedded .StampPop,
+    html.pdfcraft-embedded .ant-popover.StampPop {
+      width: min(520px, 92vw) !important;
+      max-width: 92vw !important;
+    }
+    html.pdfcraft-embedded .StampPop-Container {
+      max-height: 360px !important;
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 8px !important;
+      padding: 8px !important;
+    }
+    html.pdfcraft-embedded .StampPop-Container li,
+    html.pdfcraft-embedded .StampPop li {
+      width: 110px !important;
+      cursor: pointer !important;
+      pointer-events: auto !important;
+    }
+    html.pdfcraft-embedded .StampPop-Container li img,
+    html.pdfcraft-embedded .StampPop li img {
+      height: 56px !important;
+      max-width: 96px !important;
+      object-fit: contain !important;
+    }
+    html.pdfcraft-stamp-active #pdfcraft-stamp-picker.pdfcraft-stamp-picker {
+      position: fixed !important;
+      inset: 0 !important;
+      z-index: 10060 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      background: rgba(15, 18, 24, 0.55) !important;
+      backdrop-filter: blur(2px) !important;
+      pointer-events: auto !important;
+      padding: 20px !important;
+      box-sizing: border-box !important;
+    }
+    #pdfcraft-stamp-picker .pdfcraft-stamp-picker-panel {
+      width: min(560px, 100%) !important;
+      max-height: min(78vh, 560px) !important;
+      display: flex !important;
+      flex-direction: column !important;
+      overflow: hidden !important;
+      background: #2a2e35 !important;
+      color: #f3f4f6 !important;
+      border-radius: 14px !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45) !important;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif !important;
+    }
+    #pdfcraft-stamp-picker .pdfcraft-stamp-picker-header {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      padding: 14px 16px 10px !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+    #pdfcraft-stamp-picker .pdfcraft-stamp-picker-title {
+      margin: 0 !important;
+      font-size: 15px !important;
+      font-weight: 600 !important;
+      color: #f9fafb !important;
+      letter-spacing: 0.01em !important;
+    }
+    #pdfcraft-stamp-picker .pdfcraft-stamp-close {
+      width: 32px !important;
+      height: 32px !important;
+      border: none !important;
+      border-radius: 8px !important;
+      background: rgba(255, 255, 255, 0.06) !important;
+      color: #d1d5db !important;
+      font-size: 20px !important;
+      line-height: 1 !important;
+      cursor: pointer !important;
+    }
+    #pdfcraft-stamp-picker .pdfcraft-stamp-close:hover {
+      background: rgba(255, 255, 255, 0.12) !important;
+      color: #fff !important;
+    }
+    #pdfcraft-stamp-picker .pdfcraft-stamp-tabs {
+      display: flex !important;
+      gap: 8px !important;
+      padding: 10px 16px 0 !important;
+    }
+    #pdfcraft-stamp-picker .pdfcraft-stamp-tab {
+      flex: 1 !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      background: rgba(255, 255, 255, 0.04) !important;
+      color: #cbd5e1 !important;
+      border-radius: 8px !important;
+      padding: 8px 10px !important;
+      font-size: 13px !important;
+      font-weight: 500 !important;
+      cursor: pointer !important;
+    }
+    #pdfcraft-stamp-picker .pdfcraft-stamp-tab.active {
+      background: #1677ff !important;
+      border-color: #1677ff !important;
+      color: #fff !important;
+    }
+    #pdfcraft-stamp-picker .pdfcraft-stamp-body {
+      overflow: auto !important;
+      padding: 12px 16px 16px !important;
+    }
+    #pdfcraft-stamp-picker .pdfcraft-stamp-section {
+      display: none !important;
+    }
+    #pdfcraft-stamp-picker .pdfcraft-stamp-section.active {
+      display: block !important;
+    }
+    #pdfcraft-stamp-picker .pdfcraft-stamp-section-label {
+      margin: 0 0 10px !important;
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      color: #9ca3af !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.04em !important;
+    }
+    #pdfcraft-stamp-picker .pdfcraft-stamp-picker-loading {
+      margin: 0 0 10px !important;
+      font-size: 13px !important;
+      color: #9ca3af !important;
+    }
+    #pdfcraft-stamp-picker .pdfcraft-stamp-upload-btn {
+      width: 100% !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 4px !important;
+      margin: 0 0 14px !important;
+      padding: 18px 12px !important;
+      border: 2px dashed rgba(255, 255, 255, 0.22) !important;
+      border-radius: 10px !important;
+      background: rgba(255, 255, 255, 0.03) !important;
+      color: #e5e7eb !important;
+      cursor: pointer !important;
+      transition: border-color 0.15s, background 0.15s !important;
+    }
+    #pdfcraft-stamp-picker .pdfcraft-stamp-upload-btn:hover {
+      border-color: #1677ff !important;
+      background: rgba(22, 119, 255, 0.08) !important;
+    }
+    #pdfcraft-stamp-picker .pdfcraft-stamp-upload-icon {
+      font-size: 22px !important;
+      font-weight: 300 !important;
+      line-height: 1 !important;
+      color: #93c5fd !important;
+    }
+    #pdfcraft-stamp-picker .pdfcraft-stamp-upload-text {
+      font-size: 14px !important;
+      font-weight: 600 !important;
+    }
+    #pdfcraft-stamp-picker .pdfcraft-stamp-upload-hint {
+      font-size: 11px !important;
+      color: #9ca3af !important;
+    }
+    #pdfcraft-stamp-picker .pdfcraft-stamp-file-input {
+      display: none !important;
+    }
+    #pdfcraft-stamp-picker .pdfcraft-stamp-grid {
+      display: grid !important;
+      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+      gap: 10px !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      list-style: none !important;
+    }
+    #pdfcraft-stamp-picker .pdfcraft-stamp-tile,
+    #pdfcraft-stamp-picker .pdfcraft-stamp-grid li {
+      aspect-ratio: 1.35 / 1 !important;
+      min-height: 72px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      background: #fff !important;
+      border-radius: 10px !important;
+      border: 1px solid rgba(0, 0, 0, 0.06) !important;
+      cursor: pointer !important;
+      padding: 8px !important;
+      box-sizing: border-box !important;
+      transition: transform 0.12s, box-shadow 0.12s, outline 0.12s !important;
+    }
+    #pdfcraft-stamp-picker .pdfcraft-stamp-tile:hover,
+    #pdfcraft-stamp-picker .pdfcraft-stamp-grid li:hover {
+      transform: translateY(-1px) !important;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18) !important;
+      outline: 2px solid #1677ff !important;
+      outline-offset: 0 !important;
+    }
+    #pdfcraft-stamp-picker .pdfcraft-stamp-grid img {
+      width: 100% !important;
+      height: 100% !important;
+      max-width: 100% !important;
+      max-height: 100% !important;
+      object-fit: contain !important;
+      pointer-events: none !important;
+    }
+    #pdfcraft-stamp-picker .pdfcraft-stamp-empty {
+      grid-column: 1 / -1 !important;
+      background: transparent !important;
+      border: none !important;
+      color: #9ca3af !important;
+      font-size: 13px !important;
+      justify-content: flex-start !important;
+      cursor: default !important;
+      min-height: auto !important;
+      padding: 8px 0 !important;
+    }
+    #pdfcraft-stamp-picker .pdfcraft-stamp-empty:hover {
+      transform: none !important;
+      box-shadow: none !important;
+      outline: none !important;
+    }
+    @media (max-width: 480px) {
+      #pdfcraft-stamp-picker .pdfcraft-stamp-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+      }
+    }
     .ant-dropdown:has(.StampPop-Container),
     .ant-dropdown:has(.StampPop),
     .ant-popover.StampPop,
@@ -582,6 +801,7 @@ See https://github.com/adobe-type-tools/cmap-resources
     });
 
   </script>
+  <script src="./pdfcraft-stamp-guard.js"></script>
   <script src="./pdfjs-annotation-extension/pdfjs-annotation-extension.js" type="module"></script>
 </head>
 

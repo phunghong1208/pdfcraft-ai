@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { peekUploadedPdf } from '@/lib/document-session';
 import { injectPdfViewerChrome, attachKonvaSeamGuard } from '@/lib/pdf-viewer-chrome';
+import { buildStampUrlGuardScript } from '@/lib/pdf/stamp-url-guard';
 
 
 export interface EditPDFToolProps {
@@ -159,8 +160,14 @@ export function EditPDFTool({
       doc.body.appendChild(notifierScript);
 
       // Tool switching API (no iframe reload): parent can select annotation tools via postMessage.
+      const prevToolScript = doc.getElementById('pdfcraft-tool-script');
+      if (prevToolScript) prevToolScript.remove();
+
       const toolScript = doc.createElement('script');
+      toolScript.id = 'pdfcraft-tool-script';
       toolScript.textContent = `(function(){
+        ${buildStampUrlGuardScript()}
+        patchInvalidMediaUrls();
         var TOOL_ORDER = [
           'select','highlight','strikeout','underline',
           'rectangle','circle','note','arrow','cloud',
@@ -322,28 +329,237 @@ export function EditPDFTool({
           showPdfcraftNoteEditor(ann);
         }
 
-        function pickDefaultStampImage(){
-          var imgs = document.querySelectorAll('.StampPop-Container img, .StampPop img[src]');
+        var STAMP_PRESETS_URL = '/pdfjs-annotation-viewer/web/stamp-presets.json';
+        var STAMP_UPLOAD_MAX = 5242880;
+        var STAMP_UPLOAD_ACCEPT = 'image/png,image/jpeg,image/jpg,image/bmp,.png,.jpg,.jpeg,.bmp';
+
+        function getCustomStamps(){
+          if(!window.__pdfcraftCustomStamps) window.__pdfcraftCustomStamps = [];
+          return window.__pdfcraftCustomStamps;
+        }
+
+        function addCustomStamp(dataUrl){
+          if(!isValidStampUrl(dataUrl)) return false;
+          var list = getCustomStamps();
+          if(list.indexOf(dataUrl) < 0) list.unshift(dataUrl);
+          if(list.length > 24) list.length = 24;
+          return true;
+        }
+
+        function hideStampPop(){
+          hidePdfcraftStampPicker();
+          var pops = document.querySelectorAll('.ant-popover.StampPop, .ant-dropdown:has(.StampPop-Container)');
+          for(var i=0;i<pops.length;i++){ if(pops[i].style) pops[i].style.display = 'none'; }
+        }
+
+        function hidePdfcraftStampPicker(){
+          document.documentElement.classList.remove('pdfcraft-stamp-active');
+          var el = document.getElementById('pdfcraft-stamp-picker');
+          if(el) el.remove();
+        }
+
+        function loadStampPresets(cb){
+          if(window.__pdfcraftStampPresets) return cb(window.__pdfcraftStampPresets);
+          fetch(STAMP_PRESETS_URL)
+            .then(function(r){ return r.ok ? r.json() : []; })
+            .then(function(data){
+              window.__pdfcraftStampPresets = Array.isArray(data) ? data : [];
+              cb(window.__pdfcraftStampPresets);
+            })
+            .catch(function(){ cb([]); });
+        }
+
+        function isPdfcraftStampPickerOpen(){
+          return !!document.getElementById('pdfcraft-stamp-picker');
+        }
+
+        function appendStampTile(grid, url, onPick){
+          if(!grid || !isValidStampUrl(url)) return;
+          var li = document.createElement('li');
+          li.className = 'pdfcraft-stamp-tile';
+          var img = document.createElement('img');
+          img.src = url;
+          img.alt = 'Stamp';
+          li.appendChild(img);
+          li.addEventListener('click', function(evt){
+            evt.preventDefault();
+            evt.stopPropagation();
+            if(onPick(url)) hidePdfcraftStampPicker();
+          });
+          grid.appendChild(li);
+        }
+
+        function renderStampGrid(grid, urls, onPick){
+          if(!grid) return;
+          grid.innerHTML = '';
+          if(!urls || !urls.length){
+            var empty = document.createElement('li');
+            empty.className = 'pdfcraft-stamp-empty';
+            empty.textContent = 'Chưa có mẫu nào.';
+            grid.appendChild(empty);
+            return;
+          }
+          for(var i=0;i<urls.length;i++) appendStampTile(grid, urls[i], onPick);
+        }
+
+        function bindStampFileInput(input, customGrid){
+          if(!input || input.__pdfcraftBound) return;
+          input.__pdfcraftBound = true;
+          input.addEventListener('change', function(){
+            var file = input.files && input.files[0];
+            input.value = '';
+            if(!file) return;
+            if(file.size > STAMP_UPLOAD_MAX){
+              alert('Ảnh quá lớn. Tối đa 5 MB.');
+              return;
+            }
+            var reader = new FileReader();
+            reader.onload = function(ev){
+              var dataUrl = ev.target && ev.target.result;
+              if(!addCustomStamp(dataUrl)) return;
+              renderStampGrid(customGrid, getCustomStamps(), applyStampImage);
+              var panel = document.querySelector('#pdfcraft-stamp-picker .pdfcraft-stamp-picker-panel');
+              var customTab = panel && panel.querySelector('[data-stamp-tab="custom"]');
+              if(customTab) customTab.click();
+            };
+            reader.readAsDataURL(file);
+          });
+        }
+
+        function showPdfcraftStampPicker(){
+          if(isPdfcraftStampPickerOpen()) return;
+          document.documentElement.classList.add('pdfcraft-stamp-active');
+          var root = document.createElement('div');
+          root.id = 'pdfcraft-stamp-picker';
+          root.className = 'pdfcraft-stamp-picker';
+          root.innerHTML =
+            '<div class="pdfcraft-stamp-picker-panel" role="dialog" aria-label="Chọn stamp">' +
+              '<div class="pdfcraft-stamp-picker-header">' +
+                '<h3 class="pdfcraft-stamp-picker-title">Stamp</h3>' +
+                '<button type="button" class="pdfcraft-stamp-close" aria-label="Đóng">×</button>' +
+              '</div>' +
+              '<div class="pdfcraft-stamp-tabs">' +
+                '<button type="button" class="pdfcraft-stamp-tab active" data-stamp-tab="preset">Mẫu có sẵn</button>' +
+                '<button type="button" class="pdfcraft-stamp-tab" data-stamp-tab="custom">Tùy chỉnh</button>' +
+              '</div>' +
+              '<div class="pdfcraft-stamp-body">' +
+                '<section class="pdfcraft-stamp-section active" data-stamp-panel="preset">' +
+                  '<p class="pdfcraft-stamp-section-label">Preset</p>' +
+                  '<p class="pdfcraft-stamp-picker-loading">Đang tải mẫu…</p>' +
+                  '<ul class="pdfcraft-stamp-grid pdfcraft-stamp-grid-preset"></ul>' +
+                '</section>' +
+                '<section class="pdfcraft-stamp-section" data-stamp-panel="custom">' +
+                  '<button type="button" class="pdfcraft-stamp-upload-btn">' +
+                    '<span class="pdfcraft-stamp-upload-icon">+</span>' +
+                    '<span class="pdfcraft-stamp-upload-text">Tải ảnh con dấu</span>' +
+                    '<span class="pdfcraft-stamp-upload-hint">PNG, JPG, BMP · tối đa 5 MB</span>' +
+                  '</button>' +
+                  '<input type="file" class="pdfcraft-stamp-file-input" accept="' + STAMP_UPLOAD_ACCEPT + '" />' +
+                  '<p class="pdfcraft-stamp-section-label">Ảnh đã tải</p>' +
+                  '<ul class="pdfcraft-stamp-grid pdfcraft-stamp-grid-custom"></ul>' +
+                '</section>' +
+              '</div>' +
+            '</div>';
+          root.addEventListener('click', function(evt){
+            if(evt.target === root) hidePdfcraftStampPicker();
+          });
+          document.body.appendChild(root);
+
+          var panel = root.querySelector('.pdfcraft-stamp-picker-panel');
+          var closeBtn = root.querySelector('.pdfcraft-stamp-close');
+          var presetGrid = root.querySelector('.pdfcraft-stamp-grid-preset');
+          var customGrid = root.querySelector('.pdfcraft-stamp-grid-custom');
+          var fileInput = root.querySelector('.pdfcraft-stamp-file-input');
+          var uploadBtn = root.querySelector('.pdfcraft-stamp-upload-btn');
+          var loading = root.querySelector('.pdfcraft-stamp-picker-loading');
+          var tabBtns = root.querySelectorAll('.pdfcraft-stamp-tab');
+          var tabPanels = root.querySelectorAll('.pdfcraft-stamp-section');
+
+          if(closeBtn) closeBtn.addEventListener('click', function(evt){
+            evt.stopPropagation();
+            hidePdfcraftStampPicker();
+          });
+          if(panel) panel.addEventListener('click', function(evt){ evt.stopPropagation(); });
+          if(uploadBtn && fileInput) uploadBtn.addEventListener('click', function(){
+            fileInput.click();
+          });
+          bindStampFileInput(fileInput, customGrid);
+          renderStampGrid(customGrid, getCustomStamps(), applyStampImage);
+
+          for(var t=0;t<tabBtns.length;t++){
+            tabBtns[t].addEventListener('click', function(evt){
+              var btn = evt.currentTarget;
+              var tab = btn.getAttribute('data-stamp-tab');
+              for(var i=0;i<tabBtns.length;i++) tabBtns[i].classList.toggle('active', tabBtns[i] === btn);
+              for(var j=0;j<tabPanels.length;j++){
+                tabPanels[j].classList.toggle('active', tabPanels[j].getAttribute('data-stamp-panel') === tab);
+              }
+            });
+          }
+
+          loadStampPresets(function(presets){
+            if(loading) loading.remove();
+            renderStampGrid(presetGrid, presets.filter(isValidStampUrl), applyStampImage);
+          });
+        }
+
+        function sanitizeStampPopImages(){
+          var imgs = document.querySelectorAll('.StampPop-Container img, .StampPop img');
           for(var i=0;i<imgs.length;i++){
-            if(imgs[i] && imgs[i].src) return imgs[i].src;
+            var img = imgs[i];
+            var src = img.getAttribute('src') || img.currentSrc || img.src || '';
+            if(isValidStampUrl(src)) continue;
+            img.removeAttribute('src');
+            var li = img.closest('li');
+            if(li) li.style.display = 'none';
+          }
+        }
+
+        function pickDefaultStampImage(){
+          sanitizeStampPopImages();
+          var imgs = document.querySelectorAll('.StampPop-Container img, .StampPop img');
+          for(var i=0;i<imgs.length;i++){
+            var src = imgs[i].getAttribute('src') || imgs[i].currentSrc || imgs[i].src || '';
+            if(isValidStampUrl(src)) return src;
           }
           return null;
         }
 
         function applyStampImage(stampUrl){
+          if(!isValidStampUrl(stampUrl)) return false;
           var ext = getExtension();
-          if(!ext || !ext.painter || !stampUrl) return false;
+          if(!ext || !ext.painter) return false;
           var cfg = resolveToolConfig('stamp');
           var p = ext.painter;
+          window.__pdfcraftActiveTool = 'stamp';
           try{
-            if(typeof p.saveTempDataTransfer === 'function') p.saveTempDataTransfer(stampUrl);
-            else p.tempDataTransfer = stampUrl;
-          }catch(e){}
-          activateViaToolbarRef('stamp');
-          try{ p.activate(cfg, stampUrl); return true; }catch(e){ return false; }
+            p.activate(cfg, stampUrl);
+            hideStampPop();
+            return true;
+          }catch(e){ return false; }
+        }
+
+        function bindStampPopPicker(){
+          if(window.__pdfcraftStampPopBound) return;
+          window.__pdfcraftStampPopBound = true;
+          document.addEventListener('click', function(evt){
+            if(window.__pdfcraftActiveTool !== 'stamp') return;
+            var t = evt.target;
+            if(!t || !t.closest) return;
+            var li = t.closest('.StampPop-Container li, .StampPop li');
+            if(!li || li.style.display === 'none') return;
+            var img = li.querySelector('img');
+            if(!img) return;
+            var stampUrl = img.getAttribute('src') || img.currentSrc || img.src || '';
+            if(!isValidStampUrl(stampUrl)) return;
+            evt.preventDefault();
+            evt.stopPropagation();
+            applyStampImage(stampUrl);
+          }, true);
         }
 
         function repositionStampPop(){
+          sanitizeStampPopImages();
           var wrapper = document.querySelector('.ant-popover.StampPop') ||
             document.querySelector('.ant-dropdown:has(.StampPop-Container)');
           if(!wrapper){
@@ -361,18 +577,39 @@ export function EditPDFTool({
           return false;
         }
 
+        function releaseStampPlacement(){
+          if(window.__pdfcraftStampReleasing) return;
+          window.__pdfcraftStampReleasing = true;
+          hidePdfcraftStampPicker();
+          window.__pdfcraftActiveTool = 'select';
+          var ext = getExtension();
+          if(ext && ext.painter){
+            var p = ext.painter;
+            try{
+              if(typeof p.clearTempDataTransfer === 'function') p.clearTempDataTransfer();
+              else p.tempDataTransfer = null;
+            }catch(e){}
+            try{
+              if(typeof p.__pdfcraftOrigDefault === 'function') p.__pdfcraftOrigDefault();
+            }catch(e){}
+          }
+          try{ window.parent.postMessage({ type:'pdfcraft-tool-changed', tool:'select' }, '*'); }catch(e){}
+          setTimeout(function(){ window.__pdfcraftStampReleasing = false; }, 300);
+        }
+
         function activateStampPlacement(){
+          if(window.__pdfcraftStampOpening && Date.now() - window.__pdfcraftStampOpening < 400) return true;
+          window.__pdfcraftStampOpening = Date.now();
           var ext = getExtension();
           if(!ext || !ext.painter) return false;
-          var cfg = resolveToolConfig('stamp');
-          activateViaToolbarRef('stamp');
-          try{ ext.painter.activate(cfg, null); }catch(e){}
-          clickToolLi('stamp');
-          var reposTries = 0;
-          var reposTimer = setInterval(function(){
-            reposTries += 1;
-            if(repositionStampPop() || reposTries >= 20) clearInterval(reposTimer);
-          }, 80);
+          bindStampPopPicker();
+          window.__pdfcraftActiveTool = 'stamp';
+          try{
+            if(typeof ext.painter.clearTempDataTransfer === 'function') ext.painter.clearTempDataTransfer();
+            else ext.painter.tempDataTransfer = null;
+          }catch(e){}
+          if(!isPdfcraftStampPickerOpen()) showPdfcraftStampPicker();
+          try{ window.parent.postMessage({ type:'pdfcraft-tool-changed', tool:'stamp' }, '*'); }catch(e){}
           return true;
         }
 
@@ -448,6 +685,7 @@ export function EditPDFTool({
             }
           };
           var origDefault = p.setDefaultMode.bind(p);
+          p.__pdfcraftOrigDefault = origDefault;
           p.setDefaultMode = function(){
             if(window.__pdfcraftActiveTool === 'freeText' && !window.__pdfcraftSkipFreeTextReactivate){
               setTimeout(function(){ activateTool('freeText'); }, 40);
@@ -458,6 +696,7 @@ export function EditPDFTool({
               return;
             }
             if(window.__pdfcraftActiveTool === 'stamp' || window.__pdfcraftActiveTool === 'signature'){
+              releaseStampPlacement();
               return;
             }
             window.__pdfcraftActiveTool = 'select';
@@ -468,6 +707,16 @@ export function EditPDFTool({
             p.__pdfcraftSavePatched = true;
             var origSave = p.saveToStore.bind(p);
             p.saveToStore = function(ann, silent){
+              var isStampPlaced = ann && (
+                ann.type === STAMP_TYPE || ann.subtype === 'Stamp' || ann.name === 'stamp' ||
+                ann.type === SIGNATURE_TYPE || ann.subtype === 'Caret' || ann.name === 'signature'
+              );
+              if(isStampPlaced && window.__pdfcraftStampPlacedAt && Date.now() - window.__pdfcraftStampPlacedAt < 400){
+                return;
+              }
+              if(isStampPlaced && (window.__pdfcraftActiveTool === 'stamp' || window.__pdfcraftActiveTool === 'signature')){
+                window.__pdfcraftStampPlacedAt = Date.now();
+              }
               var ret = origSave(ann, silent);
               try{
                 if(window.__pdfcraftActiveTool === 'note' && ann && ann.id && (ann.pdfjsType === NOTE_PDFJS_TYPE || ann.type === NOTE_PDFJS_TYPE)){
@@ -476,30 +725,55 @@ export function EditPDFTool({
                     openNoteEditorForId(ann.id);
                   }, 80);
                 }
-                if(window.__pdfcraftActiveTool === 'stamp' || window.__pdfcraftActiveTool === 'signature'){
-                  setTimeout(function(){
-                    window.__pdfcraftActiveTool = 'select';
-                    try{ window.parent.postMessage({ type:'pdfcraft-tool-changed', tool:'select' }, '*'); }catch(e){}
-                  }, 100);
+                if(isStampPlaced && (window.__pdfcraftActiveTool === 'stamp' || window.__pdfcraftActiveTool === 'signature')){
+                  setTimeout(releaseStampPlacement, 50);
                 }
               }catch(e){}
               return ret;
             };
           }
           patchFreeTextEditors(p);
+          if(!p.__pdfcraftStampPatched){
+            p.__pdfcraftStampPatched = true;
+            var origActivate = p.activate.bind(p);
+            p.activate = function(cfg, url){
+              if(url !== undefined && isInvalidMediaUrl(url)){
+                if(typeof p.clearTempDataTransfer === 'function') p.clearTempDataTransfer();
+                return origActivate(cfg);
+              }
+              var stampKey = (cfg && cfg.type) + '|' + String(url || '');
+              var now = Date.now();
+              if(stampKey && p.__pdfcraftLastActivateKey === stampKey && now - (p.__pdfcraftLastActivateAt || 0) < 250){
+                return;
+              }
+              p.__pdfcraftLastActivateKey = stampKey;
+              p.__pdfcraftLastActivateAt = now;
+              return origActivate(cfg, url);
+            };
+            if(typeof p.saveTempDataTransfer === 'function'){
+              var origSaveTemp = p.saveTempDataTransfer.bind(p);
+              p.saveTempDataTransfer = function(url){
+                if(isInvalidMediaUrl(url)){
+                  if(typeof p.clearTempDataTransfer === 'function') return p.clearTempDataTransfer();
+                  p.tempDataTransfer = null;
+                  return null;
+                }
+                return origSaveTemp(url);
+              };
+            }
+          }
           if(!p.__pdfcraftEnablePatched){
             p.__pdfcraftEnablePatched = true;
             var origEnableEditor = p.enableEditor.bind(p);
             p.enableEditor = function(ctx){
-              if(ctx && ctx.annotation && !p.tempDataTransfer){
+              if(ctx && ctx.annotation && isInvalidMediaUrl(p.tempDataTransfer)){
                 if(ctx.annotation.type === STAMP_TYPE){
-                  activateViaToolbarRef('stamp');
-                  openStampSignatureCreator('stamp');
+                  bindStampPopPicker();
+                  if(!isPdfcraftStampPickerOpen()) showPdfcraftStampPicker();
                   return;
                 }
                 if(ctx.annotation.type === SIGNATURE_TYPE){
-                  activateViaToolbarRef('signature');
-                  openStampSignatureCreator('signature');
+                  clickToolLi('signature');
                   return;
                 }
               }
@@ -508,6 +782,15 @@ export function EditPDFTool({
           }
           return true;
         }
+
+        function startStampPopObserver(){
+          if(window.__pdfcraftStampObs) return;
+          window.__pdfcraftStampObs = new MutationObserver(function(){ sanitizeStampPopImages(); });
+          window.__pdfcraftStampObs.observe(document.documentElement, {
+            childList: true, subtree: true, attributes: true, attributeFilter: ['src']
+          });
+        }
+        startStampPopObserver();
 
         var hookTimer = setInterval(function(){
           if(hookExtensionPainter()) clearInterval(hookTimer);
@@ -595,16 +878,18 @@ export function EditPDFTool({
         };
 
         function getToolLi(toolName){
-          var label = TOOL_LABEL_MAP[toolName];
-          if(!label) return null;
+          var idx = TOOL_ORDER.indexOf(toolName);
           var ul = document.querySelector('.CustomToolbar ul.buttons');
-          if(!ul) return null;
+          if(ul && idx >= 0){
+            var byIdx = ul.querySelectorAll(':scope > li')[idx];
+            if(byIdx) return byIdx;
+          }
+          var label = TOOL_LABEL_MAP[toolName];
+          if(!label || !ul) return null;
           var items = ul.querySelectorAll(':scope > li');
           for(var i=0;i<items.length;i++){
             var txt = (items[i].textContent||'').trim().toLowerCase();
-            if(txt === label || txt.indexOf(label) !== -1){
-              return items[i];
-            }
+            if(txt === label || txt.indexOf(label) !== -1) return items[i];
           }
           return null;
         }
@@ -618,14 +903,6 @@ export function EditPDFTool({
         function clickToolLi(toolName){
           var li = getToolLi(toolName);
           if(!li || li.classList.contains('disabled')) return false;
-          if(toolName === 'stamp' || toolName === 'signature'){
-            var trigger = li.querySelector('.icon') || li.querySelector('.name');
-            if(trigger){
-              if(typeof trigger.click === 'function') trigger.click();
-              else trigger.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true, view:window }));
-              return true;
-            }
-          }
           if(typeof li.click === 'function') li.click();
           else li.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true, view:window }));
           return true;
@@ -966,6 +1243,7 @@ export function EditPDFTool({
             var isMarkup = !!TEXT_MARKUP[toolName];
             setTextMarkupMode(isMarkup);
             if(isSelect){
+              hidePdfcraftStampPicker();
               setAnnotating(document.documentElement.classList.contains('pdfcraft-annotations-visible'));
               activateEditorMode(0);
               updateMarkupToolbarSelection('');
@@ -985,10 +1263,12 @@ export function EditPDFTool({
         }
 
         function setToolWithRetry(toolName){
+          if(toolName === 'stamp' && isPdfcraftStampPickerOpen() && window.__pdfcraftActiveTool === 'stamp') return;
           if(setTool(toolName)) return;
           var tries = 0;
           var timer = setInterval(function(){
             tries += 1;
+            if(toolName === 'stamp' && isPdfcraftStampPickerOpen()) { clearInterval(timer); return; }
             if(setTool(toolName) || tries >= 80) clearInterval(timer);
           }, 200);
         }
