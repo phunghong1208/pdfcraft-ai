@@ -21,8 +21,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { getToolIcon } from '@/config/icons';
-import { getToolIconTone } from '@/lib/ui/icon-tones';
-import { IconBadge } from '@/components/ui/IconBadge';
+import { ToolIcon } from '@/components/ui/ToolIcon';
 import { type Locale } from '@/lib/i18n/config';
 import { Button } from '@/components/ui/Button';
 import { RecentFilesDropdown } from '@/components/common/RecentFilesDropdown';
@@ -278,10 +277,12 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
   };
 
   const renderDropdownIcon = (item: NavDropdownItem) => {
+    if (item.toolId) {
+      return <ToolIcon toolId={item.toolId} iconKey={item.iconKey} size="xs" shape="circle" />;
+    }
     const ResolvedIcon = resolveDropdownLucideIcon(item);
     if (!ResolvedIcon) return null;
-    const tone = item.toolId ? getToolIconTone(item.toolId) : 'gray';
-    return <IconBadge icon={ResolvedIcon} tone={tone} size="xs" />;
+    return <ToolIcon lucideIcon={ResolvedIcon} tone="gray" size="xs" shape="circle" />;
   };
 
   const renderGroupDropdown = (items: NavDropdownItem[]) => (

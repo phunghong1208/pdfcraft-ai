@@ -5,9 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Tool, ToolCategory } from '@/types/tool';
 import { Card } from '@/components/ui/Card';
 import { ArrowUpRight } from 'lucide-react';
-import { getToolIcon } from '@/config/icons';
-import { getToolIconTone } from '@/lib/ui/icon-tones';
-import { IconBadge } from '@/components/ui/IconBadge';
+import { ToolIcon } from '@/components/ui/ToolIcon';
 import { FavoriteButton } from '@/components/ui/FavoriteButton';
 
 export interface ToolCardProps {
@@ -52,9 +50,6 @@ export function ToolCard({ tool, locale, className = '', localizedContent }: Too
     .map(f => f.replace(/-/g, ' '))
     .join(', ');
 
-  const IconComponent = getToolIcon(tool.icon);
-  const iconTone = getToolIconTone(tool.id, tool.category);
-
   const categoryName = t(`home.categories.${categoryTranslationKeys[tool.category]}`);
 
   return (
@@ -76,7 +71,7 @@ export function ToolCard({ tool, locale, className = '', localizedContent }: Too
 
         <div className="flex flex-col h-full p-1">
           <div className="flex items-start gap-3 mb-3">
-            <IconBadge icon={IconComponent} tone={iconTone} size="lg" />
+            <ToolIcon toolId={tool.id} iconKey={tool.icon} size="lg" shape="circle" />
           </div>
 
           {/* Tool Info */}

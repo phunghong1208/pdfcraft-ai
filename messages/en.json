@@ -385,7 +385,63 @@
     "showingFiltered": "Showing {filtered} of {total} tools",
     "forQuery": "for \"{query}\"",
     "inCategory": "in {category}",
-    "noToolsFound": "No tools found"
+    "noToolsFound": "No tools found",
+    "toolsTitle": "{brand} Tools",
+    "toolsSubtitle": "Search-first tools. AI-first workflow. Use the full toolbox contextually in your workspace.",
+    "searchPlaceholder": "Search tools... merge, ocr, pdf to jpg, compress",
+    "clearSearchAria": "Clear search",
+    "tabs": {
+      "ai": "AI Assistant",
+      "edit": "Edit & Organize",
+      "convert": "Convert",
+      "optimize": "Optimize",
+      "security": "Security"
+    },
+    "aiSectionTitle": "Power-ups",
+    "aiSectionSubtitle": "Supercharge your documents with AI.",
+    "popularAiBadge": "Popular AI",
+    "aiActions": {
+      "summarize": {
+        "label": "AI Summary",
+        "description": "Extract key insights from any PDF."
+      },
+      "translate": {
+        "label": "AI Translate",
+        "description": "Translate entire documents into other languages."
+      },
+      "voice": {
+        "label": "AI Voice Reader",
+        "description": "Convert PDF to natural speech instantly."
+      },
+      "ocr": {
+        "label": "Smart OCR",
+        "description": "Convert scans to editable PDF."
+      },
+      "chat": {
+        "label": "Chat with PDF",
+        "description": "Ask questions about your files and get instant answers."
+      },
+      "tables": {
+        "label": "Extract Tables",
+        "description": "Pull tables from invoices and reports."
+      },
+      "explain": {
+        "label": "Explain Terms",
+        "description": "Clarify complex terms in your document."
+      }
+    },
+    "contextualTitle": "Contextual suggestions",
+    "contextualSuggestions": {
+      "ocr": "OCR this document",
+      "translate": "Translate scanned pages",
+      "extractText": "Extract text",
+      "compress": "Compress large file",
+      "extractTables": "Extract invoice tables"
+    },
+    "openWorkspace": "Open Document Workspace",
+    "noToolsFoundDetailed": "No tools found for this tab and query.",
+    "clearSearch": "Clear search",
+    "footerNote": "All tools are organized here. The homepage stays AI-first and lightweight."
   },
   "faqPage": {
     "title": "Frequently Asked Questions",

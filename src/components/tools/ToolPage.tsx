@@ -9,6 +9,8 @@ import { Footer } from '@/components/layout/Footer';
 import { type Locale } from '@/lib/i18n/config';
 import { ToolProvider } from '@/lib/contexts/ToolContext';
 import { getToolIcon } from '@/config/icons';
+import { ToolIcon } from '@/components/ui/ToolIcon';
+import { getPdfReaderIconId } from '@/lib/ui/pdf-reader-icons';
 import Link from 'next/link';
 import { Home, ChevronRight } from 'lucide-react';
 import { FavoriteButton } from '@/components/ui/FavoriteButton';
@@ -145,6 +147,7 @@ function ToolHeader({ tool, content }: ToolHeaderProps) {
     .join(' ');
 
   const IconComponent = getToolIcon(tool.icon);
+  const hasReaderIcon = !!getPdfReaderIconId(tool.id);
 
   return (
     <header className="text-center" data-testid="tool-page-header" itemScope itemType="https://schema.org/SoftwareApplication">
@@ -153,11 +156,14 @@ function ToolHeader({ tool, content }: ToolHeaderProps) {
       <meta itemProp="offers" itemScope itemType="https://schema.org/Offer" content="" />
       <meta itemProp="price" content="0" />
       <meta itemProp="priceCurrency" content="USD" />
-      <div
-        className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[hsl(var(--color-primary)/0.1)] to-[hsl(var(--color-accent)/0.1)] mb-4 shadow-inner"
-        aria-hidden="true"
-      >
-        <IconComponent className="w-8 h-8 text-[hsl(var(--color-primary))]" />
+      <div className="inline-flex mb-4" aria-hidden="true">
+        {hasReaderIcon ? (
+          <ToolIcon toolId={tool.id} iconKey={tool.icon} size="xl" shape="circle" />
+        ) : (
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[hsl(var(--color-primary)/0.1)] to-[hsl(var(--color-accent)/0.1)] shadow-inner">
+            <IconComponent className="w-8 h-8 text-[hsl(var(--color-primary))]" />
+          </div>
+        )}
       </div>
       <h1
         className="text-3xl font-bold text-[hsl(var(--color-foreground))] mb-2"
@@ -420,7 +426,6 @@ function RelatedToolsSection({ tools, locale, localizedRelatedTools }: RelatedTo
             .map(word => word.charAt(0).toUpperCase() + word.slice(1))
             .join(' ');
 
-          const IconComponent = getToolIcon(tool.icon);
           const categoryName = t(`home.categories.${categoryTranslationKeys[tool.category]}`);
 
           return (
@@ -431,12 +436,7 @@ function RelatedToolsSection({ tools, locale, localizedRelatedTools }: RelatedTo
             >
               <Card hover clickable className="h-full glass-card transition-all duration-300 group-hover:-translate-y-1">
                 <div className="flex items-center gap-4">
-                  <div
-                    className="flex-shrink-0 w-12 h-12 rounded-xl bg-[hsl(var(--color-primary)/0.1)] flex items-center justify-center group-hover:bg-[hsl(var(--color-primary))] transition-colors duration-300"
-                    aria-hidden="true"
-                  >
-                    <IconComponent className="w-6 h-6 text-[hsl(var(--color-primary))] group-hover:text-white transition-colors duration-300" />
-                  </div>
+                  <ToolIcon toolId={tool.id} iconKey={tool.icon} size="md" shape="circle" />
                   <div>
                     <span className="font-semibold text-[hsl(var(--color-foreground))] block mb-1">
                       {toolName}

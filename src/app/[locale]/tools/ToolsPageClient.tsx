@@ -29,14 +29,14 @@ const TAB_TOOL_IDS: Record<Exclude<ToolTab, 'ai'>, string[]> = {
   security: ['encrypt-pdf', 'decrypt-pdf', 'find-and-redact', 'remove-metadata', 'change-permissions', 'pdf-to-pdfa'],
 };
 
-const AI_ACTIONS: Array<{ icon: typeof Sparkles; label: string; href: string; accent: AiCardAccent; description: string; wide?: boolean; popular?: boolean }> = [
-  { icon: Sparkles, label: 'AI Summary', href: '/ai-summary', accent: 'purple', description: 'Extract key insights from any PDF.' },
-  { icon: Languages, label: 'AI Translate', href: '/ai-translate', accent: 'blue', description: 'Translate entire documents into other languages.' },
-  { icon: Volume2, label: 'AI Voice Reader', href: '/voice-reader', accent: 'coral', description: 'Convert PDF to natural speech instantly.' },
-  { icon: ScanText, label: 'Smart OCR', href: '/smart-ocr', accent: 'green', description: 'Convert scans to editable PDF.' },
-  { icon: MessagesSquare, label: 'Chat with PDF', href: '/chat-pdf', accent: 'purple', description: 'Ask questions about your files and get instant answers.', wide: true, popular: true },
-  { icon: Table2, label: 'Extract Tables', href: '/chat-pdf', accent: 'blue', description: 'Pull tables from invoices and reports.' },
-  { icon: Bot, label: 'Explain Terms', href: '/chat-pdf', accent: 'purple', description: 'Clarify complex terms in your document.' },
+const AI_ACTIONS: Array<{ id: string; icon: typeof Sparkles; href: string; accent: AiCardAccent; wide?: boolean; popular?: boolean }> = [
+  { id: 'summarize', icon: Sparkles, href: '/ai-summary', accent: 'purple' },
+  { id: 'translate', icon: Languages, href: '/ai-translate', accent: 'blue' },
+  { id: 'voice', icon: Volume2, href: '/voice-reader', accent: 'coral' },
+  { id: 'ocr', icon: ScanText, href: '/smart-ocr', accent: 'green' },
+  { id: 'chat', icon: MessagesSquare, href: '/chat-pdf', accent: 'purple', wide: true, popular: true },
+  { id: 'tables', icon: Table2, href: '/chat-pdf', accent: 'blue' },
+  { id: 'explain', icon: Bot, href: '/chat-pdf', accent: 'purple' },
 ];
 
 export default function ToolsPageClient({ locale, localizedToolContent }: ToolsPageClientProps) {
@@ -69,19 +69,19 @@ export default function ToolsPageClient({ locale, localizedToolContent }: ToolsP
   }, [activeTab, allTools, searchQuery, localizedToolContent]);
 
   const tabs: Array<{ id: ToolTab; label: string; icon: typeof Sparkles }> = [
-    { id: 'ai', label: 'AI Assistant', icon: Sparkles },
-    { id: 'edit', label: 'Edit & Organize', icon: PencilLine },
-    { id: 'convert', label: 'Convert', icon: FileCog },
-    { id: 'optimize', label: 'Optimize', icon: Zap },
-    { id: 'security', label: 'Security', icon: ShieldCheck },
+    { id: 'ai', label: t('toolsPage.tabs.ai'), icon: Sparkles },
+    { id: 'edit', label: t('toolsPage.tabs.edit'), icon: PencilLine },
+    { id: 'convert', label: t('toolsPage.tabs.convert'), icon: FileCog },
+    { id: 'optimize', label: t('toolsPage.tabs.optimize'), icon: Zap },
+    { id: 'security', label: t('toolsPage.tabs.security'), icon: ShieldCheck },
   ];
 
   const contextualSuggestions = [
-    { icon: ScanText, label: 'OCR this document' },
-    { icon: Languages, label: 'Translate scanned pages' },
-    { icon: FileCog, label: 'Extract text' },
-    { icon: Zap, label: 'Compress large file' },
-    { icon: Table2, label: 'Extract invoice tables' },
+    { icon: ScanText, label: t('toolsPage.contextualSuggestions.ocr') },
+    { icon: Languages, label: t('toolsPage.contextualSuggestions.translate') },
+    { icon: FileCog, label: t('toolsPage.contextualSuggestions.extractText') },
+    { icon: Zap, label: t('toolsPage.contextualSuggestions.compress') },
+    { icon: Table2, label: t('toolsPage.contextualSuggestions.extractTables') },
   ];
 
   const handleClearSearch = useCallback(() => setSearchQuery(''), []);
@@ -94,9 +94,9 @@ export default function ToolsPageClient({ locale, localizedToolContent }: ToolsP
         <section className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             <div className="mb-8 text-center">
-              <h1 className="text-3xl md:text-4xl font-bold">{t('common.brand')} Tools</h1>
+              <h1 className="text-3xl md:text-4xl font-bold">{t('toolsPage.toolsTitle', { brand: t('common.brand') })}</h1>
               <p className="mt-3 text-[hsl(var(--color-muted-foreground))]">
-                Search-first tools. AI-first workflow. Use full toolbox contextually in workspace.
+                {t('toolsPage.toolsSubtitle')}
               </p>
             </div>
 
@@ -106,14 +106,14 @@ export default function ToolsPageClient({ locale, localizedToolContent }: ToolsP
                 type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search tools... merge, ocr, pdf to jpg, compress"
+                placeholder={t('toolsPage.searchPlaceholder')}
                 className="w-full pl-11 pr-10 py-3 rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-card))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--color-primary)/0.25)]"
               />
               {searchQuery && (
                 <button
                   onClick={handleClearSearch}
                   className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full hover:bg-[hsl(var(--color-muted))]"
-                  aria-label="Clear search"
+                  aria-label={t('toolsPage.clearSearchAria')}
                 >
                   <X className="h-4 w-4 text-[hsl(var(--color-muted-foreground))]" />
                 </button>
@@ -142,27 +142,27 @@ export default function ToolsPageClient({ locale, localizedToolContent }: ToolsP
             {activeTab === 'ai' ? (
               <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
                 <div>
-                  <h2 className="text-lg font-semibold mb-1">Power-ups</h2>
+                  <h2 className="text-lg font-semibold mb-1">{t('toolsPage.aiSectionTitle')}</h2>
                   <p className="text-sm text-[hsl(var(--color-muted-foreground))] mb-4">
-                    Supercharge your documents with AI
+                    {t('toolsPage.aiSectionSubtitle')}
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {AI_ACTIONS.map((action) => (
                       <Link
-                        key={action.label}
+                        key={action.id}
                         href={`/${locale}${action.href}`}
                         className={`${aiCardAccentClass(action.accent)} p-4 block ${action.wide ? 'sm:col-span-2 lg:col-span-2' : ''}`}
                       >
                         {action.popular && (
-                          <span className="ai-card__badge">Popular AI</span>
+                          <span className="ai-card__badge">{t('toolsPage.popularAiBadge')}</span>
                         )}
                         <div className="flex h-full flex-col gap-3">
                           <div className="ai-card__icon">
                             <action.icon className="h-5 w-5" strokeWidth={1.75} />
                           </div>
                           <div>
-                            <div className="text-sm font-semibold">{action.label}</div>
-                            <p className="ai-card__desc">{action.description}</p>
+                            <div className="text-sm font-semibold">{t(`toolsPage.aiActions.${action.id}.label`)}</div>
+                            <p className="ai-card__desc">{t(`toolsPage.aiActions.${action.id}.description`)}</p>
                           </div>
                         </div>
                       </Link>
@@ -171,7 +171,7 @@ export default function ToolsPageClient({ locale, localizedToolContent }: ToolsP
                 </div>
 
                 <Card className="p-5 border border-[hsl(var(--color-border))] bg-[hsl(var(--color-card))]">
-                  <h3 className="text-sm font-semibold mb-3">Contextual suggestions</h3>
+                  <h3 className="text-sm font-semibold mb-3">{t('toolsPage.contextualTitle')}</h3>
                   <ul className="space-y-2 text-sm text-[hsl(var(--color-muted-foreground))]">
                     {contextualSuggestions.map((item) => (
                       <li key={item.label} className="inline-flex items-center gap-2 w-full">
@@ -181,7 +181,7 @@ export default function ToolsPageClient({ locale, localizedToolContent }: ToolsP
                     ))}
                   </ul>
                   <Link href={`/${locale}/workspace`} className="inline-block mt-4">
-                    <Button size="sm">Open Document Workspace</Button>
+                    <Button size="sm">{t('toolsPage.openWorkspace')}</Button>
                   </Link>
                 </Card>
               </div>
@@ -189,13 +189,13 @@ export default function ToolsPageClient({ locale, localizedToolContent }: ToolsP
               <ToolGrid tools={visibleTools} locale={locale} localizedToolContent={localizedToolContent} />
             ) : (
               <Card className="p-12 text-center border-dashed border-2">
-                <p className="text-[hsl(var(--color-muted-foreground))] mb-4">No tools found for this tab and query.</p>
-                <Button variant="outline" onClick={handleClearSearch}>Clear search</Button>
+                <p className="text-[hsl(var(--color-muted-foreground))] mb-4">{t('toolsPage.noToolsFoundDetailed')}</p>
+                <Button variant="outline" onClick={handleClearSearch}>{t('toolsPage.clearSearch')}</Button>
               </Card>
             )}
 
             <div className="mt-8 text-center text-sm text-[hsl(var(--color-muted-foreground))]">
-              Full tools are organized here. Homepage stays AI-first and lightweight.
+              {t('toolsPage.footerNote')}
             </div>
           </div>
         </section>

@@ -304,7 +304,7 @@ function getRibbonGroups(
         {
           label: tr('groups.document'),
           tools: [
-            { icon: Eye, label: tr('tools.watermark'), href: t('watermark') },
+            { icon: Stamp, label: tr('tools.watermark'), href: t('watermark') },
             { icon: Image, label: tr('tools.background'), href: t('background-color') },
             { icon: Type, label: tr('tools.headerFooter'), href: t('header-footer') },
             { icon: FileType, label: tr('tools.pageNumbers'), href: t('page-numbers') },
@@ -342,7 +342,7 @@ function getRibbonGroups(
         {
           label: tr('groups.document'),
           tools: [
-            { icon: Eye, label: tr('tools.watermark'), href: t('watermark') },
+            { icon: Stamp, label: tr('tools.watermark'), href: t('watermark') },
             { icon: Image, label: tr('tools.background'), href: t('background-color') },
             { icon: Type, label: tr('tools.headerFooter'), href: t('header-footer') },
             { icon: FileType, label: tr('tools.pageNumbers'), href: t('page-numbers') },
@@ -398,7 +398,7 @@ function getRibbonGroups(
             { icon: FileText, label: tr('tools.pdfToWord'), href: t('pdf-to-docx') },
             { icon: FileSpreadsheet, label: tr('tools.pdfToExcel'), href: t('pdf-to-excel') },
             { icon: FileImage, label: tr('tools.pdfToPpt'), href: t('pdf-to-pptx') },
-            { icon: Image, label: tr('tools.pdfToImage'), href: t('pdf-to-image') },
+            { icon: Image, label: tr('tools.pdfToImage'), href: t('pdf-to-jpg') },
             { icon: FileType, label: tr('tools.pdfToTxt'), href: t('pdf-to-markdown') },
           ],
         },
@@ -1770,13 +1770,16 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
                     }`}
                     title={`${group.label}: ${tool.label}`}
                   >
-                    <Icon className={`h-4 w-4 transition-colors ${
-                      isActive
-                        ? isWorkspaceDark ? 'text-white' : 'text-[#111827]'
-                        : isWorkspaceDark
-                          ? 'text-white/75 group-hover:text-white'
-                          : 'text-[#4B5563] group-hover:text-[#111827]'
-                    }`} />
+                    <Icon
+                      className={`h-4 w-4 transition-colors ${
+                        isActive
+                          ? isWorkspaceDark ? 'text-white' : 'text-[#111827]'
+                          : isWorkspaceDark
+                            ? 'text-white/75 group-hover:text-white'
+                            : 'text-[#4B5563] group-hover:text-[#111827]'
+                      }`}
+                      strokeWidth={1.75}
+                    />
                     <span className={`text-[9px] leading-tight whitespace-nowrap transition-colors ${
                       isActive
                         ? isWorkspaceDark ? 'text-white font-medium' : 'text-[#111827] font-medium'

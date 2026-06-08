@@ -134,6 +134,36 @@
 .icon-tone-teal { --tone-bg: hsl(174 55% 92%); --tone-fg: hsl(174 55% 36%); --tone-border: hsl(174 40% 84%); }
 .dark .icon-tone-teal { --tone-bg: hsl(174 30% 14%); --tone-fg: hsl(174 55% 58%); --tone-border: hsl(174 25% 20%); }
 
+/* Icon box thống nhất — thẻ AI + Thao tác PDF (trang chủ) */
+:root {
+  --pdf-icon-badge-size: 3rem; /* 48px */
+  --pdf-icon-glyph-size: 1.5rem; /* 24px */
+  --pdf-icon-glyph-scale: 1.06; /* bù viewBox SVG custom */
+}
+
+.icon-badge--convert {
+  background: radial-gradient(
+    circle at 32% 28%,
+    color-mix(in srgb, var(--tone-fg) 14%, var(--tone-bg)) 0%,
+    var(--tone-bg) 58%,
+    color-mix(in srgb, var(--tone-bg) 82%, transparent) 100%
+  );
+  box-sizing: border-box;
+}
+.icon-badge--convert > svg {
+  width: var(--pdf-icon-glyph-size);
+  height: var(--pdf-icon-glyph-size);
+  flex-shrink: 0;
+}
+.dark .icon-badge--convert {
+  background: radial-gradient(
+    circle at 32% 28%,
+    color-mix(in srgb, var(--tone-fg) 22%, var(--tone-bg)) 0%,
+    var(--tone-bg) 55%,
+    color-mix(in srgb, var(--tone-bg) 70%, transparent) 100%
+  );
+}
+
 /* Icon badge — soft 5D depth */
 .icon-badge--elevated {
   background: linear-gradient(145deg, var(--tone-bg) 0%, color-mix(in srgb, var(--tone-bg) 72%, transparent) 100%);
@@ -155,7 +185,7 @@
   display: flex;
   flex-direction: column;
   position: relative;
-  border-radius: 1.25rem;
+  border-radius: 1rem;
   transition:
     transform 220ms ease,
     box-shadow 220ms ease,
@@ -345,7 +375,7 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.625rem;
   min-height: 7.75rem;
   position: relative;
   z-index: 1;
@@ -372,9 +402,22 @@
   opacity: 0.5;
   transition: opacity 200ms ease, color 200ms ease, transform 200ms ease;
 }
+.tool-action-card .action-card-arrow__icon {
+  opacity: 0.62;
+  color: hsl(215 16% 52%);
+}
+.tool-action-card:hover .action-card-arrow__icon,
+.tool-action-card:focus-visible .action-card-arrow__icon {
+  opacity: 1;
+  color: hsl(var(--color-foreground));
+  transform: translateX(3px);
+}
+.dark .tool-action-card:hover .action-card-arrow__icon,
+.dark .tool-action-card:focus-visible .action-card-arrow__icon {
+  color: #fff;
+}
 .ai-card:hover .action-card-arrow__icon,
-.ai-card:focus-visible .action-card-arrow__icon,
-.tool-action-card:hover .action-card-arrow__icon {
+.ai-card:focus-visible .action-card-arrow__icon {
   opacity: 0.85;
   color: hsl(var(--color-foreground));
   transform: translateX(2px);
@@ -397,10 +440,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2.75rem;
-  height: 2.75rem;
+  width: var(--pdf-icon-badge-size);
+  height: var(--pdf-icon-badge-size);
   border-radius: 0.875rem;
   transition: background 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+}
+.ai-card__icon svg {
+  width: var(--pdf-icon-glyph-size);
+  height: var(--pdf-icon-glyph-size);
+  flex-shrink: 0;
 }
 .ai-card[class*='ai-card-accent-'] .ai-card__icon {
   background: var(--ai-icon-bg);
@@ -443,8 +491,8 @@
 }
 .ai-card__badge {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
+  top: 0.875rem;
+  right: 0.875rem;
   z-index: 2;
   padding: 0.1875rem 0.5625rem;
   font-size: 0.625rem;
@@ -464,14 +512,14 @@
   color: #fff;
 }
 
-/* Core PDF tool cards — dark surface + colored icon */
+/* Core PDF tool cards — đồng bộ kích thước với ai-card */
 .tool-action-card {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  min-height: 8.5rem;
-  padding: 1rem;
+  gap: 0.625rem;
+  min-height: 7.75rem;
+  padding: 0.875rem;
   border-radius: 1rem;
   background: hsl(220 10% 12%);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -499,32 +547,39 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 0.75rem;
-  background: var(--tone-bg);
-  border: 1px solid var(--tone-border);
-  transition: transform 200ms ease, box-shadow 200ms ease;
+  box-sizing: border-box;
+  width: var(--pdf-icon-badge-size);
+  height: var(--pdf-icon-badge-size);
+  border-radius: 0.875rem;
+  background: color-mix(in srgb, var(--tone-fg) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tone-fg) 25%, transparent);
+  transition: transform 200ms ease, box-shadow 200ms ease, background 200ms ease, border-color 200ms ease;
 }
 .tool-action-card:hover .tool-action-card__icon {
-  transform: scale(1.08);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--tone-fg) 22%, transparent);
+  transform: scale(1.04);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--tone-fg) 18%, transparent);
+  background: color-mix(in srgb, var(--tone-fg) 20%, transparent);
+  border-color: color-mix(in srgb, var(--tone-fg) 35%, transparent);
 }
 .tool-action-card__icon svg {
-  width: 1.25rem;
-  height: 1.25rem;
+  width: var(--pdf-icon-glyph-size);
+  height: var(--pdf-icon-glyph-size);
+  flex-shrink: 0;
   color: var(--tone-fg);
+  transform: scale(var(--pdf-icon-glyph-scale));
+  transform-origin: center;
 }
 .tool-action-card__title {
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   font-weight: 600;
-  line-height: 1.3;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
 }
 .tool-action-card__desc {
   flex: 1;
   margin: 0;
-  font-size: 0.75rem;
-  line-height: 1.5;
+  font-size: 0.8125rem;
+  line-height: 1.55;
   color: hsl(var(--color-muted-foreground));
 }
 
@@ -958,7 +1013,7 @@ select option {
   color: #0f172a;
 }
 .ws-ribbon-icon-btn--icon {
-  padding: 0.3125rem;
+  padding: 0.1875rem;
 }
 .workspace-shell--dark .ws-zoom-select {
   color: rgba(255, 255, 255, 0.72);

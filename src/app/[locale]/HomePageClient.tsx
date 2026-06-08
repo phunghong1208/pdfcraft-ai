@@ -9,6 +9,8 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { PdfReaderIcon } from '@/components/icons/PdfReaderIcons';
+import { getPdfReaderIconId } from '@/lib/ui/pdf-reader-icons';
 import { aiCardAccentClass, toolActionCardClass, type AiCardAccent, type IconTone } from '@/lib/ui/icon-tones';
 import { type Locale } from '@/lib/i18n/config';
 import { setUploadedPdf } from '@/lib/document-session';
@@ -47,16 +49,17 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
     href: string;
     label: string;
     icon: typeof PencilLine;
+    toolId?: string;
     tone: IconTone;
     descriptionKey: 'scanToPdf' | 'merge' | 'split' | 'protect' | 'compress' | 'ocrText' | 'edit' | 'convert';
   }> = [
-    { href: `/${locale}/tools/image-to-pdf`, label: t('actions.scanToPdf'), icon: ScanText, tone: 'red', descriptionKey: 'scanToPdf' },
-    { href: `/${locale}/tools/merge-pdf`, label: t('actions.merge'), icon: GitMerge, tone: 'orange', descriptionKey: 'merge' },
-    { href: `/${locale}/tools/split-pdf`, label: t('actions.split'), icon: Scissors, tone: 'orange', descriptionKey: 'split' },
-    { href: `/${locale}/tools/encrypt-pdf`, label: t('actions.protect'), icon: ShieldCheck, tone: 'green', descriptionKey: 'protect' },
-    { href: `/${locale}/tools/compress-pdf`, label: t('actions.compress'), icon: Minimize2, tone: 'blue', descriptionKey: 'compress' },
-    { href: `/${locale}/smart-ocr`, label: t('actions.ocrText'), icon: ScanText, tone: 'purple', descriptionKey: 'ocrText' },
-    { href: `/${locale}/tools/edit-pdf`, label: t('actions.edit'), icon: PencilLine, tone: 'purple', descriptionKey: 'edit' },
+    { href: `/${locale}/tools/image-to-pdf`, label: t('actions.scanToPdf'), icon: ScanText, toolId: 'ocr-pdf', tone: 'green', descriptionKey: 'scanToPdf' },
+    { href: `/${locale}/tools/merge-pdf`, label: t('actions.merge'), icon: GitMerge, toolId: 'merge-pdf', tone: 'green', descriptionKey: 'merge' },
+    { href: `/${locale}/tools/split-pdf`, label: t('actions.split'), icon: Scissors, toolId: 'split-pdf', tone: 'orange', descriptionKey: 'split' },
+    { href: `/${locale}/tools/encrypt-pdf`, label: t('actions.protect'), icon: ShieldCheck, toolId: 'encrypt-pdf', tone: 'red', descriptionKey: 'protect' },
+    { href: `/${locale}/tools/compress-pdf`, label: t('actions.compress'), icon: Minimize2, toolId: 'compress-pdf', tone: 'purple', descriptionKey: 'compress' },
+    { href: `/${locale}/smart-ocr`, label: t('actions.ocrText'), icon: ScanText, toolId: 'ocr-pdf', tone: 'green', descriptionKey: 'ocrText' },
+    { href: `/${locale}/tools/edit-pdf`, label: t('actions.edit'), icon: PencilLine, toolId: 'edit-pdf', tone: 'blue', descriptionKey: 'edit' },
     { href: `/${locale}/tools?tab=convert`, label: t('actions.convert'), icon: FileCog, tone: 'orange', descriptionKey: 'convert' },
   ];
 
@@ -149,7 +152,7 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`${aiCardAccentClass(item.accent)} p-5 md:p-6 block ${item.wide ? 'sm:col-span-2 lg:col-span-2' : ''}`}
+                      className={`${aiCardAccentClass(item.accent)} p-3.5 block ${item.wide ? 'sm:col-span-2 lg:col-span-2' : ''}`}
                     >
                       {item.aiBadge && (
                         <span className="ai-card__badge">{t('aiBadge')}</span>
@@ -159,7 +162,7 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
                       )}
                       <div className="ai-card__body">
                         <div className="ai-card__icon">
-                          <Icon className="h-5 w-5" strokeWidth={1.75} />
+                          <Icon strokeWidth={1.75} />
                         </div>
                         <div className="ai-card__copy">
                           <div className="ai-card__title">{item.label}</div>
@@ -193,10 +196,14 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
                     <Link
                       key={`${item.href}-${item.label}`}
                       href={item.href}
-                      className={toolActionCardClass(item.tone)}
+                      className={`${toolActionCardClass(item.tone)} group`}
                     >
                       <div className="tool-action-card__icon">
-                        <Icon strokeWidth={1.75} />
+                        {item.toolId && getPdfReaderIconId(item.toolId) ? (
+                          <PdfReaderIcon id={getPdfReaderIconId(item.toolId)!} className="text-[var(--tone-fg)]" />
+                        ) : (
+                          <Icon strokeWidth={1.75} />
+                        )}
                       </div>
                       <div className="tool-action-card__title">{item.label}</div>
                       <p className="tool-action-card__desc">{t(`toolDescriptions.${item.descriptionKey}`)}</p>

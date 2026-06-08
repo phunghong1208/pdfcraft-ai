@@ -385,7 +385,63 @@
     "showingFiltered": "Đang hiển thị {filtered} trong số {total} công cụ",
     "forQuery": "cho \"{query}\"",
     "inCategory": "trong {category}",
-    "noToolsFound": "Không tìm thấy công cụ nào"
+    "noToolsFound": "Không tìm thấy công cụ nào",
+    "toolsTitle": "Công cụ {brand}",
+    "toolsSubtitle": "Ưu tiên tìm kiếm, ưu tiên AI. Dùng toàn bộ bộ công cụ theo ngữ cảnh trong workspace.",
+    "searchPlaceholder": "Tìm công cụ... ghép, ocr, pdf sang jpg, nén",
+    "clearSearchAria": "Xóa tìm kiếm",
+    "tabs": {
+      "ai": "Trợ lý AI",
+      "edit": "Chỉnh sửa & Sắp xếp",
+      "convert": "Chuyển đổi",
+      "optimize": "Tối ưu",
+      "security": "Bảo mật"
+    },
+    "aiSectionTitle": "Tăng lực",
+    "aiSectionSubtitle": "Tăng tốc xử lý tài liệu với AI.",
+    "popularAiBadge": "AI phổ biến",
+    "aiActions": {
+      "summarize": {
+        "label": "Tóm tắt AI",
+        "description": "Rút trích ý chính từ mọi PDF."
+      },
+      "translate": {
+        "label": "Dịch AI",
+        "description": "Dịch toàn bộ tài liệu sang ngôn ngữ khác."
+      },
+      "voice": {
+        "label": "Đọc bằng giọng nói",
+        "description": "Chuyển PDF thành giọng nói tự nhiên."
+      },
+      "ocr": {
+        "label": "OCR thông minh",
+        "description": "Biến bản quét thành PDF có thể chỉnh sửa."
+      },
+      "chat": {
+        "label": "Chat với PDF",
+        "description": "Đặt câu hỏi về tài liệu và nhận câu trả lời ngay."
+      },
+      "tables": {
+        "label": "Trích xuất bảng",
+        "description": "Lấy bảng từ hóa đơn và báo cáo."
+      },
+      "explain": {
+        "label": "Giải thích thuật ngữ",
+        "description": "Làm rõ thuật ngữ phức tạp trong tài liệu."
+      }
+    },
+    "contextualTitle": "Gợi ý theo ngữ cảnh",
+    "contextualSuggestions": {
+      "ocr": "OCR tài liệu này",
+      "translate": "Dịch trang bản quét",
+      "extractText": "Trích xuất văn bản",
+      "compress": "Nén file lớn",
+      "extractTables": "Trích xuất bảng hóa đơn"
+    },
+    "openWorkspace": "Mở Workspace Tài liệu",
+    "noToolsFoundDetailed": "Không tìm thấy công cụ phù hợp với tab và từ khóa.",
+    "clearSearch": "Xóa tìm kiếm",
+    "footerNote": "Tất cả công cụ được sắp xếp tại đây. Trang chủ vẫn ưu tiên AI và gọn nhẹ."
   },
   "faqPage": {
     "title": "Câu hỏi Thường gặp",
