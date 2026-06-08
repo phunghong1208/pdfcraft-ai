@@ -34,7 +34,9 @@ const categoryTranslationKeys: Record<ToolCategory, string> = {
  */
 export function ToolCard({ tool, locale, className = '', localizedContent }: ToolCardProps) {
   const t = useTranslations();
-  const toolUrl = `/${locale}/tools/${tool.slug}`;
+  const toolUrl = tool.id === 'edit-pdf'
+    ? `/${locale}/workspace`
+    : `/${locale}/tools/${tool.slug}`;
 
   // Get a human-readable name from the tool ID
   // Use localized title if available, otherwise fallback to formatting the ID

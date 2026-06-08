@@ -59,7 +59,7 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
     { href: `/${locale}/tools/encrypt-pdf`, label: t('actions.protect'), icon: ShieldCheck, toolId: 'encrypt-pdf', tone: 'red', descriptionKey: 'protect' },
     { href: `/${locale}/tools/compress-pdf`, label: t('actions.compress'), icon: Minimize2, toolId: 'compress-pdf', tone: 'purple', descriptionKey: 'compress' },
     { href: `/${locale}/smart-ocr`, label: t('actions.ocrText'), icon: ScanText, toolId: 'ocr-pdf', tone: 'green', descriptionKey: 'ocrText' },
-    { href: `/${locale}/tools/edit-pdf`, label: t('actions.edit'), icon: PencilLine, toolId: 'edit-pdf', tone: 'blue', descriptionKey: 'edit' },
+    { href: `/${locale}/workspace`, label: t('actions.edit'), icon: PencilLine, toolId: 'edit-pdf', tone: 'blue', descriptionKey: 'edit' },
     { href: `/${locale}/tools?tab=convert`, label: t('actions.convert'), icon: FileCog, tone: 'orange', descriptionKey: 'convert' },
   ];
 

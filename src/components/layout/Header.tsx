@@ -66,7 +66,7 @@ const EDIT_NAV_SLUGS = new Set(['edit-pdf', 'sign-pdf', 'crop-pdf', 'add-waterma
 const EDIT_NAV_SLUG_ORDER = ['edit-pdf', 'sign-pdf', 'crop-pdf', 'add-watermark', 'form-filler', 'page-numbers', 'header-footer'] as const;
 
 function toolHref(locale: Locale, toolId: string, slug: string): string {
-  if (toolId === 'edit-pdf') return `/${locale}/editor`;
+  if (toolId === 'edit-pdf') return `/${locale}/workspace`;
   return `/${locale}/tools/${slug}`;
 }
 

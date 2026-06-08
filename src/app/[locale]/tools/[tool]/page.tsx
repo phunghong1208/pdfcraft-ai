@@ -183,7 +183,7 @@ export default async function ToolPageRoute({ params }: ToolPageParams) {
 
   // Keep edit flow in one immersive route to avoid landing on generic tool wrapper.
   if (tool.id === 'edit-pdf') {
-    redirect(`/${locale}/editor`);
+    redirect(`/${locale}/workspace`);
   }
 
   // Get tool content for the locale (falls back to English)
