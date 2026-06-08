@@ -659,10 +659,6 @@ function WorkspaceHomeRibbon({
         <FolderOpen className="h-3.5 w-3.5" />
         <span>{t('tools.open')}</span>
       </button>
-      <button type="button" className="ws-ribbon-icon-btn" onClick={() => onAction('save')} title={t('tools.save')}>
-        <Save className="h-3.5 w-3.5" />
-        <span>{t('tools.save')}</span>
-      </button>
       <button type="button" className="ws-ribbon-icon-btn" onClick={() => onAction('print')} title={t('tools.print')}>
         <Printer className="h-3.5 w-3.5" />
         <span>{t('tools.print')}</span>
@@ -1311,15 +1307,18 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
           try {
             const win = iframeWin() as (Window & { pdfcraftExportEditedPdf?: () => Promise<Uint8Array | ArrayBuffer | null> }) | null;
             const bytes = await win?.pdfcraftExportEditedPdf?.();
-            if (!bytes) {
-              window.alert('Chưa hỗ trợ Lưu trực tiếp ở chế độ này.');
-              return;
+            let blob: Blob;
+            if (bytes) {
+              const arrayBuffer = bytes instanceof ArrayBuffer
+                ? bytes
+                : bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+              const safeBuffer = arrayBuffer instanceof SharedArrayBuffer
+                ? new Uint8Array(arrayBuffer).slice().buffer
+                : arrayBuffer;
+              blob = new Blob([safeBuffer], { type: 'application/pdf' });
+            } else {
+              blob = file;
             }
-            const arrayBuffer = bytes instanceof ArrayBuffer
-              ? bytes
-              : bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-            const safeBuffer = arrayBuffer instanceof SharedArrayBuffer ? new Uint8Array(arrayBuffer).slice().buffer : arrayBuffer;
-            const blob = new Blob([safeBuffer], { type: 'application/pdf' });
             const nextFile = new File([blob], file.name, {
               type: 'application/pdf',
               lastModified: Date.now(),
@@ -1689,7 +1688,25 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
 
         <div className="hidden md:flex items-center gap-1">
           <button
-            className={`inline-flex items-center gap-1 px-2 py-1 rounded transition-all text-[11px] ${
+            type="button"
+            disabled={!file}
+            className={`inline-flex items-center gap-1 px-2 py-1 rounded transition-all text-[11px] disabled:opacity-40 disabled:pointer-events-none ${
+              isWorkspaceDark
+                ? isDirty
+                  ? 'text-white hover:bg-white/[0.08]'
+                  : 'text-white/55 hover:text-white hover:bg-white/[0.06]'
+                : isDirty
+                  ? 'text-[#111827] hover:bg-[#F3F4F6]'
+                  : 'text-[#4B5563] hover:text-[#111827] hover:bg-[#F3F4F6]'
+            }`}
+            onClick={() => handleRibbonAction('save')}
+          >
+            <Save className="h-3 w-3" /> {t('header.save')}
+          </button>
+          <button
+            type="button"
+            disabled={!file}
+            className={`inline-flex items-center gap-1 px-2 py-1 rounded transition-all text-[11px] disabled:opacity-40 disabled:pointer-events-none ${
               isWorkspaceDark
                 ? 'text-white/55 hover:text-white hover:bg-white/[0.06]'
                 : 'text-[#4B5563] hover:text-[#111827] hover:bg-[#F3F4F6]'

@@ -1507,12 +1507,58 @@ export function EditPDFTool({
         window.pdfcraftSetAnnotationTool = setToolWithRetry;
         window.pdfcraftClearAllAnnotations = clearAllAnnotations;
         window.pdfcraftInvokeToolbarAction = invokeToolbarAction;
+        function annotationDataList(ext){
+          if(!ext || !ext.painter || typeof ext.painter.getData !== 'function') return [];
+          var data = ext.painter.getData();
+          if(Array.isArray(data)) return data;
+          if(data && typeof data === 'object') return Object.values(data);
+          return [];
+        }
+
+        async function exportViaExtension(ext){
+          if(!ext || typeof ext.exportPdf !== 'function') return null;
+          var captured = null;
+          var origCreate = URL.createObjectURL;
+          URL.createObjectURL = function(obj){
+            var url = origCreate.call(URL, obj);
+            if(obj instanceof Blob && obj.type === 'application/pdf') captured = obj;
+            return url;
+          };
+          try{
+            await ext.exportPdf();
+            for(var attempt=0; attempt<40 && !captured; attempt++){
+              await new Promise(function(resolve){ setTimeout(resolve, 100); });
+            }
+            try{
+              document.querySelectorAll('.ant-modal-root, .ant-message-notice-wrapper').forEach(function(el){ el.remove(); });
+            }catch(e){}
+          } finally {
+            URL.createObjectURL = origCreate;
+          }
+          if(!captured) return null;
+          return await captured.arrayBuffer();
+        }
+
         window.pdfcraftExportEditedPdf = async function(){
           try{
             var app = window.PDFViewerApplication;
-            var doc = app && (app.pdfDocument || (app.pdfViewer && app.pdfViewer.pdfDocument));
-            if(doc && typeof doc.saveDocument === 'function') return await doc.saveDocument();
-          }catch(e){}
+            if(!app) return null;
+            var ext = window.pdfjsAnnotationExtensionInstance;
+            var annots = annotationDataList(ext);
+            if(annots.length > 0){
+              var merged = await exportViaExtension(ext);
+              if(merged) return merged;
+            }
+            var doc = app.pdfDocument || (app.pdfViewer && app.pdfViewer.pdfDocument);
+            if(!doc) return null;
+            if(doc.annotationStorage && doc.annotationStorage.size > 0 && typeof doc.saveDocument === 'function'){
+              var saved = await doc.saveDocument();
+              if(saved) return saved;
+            }
+            if(typeof doc.getData === 'function') return await doc.getData();
+          }catch(e){
+            console.error('pdfcraftExportEditedPdf', e);
+          }
           return null;
         };
         document.addEventListener('pointerup', function(){
