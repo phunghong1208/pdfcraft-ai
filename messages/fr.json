@@ -565,7 +565,63 @@
     "showingFiltered": "Showing {filtered} of {total} tools",
     "forQuery": "for \"{query}\"",
     "inCategory": "in {category}",
-    "noToolsFound": "No tools found"
+    "noToolsFound": "No tools found",
+    "toolsTitle": "Outils {brand}",
+    "toolsSubtitle": "Outils axés sur la recherche. Workflow axé sur l’IA. Utilisez la boîte à outils complète en contexte dans votre espace de travail.",
+    "searchPlaceholder": "Rechercher des outils... fusionner, ocr, pdf en jpg, compresser",
+    "clearSearchAria": "Effacer la recherche",
+    "tabs": {
+      "ai": "Assistant IA",
+      "edit": "Modifier et organiser",
+      "convert": "Convertir",
+      "optimize": "Optimiser",
+      "security": "Sécurité"
+    },
+    "aiSectionTitle": "Boosts",
+    "aiSectionSubtitle": "Boostez vos documents avec l’IA.",
+    "popularAiBadge": "IA populaire",
+    "aiActions": {
+      "summarize": {
+        "label": "Résumé IA",
+        "description": "Extrayez les informations clés de tout PDF."
+      },
+      "translate": {
+        "label": "Traduction IA",
+        "description": "Traduisez des documents entiers dans d’autres langues."
+      },
+      "voice": {
+        "label": "Lecteur vocal IA",
+        "description": "Convertissez un PDF en parole naturelle instantanément."
+      },
+      "ocr": {
+        "label": "OCR intelligent",
+        "description": "Convertissez des scans en PDF modifiables."
+      },
+      "chat": {
+        "label": "Chat avec PDF",
+        "description": "Posez des questions sur vos fichiers et obtenez des réponses instantanées."
+      },
+      "tables": {
+        "label": "Extraire des tableaux",
+        "description": "Extrayez des tableaux de factures et rapports."
+      },
+      "explain": {
+        "label": "Expliquer les termes",
+        "description": "Clarifiez les termes complexes de votre document."
+      }
+    },
+    "contextualTitle": "Suggestions contextuelles",
+    "contextualSuggestions": {
+      "ocr": "OCR de ce document",
+      "translate": "Traduire les pages scannées",
+      "extractText": "Extraire le texte",
+      "compress": "Compresser un gros fichier",
+      "extractTables": "Extraire les tableaux de factures"
+    },
+    "openWorkspace": "Ouvrir l’espace de travail document",
+    "noToolsFoundDetailed": "Aucun outil trouvé pour cet onglet et cette recherche.",
+    "clearSearch": "Effacer la recherche",
+    "footerNote": "Tous les outils sont organisés ici. La page d’accueil reste légère et axée sur l’IA."
   },
   "faqPage": {
     "title": "Foire Aux Questions",

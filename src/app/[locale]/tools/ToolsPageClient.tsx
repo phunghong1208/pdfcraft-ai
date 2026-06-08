@@ -2,9 +2,12 @@
 
 import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Search, X, Sparkles, Languages, MessagesSquare, ScanText, Volume2, Table2, Bot, PencilLine, FileCog, Zap, ShieldCheck } from 'lucide-react';
+import {
+  Search, X, Sparkles, Languages, MessagesSquare, ScanText, Volume2, Table2, Bot,
+  PencilLine, FileCog, Zap, ShieldCheck, ArrowRight,
+} from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { ToolGrid } from '@/components/tools/ToolGrid';
@@ -14,6 +17,7 @@ import { aiCardAccentClass, type AiCardAccent } from '@/lib/ui/icon-tones';
 import { getAllTools } from '@/config/tools';
 import { toolMatchesQuery } from '@/lib/utils/search';
 import { type Locale } from '@/lib/i18n/config';
+import type { ToolCategory } from '@/types/tool';
 
 type ToolTab = 'ai' | 'edit' | 'convert' | 'optimize' | 'security';
 
@@ -22,26 +26,44 @@ interface ToolsPageClientProps {
   localizedToolContent?: Record<string, { title: string; description: string }>;
 }
 
-const TAB_TOOL_IDS: Record<Exclude<ToolTab, 'ai'>, string[]> = {
-  edit: ['edit-pdf', 'merge-pdf', 'split-pdf', 'delete-pages', 'organize-pdf', 'crop-pdf', 'add-watermark', 'header-footer'],
-  convert: ['pdf-to-docx', 'word-to-pdf', 'pdf-to-jpg', 'jpg-to-pdf', 'pdf-to-pptx', 'pdf-to-excel', 'image-to-pdf'],
-  optimize: ['compress-pdf', 'repair-pdf', 'linearize-pdf', 'deskew-pdf', 'ocr-pdf', 'pdf-to-pdfa'],
-  security: ['encrypt-pdf', 'decrypt-pdf', 'find-and-redact', 'remove-metadata', 'change-permissions', 'pdf-to-pdfa'],
+/** Gán tool theo category — khớp nhãn tab */
+const TAB_CATEGORIES: Record<Exclude<ToolTab, 'ai'>, ToolCategory[]> = {
+  edit: ['edit-annotate', 'organize-manage'],
+  convert: ['convert-to-pdf', 'convert-from-pdf'],
+  optimize: ['optimize-repair'],
+  security: ['secure-pdf'],
 };
 
-const AI_ACTIONS: Array<{ id: string; icon: typeof Sparkles; href: string; accent: AiCardAccent; wide?: boolean; popular?: boolean }> = [
-  { id: 'summarize', icon: Sparkles, href: '/ai-summary', accent: 'purple' },
+const AI_ACTIONS: Array<{
+  id: string;
+  icon: typeof Sparkles;
+  href: string;
+  accent: AiCardAccent;
+  popular?: boolean;
+  aiBadge?: boolean;
+}> = [
+  { id: 'summarize', icon: Sparkles, href: '/ai-summary', accent: 'purple', aiBadge: true },
   { id: 'translate', icon: Languages, href: '/ai-translate', accent: 'blue' },
   { id: 'voice', icon: Volume2, href: '/voice-reader', accent: 'coral' },
-  { id: 'ocr', icon: ScanText, href: '/smart-ocr', accent: 'green' },
-  { id: 'chat', icon: MessagesSquare, href: '/chat-pdf', accent: 'purple', wide: true, popular: true },
+  { id: 'chat', icon: MessagesSquare, href: '/chat-pdf', accent: 'violet', popular: true },
   { id: 'tables', icon: Table2, href: '/chat-pdf', accent: 'blue' },
   { id: 'explain', icon: Bot, href: '/chat-pdf', accent: 'purple' },
 ];
 
+const CONTEXT_SUGGESTION_HREFS: Record<string, string> = {
+  ocr: '/smart-ocr',
+  translate: '/ai-translate',
+  extractText: '/workspace',
+  compress: '/tools/compress-pdf',
+  extractTables: '/tools/extract-tables',
+};
+
 export default function ToolsPageClient({ locale, localizedToolContent }: ToolsPageClientProps) {
   const t = useTranslations();
+  const tHome = useTranslations('homePage');
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const allTools = getAllTools();
   const initialTab = (searchParams.get('tab') as ToolTab) || 'ai';
   const initialQuery = searchParams.get('q') || '';
@@ -56,10 +78,17 @@ export default function ToolsPageClient({ locale, localizedToolContent }: ToolsP
     setSearchQuery(query);
   }, [searchParams]);
 
+  const setTab = useCallback((tab: ToolTab) => {
+    setActiveTab(tab);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', tab);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [pathname, router, searchParams]);
+
   const visibleTools = useMemo(() => {
     if (activeTab === 'ai') return [];
-    const ids = new Set(TAB_TOOL_IDS[activeTab]);
-    const tools = allTools.filter((tool) => ids.has(tool.id));
+    const categories = new Set(TAB_CATEGORIES[activeTab]);
+    const tools = allTools.filter((tool) => categories.has(tool.category));
 
     if (!searchQuery.trim()) return tools;
 
@@ -77,14 +106,16 @@ export default function ToolsPageClient({ locale, localizedToolContent }: ToolsP
   ];
 
   const contextualSuggestions = [
-    { icon: ScanText, label: t('toolsPage.contextualSuggestions.ocr') },
-    { icon: Languages, label: t('toolsPage.contextualSuggestions.translate') },
-    { icon: FileCog, label: t('toolsPage.contextualSuggestions.extractText') },
-    { icon: Zap, label: t('toolsPage.contextualSuggestions.compress') },
-    { icon: Table2, label: t('toolsPage.contextualSuggestions.extractTables') },
-  ];
+    { id: 'ocr', icon: ScanText, label: t('toolsPage.contextualSuggestions.ocr') },
+    { id: 'translate', icon: Languages, label: t('toolsPage.contextualSuggestions.translate') },
+    { id: 'extractText', icon: FileCog, label: t('toolsPage.contextualSuggestions.extractText') },
+    { id: 'compress', icon: Zap, label: t('toolsPage.contextualSuggestions.compress') },
+    { id: 'extractTables', icon: Table2, label: t('toolsPage.contextualSuggestions.extractTables') },
+  ] as const;
 
   const handleClearSearch = useCallback(() => setSearchQuery(''), []);
+
+  const showCategoryHeaders = activeTab === 'edit' || activeTab === 'convert';
 
   return (
     <div className="min-h-screen flex flex-col bg-[hsl(var(--color-background))]">
@@ -124,69 +155,96 @@ export default function ToolsPageClient({ locale, localizedToolContent }: ToolsP
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                    activeTab === tab.id
-                      ? 'bg-[hsl(var(--color-primary))] text-white'
-                      : 'border border-[hsl(var(--color-border))] bg-[hsl(var(--color-card))] text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))] hover:bg-[hsl(var(--color-muted))]'
-                  }`}
+                  type="button"
+                  onClick={() => setTab(tab.id)}
+                  className={`tools-page-tab${activeTab === tab.id ? ' tools-page-tab--active' : ''}`}
                 >
-                  <span className="inline-flex items-center gap-2">
-                    <tab.icon className={`h-[18px] w-[18px] ${activeTab === tab.id ? 'text-white' : 'text-[hsl(var(--color-primary))]'}`} strokeWidth={1.75} />
-                    {tab.label}
-                  </span>
+                  <tab.icon className="tools-page-tab__icon" strokeWidth={1.75} aria-hidden />
+                  <span>{tab.label}</span>
                 </button>
               ))}
             </div>
 
             {activeTab === 'ai' ? (
-              <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
-                <div>
-                  <h2 className="text-lg font-semibold mb-1">{t('toolsPage.aiSectionTitle')}</h2>
-                  <p className="text-sm text-[hsl(var(--color-muted-foreground))] mb-4">
-                    {t('toolsPage.aiSectionSubtitle')}
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {AI_ACTIONS.map((action) => (
-                      <Link
-                        key={action.id}
-                        href={`/${locale}${action.href}`}
-                        className={`${aiCardAccentClass(action.accent)} p-4 block ${action.wide ? 'sm:col-span-2 lg:col-span-2' : ''}`}
-                      >
-                        {action.popular && (
-                          <span className="ai-card__badge">{t('toolsPage.popularAiBadge')}</span>
-                        )}
-                        <div className="flex h-full flex-col gap-3">
-                          <div className="ai-card__icon">
-                            <action.icon className="h-5 w-5" strokeWidth={1.75} />
+              <div className="tools-page-ai-layout">
+                <div className="min-w-0">
+                  <div className="flex items-center justify-between gap-3 mb-4">
+                    <div>
+                      <h2 className="text-xl font-bold">{t('toolsPage.aiSectionTitle')}</h2>
+                      <p className="mt-1 text-sm text-[hsl(var(--color-muted-foreground))]">
+                        {t('toolsPage.aiSectionSubtitle')}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/${locale}/workspace`}
+                      className="shrink-0 text-sm text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))]"
+                    >
+                      {tHome('useInWorkspace')}
+                    </Link>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {AI_ACTIONS.map((action) => {
+                      const Icon = action.icon;
+                      return (
+                        <Link
+                          key={action.id}
+                          href={`/${locale}${action.href}`}
+                          className={`${aiCardAccentClass(action.accent)} p-3.5 block h-full`}
+                        >
+                          {action.aiBadge && (
+                            <span className="ai-card__badge">{tHome('aiBadge')}</span>
+                          )}
+                          {action.popular && (
+                            <span className="ai-card__badge">{t('toolsPage.popularAiBadge')}</span>
+                          )}
+                          <div className="ai-card__body">
+                            <div className="ai-card__icon">
+                              <Icon strokeWidth={1.75} />
+                            </div>
+                            <div className="ai-card__copy">
+                              <div className="ai-card__title">{t(`toolsPage.aiActions.${action.id}.label`)}</div>
+                              <p className="ai-card__desc">{t(`toolsPage.aiActions.${action.id}.description`)}</p>
+                            </div>
+                            <div className="ai-card__foot">
+                              <ArrowRight className="action-card-arrow__icon" strokeWidth={1.75} aria-hidden />
+                            </div>
                           </div>
-                          <div>
-                            <div className="text-sm font-semibold">{t(`toolsPage.aiActions.${action.id}.label`)}</div>
-                            <p className="ai-card__desc">{t(`toolsPage.aiActions.${action.id}.description`)}</p>
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
+                        </Link>
+                      );
+                    })}
                   </div>
                 </div>
 
-                <Card className="p-5 border border-[hsl(var(--color-border))] bg-[hsl(var(--color-card))]">
-                  <h3 className="text-sm font-semibold mb-3">{t('toolsPage.contextualTitle')}</h3>
-                  <ul className="space-y-2 text-sm text-[hsl(var(--color-muted-foreground))]">
+                <aside className="tools-page-context">
+                  <h3 className="tools-page-context__title">{t('toolsPage.contextualTitle')}</h3>
+                  <ul className="tools-page-context__list">
                     {contextualSuggestions.map((item) => (
-                      <li key={item.label} className="inline-flex items-center gap-2 w-full">
-                        <item.icon className="h-4 w-4 text-[hsl(var(--color-primary))]" strokeWidth={1.75} />
-                        {item.label}
+                      <li key={item.id}>
+                        <Link
+                          href={`/${locale}${CONTEXT_SUGGESTION_HREFS[item.id]}`}
+                          className="tools-page-context__item"
+                        >
+                          <span className="tools-page-context__icon">
+                            <item.icon strokeWidth={1.75} aria-hidden />
+                          </span>
+                          <span>{item.label}</span>
+                        </Link>
                       </li>
                     ))}
                   </ul>
-                  <Link href={`/${locale}/workspace`} className="inline-block mt-4">
-                    <Button size="sm">{t('toolsPage.openWorkspace')}</Button>
+                  <Link href={`/${locale}/workspace`} className="mt-auto pt-4 block">
+                    <Button size="sm" className="w-full">{t('toolsPage.openWorkspace')}</Button>
                   </Link>
-                </Card>
+                </aside>
               </div>
             ) : visibleTools.length > 0 ? (
-              <ToolGrid tools={visibleTools} locale={locale} localizedToolContent={localizedToolContent} />
+              <ToolGrid
+                tools={visibleTools}
+                locale={locale}
+                localizedToolContent={localizedToolContent}
+                searchQuery={searchQuery}
+                showCategoryHeaders={showCategoryHeaders}
+              />
             ) : (
               <Card className="p-12 text-center border-dashed border-2">
                 <p className="text-[hsl(var(--color-muted-foreground))] mb-4">{t('toolsPage.noToolsFoundDetailed')}</p>

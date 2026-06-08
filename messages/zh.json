@@ -347,7 +347,63 @@
     "showingFiltered": "显示 {filtered} / {total} 个工具",
     "forQuery": "搜索 \"{query}\"",
     "inCategory": "分类：{category}",
-    "noToolsFound": "未找到工具"
+    "noToolsFound": "未找到工具",
+    "toolsTitle": "{brand} 工具",
+    "toolsSubtitle": "搜索优先的工具，AI 优先的工作流。在工作区中按上下文使用完整工具箱。",
+    "searchPlaceholder": "搜索工具... 合并、ocr、pdf 转 jpg、压缩",
+    "clearSearchAria": "清除搜索",
+    "tabs": {
+      "ai": "AI 助手",
+      "edit": "编辑与整理",
+      "convert": "转换",
+      "optimize": "优化",
+      "security": "安全"
+    },
+    "aiSectionTitle": "增强功能",
+    "aiSectionSubtitle": "用 AI 增强您的文档。",
+    "popularAiBadge": "热门 AI",
+    "aiActions": {
+      "summarize": {
+        "label": "AI 摘要",
+        "description": "从任何 PDF 中提取关键见解。"
+      },
+      "translate": {
+        "label": "AI 翻译",
+        "description": "将整个文档翻译成其他语言。"
+      },
+      "voice": {
+        "label": "AI 语音朗读",
+        "description": "即时将 PDF 转换为自然语音。"
+      },
+      "ocr": {
+        "label": "智能 OCR",
+        "description": "将扫描件转换为可编辑 PDF。"
+      },
+      "chat": {
+        "label": "与 PDF 聊天",
+        "description": "就文件提问并即时获得答案。"
+      },
+      "tables": {
+        "label": "提取表格",
+        "description": "从发票和报告中提取表格。"
+      },
+      "explain": {
+        "label": "解释术语",
+        "description": "澄清文档中的复杂术语。"
+      }
+    },
+    "contextualTitle": "上下文建议",
+    "contextualSuggestions": {
+      "ocr": "对此文档进行 OCR",
+      "translate": "翻译扫描页面",
+      "extractText": "提取文本",
+      "compress": "压缩大文件",
+      "extractTables": "提取发票表格"
+    },
+    "openWorkspace": "打开文档工作区",
+    "noToolsFoundDetailed": "未找到与此标签和搜索匹配的工具。",
+    "clearSearch": "清除搜索",
+    "footerNote": "所有工具都在这里整理。首页保持 AI 优先且轻量。"
   },
   "faqPage": {
     "title": "常见问题",

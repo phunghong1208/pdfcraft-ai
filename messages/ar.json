@@ -379,7 +379,63 @@
     "showingFiltered": "عرض {filtered} من أصل {total}",
     "forQuery": "لـ \"{query}\"",
     "inCategory": "ضمن {category}",
-    "noToolsFound": "لم يتم العثور على أدوات"
+    "noToolsFound": "لم يتم العثور على أدوات",
+    "toolsTitle": "أدوات {brand}",
+    "toolsSubtitle": "أدوات تبدأ بالبحث. سير عمل يعتمد على الذكاء الاصطناعي. استخدم صندوق الأدوات الكامل بسياقه في مساحة العمل.",
+    "searchPlaceholder": "ابحث عن الأدوات... دمج، ocr، pdf إلى jpg، ضغط",
+    "clearSearchAria": "مسح البحث",
+    "tabs": {
+      "ai": "مساعد الذكاء الاصطناعي",
+      "edit": "تحرير وتنظيم",
+      "convert": "تحويل",
+      "optimize": "تحسين",
+      "security": "الأمان"
+    },
+    "aiSectionTitle": "تعزيزات",
+    "aiSectionSubtitle": "عزّز مستنداتك بالذكاء الاصطناعي.",
+    "popularAiBadge": "ذكاء اصطناعي شائع",
+    "aiActions": {
+      "summarize": {
+        "label": "ملخص بالذكاء الاصطناعي",
+        "description": "استخرج الرؤى الرئيسية من أي PDF."
+      },
+      "translate": {
+        "label": "ترجمة بالذكاء الاصطناعي",
+        "description": "ترجم المستندات بالكامل إلى لغات أخرى."
+      },
+      "voice": {
+        "label": "قارئ صوتي بالذكاء الاصطناعي",
+        "description": "حوّل PDF إلى كلام طبيعي فورًا."
+      },
+      "ocr": {
+        "label": "OCR ذكي",
+        "description": "حوّل المسوحات إلى PDF قابل للتحرير."
+      },
+      "chat": {
+        "label": "دردشة مع PDF",
+        "description": "اطرح أسئلة حول ملفاتك واحصل على إجابات فورية."
+      },
+      "tables": {
+        "label": "استخراج الجداول",
+        "description": "استخرج الجداول من الفواتير والتقارير."
+      },
+      "explain": {
+        "label": "شرح المصطلحات",
+        "description": "وضّح المصطلحات المعقدة في مستندك."
+      }
+    },
+    "contextualTitle": "اقتراحات سياقية",
+    "contextualSuggestions": {
+      "ocr": "تطبيق OCR على هذا المستند",
+      "translate": "ترجمة الصفحات الممسوحة",
+      "extractText": "استخراج النص",
+      "compress": "ضغط ملف كبير",
+      "extractTables": "استخراج جداول الفواتير"
+    },
+    "openWorkspace": "فتح مساحة عمل المستندات",
+    "noToolsFoundDetailed": "لم يتم العثور على أدوات لهذا التبويب والبحث.",
+    "clearSearch": "مسح البحث",
+    "footerNote": "جميع الأدوات منظمة هنا. تبقى الصفحة الرئيسية خفيفة وتركز على الذكاء الاصطناعي."
   },
   "faqPage": {
     "title": "الأسئلة الشائعة",

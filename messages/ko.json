@@ -565,7 +565,63 @@
     "showingFiltered": "Showing {filtered} of {total} tools",
     "forQuery": "for \"{query}\"",
     "inCategory": "in {category}",
-    "noToolsFound": "No tools found"
+    "noToolsFound": "No tools found",
+    "toolsTitle": "{brand} 도구",
+    "toolsSubtitle": "검색 우선 도구, AI 우선 워크플로. 작업 공간에서 맥락에 맞는 전체 도구 상자를 사용하세요.",
+    "searchPlaceholder": "도구 검색... 병합, OCR, PDF를 JPG로, 압축",
+    "clearSearchAria": "검색 지우기",
+    "tabs": {
+      "ai": "AI 어시스턴트",
+      "edit": "편집 및 정리",
+      "convert": "변환",
+      "optimize": "최적화",
+      "security": "보안"
+    },
+    "aiSectionTitle": "파워업",
+    "aiSectionSubtitle": "AI로 문서를 강화하세요.",
+    "popularAiBadge": "인기 AI",
+    "aiActions": {
+      "summarize": {
+        "label": "AI 요약",
+        "description": "모든 PDF에서 핵심 인사이트를 추출합니다."
+      },
+      "translate": {
+        "label": "AI 번역",
+        "description": "전체 문서를 다른 언어로 번역합니다."
+      },
+      "voice": {
+        "label": "AI 음성 리더",
+        "description": "PDF를 자연스러운 음성으로 즉시 변환합니다."
+      },
+      "ocr": {
+        "label": "스마트 OCR",
+        "description": "스캔본을 편집 가능한 PDF로 변환합니다."
+      },
+      "chat": {
+        "label": "PDF 채팅",
+        "description": "파일에 대해 질문하고 즉시 답변을 받으세요."
+      },
+      "tables": {
+        "label": "표 추출",
+        "description": "청구서와 보고서에서 표를 추출합니다."
+      },
+      "explain": {
+        "label": "용어 설명",
+        "description": "문서의 복잡한 용어를 명확히 설명합니다."
+      }
+    },
+    "contextualTitle": "맥락 기반 제안",
+    "contextualSuggestions": {
+      "ocr": "이 문서 OCR",
+      "translate": "스캔 페이지 번역",
+      "extractText": "텍스트 추출",
+      "compress": "큰 파일 압축",
+      "extractTables": "청구서 표 추출"
+    },
+    "openWorkspace": "문서 작업 공간 열기",
+    "noToolsFoundDetailed": "이 탭과 검색어에 맞는 도구를 찾을 수 없습니다.",
+    "clearSearch": "검색 지우기",
+    "footerNote": "모든 도구가 여기에 정리되어 있습니다. 홈페이지는 AI 우선으로 가볍게 유지됩니다."
   },
   "faqPage": {
     "title": "자주 묻는 질문",

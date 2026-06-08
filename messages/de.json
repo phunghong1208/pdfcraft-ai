@@ -347,7 +347,63 @@
     "showingFiltered": "Showing {filtered} of {total} tools",
     "forQuery": "for \"{query}\"",
     "inCategory": "in {category}",
-    "noToolsFound": "No tools found"
+    "noToolsFound": "No tools found",
+    "toolsTitle": "{brand}-Tools",
+    "toolsSubtitle": "Suchorientierte Tools. KI-zuerst-Workflow. Nutzen Sie die vollständige Toolbox kontextbezogen in Ihrem Arbeitsbereich.",
+    "searchPlaceholder": "Tools suchen... zusammenführen, ocr, pdf zu jpg, komprimieren",
+    "clearSearchAria": "Suche löschen",
+    "tabs": {
+      "ai": "KI-Assistent",
+      "edit": "Bearbeiten & Organisieren",
+      "convert": "Konvertieren",
+      "optimize": "Optimieren",
+      "security": "Sicherheit"
+    },
+    "aiSectionTitle": "Power-ups",
+    "aiSectionSubtitle": "Verstärken Sie Ihre Dokumente mit KI.",
+    "popularAiBadge": "Beliebte KI",
+    "aiActions": {
+      "summarize": {
+        "label": "KI-Zusammenfassung",
+        "description": "Wichtige Erkenntnisse aus jedem PDF extrahieren."
+      },
+      "translate": {
+        "label": "KI-Übersetzung",
+        "description": "Gesamte Dokumente in andere Sprachen übersetzen."
+      },
+      "voice": {
+        "label": "KI-Sprachausgabe",
+        "description": "PDF sofort in natürliche Sprache umwandeln."
+      },
+      "ocr": {
+        "label": "Smart OCR",
+        "description": "Scans in bearbeitbare PDFs umwandeln."
+      },
+      "chat": {
+        "label": "Chat mit PDF",
+        "description": "Fragen zu Ihren Dateien stellen und sofort Antworten erhalten."
+      },
+      "tables": {
+        "label": "Tabellen extrahieren",
+        "description": "Tabellen aus Rechnungen und Berichten extrahieren."
+      },
+      "explain": {
+        "label": "Begriffe erklären",
+        "description": "Komplexe Begriffe in Ihrem Dokument klären."
+      }
+    },
+    "contextualTitle": "Kontextuelle Vorschläge",
+    "contextualSuggestions": {
+      "ocr": "Dieses Dokument per OCR",
+      "translate": "Gescannte Seiten übersetzen",
+      "extractText": "Text extrahieren",
+      "compress": "Große Datei komprimieren",
+      "extractTables": "Rechnungstabellen extrahieren"
+    },
+    "openWorkspace": "Dokumentarbeitsbereich öffnen",
+    "noToolsFoundDetailed": "Keine Tools für diesen Tab und diese Suche gefunden.",
+    "clearSearch": "Suche löschen",
+    "footerNote": "Alle Tools sind hier organisiert. Die Startseite bleibt KI-zuerst und schlank."
   },
   "faqPage": {
     "title": "Frequently Asked Questions",

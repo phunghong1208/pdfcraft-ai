@@ -347,7 +347,63 @@
     "showingFiltered": "Se afișează {filtered} din {total} instrumente",
     "forQuery": "pentru \"{query}\"",
     "inCategory": "în {category}",
-    "noToolsFound": "Niciun instrument găsit"
+    "noToolsFound": "Niciun instrument găsit",
+    "toolsTitle": "Instrumente {brand}",
+    "toolsSubtitle": "Instrumente cu căutare pe primul loc. Flux de lucru AI-first. Folosește cutia completă de instrumente contextual în spațiul de lucru.",
+    "searchPlaceholder": "Caută instrumente... combină, ocr, pdf în jpg, comprimă",
+    "clearSearchAria": "Șterge căutarea",
+    "tabs": {
+      "ai": "Asistent AI",
+      "edit": "Editare și organizare",
+      "convert": "Convertire",
+      "optimize": "Optimizare",
+      "security": "Securitate"
+    },
+    "aiSectionTitle": "Power-up-uri",
+    "aiSectionSubtitle": "Îmbunătățește documentele cu AI.",
+    "popularAiBadge": "AI popular",
+    "aiActions": {
+      "summarize": {
+        "label": "Rezumat AI",
+        "description": "Extrage informații cheie din orice PDF."
+      },
+      "translate": {
+        "label": "Traducere AI",
+        "description": "Traduce documente întregi în alte limbi."
+      },
+      "voice": {
+        "label": "Cititor vocal AI",
+        "description": "Convertește PDF în vorbire naturală instant."
+      },
+      "ocr": {
+        "label": "OCR inteligent",
+        "description": "Convertește scanările în PDF editabil."
+      },
+      "chat": {
+        "label": "Chat cu PDF",
+        "description": "Pune întrebări despre fișiere și primește răspunsuri instant."
+      },
+      "tables": {
+        "label": "Extrage tabele",
+        "description": "Extrage tabele din facturi și rapoarte."
+      },
+      "explain": {
+        "label": "Explică termeni",
+        "description": "Clarifică termenii complecși din document."
+      }
+    },
+    "contextualTitle": "Sugestii contextuale",
+    "contextualSuggestions": {
+      "ocr": "OCR pentru acest document",
+      "translate": "Traduce paginile scanate",
+      "extractText": "Extrage text",
+      "compress": "Comprimă fișier mare",
+      "extractTables": "Extrage tabele din facturi"
+    },
+    "openWorkspace": "Deschide spațiul de lucru pentru documente",
+    "noToolsFoundDetailed": "Niciun instrument găsit pentru acest tab și căutare.",
+    "clearSearch": "Șterge căutarea",
+    "footerNote": "Toate instrumentele sunt organizate aici. Pagina principală rămâne ușoară și AI-first."
   },
   "faqPage": {
     "title": "Întrebări Frecvente",

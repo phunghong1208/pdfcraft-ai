@@ -565,7 +565,63 @@
     "showingFiltered": "Showing {filtered} of {total} tools",
     "forQuery": "for \"{query}\"",
     "inCategory": "in {category}",
-    "noToolsFound": "No tools found"
+    "noToolsFound": "No tools found",
+    "toolsTitle": "{brand} ツール",
+    "toolsSubtitle": "検索優先のツール、AI優先のワークフロー。ワークスペースで文脈に応じたツールボックスをご利用ください。",
+    "searchPlaceholder": "ツールを検索... 結合、OCR、PDFからJPG、圧縮",
+    "clearSearchAria": "検索をクリア",
+    "tabs": {
+      "ai": "AIアシスタント",
+      "edit": "編集と整理",
+      "convert": "変換",
+      "optimize": "最適化",
+      "security": "セキュリティ"
+    },
+    "aiSectionTitle": "パワーアップ",
+    "aiSectionSubtitle": "AIでドキュメントを強化。",
+    "popularAiBadge": "人気のAI",
+    "aiActions": {
+      "summarize": {
+        "label": "AI要約",
+        "description": "あらゆるPDFから重要な洞察を抽出。"
+      },
+      "translate": {
+        "label": "AI翻訳",
+        "description": "文書全体を他の言語に翻訳。"
+      },
+      "voice": {
+        "label": "AI音声リーダー",
+        "description": "PDFを自然な音声に即座に変換。"
+      },
+      "ocr": {
+        "label": "スマートOCR",
+        "description": "スキャンを編集可能なPDFに変換。"
+      },
+      "chat": {
+        "label": "PDFとチャット",
+        "description": "ファイルについて質問し、すぐに回答を取得。"
+      },
+      "tables": {
+        "label": "表の抽出",
+        "description": "請求書やレポートから表を抽出。"
+      },
+      "explain": {
+        "label": "用語の説明",
+        "description": "文書内の複雑な用語を明確化。"
+      }
+    },
+    "contextualTitle": "文脈に応じた提案",
+    "contextualSuggestions": {
+      "ocr": "この文書をOCR",
+      "translate": "スキャンページを翻訳",
+      "extractText": "テキストを抽出",
+      "compress": "大きなファイルを圧縮",
+      "extractTables": "請求書の表を抽出"
+    },
+    "openWorkspace": "ドキュメントワークスペースを開く",
+    "noToolsFoundDetailed": "このタブと検索条件に一致するツールが見つかりません。",
+    "clearSearch": "検索をクリア",
+    "footerNote": "すべてのツールはここに整理されています。ホームページはAI優先で軽量です。"
   },
   "faqPage": {
     "title": "よくある質問",

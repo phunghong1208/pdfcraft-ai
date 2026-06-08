@@ -347,7 +347,63 @@
     "showingFiltered": "Menampilkan {filtered} dari {total} alat",
     "forQuery": "untuk \"{query}\"",
     "inCategory": "dalam {category}",
-    "noToolsFound": "Alat tidak ditemukan"
+    "noToolsFound": "Alat tidak ditemukan",
+    "toolsTitle": "Alat {brand}",
+    "toolsSubtitle": "Alat berbasis pencarian. Alur kerja AI-first. Gunakan kotak alat lengkap secara kontekstual di workspace Anda.",
+    "searchPlaceholder": "Cari alat... gabung, ocr, pdf ke jpg, kompres",
+    "clearSearchAria": "Hapus pencarian",
+    "tabs": {
+      "ai": "Asisten AI",
+      "edit": "Edit & Atur",
+      "convert": "Konversi",
+      "optimize": "Optimalkan",
+      "security": "Keamanan"
+    },
+    "aiSectionTitle": "Power-up",
+    "aiSectionSubtitle": "Tingkatkan dokumen Anda dengan AI.",
+    "popularAiBadge": "AI populer",
+    "aiActions": {
+      "summarize": {
+        "label": "Ringkasan AI",
+        "description": "Ekstrak wawasan utama dari PDF apa pun."
+      },
+      "translate": {
+        "label": "Terjemahan AI",
+        "description": "Terjemahkan seluruh dokumen ke bahasa lain."
+      },
+      "voice": {
+        "label": "Pembaca Suara AI",
+        "description": "Ubah PDF menjadi suara alami secara instan."
+      },
+      "ocr": {
+        "label": "OCR Cerdas",
+        "description": "Ubah hasil pindai menjadi PDF yang dapat diedit."
+      },
+      "chat": {
+        "label": "Chat dengan PDF",
+        "description": "Ajukan pertanyaan tentang file Anda dan dapatkan jawaban instan."
+      },
+      "tables": {
+        "label": "Ekstrak Tabel",
+        "description": "Ambil tabel dari faktur dan laporan."
+      },
+      "explain": {
+        "label": "Jelaskan Istilah",
+        "description": "Jelaskan istilah kompleks dalam dokumen Anda."
+      }
+    },
+    "contextualTitle": "Saran kontekstual",
+    "contextualSuggestions": {
+      "ocr": "OCR dokumen ini",
+      "translate": "Terjemahkan halaman hasil pindai",
+      "extractText": "Ekstrak teks",
+      "compress": "Kompres file besar",
+      "extractTables": "Ekstrak tabel faktur"
+    },
+    "openWorkspace": "Buka Ruang Kerja Dokumen",
+    "noToolsFoundDetailed": "Tidak ada alat yang ditemukan untuk tab dan pencarian ini.",
+    "clearSearch": "Hapus pencarian",
+    "footerNote": "Semua alat diatur di sini. Beranda tetap ringan dan AI-first."
   },
   "faqPage": {
     "title": "Pertanyaan yang Sering Diajukan",

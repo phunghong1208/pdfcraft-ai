@@ -347,7 +347,63 @@
     "showingFiltered": "顯示 {filtered} / {total} 個工具",
     "forQuery": "搜尋 \"{query}\"",
     "inCategory": "分類：{category}",
-    "noToolsFound": "未找到工具"
+    "noToolsFound": "未找到工具",
+    "toolsTitle": "{brand} 工具",
+    "toolsSubtitle": "搜尋優先的工具，AI 優先的工作流程。在工作區中依情境使用完整工具箱。",
+    "searchPlaceholder": "搜尋工具... 合併、ocr、pdf 轉 jpg、壓縮",
+    "clearSearchAria": "清除搜尋",
+    "tabs": {
+      "ai": "AI 助理",
+      "edit": "編輯與整理",
+      "convert": "轉換",
+      "optimize": "最佳化",
+      "security": "安全"
+    },
+    "aiSectionTitle": "強化功能",
+    "aiSectionSubtitle": "用 AI 強化您的文件。",
+    "popularAiBadge": "熱門 AI",
+    "aiActions": {
+      "summarize": {
+        "label": "AI 摘要",
+        "description": "從任何 PDF 擷取關鍵見解。"
+      },
+      "translate": {
+        "label": "AI 翻譯",
+        "description": "將整份文件翻譯成其他語言。"
+      },
+      "voice": {
+        "label": "AI 語音朗讀",
+        "description": "即時將 PDF 轉換為自然語音。"
+      },
+      "ocr": {
+        "label": "智慧 OCR",
+        "description": "將掃描檔轉換為可編輯 PDF。"
+      },
+      "chat": {
+        "label": "與 PDF 聊天",
+        "description": "就檔案提問並即時獲得答案。"
+      },
+      "tables": {
+        "label": "擷取表格",
+        "description": "從發票和報告中擷取表格。"
+      },
+      "explain": {
+        "label": "解釋術語",
+        "description": "釐清文件中的複雜術語。"
+      }
+    },
+    "contextualTitle": "情境建議",
+    "contextualSuggestions": {
+      "ocr": "對此文件進行 OCR",
+      "translate": "翻譯掃描頁面",
+      "extractText": "擷取文字",
+      "compress": "壓縮大型檔案",
+      "extractTables": "擷取發票表格"
+    },
+    "openWorkspace": "開啟文件工作區",
+    "noToolsFoundDetailed": "找不到符合此分頁與搜尋的工具。",
+    "clearSearch": "清除搜尋",
+    "footerNote": "所有工具都在這裡整理。首頁保持 AI 優先且輕量。"
   },
   "faqPage": {
     "title": "常見問題",

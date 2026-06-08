@@ -512,6 +512,118 @@
   color: #fff;
 }
 
+/* Tools page — tabs & AI assistant layout */
+.tools-page-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.2;
+  border: 1px solid hsl(var(--color-border));
+  background: hsl(var(--color-card));
+  color: hsl(var(--color-muted-foreground));
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+.tools-page-tab:hover:not(.tools-page-tab--active) {
+  color: hsl(var(--color-foreground));
+  background: hsl(var(--color-muted) / 0.55);
+}
+.tools-page-tab--active {
+  border-color: hsl(var(--color-primary) / 0.35);
+  background: hsl(var(--color-primary));
+  color: #fff;
+  box-shadow: 0 2px 10px hsl(var(--color-primary) / 0.28);
+}
+.tools-page-tab__icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+}
+.tools-page-tab--active .tools-page-tab__icon {
+  color: #fff;
+}
+.tools-page-tab:not(.tools-page-tab--active) .tools-page-tab__icon {
+  color: hsl(var(--color-primary));
+}
+.tools-page-ai-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+@media (min-width: 1024px) {
+  .tools-page-ai-layout {
+    grid-template-columns: minmax(0, 1fr) 17.5rem;
+    gap: 1.25rem;
+  }
+}
+.tools-page-context {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid hsl(var(--color-border));
+  background: hsl(var(--color-card));
+}
+.dark .tools-page-context {
+  background: hsl(222 16% 10%);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.tools-page-context__title {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: hsl(var(--color-foreground));
+}
+.tools-page-context__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tools-page-context__item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  border-radius: 0.625rem;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: hsl(var(--color-muted-foreground));
+  transition: background 150ms ease, color 150ms ease;
+}
+.tools-page-context__item:hover {
+  background: hsl(var(--color-muted) / 0.55);
+  color: hsl(var(--color-foreground));
+}
+.dark .tools-page-context__item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+.tools-page-context__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex-shrink: 0;
+  border-radius: 0.5rem;
+  background: hsl(var(--color-primary) / 0.1);
+  color: hsl(var(--color-primary));
+}
+.tools-page-context__icon svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
 /* Core PDF tool cards — đồng bộ kích thước với ai-card */
 .tool-action-card {
   position: relative;

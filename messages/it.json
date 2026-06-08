@@ -347,7 +347,63 @@
     "showingFiltered": "Mostrati {filtered} di {total} strumenti",
     "forQuery": "per \"{query}\"",
     "inCategory": "in {category}",
-    "noToolsFound": "Nessuno strumento trovato"
+    "noToolsFound": "Nessuno strumento trovato",
+    "toolsTitle": "Strumenti {brand}",
+    "toolsSubtitle": "Strumenti con ricerca al primo posto. Flusso di lavoro AI-first. Usa la cassetta degli attrezzi completa in contesto nel tuo workspace.",
+    "searchPlaceholder": "Cerca strumenti... unisci, ocr, pdf in jpg, comprimi",
+    "clearSearchAria": "Cancella ricerca",
+    "tabs": {
+      "ai": "Assistente IA",
+      "edit": "Modifica e organizza",
+      "convert": "Converti",
+      "optimize": "Ottimizza",
+      "security": "Sicurezza"
+    },
+    "aiSectionTitle": "Potenziamenti",
+    "aiSectionSubtitle": "Potenzia i tuoi documenti con l’IA.",
+    "popularAiBadge": "IA popolare",
+    "aiActions": {
+      "summarize": {
+        "label": "Riepilogo IA",
+        "description": "Estrai informazioni chiave da qualsiasi PDF."
+      },
+      "translate": {
+        "label": "Traduzione IA",
+        "description": "Traduci interi documenti in altre lingue."
+      },
+      "voice": {
+        "label": "Lettore vocale IA",
+        "description": "Converti PDF in voce naturale all’istante."
+      },
+      "ocr": {
+        "label": "OCR intelligente",
+        "description": "Converti scansioni in PDF modificabili."
+      },
+      "chat": {
+        "label": "Chat con PDF",
+        "description": "Fai domande sui tuoi file e ottieni risposte immediate."
+      },
+      "tables": {
+        "label": "Estrai tabelle",
+        "description": "Estrai tabelle da fatture e report."
+      },
+      "explain": {
+        "label": "Spiega termini",
+        "description": "Chiarisci termini complessi nel tuo documento."
+      }
+    },
+    "contextualTitle": "Suggerimenti contestuali",
+    "contextualSuggestions": {
+      "ocr": "OCR di questo documento",
+      "translate": "Traduci pagine scansionate",
+      "extractText": "Estrai testo",
+      "compress": "Comprimi file grande",
+      "extractTables": "Estrai tabelle dalle fatture"
+    },
+    "openWorkspace": "Apri area di lavoro documenti",
+    "noToolsFoundDetailed": "Nessuno strumento trovato per questa scheda e ricerca.",
+    "clearSearch": "Cancella ricerca",
+    "footerNote": "Tutti gli strumenti sono organizzati qui. La homepage resta leggera e AI-first."
   },
   "faqPage": {
     "title": "Domande Frequenti",
