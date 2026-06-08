@@ -82,7 +82,7 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
     <div className="min-h-screen flex flex-col bg-[hsl(var(--color-background))]">
       <Header locale={locale} />
 
-      <main id="main-content" className="flex-1 pt-24" tabIndex={-1}>
+      <main id="main-content" className="flex-1 pt-20 sm:pt-24" tabIndex={-1}>
         <section className="py-8 md:py-10 relative overflow-hidden">
           <div className="pointer-events-none absolute inset-0 -z-10">
             <div className="absolute -top-24 left-1/2 -translate-x-1/2 h-56 w-[38rem] rounded-full bg-[hsl(var(--color-primary)/0.12)] blur-3xl animate-pulse" />

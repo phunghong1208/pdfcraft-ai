@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import { getToolIcon } from '@/config/icons';
 import { ToolIcon } from '@/components/ui/ToolIcon';
+import type { PdfReaderIconId } from '@/components/icons/PdfReaderIcons';
+import type { IconTone } from '@/lib/ui/icon-tones';
 import { type Locale } from '@/lib/i18n/config';
 import { Button } from '@/components/ui/Button';
 import { RecentFilesDropdown } from '@/components/common/RecentFilesDropdown';
@@ -45,6 +47,8 @@ type NavDropdownItem = {
   iconKey?: string;
   lucideIcon?: LucideIcon;
   toolId?: string;
+  readerIconId?: PdfReaderIconId;
+  tone?: IconTone;
 };
 
 function resolveDropdownLucideIcon(item: NavDropdownItem): LucideIcon | null {
@@ -83,11 +87,11 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
   const groupRef = useRef<HTMLDivElement>(null);
 
   const aiItems: NavDropdownItem[] = [
-    { href: `/${locale}/ai-summary`, label: t('ai.menu.summarizePdf'), iconKey: 'file-text' },
-    { href: `/${locale}/ai-translate`, label: t('ai.menu.translatePdf'), lucideIcon: Languages },
-    { href: `/${locale}/chat-pdf`, label: t('ai.menu.chatWithPdf'), lucideIcon: MessageCircle },
-    { href: `/${locale}/smart-ocr`, label: t('ai.menu.smartOcr'), iconKey: 'scan-text' },
-    { href: `/${locale}/voice-reader`, label: t('ai.menu.voiceReader'), lucideIcon: Volume2 },
+    { href: `/${locale}/ai-summary`, label: t('ai.menu.summarizePdf'), lucideIcon: Sparkles, tone: 'purple' },
+    { href: `/${locale}/ai-translate`, label: t('ai.menu.translatePdf'), lucideIcon: Languages, tone: 'blue' },
+    { href: `/${locale}/chat-pdf`, label: t('ai.menu.chatWithPdf'), lucideIcon: MessageCircle, tone: 'purple' },
+    { href: `/${locale}/smart-ocr`, label: t('ai.menu.smartOcr'), readerIconId: 'scan-to-pdf' },
+    { href: `/${locale}/voice-reader`, label: t('ai.menu.voiceReader'), lucideIcon: Volume2, tone: 'red' },
   ];
 
   const pdfItems: NavDropdownItem[] = useMemo(
@@ -193,6 +197,15 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
   }, [searchQuery, localizedTools]);
 
   useEffect(() => {
+    if (!isMobileMenuOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isMobileMenuOpen]);
+
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
         setIsSearchOpen(false);
@@ -277,25 +290,45 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
   };
 
   const renderDropdownIcon = (item: NavDropdownItem) => {
-    if (item.toolId) {
-      return <ToolIcon toolId={item.toolId} iconKey={item.iconKey} size="xs" shape="circle" />;
+    if (item.toolId || item.readerIconId) {
+      return (
+        <ToolIcon
+          toolId={item.toolId}
+          readerIconId={item.readerIconId}
+          iconKey={item.iconKey}
+          tone={item.tone}
+          size="xs"
+          shape="circle"
+          elevated={false}
+          className="site-header__dropdown-icon"
+        />
+      );
     }
     const ResolvedIcon = resolveDropdownLucideIcon(item);
     if (!ResolvedIcon) return null;
-    return <ToolIcon lucideIcon={ResolvedIcon} tone="gray" size="xs" shape="circle" />;
+    return (
+      <ToolIcon
+        lucideIcon={ResolvedIcon}
+        tone={item.tone ?? 'gray'}
+        size="xs"
+        shape="circle"
+        elevated={false}
+        className="site-header__dropdown-icon"
+      />
+    );
   };
 
   const renderGroupDropdown = (items: NavDropdownItem[]) => (
-    <div className="site-header__dropdown absolute top-full left-0 mt-2 w-72 rounded-xl border p-1.5 z-50 flex flex-col gap-0.5">
+    <div className="site-header__dropdown absolute top-full left-0 mt-2 w-80 rounded-xl border p-2 z-50 flex flex-col gap-0.5">
       {items.map((item) => (
         <Link
           key={item.href}
           href={item.href}
-          className="site-header__dropdown-item rounded-lg px-2.5 py-2 text-sm"
+          className="site-header__dropdown-item rounded-lg"
           onClick={() => setOpenGroup(null)}
         >
           {renderDropdownIcon(item)}
-          <span className="min-w-0 truncate">{item.label}</span>
+          <span className="truncate">{item.label}</span>
         </Link>
       ))}
     </div>
@@ -312,11 +345,11 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
             <Link
               key={item.href}
               href={item.href}
-              className="site-header__dropdown-item rounded-lg px-2.5 py-1.5 text-sm"
+              className="site-header__dropdown-item rounded-lg"
               onClick={() => setOpenGroup(null)}
             >
               {renderDropdownIcon(item)}
-              <span className="min-w-0 truncate">{item.label}</span>
+              <span className="truncate">{item.label}</span>
             </Link>
           ))}
         </div>
@@ -328,11 +361,11 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
             <Link
               key={item.href}
               href={item.href}
-              className="site-header__dropdown-item rounded-lg px-2.5 py-1.5 text-sm"
+              className="site-header__dropdown-item rounded-lg"
               onClick={() => setOpenGroup(null)}
             >
               {renderDropdownIcon(item)}
-              <span className="min-w-0 truncate">{item.label}</span>
+              <span className="truncate">{item.label}</span>
             </Link>
           ))}
         </div>
@@ -381,9 +414,9 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
 
   return (
     <header className="site-header fixed top-0 z-50 w-full transition-all duration-300" role="banner">
-      <div className="container mx-auto px-4 pt-4">
-        <div className="site-header__bar flex h-[3.75rem] items-center gap-3 px-4 md:px-5">
-          <div className="site-header__brand shrink-0">
+      <div className="site-header__shell container mx-auto px-3 sm:px-4 pt-2 sm:pt-4">
+        <div className="site-header__bar flex min-h-[3.25rem] sm:min-h-[3.75rem] items-center gap-2 sm:gap-3 px-3 sm:px-4 md:px-5 py-2 sm:py-0">
+          <div className="site-header__brand min-w-0 flex-1 sm:flex-none sm:shrink-0">
             <BrandLogo locale={locale} href={`/${locale}`} />
           </div>
 
@@ -429,7 +462,7 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
             </div>
           </nav>
 
-          <div className="site-header__actions flex shrink-0 items-center justify-end gap-2">
+          <div className="site-header__actions flex shrink-0 items-center justify-end gap-1 sm:gap-2">
             {showSearch && (
               <div className="relative hidden md:block" ref={searchContainerRef}>
                 {isSearchOpen ? (
@@ -514,7 +547,7 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
                 size="sm"
                 onClick={handleSearchToggle}
                 aria-label={t('search.open')}
-                className="lg:hidden h-9 w-9 rounded-lg p-0 text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))]"
+                className="site-header__icon-btn lg:hidden"
               >
                 <Search className="h-4 w-4" aria-hidden />
               </Button>
@@ -534,7 +567,7 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
             </div>
 
             <ThemeToggle className="site-header__theme-btn" />
-            <div className="hidden sm:block">
+            <div className="hidden lg:block">
               <LanguageSelector currentLocale={locale} compact />
             </div>
 
@@ -546,7 +579,7 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
             <Button
               variant="ghost"
               size="sm"
-              className="lg:hidden h-9 w-9 rounded-lg p-0"
+              className="site-header__icon-btn lg:hidden"
               onClick={() => setIsMobileMenuOpen((prev) => !prev)}
               aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={isMobileMenuOpen}
@@ -560,7 +593,7 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
         {isMobileMenuOpen && (
           <nav
             id="mobile-menu"
-            className="site-header__mobile lg:hidden mt-2 rounded-2xl border px-2 py-3 shadow-lg"
+            className="site-header__mobile lg:hidden mt-2 rounded-2xl border px-2 py-3 shadow-lg max-h-[calc(100dvh-5.5rem)] overflow-y-auto overscroll-contain"
             role="navigation"
             aria-label="Mobile navigation"
           >
@@ -587,7 +620,7 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="flex items-center gap-2.5 rounded-lg px-4 py-2 text-sm hover:bg-[hsl(var(--color-muted))]"
+                  className="site-header__dropdown-item rounded-lg px-4 hover:bg-[hsl(var(--color-muted))]"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {renderDropdownIcon(item)}
@@ -600,7 +633,7 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="flex items-center gap-2.5 rounded-lg px-4 py-2 text-sm hover:bg-[hsl(var(--color-muted))]"
+                  className="site-header__dropdown-item rounded-lg px-4 hover:bg-[hsl(var(--color-muted))]"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {renderDropdownIcon(item)}
@@ -613,7 +646,7 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="flex items-center gap-2.5 rounded-lg px-4 py-2 text-sm hover:bg-[hsl(var(--color-muted))]"
+                  className="site-header__dropdown-item rounded-lg px-4 hover:bg-[hsl(var(--color-muted))]"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {renderDropdownIcon(item)}
@@ -626,7 +659,7 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="flex items-center gap-2.5 rounded-lg px-4 py-2 text-sm hover:bg-[hsl(var(--color-muted))]"
+                  className="site-header__dropdown-item rounded-lg px-4 hover:bg-[hsl(var(--color-muted))]"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {renderDropdownIcon(item)}
@@ -639,7 +672,7 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="flex items-center gap-2.5 rounded-lg px-4 py-2 text-sm hover:bg-[hsl(var(--color-muted))]"
+                  className="site-header__dropdown-item rounded-lg px-4 hover:bg-[hsl(var(--color-muted))]"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {renderDropdownIcon(item)}

@@ -28,14 +28,14 @@ export function BrandLogo({
         size="sm"
         className="site-header__logo-icon transition-transform duration-200 group-hover:scale-[1.03]"
       />
-      <div className="flex min-w-0 flex-col gap-0.5 leading-none">
+      <div className="site-header__brand-text flex min-w-0 flex-col gap-0.5 leading-none">
         <span
-          className="text-[15px] font-bold tracking-tight text-[hsl(var(--color-foreground))]"
+          className="site-header__brand-title text-[15px] font-bold tracking-tight text-[hsl(var(--color-foreground))]"
           data-testid={testId ?? 'brand-name'}
         >
           {t('brand')}
         </span>
-        <span className="text-[11px] font-normal text-[hsl(var(--color-muted-foreground))]">
+        <span className="site-header__brand-subtitle text-[11px] font-normal text-[hsl(var(--color-muted-foreground))]">
           {t('brandSubtitle')}
         </span>
       </div>

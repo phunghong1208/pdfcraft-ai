@@ -121,12 +121,12 @@ export default function ToolsPageClient({ locale, localizedToolContent }: ToolsP
     <div className="min-h-screen flex flex-col bg-[hsl(var(--color-background))]">
       <Header locale={locale} />
 
-      <main className="flex-1 pt-28 pb-12">
+      <main className="flex-1 pt-20 sm:pt-24 lg:pt-28 pb-8 sm:pb-12">
         <section className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
-            <div className="mb-8 text-center">
-              <h1 className="text-3xl md:text-4xl font-bold">{t('toolsPage.toolsTitle', { brand: t('common.brand') })}</h1>
-              <p className="mt-3 text-[hsl(var(--color-muted-foreground))]">
+            <div className="mb-6 sm:mb-8 text-center">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">{t('toolsPage.toolsTitle', { brand: t('common.brand') })}</h1>
+              <p className="mt-2 sm:mt-3 text-sm sm:text-base text-[hsl(var(--color-muted-foreground))] px-1">
                 {t('toolsPage.toolsSubtitle')}
               </p>
             </div>
@@ -151,7 +151,7 @@ export default function ToolsPageClient({ locale, localizedToolContent }: ToolsP
               )}
             </div>
 
-            <div className="flex flex-wrap gap-2 justify-center mb-6">
+            <div className="tools-page-tabs mb-6">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
