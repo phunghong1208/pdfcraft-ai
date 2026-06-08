@@ -13,7 +13,7 @@ import {
   Languages, Layers, Scissors, Wrench,
   ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight,
   X,
-  Underline, Strikethrough, StickyNote, Square, Circle,
+  Underline, Strikethrough, Square, Circle,
   PenTool, Stamp, Table, FileImage,
   Undo2, Redo2, Printer, Settings,
   FileCheck, PenSquare, SquareStack, Link2,
@@ -131,9 +131,18 @@ const PROTECT_INLINE_TOOLS = new Set<WorkspaceInlineTool>([
   'change-permissions',
 ]);
 
+/** Công cụ mở từ tab Edit / Page — không chuyển sang tab Tool. */
+const EDIT_INLINE_TOOLS = new Set<WorkspaceInlineTool>([
+  'watermark',
+  'header-footer',
+  'page-numbers',
+  'background-color',
+]);
+
 function inlineRibbonTabForTool(inlineTool: WorkspaceInlineTool): RibbonTabKey {
   if (FILL_SIGN_INLINE_TOOLS.has(inlineTool)) return 'fillsign';
   if (PROTECT_INLINE_TOOLS.has(inlineTool)) return 'protect';
+  if (EDIT_INLINE_TOOLS.has(inlineTool)) return 'edit';
   return 'tool';
 }
 
@@ -294,9 +303,10 @@ function getRibbonGroups(
         {
           label: tr('groups.document'),
           tools: [
-            { icon: Type, label: tr('tools.editText'), action: 'annot:freeText' },
-            { icon: Image, label: tr('tools.editImages'), action: 'annot:stamp' },
-            { icon: Link2, label: tr('tools.addLink'), action: 'annot:freeText' },
+            { icon: Eye, label: tr('tools.watermark'), href: t('watermark') },
+            { icon: Image, label: tr('tools.background'), href: t('background-color') },
+            { icon: Type, label: tr('tools.headerFooter'), href: t('header-footer') },
+            { icon: FileType, label: tr('tools.pageNumbers'), href: t('page-numbers') },
           ],
         },
       ];
@@ -304,10 +314,17 @@ function getRibbonGroups(
     case 'page':
       return [
         {
+          label: tr('groups.history'),
+          tools: [
+            { icon: Undo2, label: tr('tools.undo'), action: 'undo' },
+            { icon: Redo2, label: tr('tools.redo'), action: 'redo' },
+          ],
+        },
+        {
           label: tr('groups.pages'),
           tools: [
-            { icon: Plus, label: tr('tools.addPage'), href: t('add-blank-page') },
-            { icon: Trash2, label: tr('tools.deletePage'), href: t('delete') },
+            { icon: Plus, label: tr('tools.addPage'), action: 'addPageInline' },
+            { icon: Trash2, label: tr('tools.deletePage'), action: 'deletePageInline' },
             { icon: FileDown, label: tr('tools.extract'), href: t('extract') },
             { icon: LayoutGrid, label: tr('tools.reorderPages'), href: t('organize') },
             { icon: Scissors, label: tr('tools.split'), href: t('split') },
@@ -361,7 +378,6 @@ function getRibbonGroups(
         {
           label: tr('groups.objects'),
           tools: [
-            { icon: StickyNote, label: tr('tools.note'), action: 'annot:note' },
             { icon: Stamp, label: tr('tools.stamp'), action: 'annot:stamp' },
           ],
         },
@@ -730,6 +746,9 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
   } | null>(null);
   /** Unmodified PDF used by background-color (not updated by inline tool applies). */
   const pristinePdfRef = useRef<File | null>(null);
+  const docUndoStackRef = useRef<File[]>([]);
+  const docRedoStackRef = useRef<File[]>([]);
+  const DOC_HISTORY_MAX = 25;
 
   const previewUrlRef = useRef('');
   const previewUrl = useMemo(() => {
@@ -786,6 +805,8 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     if (!nextFile) {
       pristinePdfRef.current = null;
       fileHandleRef.current = null;
+      docUndoStackRef.current = [];
+      docRedoStackRef.current = [];
       return;
     }
     if (options?.markDirty !== true) {
@@ -796,6 +817,42 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     }
     setUploadedPdf(nextFile);
   }, []);
+
+  const pushDocumentHistory = useCallback((snapshot: File | null) => {
+    if (!snapshot) return;
+    const stack = docUndoStackRef.current;
+    const last = stack[stack.length - 1];
+    if (last && last.size === snapshot.size && last.lastModified === snapshot.lastModified) return;
+    stack.push(snapshot);
+    if (stack.length > DOC_HISTORY_MAX) stack.shift();
+    docRedoStackRef.current = [];
+  }, []);
+
+  const restoreDocumentSnapshot = useCallback(
+    (snapshot: File) => {
+      handleFileChange(snapshot, { markDirty: true });
+      setDocumentRevision((r) => r + 1);
+    },
+    [handleFileChange],
+  );
+
+  const performDocumentUndo = useCallback((): boolean => {
+    if (!file || docUndoStackRef.current.length === 0) return false;
+    docRedoStackRef.current.push(file);
+    const previous = docUndoStackRef.current.pop();
+    if (!previous) return false;
+    restoreDocumentSnapshot(previous);
+    return true;
+  }, [file, restoreDocumentSnapshot]);
+
+  const performDocumentRedo = useCallback((): boolean => {
+    if (!file || docRedoStackRef.current.length === 0) return false;
+    docUndoStackRef.current.push(file);
+    const next = docRedoStackRef.current.pop();
+    if (!next) return false;
+    restoreDocumentSnapshot(next);
+    return true;
+  }, [file, restoreDocumentSnapshot]);
 
   const resolveWritableHandle = useCallback(async (currentFileName: string) => {
     if (fileHandleRef.current) return fileHandleRef.current;
@@ -873,7 +930,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     if (pending) {
       pendingWorkspaceToolRef.current = null;
       setWorkspaceTool(pending);
-      setActiveTab('tool');
+      setActiveTab(inlineRibbonTabForTool(pending));
     }
   }, [confirmDiscardUnsavedChanges, handleFileChange]);
 
@@ -893,13 +950,14 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
 
   const handleInlineToolFileUpdated = useCallback(
     (nextFile: File, options?: { keepDialogOpen?: boolean; markDirty?: boolean }) => {
+      if (file) pushDocumentHistory(file);
       handleFileChange(nextFile, { markDirty: options?.markDirty ?? true });
       setDocumentRevision((r) => r + 1);
       if (!options?.keepDialogOpen) {
         setWorkspaceTool(null);
       }
     },
-    [handleFileChange],
+    [file, handleFileChange, pushDocumentHistory],
   );
 
   const applyPdfZoom = useCallback((direction: 'in' | 'out' | 'fitWidth' | 'fitPage') => {
@@ -1212,12 +1270,18 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
       case 'fitWidth':
         applyPdfZoom('fitWidth');
         break;
-      case 'undo':
+      case 'undo': {
+        const commentContext = activeTab === 'comment' || activeAnnotTool != null;
+        if (!commentContext && performDocumentUndo()) break;
         try { (iframeWin() as { pdfcraftUndo?: () => void } | null)?.pdfcraftUndo?.(); } catch { /* noop */ }
         break;
-      case 'redo':
+      }
+      case 'redo': {
+        const commentContext = activeTab === 'comment' || activeAnnotTool != null;
+        if (!commentContext && performDocumentRedo()) break;
         try { (iframeWin() as { pdfcraftRedo?: () => void } | null)?.pdfcraftRedo?.(); } catch { /* noop */ }
         break;
+      }
       case 'print':
         try {
           const app = iframeWin()?.PDFViewerApplication as PdfViewerApp | undefined;
@@ -1322,7 +1386,9 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
               type: 'application/pdf',
               lastModified: Date.now(),
             });
+            pushDocumentHistory(file);
             handleFileChange(nextFile, { markDirty: true });
+            setDocumentRevision((r) => r + 1);
             setCurrentPage(position + 1);
             setShowThumbnails(true);
           } catch (err) {
@@ -1361,7 +1427,9 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
               type: 'application/pdf',
               lastModified: Date.now(),
             });
+            pushDocumentHistory(file);
             handleFileChange(nextFile, { markDirty: true });
+            setDocumentRevision((r) => r + 1);
             setCurrentPage(Math.max(1, pageToDelete - 1));
             setShowThumbnails(true);
           } catch (err) {
@@ -1380,7 +1448,6 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
       case 'annot:rectangle':
       case 'annot:circle':
       case 'annot:freeText':
-      case 'annot:note':
       case 'annot:stamp':
       case 'annot:signature':
       case 'annot:clearAll': {
@@ -1453,7 +1520,12 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     pageCount,
     currentPage,
     sendAnnotationToolToViewer,
+    activeTab,
     activeAnnotTool,
+    performDocumentUndo,
+    performDocumentRedo,
+    handleFileChange,
+    pushDocumentHistory,
     t,
   ]);
 
@@ -1487,19 +1559,10 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
           openWorkspaceInlineTool('background-color', 'edit');
           return;
         }
-        if (slug === 'add-blank-page') {
-          setShowThumbnails(true);
-          setActiveTab('page');
-          handleRibbonAction('addPageInline');
-          return;
-        }
-        if (slug === 'delete-pages') {
-          setShowThumbnails(true);
-          setActiveTab('page');
-          handleRibbonAction('deletePageInline');
-          return;
-        }
-        openWorkspaceInlineTool(inlineTool, inlineRibbonTabForTool(inlineTool));
+        openWorkspaceInlineTool(
+          inlineTool,
+          activeTab === 'home' ? inlineRibbonTabForTool(inlineTool) : activeTab,
+        );
         return;
       }
 
@@ -1603,9 +1666,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
                 onClick={() => {
                   if (file) setUploadedPdf(file);
                   setActiveTab(tab.key);
-                  if (tab.key !== 'comment') {
-                    setActiveAnnotTool(null);
-                  }
+                  setActiveAnnotTool(null);
                 }}
                 className={`ws-tab${active ? ' ws-tab--active' : ''}`}
               >

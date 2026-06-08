@@ -46,6 +46,12 @@ import {
   getSpeechLangForWorkspaceAiAnswerLanguage,
   type WorkspacePresetTierId,
 } from '@/services/workspaceAiApi';
+import {
+  clearPersistedWorkspaceAi,
+  loadPersistedWorkspaceAi,
+  savePersistedWorkspaceAi,
+  type WorkspaceAiChatMessage,
+} from '@/lib/workspace-ai-persistence';
 
 export interface WorkspaceAIPanelProps {
   file: File | null;
@@ -56,8 +62,6 @@ export interface WorkspaceAIPanelProps {
 }
 
 type AiTab = 'chat' | 'summary' | 'translate' | 'voice';
-
-type ChatMessage = { role: 'user' | 'assistant'; text: string };
 
 /** Pill chọn mức — dùng chung Tóm tắt / Chat / Tốc độ đọc */
 const SEGMENT_PILL_BASE =
@@ -70,55 +74,6 @@ const segmentPillClass = (selected: boolean, isDarkTheme: boolean) =>
     : `border ${isDarkTheme ? 'border-[#2F3A4A] bg-[#0F141B] text-[#CBD5E1] hover:bg-[#141C26] hover:text-[#E2E8F0]' : 'border-[#DCE1E7] bg-white text-[hsl(var(--color-muted-foreground))] hover:bg-[#F2F4F7] hover:text-[hsl(var(--color-foreground))]'}`;
 const segmentLabelClass = (isDarkTheme: boolean) =>
   `text-[10px] px-0.5 ${isDarkTheme ? 'text-[#8B949E]' : 'text-[hsl(var(--color-muted-foreground))]'}`;
-
-type PersistedWorkspaceAi = {
-  documentId: number;
-  summaryText: string;
-  summaryTierId?: WorkspacePresetTierId;
-  chatTierId?: WorkspacePresetTierId;
-  answerLanguage?: string;
-};
-
-const WORKSPACE_AI_STORAGE_PREFIX = 'pdfcraft-workspace-ai:';
-
-function getWorkspaceFileKey(file: File): string {
-  return `${file.name}:${file.size}:${file.lastModified}`;
-}
-
-function loadPersistedWorkspaceAi(file: File): PersistedWorkspaceAi | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = sessionStorage.getItem(WORKSPACE_AI_STORAGE_PREFIX + getWorkspaceFileKey(file));
-    if (!raw) return null;
-    const data = JSON.parse(raw) as PersistedWorkspaceAi;
-    if (typeof data.documentId !== 'number' || Number.isNaN(data.documentId)) return null;
-    if (typeof data.summaryText !== 'string' || !data.summaryText.trim()) return null;
-    return data;
-  } catch {
-    return null;
-  }
-}
-
-function savePersistedWorkspaceAi(file: File, data: PersistedWorkspaceAi): void {
-  if (typeof window === 'undefined') return;
-  try {
-    sessionStorage.setItem(
-      WORKSPACE_AI_STORAGE_PREFIX + getWorkspaceFileKey(file),
-      JSON.stringify(data),
-    );
-  } catch {
-    // ignore quota / private mode
-  }
-}
-
-function clearPersistedWorkspaceAi(file: File): void {
-  if (typeof window === 'undefined') return;
-  try {
-    sessionStorage.removeItem(WORKSPACE_AI_STORAGE_PREFIX + getWorkspaceFileKey(file));
-  } catch {
-    // ignore
-  }
-}
 
 function tierTitle(
   t: ReturnType<typeof useTranslations<'workspace'>>,
@@ -196,7 +151,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
   const t = useTranslations('workspace');
   const [aiTab, setAiTab] = useState<AiTab>('summary');
   const [chatInput, setChatInput] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<WorkspaceAiChatMessage[]>([]);
   const [summaryText, setSummaryText] = useState<string | null>(null);
   const [documentId, setDocumentId] = useState<number | null>(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
@@ -279,7 +234,6 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
   }, [speech.isPaused, speech.isPlaying, speech.supported, t]);
 
   useEffect(() => {
-    setMessages([]);
     setAiError(null);
     setAiHint(null);
     if (typeof window !== 'undefined') window.speechSynthesis?.cancel();
@@ -287,6 +241,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
     clearReadAlongHighlight(pdfViewerIframeRef?.current ?? null);
 
     if (!file) {
+      setMessages([]);
       setSummaryText(null);
       setDocumentId(null);
       setVoiceText(null);
@@ -299,16 +254,32 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
     if (persisted) {
       setDocumentId(persisted.documentId);
       setSummaryText(persisted.summaryText);
+      setMessages(persisted.messages ?? []);
       if (persisted.summaryTierId) setSummaryTierId(persisted.summaryTierId);
       if (persisted.chatTierId) setChatTierId(persisted.chatTierId);
       if (persisted.answerLanguage) setAnswerLanguage(persisted.answerLanguage);
+      if (persisted.aiTab) setAiTab(persisted.aiTab);
     } else {
+      setMessages([]);
       setSummaryText(null);
       setDocumentId(null);
       setSummaryTierId(WORKSPACE_DEFAULT_PRESET_TIER);
       setChatTierId(WORKSPACE_DEFAULT_PRESET_TIER);
     }
   }, [file, pdfViewerIframeRef]);
+
+  useEffect(() => {
+    if (!file || documentId == null || !summaryText?.trim()) return;
+    savePersistedWorkspaceAi(file, {
+      documentId,
+      summaryText,
+      summaryTierId,
+      chatTierId,
+      answerLanguage,
+      messages,
+      aiTab,
+    });
+  }, [file, documentId, summaryText, summaryTierId, chatTierId, answerLanguage, messages, aiTab]);
 
   /** Mỗi lần tóm tắt xong — luôn gán document_id mới cho chat + sessionStorage */
   const commitSummaryResult = useCallback(
@@ -323,11 +294,13 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
           summaryTierId,
           chatTierId,
           answerLanguage,
+          messages: [],
+          aiTab,
         });
       }
       saveWorkspaceAiAnswerLanguage(answerLanguage, locale);
     },
-    [file, summaryTierId, chatTierId, answerLanguage, locale],
+    [file, summaryTierId, chatTierId, answerLanguage, aiTab, locale],
   );
 
   const runSummary = useCallback(

@@ -142,20 +142,6 @@ export function EditPDFTool({
             }
           }catch(e){}
         },800);
-        window.pdfcraftUndo=function(){
-          try{
-            var ext=window.pdfjsAnnotationExtensionInstance;
-            if(ext&&ext.painter&&typeof ext.painter.undo==='function'){ext.painter.undo();return;}
-          }catch(e){}
-          document.dispatchEvent(new KeyboardEvent('keydown',{key:'z',code:'KeyZ',ctrlKey:true,bubbles:true}));
-        };
-        window.pdfcraftRedo=function(){
-          try{
-            var ext=window.pdfjsAnnotationExtensionInstance;
-            if(ext&&ext.painter&&typeof ext.painter.redo==='function'){ext.painter.redo();return;}
-          }catch(e){}
-          document.dispatchEvent(new KeyboardEvent('keydown',{key:'z',code:'KeyZ',ctrlKey:true,shiftKey:true,bubbles:true}));
-        };
       })();`;
       doc.body.appendChild(notifierScript);
 
@@ -170,19 +156,17 @@ export function EditPDFTool({
         patchInvalidMediaUrls();
         var TOOL_ORDER = [
           'select','highlight','strikeout','underline',
-          'rectangle','circle','note','arrow','cloud',
+          'rectangle','circle','arrow','cloud',
           'freehand','freeHighlight','freeText','signature','stamp'
         ];
         var TOOL_SET = {};
         TOOL_ORDER.forEach(function(n){ TOOL_SET[n] = true; });
 
         var TEXT_MARKUP = { highlight:1, underline:1, strikeout:1 };
-        var EXTENSION_CLICK_TOOLS = { note:1, stamp:1, signature:1 };
+        var EXTENSION_CLICK_TOOLS = { stamp:1, signature:1 };
         var STAMP_TYPE = 10;
         var SIGNATURE_TYPE = 9;
         var FREETEXT_TYPE = 4;
-        var NOTE_TOOL_TYPE = 11;
-        var NOTE_PDFJS_TYPE = 1;
         var FREE_TEXT_COLORS_EXTRA = ['#000000','#6b7280','#ffffff','#f97316','#ec4899'];
         var FREE_TEXT_FONT_SIZES = [10,12,14,16,18,20,22,24,28,32];
         var FREE_TEXT_FONTS = [
@@ -205,7 +189,6 @@ export function EditPDFTool({
           underline:{name:'underline',type:3,pdfjsEditorType:9,pdfjsAnnotationType:10,subtype:'Underline',isOnce:false,resizable:false,draggable:false,style:{color:'#0080ff'},styleEditable:{color:true,opacity:false,strokeWidth:false}},
           rectangle:{name:'rectangle',type:5,pdfjsEditorType:15,pdfjsAnnotationType:5,subtype:'Square',isOnce:true,resizable:true,draggable:true,style:{color:'#ff0000',strokeWidth:2,opacity:1},styleEditable:{color:true,opacity:true,strokeWidth:true}},
           circle:{name:'circle',type:6,pdfjsEditorType:15,pdfjsAnnotationType:6,subtype:'Circle',isOnce:true,resizable:true,draggable:true,style:{color:'#ff0000',strokeWidth:2,opacity:1},styleEditable:{color:true,opacity:true,strokeWidth:true}},
-          note:{name:'note',type:11,pdfjsEditorType:15,pdfjsAnnotationType:1,subtype:'Text',isOnce:true,resizable:false,draggable:true},
           arrow:{name:'arrow',type:12,pdfjsEditorType:15,pdfjsAnnotationType:4,subtype:'Arrow',isOnce:true,resizable:true,draggable:true,style:{color:'#ff0000',strokeWidth:2,opacity:1},styleEditable:{color:true,opacity:true,strokeWidth:true}},
           cloud:{name:'cloud',type:13,pdfjsEditorType:15,pdfjsAnnotationType:8,subtype:'PolyLine',isOnce:true,resizable:true,draggable:true,style:{color:'#ff0000',strokeWidth:2,opacity:1},styleEditable:{color:true,opacity:true,strokeWidth:true}},
           freehand:{name:'freehand',type:7,pdfjsEditorType:15,pdfjsAnnotationType:15,subtype:'Ink',isOnce:true,resizable:true,draggable:true,style:{color:'#ff0000',strokeWidth:2,opacity:1},styleEditable:{color:true,opacity:true,strokeWidth:true}},
@@ -229,247 +212,6 @@ export function EditPDFTool({
           });
           cfg.isOnce = false;
           return cfg;
-        }
-
-        function mergeNoteConfig(base){
-          var cfg = Object.assign({}, base || TOOL_CONFIGS.note);
-          cfg.isOnce = true;
-          return cfg;
-        }
-
-        function isNoteAnnotation(ann){
-          if(!ann) return false;
-          if(ann.name === 'note') return true;
-          if(ann.subtype === 'Text' && (ann.type === NOTE_TOOL_TYPE || ann.pdfjsAnnotationType === NOTE_PDFJS_TYPE)) return true;
-          return ann.pdfjsType === NOTE_PDFJS_TYPE || ann.pdfjsAnnotationType === NOTE_PDFJS_TYPE;
-        }
-
-        function ensureCommentPanelOpen(ext){
-          ext = ext || getExtension();
-          if(!ext) return;
-          try{
-            if(typeof ext.toggleComment === 'function') ext.toggleComment(true);
-          }catch(e){}
-          try{ document.body.classList.remove('PdfjsAnnotationExtension_Comment_hidden'); }catch(e){}
-        }
-
-        function getNoteScreenRect(ann){
-          if(!ann || !ann.konvaClientRect) return null;
-          var rect = ann.konvaClientRect;
-          var pageEl = document.querySelector('#PdfjsAnnotationExtension_page_' + ann.pageNumber + ' .konvajs-content') ||
-            document.querySelector('[id$="_page_' + ann.pageNumber + '"] .konvajs-content');
-          if(!pageEl) return null;
-          var pageRect = pageEl.getBoundingClientRect();
-          return {
-            left: pageRect.left + rect.x,
-            top: pageRect.top + rect.y,
-            width: rect.width,
-            height: rect.height,
-            centerY: pageRect.top + rect.y + (rect.height / 2)
-          };
-        }
-
-        function dismissNotePanel(){
-          setNotePanelVisible(false);
-          window.__pdfcraftLastNoteUiId = null;
-        }
-
-        function pruneNotePanelToAnnotation(annId){
-          if(!annId) return;
-          var panel = document.querySelector('.CustomComment');
-          if(!panel) return;
-          var comments = panel.querySelectorAll('.list .comment');
-          for(var i=0;i<comments.length;i++){
-            var el = comments[i];
-            var match = el.id === 'annotation-' + annId;
-            el.style.display = match ? '' : 'none';
-            if(match) el.classList.add('selected');
-            else el.classList.remove('selected');
-          }
-          var replies = panel.querySelectorAll('.reply');
-          for(var j=0;j<replies.length;j++) replies[j].style.display = 'none';
-        }
-
-        function watchNotePanelList(annId){
-          var list = document.querySelector('.CustomComment .list');
-          if(!list) return;
-          if(list.__pdfcraftWatchId === annId && list.__pdfcraftObserver) return;
-          if(list.__pdfcraftObserver){
-            try{ list.__pdfcraftObserver.disconnect(); }catch(e){}
-          }
-          list.__pdfcraftWatchId = annId;
-          list.__pdfcraftObserver = new MutationObserver(function(){
-            pruneNotePanelToAnnotation(annId);
-          });
-          list.__pdfcraftObserver.observe(list, { childList:true, subtree:true });
-        }
-
-        function bindNoteOutsideDismiss(){
-          if(window.__pdfcraftNoteDismissBound) return;
-          window.__pdfcraftNoteDismissBound = true;
-          document.addEventListener('mousedown', function(evt){
-            if(!document.documentElement.classList.contains('pdfcraft-note-panel')) return;
-            if(window.__pdfcraftActiveTool === 'note') return;
-            var t = evt.target;
-            if(!t || !t.closest) return;
-            if(t.closest('.CustomComment')) return;
-            if(t.closest('.konvajs-content')) return;
-            if(t.closest('.ant-dropdown')) return;
-            dismissNotePanel();
-          }, true);
-        }
-
-        function decorateNotePanel(panel, ann){
-          if(!panel || panel.__pdfcraftDecorated) return;
-          panel.__pdfcraftDecorated = true;
-          // Thêm nút × đóng (corner-right của header)
-          var closeBtn = document.createElement('button');
-          closeBtn.textContent = '×';
-          closeBtn.setAttribute('aria-label', 'Đóng');
-          closeBtn.style.cssText = [
-            'position:absolute','top:10px','right:10px',
-            'width:24px','height:24px','border:none','background:transparent',
-            'font-size:18px','line-height:1','color:#9ca3af','cursor:pointer',
-            'border-radius:6px','display:flex','align-items:center','justify-content:center',
-            'z-index:10003','padding:0','pointer-events:auto'
-          ].join(';');
-          closeBtn.addEventListener('mouseenter', function(){ closeBtn.style.background='#f3f4f6'; closeBtn.style.color='#374151'; });
-          closeBtn.addEventListener('mouseleave', function(){ closeBtn.style.background='transparent'; closeBtn.style.color='#9ca3af'; });
-          closeBtn.addEventListener('click', function(e){
-            e.stopPropagation();
-            dismissNotePanel();
-          });
-          panel.style.position = 'fixed';
-          panel.appendChild(closeBtn);
-          // Footer với icon Enter-để-lưu
-          var footer = document.createElement('div');
-          footer.id = 'pdfcraft-note-footer';
-          footer.style.cssText = [
-            'display:flex','align-items:center','justify-content:space-between',
-            'padding:6px 12px 8px','border-top:1px solid #f3f4f6','gap:8px',
-            'flex-shrink:0','background:#fff'
-          ].join(';');
-          var hint = document.createElement('span');
-          hint.textContent = 'Enter để lưu';
-          hint.style.cssText = 'font-size:11px;color:#9ca3af;letter-spacing:.01em;';
-          var saveLbl = document.createElement('button');
-          saveLbl.textContent = 'Lưu';
-          saveLbl.style.cssText = [
-            'border:none','cursor:pointer','font-size:12px','font-weight:600',
-            'padding:4px 14px','border-radius:7px','background:#1677ff','color:#fff',
-            'height:28px','line-height:1','pointer-events:auto'
-          ].join(';');
-          saveLbl.addEventListener('click', function(){
-            var ta = panel.querySelector('textarea,.ant-input');
-            if(ta) ta.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
-          });
-          footer.appendChild(hint);
-          footer.appendChild(saveLbl);
-          panel.appendChild(footer);
-        }
-
-        function positionNotePanelNearAnnotation(ann){
-          var panel = document.querySelector('.CustomComment');
-          var screen = getNoteScreenRect(ann);
-          pruneNotePanelToAnnotation(ann.id);
-          watchNotePanelList(ann.id);
-          bindNoteOutsideDismiss();
-          decorateNotePanel(panel, ann);
-          if(!panel) return;
-          if(screen){
-            var panelW = Math.min(300, window.innerWidth - 32);
-            var gap = 28;
-            var left = screen.left + screen.width + gap;
-            if(left + panelW > window.innerWidth - 12){
-              left = Math.max(12, screen.left - panelW - gap);
-            }
-            var top = Math.max(60, Math.min(screen.centerY - 80, window.innerHeight - 320));
-            panel.style.top = top + 'px';
-            panel.style.left = left + 'px';
-            panel.style.right = 'auto';
-            panel.style.transform = 'none';
-          }
-          setTimeout(function(){
-            var ext = getExtension();
-            if(ext && ext.connectorLine && ann.konvaClientRect && typeof ext.connectorLine.drawConnection === 'function'){
-              ext.connectorLine.drawConnection(ann, ann.konvaClientRect);
-            }
-            // focus textarea nếu mới mở
-            var ta = panel && panel.querySelector('textarea,.ant-input');
-            if(ta) try{ ta.focus(); }catch(e){}
-          }, 90);
-        }
-
-        function openNoteUiForAnnotation(ann){
-          if(!ann || !ann.id || !isNoteAnnotation(ann)) return;
-          var now = Date.now();
-          if(window.__pdfcraftLastNoteUiId === ann.id && now - (window.__pdfcraftLastNoteUiAt || 0) < 400) return;
-          window.__pdfcraftLastNoteUiId = ann.id;
-          window.__pdfcraftLastNoteUiAt = now;
-          // reset decoration flag để re-decorate khi annotation khác được chọn
-          var panel = document.querySelector('.CustomComment');
-          if(panel && panel.__pdfcraftLastDecoratedId !== ann.id){
-            panel.__pdfcraftDecorated = false;
-            panel.__pdfcraftLastDecoratedId = ann.id;
-            var old = panel.querySelector('#pdfcraft-note-footer');
-            if(old) old.remove();
-            var oldClose = panel.querySelector('button[aria-label="Đóng"]');
-            if(oldClose) oldClose.remove();
-          }
-          var ext = getExtension();
-          if(!ext) return;
-          setNotePanelVisible(true);
-          ensureCommentPanelOpen(ext);
-          var rect = ann.konvaClientRect || null;
-          try{
-            if(ext.customCommentRef && ext.customCommentRef.current && typeof ext.customCommentRef.current.selectedAnnotation === 'function'){
-              ext.customCommentRef.current.selectedAnnotation(ann, true);
-            }
-            if(ext.connectorLine && rect && typeof ext.connectorLine.drawConnection === 'function'){
-              ext.connectorLine.drawConnection(ann, rect);
-            }
-          }catch(e){}
-          setTimeout(function(){ positionNotePanelNearAnnotation(ann); }, 80);
-        }
-
-        function releaseNotePlacement(){
-          if(window.__pdfcraftNoteReleasing) return;
-          window.__pdfcraftNoteReleasing = true;
-          window.__pdfcraftActiveTool = 'select';
-          var ext = getExtension();
-          if(ext && ext.painter){
-            var p = ext.painter;
-            try{
-              if(typeof p.__pdfcraftOrigDefault === 'function') p.__pdfcraftOrigDefault();
-            }catch(e){}
-          }
-          try{ window.parent.postMessage({ type:'pdfcraft-tool-changed', tool:'select' }, '*'); }catch(e){}
-          setTimeout(function(){ window.__pdfcraftNoteReleasing = false; }, 300);
-        }
-
-        function setNotePanelVisible(on){
-          document.documentElement.classList.toggle('pdfcraft-note-panel', !!on);
-          if(on){
-            ensureCommentPanelOpen();
-            return;
-          }
-          var ext = getExtension();
-          try{
-            if(ext && ext.customerAnnotationMenuRef && ext.customerAnnotationMenuRef.current && typeof ext.customerAnnotationMenuRef.current.close === 'function'){
-              ext.customerAnnotationMenuRef.current.close();
-            }
-            if(ext && ext.connectorLine && typeof ext.connectorLine.clearConnection === 'function'){
-              ext.connectorLine.clearConnection();
-            }
-          }catch(e){}
-        }
-
-        function findAnnotationById(id){
-          var items = annotationList();
-          for(var i=0;i<items.length;i++){
-            if(items[i] && items[i].id === id) return items[i];
-          }
-          return null;
         }
 
         var STAMP_PRESETS_URL = '/pdfjs-annotation-viewer/web/stamp-presets.json';
@@ -829,16 +571,10 @@ export function EditPDFTool({
           var p = ext.painter;
           p.__pdfcraftHooked = true;
           ensureWebSelection();
-          bindNoteOutsideDismiss();
           var origSelect = p.selectAnnotation.bind(p);
           p.selectAnnotation = function(id){
             if(window.__pdfcraftActiveTool === 'freeText') return;
             origSelect(id);
-            if(window.__pdfcraftActiveTool === 'note') return;
-            var ann = findAnnotationById(id);
-            if(isNoteAnnotation(ann)){
-              setTimeout(function(){ openNoteUiForAnnotation(ann); }, 60);
-            }
           };
           var origDefault = p.setDefaultMode.bind(p);
           p.__pdfcraftOrigDefault = origDefault;
@@ -863,34 +599,41 @@ export function EditPDFTool({
                 ann.type === STAMP_TYPE || ann.subtype === 'Stamp' || ann.name === 'stamp' ||
                 ann.type === SIGNATURE_TYPE || ann.subtype === 'Caret' || ann.name === 'signature'
               );
-              var isNotePlaced = ann && isNoteAnnotation(ann);
               if(isStampPlaced && window.__pdfcraftStampPlacedAt && Date.now() - window.__pdfcraftStampPlacedAt < 400){
-                return;
-              }
-              if(isNotePlaced && window.__pdfcraftNotePlacedAt && Date.now() - window.__pdfcraftNotePlacedAt < 450){
                 return;
               }
               if(isStampPlaced && (window.__pdfcraftActiveTool === 'stamp' || window.__pdfcraftActiveTool === 'signature')){
                 window.__pdfcraftStampPlacedAt = Date.now();
               }
-              if(isNotePlaced && window.__pdfcraftActiveTool === 'note'){
-                window.__pdfcraftNotePlacedAt = Date.now();
-              }
               var ret = origSave(ann, silent);
               try{
-                if(isNotePlaced && window.__pdfcraftActiveTool === 'note' && ann && ann.id){
-                  setTimeout(function(){
-                    openNoteUiForAnnotation(ann);
-                    releaseNotePlacement();
-                  }, 60);
-                }
                 if(isStampPlaced && (window.__pdfcraftActiveTool === 'stamp' || window.__pdfcraftActiveTool === 'signature')){
                   setTimeout(releaseStampPlacement, 50);
                 }
               }catch(e){}
+              scheduleHistoryPush();
               return ret;
             };
           }
+          if(!p.__pdfcraftUpdatePatched && typeof p.updateStore === 'function'){
+            p.__pdfcraftUpdatePatched = true;
+            var origUpdateStore = p.updateStore.bind(p);
+            p.updateStore = function(id, data){
+              var ret = origUpdateStore(id, data);
+              scheduleHistoryPush();
+              return ret;
+            };
+          }
+          if(!p.__pdfcraftDeletePatched && typeof p.deleteAnnotation === 'function'){
+            p.__pdfcraftDeletePatched = true;
+            var origDeleteAnnotation = p.deleteAnnotation.bind(p);
+            p.deleteAnnotation = function(id, silent){
+              var ret = origDeleteAnnotation(id, silent);
+              scheduleHistoryPush();
+              return ret;
+            };
+          }
+          ensureAnnotationHistoryBaseline();
           patchFreeTextEditors(p);
           if(!p.__pdfcraftStampPatched){
             p.__pdfcraftStampPatched = true;
@@ -976,7 +719,6 @@ export function EditPDFTool({
 
         function resolveToolConfig(toolName){
           if(toolName === 'freeText') return mergeFreeTextConfig(TOOL_CONFIGS.freeText);
-          if(toolName === 'note') return mergeNoteConfig(TOOL_CONFIGS.note);
           return TOOL_CONFIGS[toolName];
         }
 
@@ -1033,7 +775,7 @@ export function EditPDFTool({
         var TOOL_LABEL_MAP = {
           highlight:'highlight', underline:'underline', strikeout:'strikeout',
           freehand:'freehand', rectangle:'rectangle', circle:'circle',
-          freeText:'text', note:'note', stamp:'stamp', signature:'signature',
+          freeText:'text', stamp:'stamp', signature:'signature',
           select:'select', freeHighlight:'free highlight', arrow:'arrow', cloud:'cloud'
         };
 
@@ -1090,21 +832,11 @@ export function EditPDFTool({
           return clickToolLi(toolName);
         }
 
-        function activateNoteStampSignature(toolName){
+        function activateStampSignature(toolName){
           hookExtensionPainter();
           var ext = getExtension();
           var cfg = resolveToolConfig(toolName);
           if(!cfg) return false;
-          if(toolName === 'note'){
-            setNotePanelVisible(true);
-            if(ext && ext.painter){
-              try{
-                ext.painter.activate(cfg, null);
-                return true;
-              }catch(e){}
-            }
-            return clickToolLi('note');
-          }
           var viaRef = activateViaToolbarRef(toolName);
           if(toolName === 'stamp'){
             return activateStampPlacement();
@@ -1311,7 +1043,7 @@ export function EditPDFTool({
         function activateTool(toolName){
           if(TEXT_MARKUP[toolName]) return activateMarkupTool(toolName);
           hookExtensionPainter();
-          if(EXTENSION_CLICK_TOOLS[toolName]) return activateNoteStampSignature(toolName);
+          if(EXTENSION_CLICK_TOOLS[toolName]) return activateStampSignature(toolName);
           var ext = getExtension();
           if(!ext || !ext.painter) return tryClickTool(toolName);
           var cfg = resolveToolConfig(toolName);
@@ -1409,11 +1141,9 @@ export function EditPDFTool({
               setAnnotating(document.documentElement.classList.contains('pdfcraft-annotations-visible'));
               activateEditorMode(0);
               updateMarkupToolbarSelection('');
-              setNotePanelVisible(false);
             } else {
               if(toolName !== 'select') document.documentElement.classList.add('pdfcraft-annotations-visible');
               setAnnotating(true);
-              setNotePanelVisible(toolName === 'note');
             }
             if(!activateTool(toolName)) return false;
             window.__pdfcraftActiveTool = toolName;
@@ -1480,6 +1210,126 @@ export function EditPDFTool({
           if(data && typeof data === 'object') return Object.values(data);
           return [];
         }
+
+        var UNDO_MAX = 40;
+        var undoStack = [];
+        var redoStack = [];
+        var historyLock = false;
+        var historyTimer = null;
+
+        function cloneAnnotationList(){
+          try { return JSON.parse(JSON.stringify(annotationList())); }
+          catch(e){ return []; }
+        }
+
+        function snapshotsEqual(a, b){
+          try { return JSON.stringify(a) === JSON.stringify(b); }
+          catch(e){ return false; }
+        }
+
+        function commitHistoryNow(){
+          if(historyLock) return;
+          var snap = cloneAnnotationList();
+          var top = undoStack[undoStack.length - 1];
+          if(top && snapshotsEqual(top, snap)) return;
+          undoStack.push(snap);
+          if(undoStack.length > UNDO_MAX) undoStack.shift();
+          redoStack.length = 0;
+        }
+
+        function scheduleHistoryPush(){
+          if(historyLock) return;
+          if(historyTimer) clearTimeout(historyTimer);
+          historyTimer = setTimeout(function(){
+            historyTimer = null;
+            commitHistoryNow();
+          }, 150);
+        }
+
+        function ensureAnnotationHistoryBaseline(){
+          if(window.__pdfcraftHistoryInited || !getExtension()) return;
+          window.__pdfcraftHistoryInited = true;
+          undoStack = [cloneAnnotationList()];
+        }
+
+        function restoreAnnotationSnapshot(snap){
+          historyLock = true;
+          try{
+            clearAllAnnotations();
+            var ext = getExtension();
+            var p = ext && ext.painter;
+            if(!p) return;
+            var pages = {};
+            for(var i=0;i<snap.length;i++){
+              try{
+                p.saveToStore(snap[i], true);
+                if(snap[i] && snap[i].pageNumber) pages[snap[i].pageNumber] = true;
+              }catch(e){}
+            }
+            Object.keys(pages).forEach(function(pg){
+              try{ p.reDrawAnnotation(Number(pg)); }catch(e){}
+            });
+            try{
+              var cr = ext.customCommentRef && ext.customCommentRef.current;
+              if(cr){
+                if(typeof cr.clearAll === 'function') cr.clearAll();
+                else if(typeof cr.reset === 'function') cr.reset();
+                for(var j=0;j<snap.length;j++){
+                  try{ cr.addAnnotation(snap[j]); }catch(e){}
+                }
+              }
+            }catch(e){}
+            hidePdfcraftStampPicker();
+            setTextMarkupMode(false);
+            setTool('select');
+            try{ window.parent.postMessage({ type:'pdfcraft-tool-changed', tool:'select' }, '*'); }catch(e){}
+            notifyDirty();
+          } finally {
+            historyLock = false;
+          }
+        }
+
+        function performUndo(){
+          ensureAnnotationHistoryBaseline();
+          if(undoStack.length < 2) return false;
+          var current = undoStack.pop();
+          redoStack.push(current);
+          restoreAnnotationSnapshot(undoStack[undoStack.length - 1]);
+          return true;
+        }
+
+        function performRedo(){
+          ensureAnnotationHistoryBaseline();
+          if(!redoStack.length) return false;
+          var next = redoStack.pop();
+          undoStack.push(next);
+          restoreAnnotationSnapshot(next);
+          return true;
+        }
+
+        function dispatchEditorUndoRedo(isRedo){
+          try{
+            var app = window.PDFViewerApplication;
+            var ui = app && (app._annotationEditorUIManager || (app.pdfViewer && app.pdfViewer._annotationEditorUIManager));
+            if(ui){
+              if(isRedo && typeof ui.redo === 'function'){ ui.redo(); return true; }
+              if(!isRedo && typeof ui.undo === 'function'){ ui.undo(); return true; }
+            }
+          }catch(e){}
+          document.dispatchEvent(new KeyboardEvent('keydown',{
+            key:'z', code:'KeyZ', ctrlKey:true, shiftKey:!!isRedo, bubbles:true, cancelable:true
+          }));
+          return false;
+        }
+
+        window.pdfcraftUndo = function(){
+          if(performUndo()) return;
+          dispatchEditorUndoRedo(false);
+        };
+        window.pdfcraftRedo = function(){
+          if(performRedo()) return;
+          dispatchEditorUndoRedo(true);
+        };
 
         function openAnnotationMenuForNewest(){
           var ext = getExtension();

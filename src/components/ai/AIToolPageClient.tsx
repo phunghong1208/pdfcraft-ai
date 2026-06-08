@@ -41,6 +41,12 @@ import {
   type WorkspacePresetTierId,
 } from '@/services/workspaceAiApi';
 import { smartOcrPdf, summarizePdf, translatePdf } from '@/services/aiApi';
+import {
+  getWorkspaceFileKey,
+  loadPersistedWorkspaceAi,
+  savePersistedWorkspaceAi,
+  type WorkspaceAiChatMessage,
+} from '@/lib/workspace-ai-persistence';
 
 type AIActionType = 'summary' | 'translate' | 'chat' | 'smartOcr' | 'voice';
 
@@ -65,48 +71,6 @@ const ACTION_MAP: Record<Exclude<AIActionType, 'summary' | 'chat' | 'voice'>, (f
 };
 
 const VOICE_SPEEDS = [0.85, 1, 1.15, 1.3] as const;
-
-type ChatMessage = { role: 'user' | 'assistant'; text: string };
-
-const WORKSPACE_AI_STORAGE_PREFIX = 'pdfcraft-workspace-ai:';
-
-type PersistedWorkspaceAi = {
-  documentId: number;
-  summaryText: string;
-  summaryTierId?: WorkspacePresetTierId;
-  chatTierId?: WorkspacePresetTierId;
-  answerLanguage?: string;
-};
-
-function getWorkspaceFileKey(file: File): string {
-  return `${file.name}:${file.size}:${file.lastModified}`;
-}
-
-function loadPersistedWorkspaceAi(file: File): PersistedWorkspaceAi | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = sessionStorage.getItem(WORKSPACE_AI_STORAGE_PREFIX + getWorkspaceFileKey(file));
-    if (!raw) return null;
-    const data = JSON.parse(raw) as PersistedWorkspaceAi;
-    if (typeof data.documentId !== 'number' || Number.isNaN(data.documentId)) return null;
-    if (typeof data.summaryText !== 'string' || !data.summaryText.trim()) return null;
-    return data;
-  } catch {
-    return null;
-  }
-}
-
-function savePersistedWorkspaceAi(file: File, data: PersistedWorkspaceAi): void {
-  if (typeof window === 'undefined') return;
-  try {
-    sessionStorage.setItem(
-      WORKSPACE_AI_STORAGE_PREFIX + getWorkspaceFileKey(file),
-      JSON.stringify(data),
-    );
-  } catch {
-    // ignore
-  }
-}
 
 const SUMMARY_STORAGE_KEY = 'pdfcraft-ai-summary-last';
 const PDF_PREVIEW_HEIGHT = 'h-[220px]';
@@ -227,7 +191,7 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
   const [summaryGeneratedAt, setSummaryGeneratedAt] = useState<number | null>(null);
   const [uploadDragOver, setUploadDragOver] = useState(false);
   const [documentId, setDocumentId] = useState<number | null>(null);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatMessages, setChatMessages] = useState<WorkspaceAiChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatTierId, setChatTierId] = useState<WorkspacePresetTierId>(WORKSPACE_DEFAULT_PRESET_TIER);
   const [isPreparingChat, setIsPreparingChat] = useState(false);
@@ -318,20 +282,26 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
       }
       setResult(null);
       setDocumentId(null);
-      setChatMessages([]);
       setVoiceSummaryText(null);
       if (actionType === 'summary') {
+        setChatMessages([]);
         restoreSummaryForFile(next);
       } else if (actionType === 'chat') {
         const stored = loadPersistedWorkspaceAi(next);
         if (stored) {
           setDocumentId(stored.documentId);
+          setChatMessages(stored.messages ?? []);
           if (stored.chatTierId) setChatTierId(stored.chatTierId);
           if (stored.answerLanguage) setAnswerLanguage(stored.answerLanguage);
           setChatHint(t('aiChatPage.documentReady'));
           setRestoredHint(t('aiChatPage.restoredFileHint', { name: next.name }));
+        } else {
+          setChatMessages([]);
         }
-      } else if (actionType === 'voice') {
+      } else {
+        setChatMessages([]);
+      }
+      if (actionType === 'voice') {
         setVoiceHint(null);
         setRestoredHint(null);
       }
@@ -413,6 +383,30 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
     // eslint-disable-next-line react-hooks/exhaustive-deps -- chuẩn bị lại khi đổi file
   }, [isVoicePage, voiceFileKey]);
 
+  useEffect(() => {
+    if (!isChatPage || !file || documentId == null) return;
+    const existing = loadPersistedWorkspaceAi(file);
+    const summaryText = existing?.summaryText;
+    if (!summaryText?.trim()) return;
+    savePersistedWorkspaceAi(file, {
+      documentId,
+      summaryText,
+      summaryTierId,
+      chatTierId,
+      answerLanguage,
+      messages: chatMessages,
+      aiTab: 'chat',
+    });
+  }, [
+    isChatPage,
+    file,
+    documentId,
+    summaryTierId,
+    chatTierId,
+    answerLanguage,
+    chatMessages,
+  ]);
+
   const voiceStatusLabel = useMemo(() => {
     if (!speech.supported) return t('aiPanel.voice.unsupported');
     if (speech.isPaused) return t('aiPanel.voice.statusPaused');
@@ -483,6 +477,8 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
         summaryTierId,
         chatTierId,
         answerLanguage,
+        messages: [],
+        aiTab: 'chat',
       });
       saveWorkspaceAiAnswerLanguage(answerLanguage, locale);
       setChatHint(t('aiChatPage.documentReady'));
@@ -536,6 +532,8 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
             summaryTierId,
             chatTierId,
             answerLanguage,
+            messages: chatMessages,
+            aiTab: 'chat',
           });
           answer = await chatWithWorkspaceDocument({ ...chatOpts, documentId: activeDocId });
         }
@@ -556,6 +554,7 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
     }
   }, [
     chatInput,
+    chatMessages,
     chatPreset.topK,
     documentId,
     file,
