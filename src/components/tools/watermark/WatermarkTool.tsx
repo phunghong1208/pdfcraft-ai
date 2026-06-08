@@ -11,6 +11,18 @@ import { addWatermark, WatermarkOptions } from '@/lib/pdf/processors/watermark';
 import { parsePageSelection, extractPages } from '@/lib/pdf/processors/extract';
 import { loadPdfLib } from '@/lib/pdf/loader';
 import type { ProcessOutput } from '@/types/pdf';
+import {
+  workspaceInlineActionBtnSize,
+  workspaceInlineContrastBoostClass,
+  workspaceInlineErrorClass,
+  workspaceInlineFieldLabelClass,
+  workspaceInlineHintClass,
+  workspaceInlineInputClass,
+  workspaceInlineRadioLabelClass,
+  workspaceInlineRootClass,
+  workspaceInlineSectionTitleClass,
+  workspaceInlineSuccessClass,
+} from '@/lib/workspace-inline-tool-ui';
 
 let pdfjsModule: typeof import('pdfjs-dist') | null = null;
 
@@ -473,7 +485,8 @@ export function WatermarkTool({
   };
 
   const isProcessing = status === 'processing';
-  const contrastBoostClass = [
+  const embedded = lockToInitialFile;
+  const contrastBoostClass = embedded ? workspaceInlineContrastBoostClass : [
     '[&_h3]:text-[hsl(var(--color-foreground))]',
     '[&_label]:text-[hsl(var(--color-foreground))]',
     '[&_label]:font-medium',
@@ -487,20 +500,19 @@ export function WatermarkTool({
     '[&_textarea]:bg-[hsl(var(--color-background))]',
   ].join(' ');
 
-  const embedded = lockToInitialFile;
-  const cardSize = embedded ? 'sm' : 'lg';
+  const cardSize = embedded ? 'md' : 'lg';
   const sectionTitleClass = embedded
-    ? 'text-sm font-semibold text-gray-900 dark:text-gray-100'
+    ? workspaceInlineSectionTitleClass
     : 'text-lg font-medium text-gray-900 dark:text-gray-100';
   const fieldLabelClass = embedded
-    ? 'block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300'
+    ? workspaceInlineFieldLabelClass
     : 'block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300';
   const inputClass = embedded
-    ? 'w-full px-2.5 py-1.5 text-sm border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100'
+    ? workspaceInlineInputClass
     : 'w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100';
-  const actionBtnSize = embedded ? 'sm' : 'lg';
+  const actionBtnSize = embedded ? workspaceInlineActionBtnSize : 'lg';
   const radioLabelClass = embedded
-    ? 'text-xs font-medium text-gray-700 dark:text-gray-300'
+    ? workspaceInlineRadioLabelClass
     : 'text-sm font-medium text-gray-700 dark:text-gray-300';
   const toggleTrackClass = embedded ? 'w-9 h-5' : 'w-11 h-6';
   const toggleKnobClass = embedded
@@ -508,10 +520,12 @@ export function WatermarkTool({
     : 'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform';
   const toggleKnobOnClass = embedded ? 'translate-x-4' : 'translate-x-5';
   const rangeClass = 'pdfcraft-range w-full';
-  const sliderValueClass = 'text-[11px] tabular-nums text-gray-500 dark:text-gray-400 shrink-0';
+  const sliderValueClass = embedded
+    ? `${workspaceInlineHintClass} tabular-nums shrink-0`
+    : 'text-[11px] tabular-nums text-gray-500 dark:text-gray-400 shrink-0';
 
   return (
-    <div className={`${embedded ? 'space-y-3' : 'space-y-6'} ${contrastBoostClass} ${className}`.trim()}>
+    <div className={`${workspaceInlineRootClass(embedded)} ${contrastBoostClass} ${className}`.trim()}>
       {!file && !lockToInitialFile && (
         <FileUploader
           accept={['application/pdf', '.pdf']}
@@ -526,8 +540,8 @@ export function WatermarkTool({
       )}
 
       {error && (
-        <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">
-          <p className="text-sm">{error}</p>
+        <div className={embedded ? workspaceInlineErrorClass : 'p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400'}>
+          <p className={embedded ? undefined : 'text-sm'}>{error}</p>
         </div>
       )}
 
@@ -542,8 +556,8 @@ export function WatermarkTool({
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
                   </svg>
                   <div className="min-w-0">
-                    <p className={`truncate font-medium text-gray-900 dark:text-gray-100 ${embedded ? 'text-sm' : ''}`}>{file.name}</p>
-                    <p className={`text-gray-500 dark:text-gray-400 ${embedded ? 'text-xs' : 'text-sm'}`}>{formatSize(file.size)}</p>
+                    <p className="truncate font-medium text-gray-900 dark:text-gray-100">{file.name}</p>
+                    <p className={`text-gray-500 dark:text-gray-400 ${embedded ? workspaceInlineHintClass : 'text-sm'}`}>{formatSize(file.size)}</p>
                   </div>
                 </div>
                 {!lockToInitialFile ? (
@@ -698,7 +712,7 @@ export function WatermarkTool({
                       disabled={isProcessing}
                     />
                     {imageFile && (
-                      <p className={`text-gray-500 dark:text-gray-400 mt-1 ${embedded ? 'text-xs' : 'text-sm'}`}>
+                      <p className={`text-gray-500 dark:text-gray-400 mt-1 ${embedded ? workspaceInlineHintClass : 'text-sm'}`}>
                         {imageFile.name} ({formatSize(imageFile.size)})
                       </p>
                     )}
@@ -770,7 +784,7 @@ export function WatermarkTool({
                 </label>
               </div>
               {embedded ? (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 -mt-1">{tTools('repeatEnable')}</p>
+                <p className={`${workspaceInlineHintClass} mb-3 -mt-1`}>{tTools('repeatEnable')}</p>
               ) : null}
 
               {repeatWatermark && (
@@ -815,7 +829,7 @@ export function WatermarkTool({
                       <p className={radioLabelClass}>
                         {tTools('staggerTitle')}
                       </p>
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                      <p className={workspaceInlineHintClass}>
                         {tTools('staggerDescription')}
                       </p>
                     </div>
@@ -953,9 +967,9 @@ export function WatermarkTool({
             )}
 
             {status === 'complete' && result && (
-              <div className="p-4 rounded-lg bg-green-50 border border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400">
-                <p className="text-sm font-medium">{tTools('successMessage')}</p>
-              </div>
+              <p className={embedded ? workspaceInlineSuccessClass : 'text-sm font-medium text-green-700 dark:text-green-400'} role="status">
+                {tTools('successMessage')}
+              </p>
             )}
           </div>
 
@@ -982,7 +996,7 @@ export function WatermarkTool({
                   >
                     ←
                   </Button>
-                  <span className={`whitespace-nowrap px-1 text-gray-600 dark:text-gray-300 ${embedded ? 'text-[11px]' : 'text-sm'}`}>
+                  <span className={`whitespace-nowrap px-1 text-gray-600 dark:text-gray-300 ${embedded ? workspaceInlineHintClass : 'text-sm'}`}>
                     {tTools('previewPageOf', { current: currentPreviewPage, total: Math.max(1, totalPages) })}
                   </span>
                   <Button
@@ -1013,14 +1027,14 @@ export function WatermarkTool({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
-                    <p className={embedded ? 'text-xs' : ''}>{tTools('previewTitle')}</p>
+                    <p className={embedded ? workspaceInlineHintClass : undefined}>{tTools('previewTitle')}</p>
                   </div>
                 )}
               </div>
 
               <div className={`text-center shrink-0 ${embedded ? 'mt-3' : 'mt-3'}`}>
                 {isPreviewing ? (
-                  <span className={`inline-flex items-center gap-1 text-[hsl(var(--color-muted-foreground))] ${embedded ? 'text-xs' : 'text-sm'}`}>
+                  <span className={`inline-flex items-center gap-1 text-[hsl(var(--color-muted-foreground))] ${embedded ? workspaceInlineHintClass : 'text-sm'}`}>
                     <svg className="animate-spin h-3.5 w-3.5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -1028,7 +1042,7 @@ export function WatermarkTool({
                     {tTools('previewGenerating')}
                   </span>
                 ) : (
-                  <span className={`inline-flex items-center gap-1 text-green-600 ${embedded ? 'text-xs' : 'text-sm'}`}>
+                  <span className={`inline-flex items-center gap-1 text-green-600 ${embedded ? workspaceInlineHintClass : 'text-sm'}`}>
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>

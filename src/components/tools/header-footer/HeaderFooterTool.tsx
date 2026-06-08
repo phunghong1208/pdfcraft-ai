@@ -9,6 +9,18 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { addHeaderFooter, HeaderFooterOptions } from '@/lib/pdf/processors/header-footer';
 import type { ProcessOutput } from '@/types/pdf';
+import {
+  workspaceInlineActionBtnSize,
+  workspaceInlineContrastBoostClass,
+  workspaceInlineErrorClass,
+  workspaceInlineFieldLabelClass,
+  workspaceInlineHintClass,
+  workspaceInlineInputClass,
+  workspaceInlineRootClass,
+  workspaceInlineRadioLabelClass,
+  workspaceInlineSectionTitleClass,
+  workspaceInlineSuccessClass,
+} from '@/lib/workspace-inline-tool-ui';
 
 // Store pdfjs module reference
 let pdfjsModule: typeof import('pdfjs-dist') | null = null;
@@ -73,6 +85,11 @@ export function HeaderFooterTool({
 
   const cancelledRef = useRef(false);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+  const previewBoxRef = useRef<HTMLDivElement>(null);
+  const settingsUpToRangeRef = useRef<HTMLDivElement>(null);
+  const [settingsColHeight, setSettingsColHeight] = useState(0);
+  const [previewBoxWidth, setPreviewBoxWidth] = useState(0);
+  const [previewBoxHeight, setPreviewBoxHeight] = useState(0);
   const renderTaskRef = useRef<{ cancel: () => void; promise?: Promise<unknown> } | null>(null);
   const renderGenerationRef = useRef(0);
   const renderQueueRef = useRef<Promise<void>>(Promise.resolve());
@@ -91,7 +108,26 @@ export function HeaderFooterTool({
   }, []);
 
   // Render page preview with header/footer overlay
-  const renderPagePreview = async (pdf: any, pageNum: number) => {
+  const computePreviewScale = useCallback(
+    (pageWidth: number, pageHeight: number) => {
+      const box = previewBoxRef.current;
+      let targetWidth = Math.max(box?.clientWidth ?? previewBoxWidth, 0);
+      let targetHeight = Math.max(box?.clientHeight ?? previewBoxHeight, 0);
+
+      if (lockToInitialFile && targetWidth > 0 && targetHeight > 0) {
+        const byWidth = targetWidth / pageWidth;
+        const byHeight = targetHeight / pageHeight;
+        return Math.max(Math.min(byWidth, byHeight) * 0.99, 0.55);
+      }
+      if (targetWidth > 0) {
+        return Math.max((targetWidth / pageWidth) * 0.99, 0.55);
+      }
+      return 0.85;
+    },
+    [lockToInitialFile, previewBoxWidth, previewBoxHeight],
+  );
+
+  const renderPagePreview = async (pdf: { numPages: number; getPage: (n: number) => Promise<unknown> }, pageNum: number) => {
     if (!previewCanvasRef.current) return;
     const generation = ++renderGenerationRef.current;
 
@@ -106,18 +142,39 @@ export function HeaderFooterTool({
     }
 
     try {
-      const page = await pdf.getPage(pageNum);
-      const scale = 0.6;
-      const viewport = page.getViewport({ scale });
+      const page = (await pdf.getPage(pageNum)) as {
+        rotate: number;
+        getViewport: (opts: { scale: number; rotation?: number }) => { width: number; height: number };
+        render: (opts: {
+          canvasContext: CanvasRenderingContext2D;
+          viewport: { width: number; height: number };
+          transform?: number[] | null;
+        }) => {
+          promise: Promise<void>;
+        };
+      };
+      const pageRotation = page.rotate ?? 0;
+      const baseViewport = page.getViewport({ scale: 1, rotation: pageRotation });
+      const renderScale = computePreviewScale(baseViewport.width, baseViewport.height);
+      const viewport = page.getViewport({ scale: renderScale, rotation: pageRotation });
+      const dpr = lockToInitialFile ? Math.min(window.devicePixelRatio || 1, 2) : 1;
 
       const canvas = previewCanvasRef.current;
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
+      // HiDPI: keep viewport at renderScale, pass DPR via transform (matches PDF.js viewer).
+      canvas.width = Math.floor(viewport.width * dpr);
+      canvas.height = Math.floor(viewport.height * dpr);
+      canvas.style.width = `${Math.floor(viewport.width)}px`;
+      canvas.style.height = `${Math.floor(viewport.height)}px`;
 
-      const renderTask = page.render({ canvasContext: ctx, viewport });
+      const transform = dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null;
+      const renderTask = page.render({
+        canvasContext: ctx,
+        viewport,
+        ...(transform ? { transform } : {}),
+      });
       renderTaskRef.current = renderTask as { cancel: () => void; promise?: Promise<unknown> };
       await renderTask.promise;
       if (generation !== renderGenerationRef.current) return;
@@ -126,7 +183,10 @@ export function HeaderFooterTool({
       // Check if page should show header/footer
       const shouldShowContent = isPageInRange(pageNum) && !(skipFirstPage && pageNum === 1);
       if (shouldShowContent) {
-        drawHeaderFooterOverlay(ctx, viewport.width, viewport.height, pageNum, pdf.numPages);
+        ctx.save();
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        drawHeaderFooterOverlay(ctx, viewport.width, viewport.height, pageNum, pdf.numPages, renderScale);
+        ctx.restore();
       }
 
     } catch (err) {
@@ -163,10 +223,11 @@ export function HeaderFooterTool({
     width: number,
     height: number,
     page: number,
-    total: number
+    total: number,
+    pixelScale: number,
   ) => {
-    const scaledMargin = margin * 0.6;
-    const scaledFontSize = fontSize * 0.6;
+    const scaledMargin = margin * pixelScale;
+    const scaledFontSize = fontSize * pixelScale;
 
     ctx.font = `${scaledFontSize}px Arial`;
     ctx.fillStyle = fontColor;
@@ -226,7 +287,45 @@ export function HeaderFooterTool({
       .catch((err) => {
         console.error('Header/Footer preview queue failed:', err);
       });
-  }, [file, headerLeft, headerCenter, headerRight, footerLeft, footerCenter, footerRight, fontSize, fontColor, margin, skipFirstPage, pageRange, currentPreviewPage, totalPages]);
+  }, [file, headerLeft, headerCenter, headerRight, footerLeft, footerCenter, footerRight, fontSize, fontColor, margin, skipFirstPage, pageRange, currentPreviewPage, totalPages, previewBoxWidth, previewBoxHeight, computePreviewScale]);
+
+  useEffect(() => {
+    const box = previewBoxRef.current;
+    if (!box) return;
+    const updateSize = () => {
+      setPreviewBoxWidth(Math.floor(box.clientWidth));
+      setPreviewBoxHeight(Math.floor(box.clientHeight));
+    };
+    updateSize();
+    const ro = new ResizeObserver(updateSize);
+    ro.observe(box);
+    return () => ro.disconnect();
+  }, [file, settingsColHeight]);
+
+  useEffect(() => {
+    const el = settingsUpToRangeRef.current;
+    if (!el || !lockToInitialFile) return;
+    const updateHeight = () => setSettingsColHeight(el.offsetHeight);
+    updateHeight();
+    const ro = new ResizeObserver(updateHeight);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [
+    file,
+    lockToInitialFile,
+    headerLeft,
+    headerCenter,
+    headerRight,
+    footerLeft,
+    footerCenter,
+    footerRight,
+    fontSize,
+    fontColor,
+    margin,
+    skipFirstPage,
+    pageRange,
+    status,
+  ]);
 
   const handleFilesSelected = useCallback((files: File[]) => {
     if (files.length > 0) {
@@ -303,6 +402,28 @@ export function HeaderFooterTool({
 
   const isProcessing = status === 'processing';
   const hasContent = headerLeft || headerCenter || headerRight || footerLeft || footerCenter || footerRight;
+  const embedded = lockToInitialFile;
+  const cardSize = embedded ? 'md' : 'lg';
+  const sectionTitleClass = embedded
+    ? `${workspaceInlineSectionTitleClass} mb-3`
+    : 'text-lg font-medium mb-4';
+  const fieldLabelClass = embedded
+    ? workspaceInlineFieldLabelClass
+    : 'block text-sm font-medium mb-1 text-[hsl(var(--color-foreground))]';
+  const inputClass = embedded
+    ? workspaceInlineInputClass
+    : 'w-full px-3 py-2 text-sm border rounded-md border-[hsl(var(--color-border))] bg-[hsl(var(--color-background))] text-[hsl(var(--color-foreground))]';
+  const actionBtnSize = embedded ? workspaceInlineActionBtnSize : 'lg';
+  const fieldGridClass = 'grid grid-cols-[repeat(3,minmax(0,1fr))] gap-2';
+  const fieldCellClass = 'min-w-0';
+  const inputUniformClass = `${inputClass} h-10 min-w-0`;
+  const contrastBoostClass = embedded
+    ? workspaceInlineContrastBoostClass
+    : '';
+
+  const posLeft = tTools('headerFooter.positionLeft');
+  const posCenter = tTools('headerFooter.positionCenter');
+  const posRight = tTools('headerFooter.positionRight');
 
   // Quick insert buttons
   const quickInserts = [
@@ -312,7 +433,7 @@ export function HeaderFooterTool({
   ];
 
   return (
-    <div className={`space-y-6 ${className}`.trim()}>
+    <div className={`${workspaceInlineRootClass(embedded)} ${contrastBoostClass} ${className}`.trim()}>
       {!file && !lockToInitialFile && (
         <FileUploader
           accept={['application/pdf', '.pdf']}
@@ -327,310 +448,347 @@ export function HeaderFooterTool({
       )}
 
       {error && (
-        <div className="p-4 rounded-[var(--radius-md)] bg-red-50 border border-red-200 text-red-700">
-          <p className="text-sm">{error}</p>
+        <div className={embedded ? workspaceInlineErrorClass : 'p-4 rounded-[var(--radius-md)] bg-red-50 border border-red-200 text-red-700'}>
+          <p className={embedded ? undefined : 'text-sm'}>{error}</p>
         </div>
       )}
 
       {file && (
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Options Panel */}
-          <div className="space-y-6">
-            <Card variant="outlined">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <svg className="w-10 h-10 text-red-500" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
-                    <path d="M14 2v6h6" fill="white" />
-                  </svg>
-                  <div>
-                    <p className="font-medium">{file.name}</p>
-                    <p className="text-sm text-[hsl(var(--color-muted-foreground))]">
-                      {formatSize(file.size)} • {totalPages} pages
-                    </p>
+        <div
+          className={`grid w-full grid-cols-1 gap-4 ${
+            embedded
+              ? 'xl:grid-cols-[minmax(0,4fr)_minmax(0,6fr)] xl:items-start xl:gap-5'
+              : 'lg:grid-cols-2 lg:gap-6'
+          }`}
+        >
+          {/* Settings */}
+          <div className={`min-w-0 ${embedded ? 'space-y-3' : 'space-y-6'}`}>
+            <div ref={settingsUpToRangeRef} className={embedded ? 'space-y-3' : 'space-y-4'}>
+              <Card variant="outlined" size={cardSize}>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <svg
+                      className={`${embedded ? 'h-8 w-8' : 'h-10 w-10'} shrink-0 text-red-500`}
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
+                    </svg>
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{file.name}</p>
+                      <p className={workspaceInlineHintClass}>
+                        {tTools('headerFooter.fileMeta', {
+                          size: formatSize(file.size),
+                          pages: totalPages,
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                  {!lockToInitialFile ? (
+                    <Button variant="ghost" size="sm" onClick={handleClearFile} disabled={isProcessing}>
+                      {t('buttons.remove') || 'Remove'}
+                    </Button>
+                  ) : null}
+                </div>
+              </Card>
+
+              <Card variant="outlined" size={cardSize}>
+                <h3 className={sectionTitleClass}>{tTools('headerFooter.headerTitle') || 'Header'}</h3>
+                <div className={fieldGridClass}>
+                  <div className={fieldCellClass}>
+                    <label className={fieldLabelClass}>{posLeft}</label>
+                    <input
+                      type="text"
+                      value={headerLeft}
+                      onChange={(e) => setHeaderLeft(e.target.value)}
+                      placeholder={tTools('headerFooter.headerLeftPlaceholder')}
+                      className={inputUniformClass}
+                      disabled={isProcessing}
+                    />
+                  </div>
+                  <div className={fieldCellClass}>
+                    <label className={fieldLabelClass}>{posCenter}</label>
+                    <input
+                      type="text"
+                      value={headerCenter}
+                      onChange={(e) => setHeaderCenter(e.target.value)}
+                      placeholder={tTools('headerFooter.headerCenterPlaceholder')}
+                      className={inputUniformClass}
+                      disabled={isProcessing}
+                    />
+                  </div>
+                  <div className={fieldCellClass}>
+                    <label className={fieldLabelClass}>{posRight}</label>
+                    <input
+                      type="text"
+                      value={headerRight}
+                      onChange={(e) => setHeaderRight(e.target.value)}
+                      placeholder={tTools('headerFooter.headerRightPlaceholder')}
+                      className={inputUniformClass}
+                      disabled={isProcessing}
+                    />
                   </div>
                 </div>
-                {!lockToInitialFile ? (
-                  <Button variant="ghost" size="sm" onClick={handleClearFile} disabled={isProcessing}>
-                    {t('buttons.remove') || 'Remove'}
-                  </Button>
-                ) : null}
-              </div>
-            </Card>
 
-            <Card variant="outlined" size="lg">
-              <h3 className="text-lg font-medium mb-4">
-                {tTools('headerFooter.headerTitle') || 'Header'}
-              </h3>
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div>
-                  <label className="block text-sm mb-1">Left</label>
-                  <input
-                    type="text"
-                    value={headerLeft}
-                    onChange={(e) => setHeaderLeft(e.target.value)}
-                    placeholder="e.g., Company Name"
-                    className="w-full px-3 py-2 border rounded-[var(--radius-md)] text-sm"
-                    disabled={isProcessing}
-                  />
+                <div
+                  className={`${embedded ? 'my-3' : 'my-5'} rounded-md border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.2)] px-3 py-2.5`}
+                >
+                  <p className={`${workspaceInlineHintClass} mb-2`}>
+                    {tTools('headerFooter.quickInsertTitle')}
+                  </p>
+                  <div className="grid grid-cols-[repeat(3,minmax(0,1fr))] gap-1.5">
+                    {quickInserts.map((item) => (
+                      <button
+                        key={item.label}
+                        type="button"
+                        onClick={() => navigator.clipboard.writeText(item.label)}
+                        className="workspace-inline-keep-xs w-full rounded-full border border-[hsl(var(--color-border))] bg-[hsl(var(--color-background))] px-2 py-1.5 text-center text-xs text-[hsl(var(--color-foreground))] transition-colors hover:bg-[hsl(var(--color-muted)/0.55)]"
+                        title={item.desc}
+                      >
+                        <code>{item.label}</code>
+                      </button>
+                    ))}
+                  </div>
+                  <p className={`${workspaceInlineHintClass} mt-1.5`}>
+                    {tTools('headerFooter.quickInsertHint')}
+                  </p>
                 </div>
-                <div>
-                  <label className="block text-sm mb-1">Center</label>
-                  <input
-                    type="text"
-                    value={headerCenter}
-                    onChange={(e) => setHeaderCenter(e.target.value)}
-                    placeholder="e.g., Document Title"
-                    className="w-full px-3 py-2 border rounded-[var(--radius-md)] text-sm"
-                    disabled={isProcessing}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Right</label>
-                  <input
-                    type="text"
-                    value={headerRight}
-                    onChange={(e) => setHeaderRight(e.target.value)}
-                    placeholder="e.g., {date}"
-                    className="w-full px-3 py-2 border rounded-[var(--radius-md)] text-sm"
-                    disabled={isProcessing}
-                  />
-                </div>
-              </div>
 
-              <h3 className="text-lg font-medium mb-4">
-                {tTools('headerFooter.footerTitle') || 'Footer'}
-              </h3>
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div>
-                  <label className="block text-sm mb-1">Left</label>
+                <h3 className={sectionTitleClass}>{tTools('headerFooter.footerTitle') || 'Footer'}</h3>
+                <div className={fieldGridClass}>
+                  <div className={fieldCellClass}>
+                    <label className={fieldLabelClass}>{posLeft}</label>
+                    <input
+                      type="text"
+                      value={footerLeft}
+                      onChange={(e) => setFooterLeft(e.target.value)}
+                      placeholder={tTools('headerFooter.footerLeftPlaceholder')}
+                      className={inputUniformClass}
+                      disabled={isProcessing}
+                    />
+                  </div>
+                  <div className={fieldCellClass}>
+                    <label className={fieldLabelClass}>{posCenter}</label>
+                    <input
+                      type="text"
+                      value={footerCenter}
+                      onChange={(e) => setFooterCenter(e.target.value)}
+                      placeholder={tTools('headerFooter.footerCenterPlaceholder')}
+                      className={inputUniformClass}
+                      disabled={isProcessing}
+                    />
+                  </div>
+                  <div className={fieldCellClass}>
+                    <label className={fieldLabelClass}>{posRight}</label>
+                    <input
+                      type="text"
+                      value={footerRight}
+                      onChange={(e) => setFooterRight(e.target.value)}
+                      placeholder={tTools('headerFooter.footerRightPlaceholder')}
+                      className={inputUniformClass}
+                      disabled={isProcessing}
+                    />
+                  </div>
+                </div>
+              </Card>
+
+              <Card variant="outlined" size={cardSize}>
+                <h3 className={sectionTitleClass}>{tTools('headerFooter.styleTitle') || 'Style'}</h3>
+                <div className={fieldGridClass}>
+                  <div className={fieldCellClass}>
+                    <label className={fieldLabelClass}>{tTools('headerFooter.fontSize')}</label>
+                    <input
+                      type="number"
+                      value={fontSize}
+                      onChange={(e) => setFontSize(parseInt(e.target.value) || 10)}
+                      min={6}
+                      max={24}
+                      className={inputUniformClass}
+                      disabled={isProcessing}
+                    />
+                  </div>
+                  <div className={fieldCellClass}>
+                    <label className={fieldLabelClass}>{tTools('headerFooter.margin')}</label>
+                    <input
+                      type="number"
+                      value={margin}
+                      onChange={(e) => setMargin(parseInt(e.target.value) || 30)}
+                      min={10}
+                      max={100}
+                      className={inputUniformClass}
+                      disabled={isProcessing}
+                    />
+                  </div>
+                  <div className={fieldCellClass}>
+                    <label className={fieldLabelClass}>{tTools('headerFooter.fontColor')}</label>
+                    <div className="flex h-10 items-center gap-1.5">
+                      <input
+                        type="color"
+                        value={fontColor}
+                        onChange={(e) => setFontColor(e.target.value)}
+                        className="h-10 w-10 shrink-0 cursor-pointer rounded-md border border-[hsl(var(--color-border))] bg-transparent p-0.5"
+                        disabled={isProcessing}
+                      />
+                      <input
+                        type="text"
+                        value={fontColor}
+                        onChange={(e) => setFontColor(e.target.value)}
+                        className={`${inputUniformClass} min-w-0 flex-1 font-mono`}
+                        disabled={isProcessing}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 border-t border-[hsl(var(--color-border))] pt-4">
+                  <label className={fieldLabelClass}>{tTools('headerFooter.pageRange')}</label>
                   <input
                     type="text"
-                    value={footerLeft}
-                    onChange={(e) => setFooterLeft(e.target.value)}
-                    placeholder="e.g., Confidential"
-                    className="w-full px-3 py-2 border rounded-[var(--radius-md)] text-sm"
+                    value={pageRange}
+                    onChange={(e) => setPageRange(e.target.value)}
+                    placeholder={tTools('headerFooter.pageRangePlaceholder')}
+                    className={inputUniformClass}
                     disabled={isProcessing}
                   />
+                  <p className={`${workspaceInlineHintClass} mt-1.5`}>
+                    {tTools('headerFooter.pageRangeHint')}
+                  </p>
                 </div>
-                <div>
-                  <label className="block text-sm mb-1">Center</label>
-                  <input
-                    type="text"
-                    value={footerCenter}
-                    onChange={(e) => setFooterCenter(e.target.value)}
-                    placeholder="e.g., Page {page} of {total}"
-                    className="w-full px-3 py-2 border rounded-[var(--radius-md)] text-sm"
-                    disabled={isProcessing}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Right</label>
-                  <input
-                    type="text"
-                    value={footerRight}
-                    onChange={(e) => setFooterRight(e.target.value)}
-                    placeholder="e.g., {date}"
-                    className="w-full px-3 py-2 border rounded-[var(--radius-md)] text-sm"
-                    disabled={isProcessing}
-                  />
-                </div>
-              </div>
 
-              {/* Quick Insert Buttons */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium mb-2">Quick Insert</label>
-                <div className="flex flex-wrap gap-2">
-                  {quickInserts.map((item) => (
-                    <button
-                      key={item.label}
-                      onClick={() => navigator.clipboard.writeText(item.label)}
-                      className="px-3 py-1.5 text-xs rounded-full transition-colors bg-[hsl(var(--color-muted))] text-[hsl(var(--color-foreground))] hover:bg-[hsl(var(--color-muted)/0.75)] border border-[hsl(var(--color-border))]"
-                      title={`Copy "${item.label}" - ${item.desc}`}
-                    >
-                      <code>{item.label}</code>
-                    </button>
-                  ))}
-                </div>
-                <p className="text-xs text-[hsl(var(--color-muted-foreground))] mt-1">Click to copy, then paste into any field</p>
-              </div>
+                <label className="mt-4 flex cursor-pointer items-center gap-2.5">
+                  <input
+                    type="checkbox"
+                    checked={skipFirstPage}
+                    onChange={(e) => setSkipFirstPage(e.target.checked)}
+                    className="h-4 w-4 rounded border-[hsl(var(--color-border))]"
+                    disabled={isProcessing}
+                  />
+                  <span className={embedded ? workspaceInlineRadioLabelClass : 'text-sm text-[hsl(var(--color-foreground))]'}>
+                    {tTools('headerFooter.skipFirstPage')}
+                  </span>
+                </label>
+              </Card>
+            </div>
 
-              {/* Style Options */}
-              <h3 className="text-lg font-medium mb-4">
-                {tTools('headerFooter.styleTitle') || 'Style'}
-              </h3>
-              <div className="grid grid-cols-3 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm mb-1">Font Size</label>
-                  <input
-                    type="number"
-                    value={fontSize}
-                    onChange={(e) => setFontSize(parseInt(e.target.value) || 10)}
-                    min={6}
-                    max={24}
-                    className="w-full px-3 py-2 border rounded-[var(--radius-md)]"
-                    disabled={isProcessing}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Margin (pt)</label>
-                  <input
-                    type="number"
-                    value={margin}
-                    onChange={(e) => setMargin(parseInt(e.target.value) || 30)}
-                    min={10}
-                    max={100}
-                    className="w-full px-3 py-2 border rounded-[var(--radius-md)]"
-                    disabled={isProcessing}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Text Color</label>
-                  <input
-                    type="color"
-                    value={fontColor}
-                    onChange={(e) => setFontColor(e.target.value)}
-                    className="w-full h-10 p-1 cursor-pointer rounded border border-gray-300"
-                    disabled={isProcessing}
-                  />
-                </div>
-              </div>
+            {isProcessing && (
+              <ProcessingProgress
+                progress={progress}
+                status={status}
+                message={progressMessage}
+                onCancel={() => {
+                  cancelledRef.current = true;
+                  setStatus('idle');
+                }}
+                showPercentage
+              />
+            )}
 
-              {/* Page Range */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Page Range</label>
-                <input
-                  type="text"
-                  value={pageRange}
-                  onChange={(e) => setPageRange(e.target.value)}
-                  placeholder="e.g., 1-5, 8, 10-12 or 'all'"
-                  className="w-full px-3 py-2 border rounded-[var(--radius-md)] text-sm"
-                  disabled={isProcessing}
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                variant="primary"
+                size={actionBtnSize}
+                onClick={handleProcess}
+                disabled={!file || !hasContent || isProcessing}
+                loading={isProcessing}
+              >
+                {isProcessing ? t('status.processing') : tTools('headerFooter.addButton')}
+              </Button>
+              {result && !embedded && (
+                <DownloadButton
+                  file={result}
+                  filename={file.name.replace('.pdf', '_headerfooter.pdf')}
+                  variant="secondary"
+                  size={actionBtnSize}
+                  showFileSize
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Use "all" for all pages, or specify ranges like "1-5, 8, 10-12"
-                </p>
-              </div>
+              )}
+            </div>
 
-              {/* Skip First Page */}
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={skipFirstPage}
-                  onChange={(e) => setSkipFirstPage(e.target.checked)}
-                  className="w-4 h-4"
-                  disabled={isProcessing}
-                />
-                <span className="text-sm">Skip first page (cover page)</span>
-              </label>
-            </Card>
+            {status === 'complete' && result && (
+              <p className={workspaceInlineSuccessClass} role="status">
+                {tTools('headerFooter.successMessage')}
+              </p>
+            )}
           </div>
 
-          {/* Preview Panel */}
-          <div className="space-y-4">
-            <Card variant="outlined" size="lg">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium">
+          {/* Preview */}
+          <div className="min-w-0">
+            <Card
+              variant="outlined"
+              size={cardSize}
+              className={embedded ? '!p-3 flex flex-col' : undefined}
+              style={embedded && settingsColHeight > 0 ? { height: settingsColHeight } : undefined}
+            >
+              <div className={`flex shrink-0 items-center justify-between gap-2 ${embedded ? 'mb-3' : 'mb-4'}`}>
+                <h3 className={embedded ? workspaceInlineSectionTitleClass : 'text-lg font-medium'}>
                   {tTools('headerFooter.preview') || 'Preview'}
                 </h3>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-0.5 rounded-md border border-[hsl(var(--color-border))] bg-[hsl(var(--color-background))] px-0.5">
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setCurrentPreviewPage(p => Math.max(1, p - 1))}
-                    disabled={currentPreviewPage <= 1}
+                    className="h-6 w-6 px-0 text-xs"
+                    onClick={() => setCurrentPreviewPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPreviewPage <= 1 || totalPages <= 1}
+                    aria-label={t('buttons.previous')}
                   >
                     ←
                   </Button>
-                  <span className="text-sm">
-                    Page {currentPreviewPage} of {totalPages}
+                  <span className={`whitespace-nowrap px-1 text-[hsl(var(--color-muted-foreground))] ${workspaceInlineHintClass}`}>
+                    {tTools('headerFooter.previewPageOf', {
+                      current: currentPreviewPage,
+                      total: Math.max(1, totalPages),
+                    })}
                   </span>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setCurrentPreviewPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPreviewPage >= totalPages}
+                    className="h-6 w-6 px-0 text-xs"
+                    onClick={() => setCurrentPreviewPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPreviewPage >= totalPages || totalPages <= 1}
+                    aria-label={t('buttons.next')}
                   >
                     →
                   </Button>
                 </div>
               </div>
 
-              <div className="bg-gray-100 rounded-[var(--radius-md)] p-4 flex justify-center">
+              <div
+                ref={previewBoxRef}
+                className={`flex w-full items-center justify-center overflow-hidden rounded-md border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.12)] ${
+                  embedded ? 'min-h-0 flex-1 p-1' : 'p-4 min-h-[420px]'
+                }`}
+              >
                 <canvas
                   ref={previewCanvasRef}
-                  className="shadow-lg bg-white max-w-full h-auto"
-                  style={{ maxHeight: '500px' }}
+                  className="block max-h-full max-w-full rounded-sm bg-white shadow-sm"
                 />
               </div>
 
-              {/* Page status indicator */}
-              <div className="mt-4 text-center">
+              <div className={`shrink-0 text-center ${embedded ? 'mt-3' : 'mt-4'}`}>
                 {isPageInRange(currentPreviewPage) && !(skipFirstPage && currentPreviewPage === 1) ? (
-                  <span className="inline-flex items-center gap-1 text-sm text-green-600">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <span className={`inline-flex items-center gap-1 text-[hsl(142_45%_38%)] dark:text-[hsl(142_50%_55%)] ${workspaceInlineHintClass}`}>
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    Header/Footer will be added to this page
+                    {tTools('headerFooter.pageApplied')}
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 text-sm text-gray-500">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <span className={`inline-flex items-center gap-1 text-[hsl(var(--color-muted-foreground))] ${workspaceInlineHintClass}`}>
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
-                    This page will be skipped
+                    {tTools('headerFooter.pageSkipped')}
                   </span>
                 )}
+                {!hasContent && (
+                  <p className={`${workspaceInlineHintClass} mt-2`}>
+                    {tTools('headerFooter.previewHint')}
+                  </p>
+                )}
               </div>
-
-              {!hasContent && (
-                <p className="text-sm text-center text-gray-500 mt-4">
-                  {tTools('headerFooter.previewHint') || 'Enter header or footer text to see preview'}
-                </p>
-              )}
             </Card>
           </div>
-        </div>
-      )}
-
-      {isProcessing && (
-        <ProcessingProgress
-          progress={progress}
-          status={status}
-          message={progressMessage}
-          onCancel={() => { cancelledRef.current = true; setStatus('idle'); }}
-          showPercentage
-        />
-      )}
-
-      {file && (
-        <div className="flex flex-wrap items-center gap-4">
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={handleProcess}
-            disabled={!file || !hasContent || isProcessing}
-            loading={isProcessing}
-          >
-            {isProcessing ? 'Processing...' : (tTools('headerFooter.addButton') || 'Add Header & Footer')}
-          </Button>
-          {result && (
-            <DownloadButton
-              file={result}
-              filename={file.name.replace('.pdf', '_headerfooter.pdf')}
-              variant="secondary"
-              size="lg"
-              showFileSize
-            />
-          )}
-        </div>
-      )}
-
-      {status === 'complete' && result && (
-        <div className="p-4 rounded-[var(--radius-md)] bg-green-50 border border-green-200 text-green-700">
-          <p className="text-sm font-medium">
-            {tTools('headerFooter.successMessage') || 'Header & footer added successfully!'}
-          </p>
         </div>
       )}
     </div>

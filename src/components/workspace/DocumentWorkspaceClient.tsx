@@ -35,6 +35,7 @@ import { WatermarkTool } from '@/components/tools/watermark/WatermarkTool';
 import { HeaderFooterTool } from '@/components/tools/header-footer/HeaderFooterTool';
 import { PageNumbersTool } from '@/components/tools/page-numbers/PageNumbersTool';
 import { BackgroundColorTool } from '@/components/tools/background-color/BackgroundColorTool';
+import { WORKSPACE_INLINE_TOOL_SHELL_CLASS } from '@/lib/workspace-inline-tool-ui';
 import { PDFToDocxTool } from '@/components/tools/pdf-to-docx';
 import { PDFToExcelTool } from '@/components/tools/pdf-to-excel';
 import { PDFToPptxTool } from '@/components/tools/pdf-to-pptx';
@@ -1609,7 +1610,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     [],
   );
   const inlineDialogMaxWidthClass =
-    workspaceTool === 'watermark'
+    workspaceTool === 'watermark' || workspaceTool === 'header-footer' || workspaceTool === 'page-numbers'
       ? 'max-w-5xl'
       : workspaceTool && previewHeavyTools.has(workspaceTool)
         ? 'max-w-6xl'
@@ -1967,7 +1968,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-[hsl(var(--color-border))] px-4 py-3 shrink-0">
-              <h2 className="text-[13px] font-medium text-[hsl(var(--color-foreground))]">
+              <h2 className="text-sm font-medium text-[hsl(var(--color-foreground))]">
                 {t(workspaceInlineToolTitleKey(workspaceTool))}
               </h2>
               <button
@@ -1983,7 +1984,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className={`flex-1 overflow-y-auto scrollbar-hide ${workspaceTool === 'watermark' ? 'p-3' : 'p-4'}`}>
+            <div className={WORKSPACE_INLINE_TOOL_SHELL_CLASS}>
               {workspaceTool === 'compress' && (
                 <CompressPDFTool
                   initialFile={file}

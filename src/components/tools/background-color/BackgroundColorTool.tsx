@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { addBackgroundColor } from '@/lib/pdf/processors/background-color';
 import type { ProcessOutput } from '@/types/pdf';
+import { workspaceInlineHintClass } from '@/lib/workspace-inline-tool-ui';
 
 export interface BackgroundColorToolProps {
   className?: string;
@@ -236,7 +237,7 @@ export function BackgroundColorTool({
               />
             </div>
             {lockToInitialFile && (
-              <p className="text-[11px] text-[hsl(var(--color-muted-foreground))]">
+              <p className={workspaceInlineHintClass}>
                 {tTools('reapplyHint')}
               </p>
             )}

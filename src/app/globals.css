@@ -619,6 +619,50 @@ select option {
   cursor: pointer;
 }
 
+/* Workspace inline tool modal — normalize typography/buttons (Nền baseline) */
+.workspace-inline-tool {
+  color: hsl(var(--color-foreground));
+}
+
+.workspace-inline-tool > * + * {
+  margin-top: 1.5rem;
+}
+
+.workspace-inline-tool h3 {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+}
+
+.workspace-inline-tool :is(h3, h4).text-lg {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.workspace-inline-tool label {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+}
+
+.workspace-inline-tool .text-xs:not(.workspace-inline-keep-xs) {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.workspace-inline-tool input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']),
+.workspace-inline-tool textarea,
+.workspace-inline-tool select {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.workspace-inline-tool button.rounded-full.px-6.py-3 {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
 /* Utility Classes using CSS Variables */
 @theme {
   /* Colors */
