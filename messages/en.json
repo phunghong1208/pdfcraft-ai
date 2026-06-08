@@ -2065,7 +2065,8 @@
       "rangePlaceholder": "e.g., 1, 3, 5-10",
       "previewTitle": "Preview",
       "previewNote": "Showing first page only for better performance",
-      "previewGenerating": "Generating preview..."
+      "previewGenerating": "Generating preview...",
+      "previewPageOf": "Page {current} of {total}"
     },
     "headerFooter": {
       "uploadLabel": "Upload PDF File",

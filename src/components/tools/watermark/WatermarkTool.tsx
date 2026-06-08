@@ -102,6 +102,11 @@ export function WatermarkTool({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+  const previewBoxRef = useRef<HTMLDivElement>(null);
+  const settingsUpToRangeRef = useRef<HTMLDivElement>(null);
+  const [previewBoxWidth, setPreviewBoxWidth] = useState(0);
+  const [previewBoxHeight, setPreviewBoxHeight] = useState(0);
+  const [settingsColHeight, setSettingsColHeight] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [currentPreviewPage, setCurrentPreviewPage] = useState(1);
 
@@ -368,6 +373,41 @@ export function WatermarkTool({
     };
   }, [previewUrl]);
 
+  // Track preview container width so the page fills available space.
+  React.useEffect(() => {
+    const box = previewBoxRef.current;
+    if (!box) return;
+    const updateSize = () => {
+      setPreviewBoxWidth(Math.floor(box.clientWidth));
+      setPreviewBoxHeight(Math.floor(box.clientHeight));
+    };
+    updateSize();
+    const ro = new ResizeObserver(updateSize);
+    ro.observe(box);
+    return () => ro.disconnect();
+  }, [file, previewUrl, settingsColHeight]);
+
+  // Match preview height to settings stack ending at "Phạm vi trang".
+  React.useEffect(() => {
+    const el = settingsUpToRangeRef.current;
+    if (!el || !lockToInitialFile) return;
+    const updateHeight = () => setSettingsColHeight(el.offsetHeight);
+    updateHeight();
+    const ro = new ResizeObserver(updateHeight);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [
+    file,
+    lockToInitialFile,
+    watermarkType,
+    pageMode,
+    customPageRange,
+    repeatWatermark,
+    staggerWatermark,
+    status,
+    result,
+  ]);
+
   // Render preview PDF (single page) to canvas with Header/Footer-like style.
   React.useEffect(() => {
     if (!previewUrl || !previewCanvasRef.current) return;
@@ -381,11 +421,39 @@ export function WatermarkTool({
         if (cancelled) return;
         const page = await pdf.getPage(1);
         if (cancelled) return;
-        const viewport = page.getViewport({ scale: 0.72 });
+        const baseViewport = page.getViewport({ scale: 1 });
+        const box = previewBoxRef.current;
+        let targetWidth = Math.max(box?.clientWidth ?? previewBoxWidth, 0);
+        if (targetWidth < 120 && previewBoxWidth > 0) targetWidth = previewBoxWidth;
+
+        let scale = 0.72;
+        if (lockToInitialFile) {
+          const targetHeight = Math.max(box?.clientHeight ?? previewBoxHeight, 0);
+          if (targetWidth > 0 && targetHeight > 0) {
+            const byWidth = targetWidth / baseViewport.width;
+            const byHeight = targetHeight / baseViewport.height;
+            scale = Math.min(byWidth, byHeight) * 0.99;
+            scale = Math.max(scale, 0.55);
+          } else if (targetWidth > 0) {
+            scale = targetWidth / baseViewport.width;
+            scale = Math.max(scale, 0.55);
+          } else {
+            scale = 0.85;
+          }
+        }
+        const dpr = lockToInitialFile ? Math.min(window.devicePixelRatio || 1, 2) : 1;
+        const viewport = page.getViewport({ scale: scale * dpr });
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
         canvas.width = viewport.width;
         canvas.height = viewport.height;
+        if (lockToInitialFile && targetWidth > 0) {
+          canvas.style.width = `${Math.round(viewport.width / dpr)}px`;
+          canvas.style.height = `${Math.round(viewport.height / dpr)}px`;
+        } else {
+          canvas.style.width = `${Math.round(viewport.width / dpr)}px`;
+          canvas.style.height = `${Math.round(viewport.height / dpr)}px`;
+        }
         await page.render({ canvasContext: ctx, viewport }).promise;
       } catch (err) {
       if (isRenderCancelledError(err)) return;
@@ -396,7 +464,7 @@ export function WatermarkTool({
     return () => {
       cancelled = true;
     };
-  }, [previewUrl]);
+  }, [previewUrl, lockToInitialFile, previewBoxWidth, previewBoxHeight]);
 
   const formatSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
@@ -419,8 +487,31 @@ export function WatermarkTool({
     '[&_textarea]:bg-[hsl(var(--color-background))]',
   ].join(' ');
 
+  const embedded = lockToInitialFile;
+  const cardSize = embedded ? 'sm' : 'lg';
+  const sectionTitleClass = embedded
+    ? 'text-sm font-semibold text-gray-900 dark:text-gray-100'
+    : 'text-lg font-medium text-gray-900 dark:text-gray-100';
+  const fieldLabelClass = embedded
+    ? 'block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300'
+    : 'block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300';
+  const inputClass = embedded
+    ? 'w-full px-2.5 py-1.5 text-sm border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100'
+    : 'w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100';
+  const actionBtnSize = embedded ? 'sm' : 'lg';
+  const radioLabelClass = embedded
+    ? 'text-xs font-medium text-gray-700 dark:text-gray-300'
+    : 'text-sm font-medium text-gray-700 dark:text-gray-300';
+  const toggleTrackClass = embedded ? 'w-9 h-5' : 'w-11 h-6';
+  const toggleKnobClass = embedded
+    ? 'absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform'
+    : 'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform';
+  const toggleKnobOnClass = embedded ? 'translate-x-4' : 'translate-x-5';
+  const rangeClass = 'pdfcraft-range w-full';
+  const sliderValueClass = 'text-[11px] tabular-nums text-gray-500 dark:text-gray-400 shrink-0';
+
   return (
-    <div className={`space-y-6 ${contrastBoostClass} ${className}`.trim()}>
+    <div className={`${embedded ? 'space-y-3' : 'space-y-6'} ${contrastBoostClass} ${className}`.trim()}>
       {!file && !lockToInitialFile && (
         <FileUploader
           accept={['application/pdf', '.pdf']}
@@ -441,17 +532,18 @@ export function WatermarkTool({
       )}
 
       {file && (
-        <div className="grid grid-cols-1 lg:grid-cols-[570px_1fr] gap-6">
-          <div className="space-y-6">
-            <Card variant="outlined">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <svg className="w-10 h-10 text-red-500" viewBox="0 0 24 24" fill="currentColor">
+        <div className={`grid grid-cols-1 ${embedded ? 'xl:grid-cols-[minmax(0,4fr)_minmax(0,6fr)] xl:gap-5 xl:items-start gap-4 w-full' : 'lg:grid-cols-[570px_1fr] gap-6'}`}>
+          <div className={embedded ? 'space-y-3 min-w-0' : 'space-y-6'}>
+            <div ref={settingsUpToRangeRef} className={embedded ? 'space-y-3' : 'space-y-6'}>
+            <Card variant="outlined" size={cardSize}>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <svg className={`${embedded ? 'w-8 h-8' : 'w-10 h-10'} shrink-0 text-red-500`} viewBox="0 0 24 24" fill="currentColor">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
                   </svg>
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">{file.name}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{formatSize(file.size)}</p>
+                  <div className="min-w-0">
+                    <p className={`truncate font-medium text-gray-900 dark:text-gray-100 ${embedded ? 'text-sm' : ''}`}>{file.name}</p>
+                    <p className={`text-gray-500 dark:text-gray-400 ${embedded ? 'text-xs' : 'text-sm'}`}>{formatSize(file.size)}</p>
                   </div>
                 </div>
                 {!lockToInitialFile ? (
@@ -462,13 +554,13 @@ export function WatermarkTool({
               </div>
             </Card>
 
-            <Card variant="outlined" size="lg">
-              <h3 className="text-lg font-medium mb-4 text-gray-900 dark:text-gray-100">
+            <Card variant="outlined" size={cardSize}>
+              <h3 className={`${sectionTitleClass} ${embedded ? 'mb-3' : 'mb-4'}`}>
                 {tTools('optionsTitle')}
               </h3>
 
               {/* Watermark Type Selection */}
-              <div className="flex gap-6 mb-6">
+              <div className={`flex ${embedded ? 'gap-4 mb-4' : 'gap-6 mb-6'}`}>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
@@ -476,10 +568,10 @@ export function WatermarkTool({
                     value="text"
                     checked={watermarkType === 'text'}
                     onChange={() => setWatermarkType('text')}
-                    className="w-4 h-4 text-blue-600"
+                    className={`${embedded ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-blue-600`}
                     disabled={isProcessing}
                   />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <span className={radioLabelClass}>
                     {tTools('textWatermark')}
                   </span>
                 </label>
@@ -490,10 +582,10 @@ export function WatermarkTool({
                     value="image"
                     checked={watermarkType === 'image'}
                     onChange={() => setWatermarkType('image')}
-                    className="w-4 h-4 text-blue-600"
+                    className={`${embedded ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-blue-600`}
                     disabled={isProcessing}
                   />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <span className={radioLabelClass}>
                     {tTools('imageWatermark')}
                   </span>
                 </label>
@@ -501,24 +593,24 @@ export function WatermarkTool({
 
               {/* Text Watermark Options */}
               {watermarkType === 'text' && (
-                <div className="space-y-4">
+                <div className={embedded ? 'space-y-3' : 'space-y-4'}>
                   <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                    <label className={fieldLabelClass}>
                       {tTools('watermarkText')}
                     </label>
                     <input
                       type="text"
                       value={watermarkText}
                       onChange={(e) => setWatermarkText(e.target.value)}
-                      placeholder="CONFIDENTIAL"
-                      className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                      placeholder={tTools('textPlaceholder')}
+                      className={inputClass}
                       disabled={isProcessing}
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                      <label className={fieldLabelClass}>
                         {tTools('fontSize')}
                       </label>
                       <input
@@ -527,12 +619,12 @@ export function WatermarkTool({
                         onChange={(e) => setFontSize(parseInt(e.target.value) || 72)}
                         min={10}
                         max={200}
-                        className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                        className={inputClass}
                         disabled={isProcessing}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                      <label className={fieldLabelClass}>
                         {tTools('color')}
                       </label>
                       <div className="flex items-center gap-2">
@@ -540,25 +632,26 @@ export function WatermarkTool({
                           type="color"
                           value={textColor}
                           onChange={(e) => setTextColor(e.target.value)}
-                          className="w-10 h-10 p-1 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
+                          className={`${embedded ? 'w-8 h-8' : 'w-10 h-10'} p-0.5 cursor-pointer rounded border border-gray-300 dark:border-gray-600`}
                           disabled={isProcessing}
                         />
                         <input
                           type="text"
                           value={textColor}
                           onChange={(e) => setTextColor(e.target.value)}
-                          className="flex-1 px-3 py-2 border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 text-sm"
+                          className={`${inputClass} text-sm`}
                           disabled={isProcessing}
                         />
                       </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                        {tTools('opacity')}: {Math.round(textOpacity * 100)}%
-                      </label>
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <label className={`${fieldLabelClass} mb-0`}>{tTools('opacity')}</label>
+                        <span className={sliderValueClass}>{Math.round(textOpacity * 100)}%</span>
+                      </div>
                       <input
                         type="range"
                         value={textOpacity}
@@ -566,14 +659,15 @@ export function WatermarkTool({
                         min={0.1}
                         max={1}
                         step={0.1}
-                        className="w-full"
+                        className={rangeClass}
                         disabled={isProcessing}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                        {tTools('angle')}: {textAngle}°
-                      </label>
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <label className={`${fieldLabelClass} mb-0`}>{tTools('angle')}</label>
+                        <span className={sliderValueClass}>{textAngle}°</span>
+                      </div>
                       <input
                         type="range"
                         value={textAngle}
@@ -581,7 +675,7 @@ export function WatermarkTool({
                         min={-90}
                         max={90}
                         step={5}
-                        className="w-full"
+                        className={rangeClass}
                         disabled={isProcessing}
                       />
                     </div>
@@ -591,30 +685,31 @@ export function WatermarkTool({
 
               {/* Image Watermark Options */}
               {watermarkType === 'image' && (
-                <div className="space-y-4">
+                <div className={embedded ? 'space-y-3' : 'space-y-4'}>
                   <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                    <label className={fieldLabelClass}>
                       {tTools('watermarkImage')}
                     </label>
                     <input
                       type="file"
                       accept="image/png, image/jpeg"
                       onChange={handleImageSelected}
-                      className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700"
+                      className={`${inputClass} file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700`}
                       disabled={isProcessing}
                     />
                     {imageFile && (
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      <p className={`text-gray-500 dark:text-gray-400 mt-1 ${embedded ? 'text-xs' : 'text-sm'}`}>
                         {imageFile.name} ({formatSize(imageFile.size)})
                       </p>
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                        {tTools('opacity')}: {Math.round(imageOpacity * 100)}%
-                      </label>
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <label className={`${fieldLabelClass} mb-0`}>{tTools('opacity')}</label>
+                        <span className={sliderValueClass}>{Math.round(imageOpacity * 100)}%</span>
+                      </div>
                       <input
                         type="range"
                         value={imageOpacity}
@@ -622,14 +717,15 @@ export function WatermarkTool({
                         min={0.1}
                         max={1}
                         step={0.1}
-                        className="w-full"
+                        className={rangeClass}
                         disabled={isProcessing}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                        {tTools('angle')}: {imageAngle}°
-                      </label>
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <label className={`${fieldLabelClass} mb-0`}>{tTools('angle')}</label>
+                        <span className={sliderValueClass}>{imageAngle}°</span>
+                      </div>
                       <input
                         type="range"
                         value={imageAngle}
@@ -637,7 +733,7 @@ export function WatermarkTool({
                         min={-90}
                         max={90}
                         step={5}
-                        className="w-full"
+                        className={rangeClass}
                         disabled={isProcessing}
                       />
                     </div>
@@ -647,12 +743,12 @@ export function WatermarkTool({
             </Card>
 
             {/* Repeat Watermark Options */}
-            <Card variant="outlined" size="lg">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+            <Card variant="outlined" size={cardSize}>
+              <div className={`flex items-center justify-between gap-3 ${embedded ? 'mb-3' : 'mb-4'}`}>
+                <h3 className={sectionTitleClass}>
                   {tTools('repeatTitle')}
                 </h3>
-                <label className="flex items-center gap-2 cursor-pointer select-none">
+                <label className="flex shrink-0 items-center gap-2 cursor-pointer select-none">
                   <div className="relative inline-flex">
                     <input
                       type="checkbox"
@@ -661,24 +757,30 @@ export function WatermarkTool({
                       onChange={(e) => setRepeatWatermark(e.target.checked)}
                       disabled={isProcessing}
                     />
-                    <div className={`w-11 h-6 rounded-full transition-colors ${repeatWatermark ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                    <div className={`${toggleTrackClass} rounded-full transition-colors ${repeatWatermark ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
                       }`} />
-                    <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${repeatWatermark ? 'translate-x-5' : 'translate-x-0'
+                    <div className={`${toggleKnobClass} ${repeatWatermark ? toggleKnobOnClass : 'translate-x-0'
                       }`} />
                   </div>
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {tTools('repeatEnable')}
-                  </span>
+                  {!embedded ? (
+                    <span className={radioLabelClass}>
+                      {tTools('repeatEnable')}
+                    </span>
+                  ) : null}
                 </label>
               </div>
+              {embedded ? (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 -mt-1">{tTools('repeatEnable')}</p>
+              ) : null}
 
               {repeatWatermark && (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
+                <div className={embedded ? 'space-y-4' : 'space-y-6'}>
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                        {tTools('repeatSpacingX')}: {repeatSpacingX}pt
-                      </label>
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <label className={`${fieldLabelClass} mb-0`}>{tTools('repeatSpacingX')}</label>
+                        <span className={sliderValueClass}>{repeatSpacingX}pt</span>
+                      </div>
                       <input
                         type="range"
                         value={repeatSpacingX}
@@ -686,18 +788,15 @@ export function WatermarkTool({
                         min={20}
                         max={600}
                         step={10}
-                        className="w-full"
+                        className={rangeClass}
                         disabled={isProcessing}
                       />
-                      <div className="flex justify-between text-xs text-gray-400 mt-0.5">
-                        <span>20pt</span>
-                        <span>600pt</span>
-                      </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                        {tTools('repeatSpacingY')}: {repeatSpacingY}pt
-                      </label>
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <label className={`${fieldLabelClass} mb-0`}>{tTools('repeatSpacingY')}</label>
+                        <span className={sliderValueClass}>{repeatSpacingY}pt</span>
+                      </div>
                       <input
                         type="range"
                         value={repeatSpacingY}
@@ -705,26 +804,22 @@ export function WatermarkTool({
                         min={20}
                         max={600}
                         step={10}
-                        className="w-full"
+                        className={rangeClass}
                         disabled={isProcessing}
                       />
-                      <div className="flex justify-between text-xs text-gray-400 mt-0.5">
-                        <span>20pt</span>
-                        <span>600pt</span>
-                      </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-800">
-                    <div>
-                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <div className="flex items-center justify-between gap-3 pt-2 border-t border-gray-100 dark:border-gray-800">
+                    <div className="min-w-0">
+                      <p className={radioLabelClass}>
                         {tTools('staggerTitle')}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400">
                         {tTools('staggerDescription')}
                       </p>
                     </div>
-                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <label className="flex shrink-0 items-center cursor-pointer select-none">
                       <div className="relative inline-flex">
                         <input
                           type="checkbox"
@@ -733,9 +828,9 @@ export function WatermarkTool({
                           onChange={(e) => setStaggerWatermark(e.target.checked)}
                           disabled={isProcessing}
                         />
-                        <div className={`w-11 h-6 rounded-full transition-colors ${staggerWatermark ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                        <div className={`${toggleTrackClass} rounded-full transition-colors ${staggerWatermark ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
                           }`} />
-                        <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${staggerWatermark ? 'translate-x-5' : 'translate-x-0'
+                        <div className={`${toggleKnobClass} ${staggerWatermark ? toggleKnobOnClass : 'translate-x-0'
                           }`} />
                       </div>
                     </label>
@@ -745,13 +840,13 @@ export function WatermarkTool({
             </Card>
 
             {/* Page Range Selection */}
-            <Card variant="outlined" size="lg">
-              <h3 className="text-lg font-medium mb-4 text-gray-900 dark:text-gray-100">
+            <Card variant="outlined" size={cardSize}>
+              <h3 className={`${sectionTitleClass} ${embedded ? 'mb-3' : 'mb-4'}`}>
                 {tTools('rangeTitle')}
               </h3>
 
-              <div className="space-y-4">
-                <div className="flex flex-wrap gap-4">
+              <div className={embedded ? 'space-y-3' : 'space-y-4'}>
+                <div className={`grid ${embedded ? 'grid-cols-2 gap-2' : 'flex flex-wrap gap-4'}`}>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="radio"
@@ -759,10 +854,10 @@ export function WatermarkTool({
                       value="all"
                       checked={pageMode === 'all'}
                       onChange={() => setPageMode('all')}
-                      className="w-4 h-4 text-blue-600"
+                      className={`${embedded ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-blue-600`}
                       disabled={isProcessing}
                     />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <span className={radioLabelClass}>
                       {tTools('rangeAll')}
                     </span>
                   </label>
@@ -773,10 +868,10 @@ export function WatermarkTool({
                       value="odd"
                       checked={pageMode === 'odd'}
                       onChange={() => setPageMode('odd')}
-                      className="w-4 h-4 text-blue-600"
+                      className={`${embedded ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-blue-600`}
                       disabled={isProcessing}
                     />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <span className={radioLabelClass}>
                       {tTools('rangeOdd')}
                     </span>
                   </label>
@@ -787,10 +882,10 @@ export function WatermarkTool({
                       value="even"
                       checked={pageMode === 'even'}
                       onChange={() => setPageMode('even')}
-                      className="w-4 h-4 text-blue-600"
+                      className={`${embedded ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-blue-600`}
                       disabled={isProcessing}
                     />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <span className={radioLabelClass}>
                       {tTools('rangeEven')}
                     </span>
                   </label>
@@ -801,10 +896,10 @@ export function WatermarkTool({
                       value="custom"
                       checked={pageMode === 'custom'}
                       onChange={() => setPageMode('custom')}
-                      className="w-4 h-4 text-blue-600"
+                      className={`${embedded ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-blue-600`}
                       disabled={isProcessing}
                     />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <span className={radioLabelClass}>
                       {tTools('rangeCustom')}
                     </span>
                   </label>
@@ -817,18 +912,19 @@ export function WatermarkTool({
                       value={customPageRange}
                       onChange={(e) => setCustomPageRange(e.target.value)}
                       placeholder={tTools('rangePlaceholder')}
-                      className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder:text-gray-400"
+                      className={inputClass}
                       disabled={isProcessing}
                     />
                   </div>
                 )}
               </div>
             </Card>
+            </div>
 
-            <div className="flex flex-wrap items-center gap-4">
+            <div className={`flex flex-wrap items-center ${embedded ? 'gap-2' : 'gap-4'}`}>
               <Button
                 variant="primary"
-                size="lg"
+                size={actionBtnSize}
                 onClick={handleProcess}
                 disabled={!file || isProcessing || (watermarkType === 'text' && !watermarkText.trim()) || (watermarkType === 'image' && !imageFile)}
                 loading={isProcessing}
@@ -840,7 +936,7 @@ export function WatermarkTool({
                   file={result}
                   filename={file.name.replace('.pdf', '_watermarked.pdf')}
                   variant="secondary"
-                  size="lg"
+                  size={actionBtnSize}
                   showFileSize
                 />
               )}
@@ -864,63 +960,76 @@ export function WatermarkTool({
           </div>
 
           {/* Preview Section (Header/Footer-like) */}
-          <div className="space-y-4">
-            <Card variant="outlined" size="lg">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium">
+          <div className={embedded ? 'min-w-0 w-full' : 'space-y-4'}>
+            <Card
+              variant="outlined"
+              size={cardSize}
+              className={embedded ? '!p-3 flex flex-col' : undefined}
+              style={embedded && settingsColHeight > 0 ? { height: settingsColHeight } : undefined}
+            >
+              <div className={`flex items-center justify-between gap-2 shrink-0 ${embedded ? 'mb-3' : 'mb-4'}`}>
+                <h3 className={sectionTitleClass}>
                   {tTools('previewTitle')}
                 </h3>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-0.5 rounded-md border border-[hsl(var(--color-border))] bg-[hsl(var(--color-background))] px-0.5">
                   <Button
                     variant="ghost"
                     size="sm"
+                    className="h-6 w-6 px-0 text-xs"
                     onClick={() => setCurrentPreviewPage((p) => Math.max(1, p - 1))}
                     disabled={currentPreviewPage <= 1 || totalPages <= 1}
+                    aria-label={t('buttons.previous')}
                   >
                     ←
                   </Button>
-                  <span className="text-sm">Page {currentPreviewPage} of {Math.max(1, totalPages)}</span>
+                  <span className={`whitespace-nowrap px-1 text-gray-600 dark:text-gray-300 ${embedded ? 'text-[11px]' : 'text-sm'}`}>
+                    {tTools('previewPageOf', { current: currentPreviewPage, total: Math.max(1, totalPages) })}
+                  </span>
                   <Button
                     variant="ghost"
                     size="sm"
+                    className="h-6 w-6 px-0 text-xs"
                     onClick={() => setCurrentPreviewPage((p) => Math.min(Math.max(1, totalPages), p + 1))}
                     disabled={currentPreviewPage >= totalPages || totalPages <= 1}
+                    aria-label={t('buttons.next')}
                   >
                     →
                   </Button>
                 </div>
               </div>
 
-              <div className="bg-gray-100 rounded-[var(--radius-md)] p-4 flex justify-center min-h-[520px] items-center">
+              <div
+                ref={previewBoxRef}
+                className={`w-full ${embedded ? 'p-0 flex-1 min-h-0 overflow-hidden flex items-center justify-center rounded-md border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.12)]' : 'flex justify-center items-start overflow-hidden rounded-md border border-[hsl(var(--color-border))] bg-gray-100 p-4 min-h-[520px]'}`}
+              >
                 {previewUrl ? (
                   <canvas
                     ref={previewCanvasRef}
-                    className="shadow-lg bg-white max-w-full h-auto"
-                    style={{ maxHeight: '500px' }}
+                    className={`bg-white block w-full h-auto ${embedded ? 'shadow-sm rounded-sm' : 'shadow-sm rounded-sm'}`}
                   />
                 ) : (
-                  <div className="text-[hsl(var(--color-muted-foreground))] text-center p-8">
-                    <svg className="w-12 h-12 mx-auto mb-4 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div className={`w-full text-[hsl(var(--color-muted-foreground))] text-center ${embedded ? 'py-10 px-2 rounded-md border border-dashed border-[hsl(var(--color-border))]' : 'p-8'}`}>
+                    <svg className={`mx-auto mb-2 opacity-20 ${embedded ? 'w-8 h-8' : 'w-12 h-12'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
-                    <p>{tTools('previewTitle')}</p>
+                    <p className={embedded ? 'text-xs' : ''}>{tTools('previewTitle')}</p>
                   </div>
                 )}
               </div>
 
-              <div className="mt-4 text-center">
+              <div className={`text-center shrink-0 ${embedded ? 'mt-3' : 'mt-3'}`}>
                 {isPreviewing ? (
-                  <span className="inline-flex items-center gap-1 text-sm text-[hsl(var(--color-muted-foreground))]">
-                    <svg className="animate-spin h-4 w-4 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <span className={`inline-flex items-center gap-1 text-[hsl(var(--color-muted-foreground))] ${embedded ? 'text-xs' : 'text-sm'}`}>
+                    <svg className="animate-spin h-3.5 w-3.5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                     {tTools('previewGenerating')}
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 text-sm text-green-600">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <span className={`inline-flex items-center gap-1 text-green-600 ${embedded ? 'text-xs' : 'text-sm'}`}>
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                     {tTools('previewNote')}

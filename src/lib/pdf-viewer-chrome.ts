@@ -139,6 +139,21 @@ html.pdfcraft-embedded .StampPop,html.pdfcraft-embedded .ant-dropdown:has(.Stamp
 html.pdfcraft-embedded [class*="StampPop"]{
   z-index:10050!important;pointer-events:auto!important;
 }
+html.pdfcraft-embedded .SignaturePop,html.pdfcraft-embedded .ant-popover.SignaturePop,
+html.pdfcraft-embedded .ant-dropdown:has(.SignaturePop-Container),html.pdfcraft-embedded [class*="SignaturePop"]{
+  z-index:10050!important;pointer-events:auto!important;
+}
+html.pdfcraft-embedded .SignaturePop-Container,html.pdfcraft-embedded .SignaturePop-Container img,
+html.pdfcraft-embedded .SignaturePop li img{
+  pointer-events:auto!important;cursor:pointer!important;
+}
+.ant-dropdown:has(.SignaturePop-Container),.ant-popover.SignaturePop,.ant-popover:has(.SignaturePop-Container){
+  position:fixed!important;top:50%!important;left:50%!important;
+  transform:translate(-50%,-50%)!important;z-index:10050!important;
+}
+.ant-modal:has(.SignatureTool),.ant-modal-wrap:has(.SignatureTool){
+  z-index:10055!important;pointer-events:auto!important;
+}
 html.pdfcraft-embedded .StampPop-Container,html.pdfcraft-embedded .StampPop-Container img{
   pointer-events:auto!important;cursor:pointer!important;
 }

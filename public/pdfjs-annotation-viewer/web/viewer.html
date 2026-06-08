@@ -438,6 +438,18 @@ See https://github.com/adobe-type-tools/cmap-resources
       max-width: 96px !important;
       object-fit: contain !important;
     }
+    html.pdfcraft-embedded .SignaturePop,
+    html.pdfcraft-embedded .ant-dropdown:has(.SignaturePop-Container),
+    html.pdfcraft-embedded .ant-popover.SignaturePop {
+      z-index: 10050 !important;
+      pointer-events: auto !important;
+    }
+    html.pdfcraft-embedded .SignaturePop-Container,
+    html.pdfcraft-embedded .SignaturePop-Container img,
+    html.pdfcraft-embedded .SignaturePop li img {
+      pointer-events: auto !important;
+      cursor: pointer !important;
+    }
     html.pdfcraft-stamp-active #pdfcraft-stamp-picker.pdfcraft-stamp-picker {
       position: fixed !important;
       inset: 0 !important;
@@ -636,12 +648,20 @@ See https://github.com/adobe-type-tools/cmap-resources
     .ant-dropdown:has(.StampPop-Container),
     .ant-dropdown:has(.StampPop),
     .ant-popover.StampPop,
-    .ant-popover:has(.StampPop-Container) {
+    .ant-popover:has(.StampPop-Container),
+    .ant-dropdown:has(.SignaturePop-Container),
+    .ant-popover.SignaturePop,
+    .ant-popover:has(.SignaturePop-Container) {
       position: fixed !important;
       top: 50% !important;
       left: 50% !important;
       transform: translate(-50%, -50%) !important;
       z-index: 10050 !important;
+    }
+    .ant-modal:has(.SignatureTool),
+    .ant-modal-wrap:has(.SignatureTool) {
+      z-index: 10055 !important;
+      pointer-events: auto !important;
     }
     .CustomToolbar .buttons>li[data-action="save"],
     .CustomToolbar button[data-action="save"] {

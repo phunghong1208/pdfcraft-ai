@@ -567,6 +567,58 @@ select option {
   color: hsl(var(--color-foreground));
 }
 
+/* Slim range slider for tool panels */
+.pdfcraft-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 3px;
+  border-radius: 9999px;
+  background: hsl(var(--color-border));
+  outline: none;
+  cursor: pointer;
+}
+
+.pdfcraft-range::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 9999px;
+  background: hsl(var(--color-border));
+}
+
+.pdfcraft-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -4.5px;
+  border-radius: 50%;
+  background: hsl(var(--color-primary));
+  border: 2px solid hsl(var(--color-background));
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.18);
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.pdfcraft-range:active::-webkit-slider-thumb {
+  transform: scale(1.08);
+}
+
+.pdfcraft-range::-moz-range-track {
+  height: 3px;
+  border-radius: 9999px;
+  background: hsl(var(--color-border));
+  border: none;
+}
+
+.pdfcraft-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: hsl(var(--color-primary));
+  border: 2px solid hsl(var(--color-background));
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.18);
+  cursor: pointer;
+}
+
 /* Utility Classes using CSS Variables */
 @theme {
   /* Colors */

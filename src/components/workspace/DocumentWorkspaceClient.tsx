@@ -1497,7 +1497,9 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
         const deselecting = activeAnnotTool === tool;
         sendAnnotationToolToViewer(deselecting ? 'select' : tool);
         setActiveAnnotTool(deselecting ? null : tool);
-        setActiveTab('comment');
+        if (!(tool === 'signature' && activeTab === 'fillsign')) {
+          setActiveTab('comment');
+        }
         break;
       }
       case 'openInlineCompress':
@@ -1607,7 +1609,13 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     [],
   );
   const inlineDialogMaxWidthClass =
-    workspaceTool && previewHeavyTools.has(workspaceTool) ? 'max-w-6xl' : 'max-w-3xl';
+    workspaceTool === 'watermark'
+      ? 'max-w-5xl'
+      : workspaceTool && previewHeavyTools.has(workspaceTool)
+        ? 'max-w-6xl'
+        : 'max-w-3xl';
+  const inlineDialogMaxHeightClass =
+    workspaceTool === 'watermark' ? 'max-h-[90vh]' : 'max-h-[90vh]';
 
   const ribbonGroups = useMemo(
     () => getRibbonGroups(activeTab, locale, (key) => t(key)),
@@ -1955,7 +1963,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
         >
           <div
             style={inlineToolThemeVars}
-            className={`relative flex max-h-[90vh] w-full ${inlineDialogMaxWidthClass} flex-col overflow-hidden rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-card))] text-[hsl(var(--color-foreground))] shadow-2xl`}
+            className={`relative flex ${inlineDialogMaxHeightClass} w-full ${inlineDialogMaxWidthClass} flex-col overflow-hidden rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-card))] text-[hsl(var(--color-foreground))] shadow-2xl`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-[hsl(var(--color-border))] px-4 py-3 shrink-0">
@@ -1975,7 +1983,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 scrollbar-hide">
+            <div className={`flex-1 overflow-y-auto scrollbar-hide ${workspaceTool === 'watermark' ? 'p-3' : 'p-4'}`}>
               {workspaceTool === 'compress' && (
                 <CompressPDFTool
                   initialFile={file}

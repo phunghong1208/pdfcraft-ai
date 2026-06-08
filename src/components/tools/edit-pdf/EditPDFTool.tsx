@@ -159,6 +159,11 @@ export function EditPDFTool({
           'rectangle','circle','arrow','cloud',
           'freehand','freeHighlight','freeText','signature','stamp'
         ];
+        var EXTENSION_TOOL_ORDER = [
+          'select','highlight','strikeout','underline',
+          'rectangle','circle','note','arrow','cloud',
+          'freehand','freeHighlight','freeText','signature','stamp'
+        ];
         var TOOL_SET = {};
         TOOL_ORDER.forEach(function(n){ TOOL_SET[n] = true; });
 
@@ -498,6 +503,114 @@ export function EditPDFTool({
           return true;
         }
 
+        function hideSignaturePop(){
+          var pops = document.querySelectorAll('.ant-popover.SignaturePop, .SignaturePop');
+          for(var i=0;i<pops.length;i++){
+            try{ pops[i].style.display = 'none'; }catch(e){}
+          }
+        }
+
+        function repositionSignaturePop(){
+          var wrapper = document.querySelector('.ant-popover.SignaturePop');
+          if(!wrapper){
+            var inner = document.querySelector('.SignaturePop-Container');
+            if(inner) wrapper = inner.closest('.ant-popover') || inner.closest('.ant-dropdown');
+          }
+          if(wrapper){
+            wrapper.style.position = 'fixed';
+            wrapper.style.top = '50%';
+            wrapper.style.left = '50%';
+            wrapper.style.transform = 'translate(-50%,-50%)';
+            wrapper.style.zIndex = '10050';
+            wrapper.style.display = '';
+            wrapper.style.pointerEvents = 'auto';
+            return true;
+          }
+          return false;
+        }
+
+        function openSignatureToolbarPopover(){
+          var li = getToolLi('signature');
+          if(!li) return false;
+          var trigger = li.querySelector('.icon') || li.querySelector('.name') || li;
+          if(trigger && typeof trigger.click === 'function'){
+            trigger.click();
+            return true;
+          }
+          return false;
+        }
+
+        function applySignatureImage(sigUrl){
+          if(!isValidStampUrl(sigUrl)) return false;
+          var ext = getExtension();
+          if(!ext || !ext.painter) return false;
+          var cfg = resolveToolConfig('signature');
+          window.__pdfcraftActiveTool = 'signature';
+          try{
+            ext.painter.activate(cfg, sigUrl);
+            hideSignaturePop();
+            return true;
+          }catch(e){ return false; }
+        }
+
+        function bindSignaturePopPicker(){
+          if(window.__pdfcraftSignaturePopBound) return;
+          window.__pdfcraftSignaturePopBound = true;
+          document.addEventListener('click', function(evt){
+            if(window.__pdfcraftActiveTool !== 'signature') return;
+            var t = evt.target;
+            if(!t || !t.closest) return;
+            var img = t.closest('.SignaturePop-Container img') || (t.tagName === 'IMG' && t.closest('.SignaturePop') ? t : null);
+            if(!img) return;
+            var sigUrl = img.getAttribute('src') || img.currentSrc || img.src || '';
+            if(!isValidStampUrl(sigUrl)) return;
+            evt.preventDefault();
+            evt.stopPropagation();
+            applySignatureImage(sigUrl);
+          }, true);
+        }
+
+        function releaseSignaturePlacement(){
+          if(window.__pdfcraftSignatureReleasing) return;
+          window.__pdfcraftSignatureReleasing = true;
+          hideSignaturePop();
+          window.__pdfcraftActiveTool = 'select';
+          var ext = getExtension();
+          if(ext && ext.painter){
+            try{
+              if(typeof ext.painter.clearTempDataTransfer === 'function') ext.painter.clearTempDataTransfer();
+              else ext.painter.tempDataTransfer = null;
+            }catch(e){}
+            try{
+              if(typeof ext.painter.__pdfcraftOrigDefault === 'function') ext.painter.__pdfcraftOrigDefault();
+            }catch(e){}
+          }
+          try{ window.parent.postMessage({ type:'pdfcraft-tool-changed', tool:'select' }, '*'); }catch(e){}
+          setTimeout(function(){ window.__pdfcraftSignatureReleasing = false; }, 300);
+        }
+
+        function activateSignaturePlacement(){
+          hookExtensionPainter();
+          var ext = getExtension();
+          if(!ext || !ext.painter) return false;
+          bindSignaturePopPicker();
+          window.__pdfcraftActiveTool = 'signature';
+          document.documentElement.classList.add('pdfcraft-annotations-visible');
+          setAnnotating(true);
+          try{
+            if(typeof ext.painter.clearTempDataTransfer === 'function') ext.painter.clearTempDataTransfer();
+            else ext.painter.tempDataTransfer = null;
+          }catch(e){}
+          if(!openSignatureToolbarPopover()) activateViaToolbarRef('signature');
+          var tries = 0;
+          var timer = setInterval(function(){
+            tries += 1;
+            if(repositionSignaturePop() || tries >= 24) clearInterval(timer);
+          }, 100);
+          try{ window.parent.postMessage({ type:'pdfcraft-tool-changed', tool:'signature' }, '*'); }catch(e){}
+          return true;
+        }
+
         function applyFreeTextStyleToPainter(){
           var ext = getExtension();
           if(!ext || !ext.painter) return;
@@ -583,8 +696,12 @@ export function EditPDFTool({
               setTimeout(function(){ activateTool('freeText'); }, 40);
               return;
             }
-            if(window.__pdfcraftActiveTool === 'stamp' || window.__pdfcraftActiveTool === 'signature'){
+            if(window.__pdfcraftActiveTool === 'stamp'){
               releaseStampPlacement();
+              return;
+            }
+            if(window.__pdfcraftActiveTool === 'signature'){
+              releaseSignaturePlacement();
               return;
             }
             window.__pdfcraftActiveTool = 'select';
@@ -596,19 +713,30 @@ export function EditPDFTool({
             var origSave = p.saveToStore.bind(p);
             p.saveToStore = function(ann, silent){
               var isStampPlaced = ann && (
-                ann.type === STAMP_TYPE || ann.subtype === 'Stamp' || ann.name === 'stamp' ||
+                ann.type === STAMP_TYPE || ann.subtype === 'Stamp' || ann.name === 'stamp'
+              );
+              var isSignaturePlaced = ann && (
                 ann.type === SIGNATURE_TYPE || ann.subtype === 'Caret' || ann.name === 'signature'
               );
               if(isStampPlaced && window.__pdfcraftStampPlacedAt && Date.now() - window.__pdfcraftStampPlacedAt < 400){
                 return;
               }
-              if(isStampPlaced && (window.__pdfcraftActiveTool === 'stamp' || window.__pdfcraftActiveTool === 'signature')){
+              if(isSignaturePlaced && window.__pdfcraftSignaturePlacedAt && Date.now() - window.__pdfcraftSignaturePlacedAt < 450){
+                return;
+              }
+              if(isStampPlaced && window.__pdfcraftActiveTool === 'stamp'){
                 window.__pdfcraftStampPlacedAt = Date.now();
+              }
+              if(isSignaturePlaced && window.__pdfcraftActiveTool === 'signature'){
+                window.__pdfcraftSignaturePlacedAt = Date.now();
               }
               var ret = origSave(ann, silent);
               try{
-                if(isStampPlaced && (window.__pdfcraftActiveTool === 'stamp' || window.__pdfcraftActiveTool === 'signature')){
+                if(isStampPlaced && window.__pdfcraftActiveTool === 'stamp'){
                   setTimeout(releaseStampPlacement, 50);
+                }
+                if(isSignaturePlaced && window.__pdfcraftActiveTool === 'signature'){
+                  setTimeout(releaseSignaturePlacement, 50);
                 }
               }catch(e){}
               scheduleHistoryPush();
@@ -650,7 +778,12 @@ export function EditPDFTool({
               }
               p.__pdfcraftLastActivateKey = stampKey;
               p.__pdfcraftLastActivateAt = now;
-              return origActivate(cfg, url);
+              var ret = origActivate(cfg, url);
+              if(cfg && cfg.name === 'signature' && url && isValidStampUrl(url)){
+                hideSignaturePop();
+                window.__pdfcraftActiveTool = 'signature';
+              }
+              return ret;
             };
             if(typeof p.saveTempDataTransfer === 'function'){
               var origSaveTemp = p.saveTempDataTransfer.bind(p);
@@ -675,7 +808,7 @@ export function EditPDFTool({
                   return;
                 }
                 if(ctx.annotation.type === SIGNATURE_TYPE){
-                  clickToolLi('signature');
+                  activateSignaturePlacement();
                   return;
                 }
               }
@@ -780,11 +913,18 @@ export function EditPDFTool({
         };
 
         function getToolLi(toolName){
-          var idx = TOOL_ORDER.indexOf(toolName);
+          var idx = EXTENSION_TOOL_ORDER.indexOf(toolName);
+          if(idx < 0) idx = TOOL_ORDER.indexOf(toolName);
           var ul = document.querySelector('.CustomToolbar ul.buttons');
           if(ul && idx >= 0){
             var byIdx = ul.querySelectorAll(':scope > li')[idx];
             if(byIdx) return byIdx;
+          }
+          if(ul && toolName === 'signature'){
+            var sigItems = ul.querySelectorAll(':scope > li');
+            for(var s=0;s<sigItems.length;s++){
+              if(sigItems[s].querySelector('.SignaturePop-Container, .SignaturePop, .SignatureTool')) return sigItems[s];
+            }
           }
           var label = TOOL_LABEL_MAP[toolName];
           if(!label || !ul) return null;
@@ -829,23 +969,17 @@ export function EditPDFTool({
 
         function openStampSignatureCreator(toolName){
           if(toolName === 'stamp') return activateStampPlacement();
+          if(toolName === 'signature') return activateSignaturePlacement();
           return clickToolLi(toolName);
         }
 
         function activateStampSignature(toolName){
           hookExtensionPainter();
-          var ext = getExtension();
-          var cfg = resolveToolConfig(toolName);
-          if(!cfg) return false;
-          var viaRef = activateViaToolbarRef(toolName);
           if(toolName === 'stamp'){
             return activateStampPlacement();
           }
           if(toolName === 'signature'){
-            if(ext && ext.painter){
-              try{ ext.painter.activate(cfg, null); }catch(e){}
-            }
-            return clickToolLi('signature') || viaRef;
+            return activateSignaturePlacement();
           }
           return false;
         }
