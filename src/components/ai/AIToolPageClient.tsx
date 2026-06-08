@@ -13,6 +13,7 @@ import {
   Play,
   Pause,
   Square,
+  ArrowLeftRight,
 } from 'lucide-react';
 import { AiCenteredSpinner } from '@/components/ai/AiCenteredSpinner';
 import { AI_UI } from '@/lib/ai-ui-classes';
@@ -40,7 +41,14 @@ import {
   getSpeechLangForWorkspaceAiAnswerLanguage,
   type WorkspacePresetTierId,
 } from '@/services/workspaceAiApi';
-import { smartOcrPdf, summarizePdf, translatePdf } from '@/services/aiApi';
+import { smartOcrPdf, summarizePdf } from '@/services/aiApi';
+import {
+  TRANSLATE_LANGUAGE_OPTIONS,
+  getDefaultTranslateLanguagePair,
+  translateDocument,
+  type TranslateOutputType,
+} from '@/services/translateDocsApi';
+import { textToPDF, type FontId } from '@/lib/pdf/processors/text-to-pdf';
 import {
   getWorkspaceFileKey,
   loadPersistedWorkspaceAi,
@@ -65,8 +73,7 @@ type SummaryResult = {
   fileName?: string;
 };
 
-const ACTION_MAP: Record<Exclude<AIActionType, 'summary' | 'chat' | 'voice'>, (file: File) => Promise<unknown>> = {
-  translate: translatePdf,
+const ACTION_MAP: Record<Exclude<AIActionType, 'summary' | 'chat' | 'voice' | 'translate'>, (file: File) => Promise<unknown>> = {
   smartOcr: smartOcrPdf,
 };
 
@@ -75,9 +82,9 @@ const VOICE_SPEEDS = [0.85, 1, 1.15, 1.3] as const;
 const SUMMARY_STORAGE_KEY = 'pdfcraft-ai-summary-last';
 const PDF_PREVIEW_HEIGHT = 'h-[220px]';
 const VOICE_PDF_PREVIEW_HEIGHT = 'h-[min(48vh,520px)]';
+const TRANSLATE_PREVIEW_PANEL = 'flex-1 min-h-[min(50vh,520px)] w-full';
 const AI_MODEL_LABEL =
   process.env.NEXT_PUBLIC_WORKSPACE_AI_MODEL_LABEL?.trim() || 'PDFCraft Document AI';
-
 function countSummaryWords(text: string): number {
   const trimmed = text.trim();
   if (!trimmed) return 0;
@@ -201,14 +208,28 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
   const [isPreparingVoice, setIsPreparingVoice] = useState(false);
   const [voiceHint, setVoiceHint] = useState<string | null>(null);
   const [voiceRate, setVoiceRate] = useState(1);
+  const defaultTranslatePair = getDefaultTranslateLanguagePair(locale);
+  const [sourceLang, setSourceLang] = useState(defaultTranslatePair.source);
+  const [targetLang, setTargetLang] = useState(defaultTranslatePair.target);
+  const [translateOutputType, setTranslateOutputType] = useState<TranslateOutputType>('keep_layout');
+  const [translatedBlob, setTranslatedBlob] = useState<Blob | null>(null);
+  const [translatedFileName, setTranslatedFileName] = useState<string | null>(null);
+  const [translatedText, setTranslatedText] = useState<string | null>(null);
+  const [translateCopyDone, setTranslateCopyDone] = useState(false);
+  const [isExportingTranslatedPdf, setIsExportingTranslatedPdf] = useState(false);
 
   const speech = useDocumentSpeech();
 
   const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : ''), [file]);
+  const translatedPreviewUrl = useMemo(
+    () => (translatedBlob ? URL.createObjectURL(translatedBlob) : ''),
+    [translatedBlob],
+  );
   const isSummaryPage = actionType === 'summary';
   const isChatPage = actionType === 'chat';
   const isVoicePage = actionType === 'voice';
-  const isDenseAiPage = isSummaryPage || isChatPage || isVoicePage;
+  const isTranslatePage = actionType === 'translate';
+  const isDenseAiPage = isSummaryPage || isChatPage || isVoicePage || isTranslatePage;
   const speechLang = useMemo(
     () => getSpeechLangForWorkspaceAiAnswerLanguage(answerLanguage),
     [answerLanguage],
@@ -223,6 +244,12 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
       if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
   }, [previewUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (translatedPreviewUrl) URL.revokeObjectURL(translatedPreviewUrl);
+    };
+  }, [translatedPreviewUrl]);
 
   useEffect(() => {
     setAnswerLanguage(loadWorkspaceAiAnswerLanguage(locale));
@@ -273,6 +300,10 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
       setChatHint(null);
       setVoiceHint(null);
       speech.stop();
+      setTranslatedBlob(null);
+      setTranslatedFileName(null);
+      setTranslatedText(null);
+      setTranslateCopyDone(false);
       if (!next) {
         setResult(null);
         setDocumentId(null);
@@ -593,6 +624,23 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
           );
           saveWorkspaceAiAnswerLanguage(answerLanguage, locale);
         }
+      } else if (actionType === 'translate') {
+        const translated = await translateDocument(file, {
+          sourceLang,
+          targetLang,
+          outputType: translateOutputType,
+        });
+        if (translated.kind === 'text') {
+          setTranslatedText(translated.text);
+          setTranslatedBlob(null);
+          setTranslatedFileName(null);
+          setResult({ outputType: translateOutputType, textLength: translated.text.length });
+        } else {
+          setTranslatedText(null);
+          setTranslatedBlob(translated.blob);
+          setTranslatedFileName(translated.fileName);
+          setResult({ fileName: translated.fileName, outputType: translateOutputType });
+        }
       } else if (actionType !== 'chat' && actionType !== 'voice') {
         const data = await ACTION_MAP[actionType](file);
         setResult(data);
@@ -638,6 +686,83 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
     }
   }, [summarySourceName, summaryText, t]);
 
+  const translatedBaseName = useMemo(
+    () => (file?.name.replace(/\.pdf$/i, '') || 'document'),
+    [file?.name],
+  );
+
+  const handleDownloadTranslated = useCallback(() => {
+    if (!translatedBlob) return;
+    const url = URL.createObjectURL(translatedBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = translatedFileName || 'translated.pdf';
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [translatedBlob, translatedFileName]);
+
+  const handleCopyTranslated = useCallback(async () => {
+    if (!translatedText?.trim()) return;
+    try {
+      await navigator.clipboard.writeText(translatedText);
+      setTranslateCopyDone(true);
+      window.setTimeout(() => setTranslateCopyDone(false), 2000);
+    } catch {
+      setError(t('aiPanel.copyFailed'));
+    }
+  }, [translatedText, t]);
+
+  const handleDownloadTranslatedText = useCallback(() => {
+    if (!translatedText?.trim() || !file) return;
+    const blob = new Blob([translatedText], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${translatedBaseName}-translated-${targetLang}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [file, translatedBaseName, translatedText, targetLang]);
+
+  const handleExportTranslatedPdf = useCallback(async () => {
+    if (!translatedText?.trim() || !file) return;
+    setIsExportingTranslatedPdf(true);
+    setError(null);
+    try {
+      const fontByLang: Record<string, FontId> = {
+        vi: 'noto-sans',
+        ja: 'noto-sans-jp',
+        ko: 'noto-sans-kr',
+        zh: 'noto-sans-sc',
+        'zh-TW': 'noto-sans-tc',
+        ar: 'noto-sans-arabic',
+      };
+      const txtFile = new File(
+        [translatedText],
+        `${translatedBaseName}-translated-${targetLang}.txt`,
+        { type: 'text/plain' },
+      );
+      const out = await textToPDF([txtFile], {
+        fontId: fontByLang[targetLang] ?? 'noto-sans',
+        preserveLineBreaks: true,
+        wrapLines: true,
+      });
+      if (!out.success || !out.result) {
+        throw new Error(out.error?.message ?? t('aiTranslatePage.exportPdfFailed'));
+      }
+      const blob = Array.isArray(out.result) ? out.result[0] : out.result;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${translatedBaseName}-translated-${targetLang}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('aiTranslatePage.exportPdfFailed'));
+    } finally {
+      setIsExportingTranslatedPdf(false);
+    }
+  }, [file, translatedBaseName, translatedText, targetLang, t]);
+
   const summaryWordCount = countSummaryWords(summaryText);
   const modelLabel = t('aiSummaryPage.modelLabel');
 
@@ -682,7 +807,7 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
         <div
           className={
             isDenseAiPage
-              ? 'grid grid-cols-1 xl:grid-cols-[minmax(300px,380px)_1fr] gap-6 items-start'
+              ? `grid grid-cols-1 xl:grid-cols-[minmax(300px,380px)_1fr] gap-6 ${isTranslatePage ? 'items-stretch' : 'items-start'}`
               : 'grid grid-cols-1 lg:grid-cols-2 gap-6'
           }
         >
@@ -902,6 +1027,175 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                     {restoredHint}
                   </p>
                 )}
+                {!file && (
+                  <p className="mt-2 text-[11px] text-[hsl(var(--color-muted-foreground))]">
+                    {t('aiToolPage.selectFileFirst')}
+                  </p>
+                )}
+              </>
+            ) : isTranslatePage ? (
+              <>
+                <label
+                  className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 cursor-pointer transition-all ${
+                    uploadDragOver
+                      ? 'border-[hsl(var(--color-primary))] bg-[hsl(var(--color-primary)/0.06)]'
+                      : 'border-[hsl(var(--color-border))] hover:border-[hsl(var(--color-primary)/0.45)] hover:bg-[hsl(var(--color-muted)/0.25)]'
+                  }`}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setUploadDragOver(true);
+                  }}
+                  onDragLeave={() => setUploadDragOver(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setUploadDragOver(false);
+                    pickFileFromDrop(e.dataTransfer.files);
+                  }}
+                >
+                  <span className="text-3xl leading-none select-none" aria-hidden>
+                    📄🌐
+                  </span>
+                  <span className="mt-3 text-[15px] font-semibold text-[hsl(var(--color-foreground))]">
+                    {t('aiTranslatePage.uploadTitle')}
+                  </span>
+                  <span className="mt-1 text-center text-[12px] text-[hsl(var(--color-muted-foreground))] max-w-[240px] leading-snug">
+                    {t('aiTranslatePage.uploadSubtitle')}
+                  </span>
+                  <span className="mt-3 text-[11px] font-medium text-[hsl(var(--color-primary))]">
+                    {t('aiTranslatePage.uploadDropHint')}
+                  </span>
+                  <span className="mt-1 text-[10px] text-[hsl(var(--color-muted-foreground))]">
+                    {t('aiTranslatePage.uploadFormats')}
+                  </span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,application/pdf"
+                    onChange={(e) => handleFileSelect(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+
+                {file && (
+                  <div className="mt-3 flex items-center gap-2 rounded-lg border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.15)] px-3 py-2">
+                    <FileText className="h-4 w-4 shrink-0 text-[hsl(var(--color-primary))]" />
+                    <span className="text-[12px] truncate font-medium">{file.name}</span>
+                  </div>
+                )}
+
+                <div className="mt-3 rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.12)] p-3 space-y-3">
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1 min-w-0">
+                      <label className="text-[11px] font-medium text-[hsl(var(--color-foreground))]">
+                        {t('aiTranslatePage.fromLabel')}
+                      </label>
+                      <select
+                        value={sourceLang}
+                        disabled={loading}
+                        onChange={(e) => setSourceLang(e.target.value)}
+                        className="mt-1 w-full rounded-lg border border-[hsl(var(--color-border))] bg-[hsl(var(--color-background))] px-2.5 py-2 text-[12px]"
+                      >
+                        {TRANSLATE_LANGUAGE_OPTIONS.map((lang) => (
+                          <option key={`from-${lang.code}`} value={lang.code}>
+                            {lang.nativeName}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={loading}
+                      onClick={() => {
+                        setSourceLang(targetLang);
+                        setTargetLang(sourceLang);
+                      }}
+                      className="mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[hsl(var(--color-border))] text-[hsl(var(--color-muted-foreground))] hover:bg-[hsl(var(--color-muted))]/50 disabled:opacity-40"
+                      aria-label={t('aiTranslatePage.swapLanguages')}
+                    >
+                      <ArrowLeftRight className="h-4 w-4" />
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      <label className="text-[11px] font-medium text-[hsl(var(--color-foreground))]">
+                        {t('aiTranslatePage.toLabel')}
+                      </label>
+                      <select
+                        value={targetLang}
+                        disabled={loading}
+                        onChange={(e) => setTargetLang(e.target.value)}
+                        className="mt-1 w-full rounded-lg border border-[hsl(var(--color-border))] bg-[hsl(var(--color-background))] px-2.5 py-2 text-[12px]"
+                      >
+                        {TRANSLATE_LANGUAGE_OPTIONS.map((lang) => (
+                          <option key={`to-${lang.code}`} value={lang.code}>
+                            {lang.nativeName}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-[11px] font-medium text-[hsl(var(--color-foreground))] mb-2">
+                      {t('aiTranslatePage.outputTitle')}
+                    </p>
+                    <div className="space-y-2">
+                      {(
+                        [
+                          {
+                            id: 'keep_layout' as const,
+                            title: t('aiTranslatePage.keepLayoutTitle'),
+                            desc: t('aiTranslatePage.keepLayoutDesc'),
+                          },
+                          {
+                            id: 'text_only' as const,
+                            title: t('aiTranslatePage.textOnlyTitle'),
+                            desc: t('aiTranslatePage.textOnlyDesc'),
+                          },
+                        ] as const
+                      ).map((opt) => (
+                        <label
+                          key={opt.id}
+                          className={`flex cursor-pointer gap-2.5 rounded-lg border px-3 py-2.5 transition-colors ${
+                            translateOutputType === opt.id
+                              ? 'border-[hsl(var(--color-primary)/0.45)] bg-[hsl(var(--color-primary)/0.08)]'
+                              : 'border-[hsl(var(--color-border))] hover:bg-[hsl(var(--color-muted))]/35'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="translate-output-type"
+                            className="mt-1"
+                            checked={translateOutputType === opt.id}
+                            disabled={loading}
+                            onChange={() => setTranslateOutputType(opt.id)}
+                          />
+                          <span className="min-w-0">
+                            <span className="block text-[12px] font-medium text-[hsl(var(--color-foreground))]">
+                              {opt.title}
+                            </span>
+                            <span className="mt-0.5 block text-[11px] leading-snug text-[hsl(var(--color-muted-foreground))]">
+                              {opt.desc}
+                            </span>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                </div>
+
+                {loading && (
+                  <p className="mt-2 text-[11px] text-[hsl(var(--color-muted-foreground))] leading-snug">
+                    {t('aiTranslatePage.processingHint')}
+                  </p>
+                )}
+
+                <AiGradientButton
+                  busy={loading}
+                  label={actionLabel}
+                  onClick={() => void handleRun()}
+                  disabled={!file || loading}
+                />
+
+                {error && <p className="mt-2 text-[12px] text-red-500 leading-snug">{error}</p>}
                 {!file && (
                   <p className="mt-2 text-[11px] text-[hsl(var(--color-muted-foreground))]">
                     {t('aiToolPage.selectFileFirst')}
@@ -1232,6 +1526,110 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                   <p className="mt-2 text-[11px] text-[hsl(var(--color-primary))] shrink-0 leading-snug">{chatHint}</p>
                 )}
               </Card>
+            </div>
+          ) : isTranslatePage ? (
+            <div className="flex flex-col gap-3 min-h-[min(70vh,760px)] h-full">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 flex-1 items-stretch min-h-0">
+                <Card className="p-3 border border-[hsl(var(--color-border)/0.7)] flex flex-col h-full min-h-0">
+                  <h2 className="text-[11px] font-semibold uppercase tracking-wide text-[hsl(var(--color-muted-foreground))] mb-2 shrink-0">
+                    {t('aiTranslatePage.originalPdf')}
+                  </h2>
+                  {previewUrl ? (
+                    <iframe
+                      src={previewUrl}
+                      className={`rounded-lg border border-[hsl(var(--color-border))] ${TRANSLATE_PREVIEW_PANEL}`}
+                      title={file?.name ?? 'Original PDF'}
+                    />
+                  ) : (
+                    <div
+                      className={`rounded-lg border border-dashed border-[hsl(var(--color-border))] flex items-center justify-center text-xs text-[hsl(var(--color-muted-foreground))] ${TRANSLATE_PREVIEW_PANEL}`}
+                    >
+                      {t('aiPanel.noFile')}
+                    </div>
+                  )}
+                </Card>
+                <Card className="p-3 border border-[hsl(var(--color-border)/0.7)] flex flex-col h-full min-h-0">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2 shrink-0">
+                    <h2 className="text-[11px] font-semibold uppercase tracking-wide text-[hsl(var(--color-muted-foreground))]">
+                      {translatedText ? t('aiTranslatePage.translatedText') : t('aiTranslatePage.translatedPdf')}
+                    </h2>
+                    {translatedText && !loading && (
+                      <div className="flex flex-wrap gap-1.5">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => void handleCopyTranslated()}
+                          className="gap-1.5 h-8 text-[12px]"
+                        >
+                          {translateCopyDone ? (
+                            <Check className="h-3.5 w-3.5 text-emerald-600" />
+                          ) : (
+                            <Copy className="h-3.5 w-3.5" />
+                          )}
+                          {translateCopyDone ? t('aiTranslatePage.copied') : t('aiTranslatePage.copyTranslated')}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleDownloadTranslatedText}
+                          className="gap-1.5 h-8 text-[12px]"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          {t('aiTranslatePage.downloadText')}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => void handleExportTranslatedPdf()}
+                          disabled={isExportingTranslatedPdf}
+                          className="gap-1.5 h-8 text-[12px]"
+                        >
+                          {isExportingTranslatedPdf ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Download className="h-3.5 w-3.5" />
+                          )}
+                          {t('aiTranslatePage.exportPdf')}
+                        </Button>
+                      </div>
+                    )}
+                    {translatedBlob && !loading && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleDownloadTranslated}
+                        className="gap-1.5 h-8 text-[12px]"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        {t('aiTranslatePage.downloadTranslated')}
+                      </Button>
+                    )}
+                  </div>
+                  {loading ? (
+                    <AiCenteredSpinner className={`rounded-lg border border-[hsl(var(--color-border))] ${TRANSLATE_PREVIEW_PANEL}`} size="h-9 w-9" />
+                  ) : translatedText ? (
+                    <pre className={`overflow-auto rounded-lg border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.15)] p-4 text-[12px] leading-relaxed text-[hsl(var(--color-foreground))] whitespace-pre-wrap font-sans ${TRANSLATE_PREVIEW_PANEL}`}>
+                      {translatedText}
+                    </pre>
+                  ) : translatedPreviewUrl ? (
+                    <iframe
+                      src={translatedPreviewUrl}
+                      className={`rounded-lg border border-[hsl(var(--color-border))] ${TRANSLATE_PREVIEW_PANEL}`}
+                      title={translatedFileName ?? 'Translated PDF'}
+                    />
+                  ) : (
+                    <div
+                      className={`rounded-lg border border-dashed border-[hsl(var(--color-border))] flex items-center justify-center text-xs text-center text-[hsl(var(--color-muted-foreground))] px-4 ${TRANSLATE_PREVIEW_PANEL}`}
+                    >
+                      {t('aiTranslatePage.placeholder')}
+                    </div>
+                  )}
+                </Card>
+              </div>
             </div>
           ) : isVoicePage ? (
             <div className="flex flex-col gap-3 min-h-[min(70vh,760px)]">

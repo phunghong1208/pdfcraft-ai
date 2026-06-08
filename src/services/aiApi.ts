@@ -46,8 +46,22 @@ export async function summarizePdf(
   };
 }
 
+/** @deprecated Dùng translateDocument từ translateDocsApi */
 export async function translatePdf(file: File) {
-  return postPdfFile<{ translatedText: string; outputFileUrl?: string }>('/pdf/translate', file);
+  const { translateDocument } = await import('@/services/translateDocsApi');
+  const result = await translateDocument(file, {
+    sourceLang: 'en',
+    targetLang: 'vi',
+    outputType: 'keep_layout',
+  });
+  if (result.kind !== 'pdf') {
+    throw new Error('Dịch giữ bố cục phải trả về PDF.');
+  }
+  return {
+    translatedBlob: result.blob,
+    fileName: result.fileName,
+    outputFileUrl: URL.createObjectURL(result.blob),
+  };
 }
 
 export async function chatWithPdf(file: File) {
