@@ -1082,7 +1082,7 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                   </div>
                 )}
 
-                <div className="mt-3 rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.12)] p-3 space-y-3">
+                <div className="mt-3 rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-card))] p-3 space-y-3 shadow-sm">
                   <div className="flex items-end gap-2">
                     <div className="flex-1 min-w-0">
                       <label className="text-[11px] font-medium text-[hsl(var(--color-foreground))]">
@@ -1153,20 +1153,19 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                       ).map((opt) => (
                         <label
                           key={opt.id}
-                          className={`flex cursor-pointer gap-2.5 rounded-lg border px-3 py-2.5 transition-colors ${
-                            translateOutputType === opt.id
-                              ? 'border-[hsl(var(--color-primary)/0.45)] bg-[hsl(var(--color-primary)/0.08)]'
-                              : 'border-[hsl(var(--color-border))] hover:bg-[hsl(var(--color-muted))]/35'
+                          className={`ai-choice-card${
+                            translateOutputType === opt.id ? ' ai-choice-card--selected' : ''
                           }`}
                         >
                           <input
                             type="radio"
                             name="translate-output-type"
-                            className="mt-1"
+                            className="ai-choice-card__input"
                             checked={translateOutputType === opt.id}
                             disabled={loading}
                             onChange={() => setTranslateOutputType(opt.id)}
                           />
+                          <span className="ai-choice-card__indicator" aria-hidden />
                           <span className="min-w-0">
                             <span className="block text-[12px] font-medium text-[hsl(var(--color-foreground))]">
                               {opt.title}

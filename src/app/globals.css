@@ -371,6 +371,65 @@
     0 0 64px color-mix(in srgb, var(--ai-icon-fg) 22%, transparent),
     0 12px 40px rgba(0, 0, 0, 0.5);
 }
+
+/* AI tool — lựa chọn radio dạng thẻ (light/dark) */
+.ai-choice-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  cursor: pointer;
+  border-radius: 0.625rem;
+  border: 1px solid hsl(var(--color-border));
+  background: hsl(var(--color-card));
+  padding: 0.625rem 0.75rem;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
+}
+.ai-choice-card:hover:not(.ai-choice-card--selected) {
+  border-color: hsl(var(--color-primary) / 0.28);
+  background: hsl(var(--color-muted) / 0.35);
+}
+.ai-choice-card--selected {
+  border-color: hsl(var(--color-primary));
+  background: hsl(var(--color-card));
+  box-shadow: 0 0 0 3px hsl(var(--color-primary) / 0.14);
+}
+.dark .ai-choice-card--selected {
+  background: hsl(var(--color-primary) / 0.1);
+  box-shadow: 0 0 0 3px hsl(var(--color-primary) / 0.2);
+}
+.ai-choice-card__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.ai-choice-card__indicator {
+  margin-top: 0.125rem;
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  border: 2px solid hsl(var(--color-border));
+  background: hsl(var(--color-card));
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.ai-choice-card--selected .ai-choice-card__indicator {
+  border-color: hsl(var(--color-primary));
+  background: hsl(var(--color-primary));
+  box-shadow: inset 0 0 0 3px hsl(var(--color-card));
+}
+.dark .ai-choice-card--selected .ai-choice-card__indicator {
+  box-shadow: inset 0 0 0 3px hsl(var(--color-card));
+}
+
 .ai-card__body {
   display: flex;
   flex: 1;
