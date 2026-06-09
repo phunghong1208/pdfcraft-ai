@@ -851,10 +851,31 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     return true;
   }, [file, restoreDocumentSnapshot]);
 
-  const resolveWritableHandle = useCallback(async (_currentFileName: string) => {
-    // If file was opened via showOpenFilePicker, handle already stored → direct save, no dialog
+  const resolveWritableHandle = useCallback(async (currentFileName: string) => {
+    // Already have handle (opened via picker or saved before) → direct write, no dialog
     if (fileHandleRef.current) return fileHandleRef.current;
-    // No handle (file opened via drag-drop or <input>) → cannot save in-place
+
+    const browserWindow = window as Window & {
+      showSaveFilePicker?: (options?: {
+        suggestedName?: string;
+        types?: Array<{ description?: string; accept: Record<string, string[]> }>;
+      }) => Promise<{
+        name: string;
+        createWritable: () => Promise<{ write: (data: Blob) => Promise<void>; close: () => Promise<void> }>;
+        getFile?: () => Promise<File>;
+      }>;
+    };
+
+    // Show Save As dialog — user navigates to original file and overwrites
+    if (browserWindow.showSaveFilePicker) {
+      const handle = await browserWindow.showSaveFilePicker({
+        suggestedName: currentFileName,
+        types: [{ description: 'PDF files', accept: { 'application/pdf': ['.pdf'] } }],
+      });
+      fileHandleRef.current = handle;
+      return handle;
+    }
+
     return null;
   }, []);
 

@@ -1406,7 +1406,7 @@ class BasePreferences {
   });
   #defaults = Object.freeze({
     annotationEditorMode: 0,
-    annotationMode: 0,
+    annotationMode: 2,
     cursorToolOnLoad: 0,
     defaultZoomDelay: 400,
     defaultZoomValue: "",
