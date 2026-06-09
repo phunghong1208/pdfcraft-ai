@@ -500,7 +500,6 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
                                 result.tool.id.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
                               const toolDescription =
                                 localized?.description || result.tool.features.slice(0, 3).join(' • ');
-
                               return (
                                 <li key={result.tool.id}>
                                   <button
@@ -510,7 +509,7 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
                                     role="option"
                                     aria-selected={index === selectedIndex}
                                   >
-                                    <span className="text-xl">{getToolIcon(result.tool.category)}</span>
+                                    <span className="text-xl" aria-hidden>{getToolIcon(result.tool.category)}</span>
                                     <div className="flex-1 min-w-0">
                                       <div className="font-semibold text-sm truncate">{toolName}</div>
                                       <div className="text-xs text-[hsl(var(--color-muted-foreground))] truncate">

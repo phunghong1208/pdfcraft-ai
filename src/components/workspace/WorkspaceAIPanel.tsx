@@ -12,6 +12,7 @@ import {
   FileDown,
   Check,
   User,
+  FileText,
 } from 'lucide-react';
 import { WorkspaceAiMarkdown } from '@/components/workspace/WorkspaceAiMarkdown';
 import { markdownToPDF } from '@/lib/pdf/processors/markdown-to-pdf';
@@ -73,7 +74,7 @@ const segmentPillClass = (selected: boolean, isDarkTheme: boolean) =>
       }`
     : `border ${isDarkTheme ? 'border-[#2F3A4A] bg-[#0F141B] text-[#CBD5E1] hover:bg-[#141C26] hover:text-[#E2E8F0]' : 'border-[#DCE1E7] bg-white text-[hsl(var(--color-muted-foreground))] hover:bg-[#F2F4F7] hover:text-[hsl(var(--color-foreground))]'}`;
 const segmentLabelClass = (isDarkTheme: boolean) =>
-  `text-[10px] px-0.5 ${isDarkTheme ? 'text-[#8B949E]' : 'text-[hsl(var(--color-muted-foreground))]'}`;
+  `text-[11px] px-0.5 ${isDarkTheme ? 'text-[#8B949E]' : 'text-[hsl(var(--color-muted-foreground))]'}`;
 
 function tierTitle(
   t: ReturnType<typeof useTranslations<'workspace'>>,
@@ -131,7 +132,7 @@ function TierRadioGroup({
               disabled={disabled}
               onClick={() => onChange(preset.id)}
               aria-pressed={selected}
-              className={`flex-1 rounded-lg py-1.5 px-1.5 text-[10px] font-medium border transition-all disabled:opacity-40 ${
+              className={`flex-1 rounded-lg py-1.5 px-1.5 text-[11px] font-medium border transition-all disabled:opacity-40 ${
                 selected
                   ? `${isDarkTheme ? 'text-white border-[#EF4444] bg-[rgba(239,68,68,0.18)]' : 'text-[hsl(var(--color-foreground))] border-[hsl(var(--color-primary)/0.35)] bg-[hsl(var(--color-primary)/0.18)]'}`
                   : `${isDarkTheme ? 'bg-[#0F141B] text-[#CBD5E1] border-[#2F3A4A] hover:text-[#F8FAFC] hover:border-[#EF4444]' : 'bg-white text-[hsl(var(--color-muted-foreground))] border-[#DCE1E7] hover:text-[hsl(var(--color-foreground))] hover:border-[hsl(var(--color-primary)/0.35)]'}`
@@ -602,7 +603,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
           <div className="flex items-center gap-2 min-w-0">
             <WorkspaceAIIcon size="sm" />
             <span className={`text-[12px] font-semibold ${panelTextMain}`}>{t('aiPanel.title')}</span>
-            <span className="shrink-0 rounded-full bg-[hsl(var(--color-primary)/0.2)] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-red-300">
+            <span className="shrink-0 rounded-full bg-[hsl(var(--color-primary)/0.2)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-300">
               AI
             </span>
           </div>
@@ -616,12 +617,10 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
 
         {file ? (
           <p className={`flex items-center gap-1.5 text-[13px] font-medium truncate min-w-0 ${panelTextMain}`}>
-            <span className="shrink-0 opacity-80" aria-hidden>
-              📄
-            </span>
+            <FileText className="shrink-0 h-3.5 w-3.5 opacity-70" aria-hidden />
             <span className="truncate">{file.name}</span>
             {pageCount > 0 && (
-              <span className={`shrink-0 text-[10px] font-normal ${panelTextMuted}`}>
+              <span className={`shrink-0 text-[11px] font-normal ${panelTextMuted}`}>
                 · {t('aiPanel.pageDocument', { count: pageCount })}
               </span>
             )}

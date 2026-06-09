@@ -73,19 +73,19 @@ export function ToolCard({ tool, locale, className = '', localizedContent }: Too
 
         <div className="flex flex-col h-full p-1">
           <div className="flex items-start gap-3 mb-3">
-            <ToolIcon toolId={tool.id} iconKey={tool.icon} size="lg" shape="circle" />
+            <ToolIcon toolId={tool.id} iconKey={tool.icon} size="lg" shape="rounded" />
           </div>
 
           {/* Tool Info */}
           <div className="flex-1 min-w-0">
             <h3
-              className="text-base font-semibold text-[hsl(var(--color-card-foreground))] truncate mb-1.5 group-hover:text-[hsl(var(--color-primary))] transition-colors"
+              className="text-[0.9375rem] font-semibold text-[hsl(var(--color-card-foreground))] truncate mb-1.5 group-hover:text-[hsl(var(--color-primary))] transition-colors"
               data-testid="tool-card-name"
             >
               {toolName}
             </h3>
             <p
-              className="text-sm text-[hsl(var(--color-muted-foreground))] line-clamp-2 leading-relaxed"
+              className="text-[0.8125rem] text-[hsl(var(--color-muted-foreground))] line-clamp-2 leading-relaxed"
               data-testid="tool-card-description"
             >
               {description}
