@@ -12,7 +12,10 @@ async function proxyRequest(req: NextRequest, context: RouteContext): Promise<Ne
   const headers = new Headers();
   req.headers.forEach((value, key) => {
     const lower = key.toLowerCase();
+    // Skip hop-by-hop headers and HTTP/2 pseudo-headers (start with ':')
     if (lower === 'host' || lower === 'connection' || lower === 'content-length') return;
+    if (key.startsWith(':')) return;
+    if (!key || !/^[a-zA-Z0-9\-_!#$%&'*+.^`|~]+$/.test(key)) return;
     try {
       headers.set(key, value);
     } catch {

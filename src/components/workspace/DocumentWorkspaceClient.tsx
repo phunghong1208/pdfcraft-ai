@@ -851,57 +851,10 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     return true;
   }, [file, restoreDocumentSnapshot]);
 
-  const resolveWritableHandle = useCallback(async (currentFileName: string) => {
+  const resolveWritableHandle = useCallback(async (_currentFileName: string) => {
+    // If file was opened via showOpenFilePicker, handle already stored → direct save, no dialog
     if (fileHandleRef.current) return fileHandleRef.current;
-    const browserWindow = window as Window & {
-      showSaveFilePicker?: (options?: {
-        suggestedName?: string;
-        types?: Array<{ description?: string; accept: Record<string, string[]> }>;
-      }) => Promise<{
-        name: string;
-        createWritable: () => Promise<{ write: (data: Blob) => Promise<void>; close: () => Promise<void> }>;
-        getFile?: () => Promise<File>;
-      }>;
-      showOpenFilePicker?: (options?: {
-        multiple?: boolean;
-        types?: Array<{ description?: string; accept: Record<string, string[]> }>;
-      }) => Promise<Array<{
-        name: string;
-        createWritable: () => Promise<{ write: (data: Blob) => Promise<void>; close: () => Promise<void> }>;
-        getFile?: () => Promise<File>;
-      }>>;
-    };
-
-    if (browserWindow.showSaveFilePicker) {
-      const handle = await browserWindow.showSaveFilePicker({
-        suggestedName: currentFileName,
-        types: [
-          {
-            description: 'PDF files',
-            accept: { 'application/pdf': ['.pdf'] },
-          },
-        ],
-      });
-      fileHandleRef.current = handle;
-      return handle;
-    }
-
-    if (browserWindow.showOpenFilePicker) {
-      const handles = await browserWindow.showOpenFilePicker({
-        multiple: false,
-        types: [
-          {
-            description: 'PDF files',
-            accept: { 'application/pdf': ['.pdf'] },
-          },
-        ],
-      });
-      const handle = handles[0];
-      if (!handle) return null;
-      fileHandleRef.current = handle;
-      return handle;
-    }
-
+    // No handle (file opened via drag-drop or <input>) → cannot save in-place
     return null;
   }, []);
 
@@ -919,9 +872,11 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     URL.revokeObjectURL(url);
   }, []);
 
-  const handleFilePicked = useCallback((nextFile: File | null) => {
+  const handleFilePicked = useCallback((nextFile: File | null, handle?: { name: string; createWritable: () => Promise<{ write: (data: Blob) => Promise<void>; close: () => Promise<void> }>; getFile?: () => Promise<File> } | null) => {
     if (!nextFile) return;
     if (!confirmDiscardUnsavedChanges()) return;
+    // Store writable handle if obtained via showOpenFilePicker — enables direct save
+    if (handle) fileHandleRef.current = handle;
     handleFileChange(nextFile, { markDirty: false });
     const pending = pendingWorkspaceToolRef.current;
     if (pending) {
@@ -931,11 +886,37 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     }
   }, [confirmDiscardUnsavedChanges, handleFileChange]);
 
+  /** Open file picker — uses File System Access API when available to capture writable handle. */
+  const openFilePicker = useCallback(async () => {
+    const browserWindow = window as Window & {
+      showOpenFilePicker?: (opts?: {
+        multiple?: boolean;
+        types?: Array<{ description?: string; accept: Record<string, string[]> }>;
+      }) => Promise<Array<{ name: string; createWritable: () => Promise<{ write: (data: Blob) => Promise<void>; close: () => Promise<void> }>; getFile?: () => Promise<File> }>>;
+    };
+    if (browserWindow.showOpenFilePicker) {
+      try {
+        const [handle] = await browserWindow.showOpenFilePicker({
+          multiple: false,
+          types: [{ description: 'PDF files', accept: { 'application/pdf': ['.pdf'] } }],
+        });
+        const file = await handle.getFile?.();
+        if (file) handleFilePicked(file, handle);
+      } catch (err) {
+        if ((err as { name?: string })?.name === 'AbortError') return;
+        // Fallback to input if showOpenFilePicker fails
+        openFileInputRef.current?.click();
+      }
+    } else {
+      openFileInputRef.current?.click();
+    }
+  }, [handleFilePicked]);
+
   const openWorkspaceInlineTool = useCallback(
     (inlineTool: WorkspaceInlineTool, activeTabKey?: RibbonTabKey) => {
       if (!file) {
         pendingWorkspaceToolRef.current = inlineTool;
-        openFileInputRef.current?.click();
+        void openFilePicker();
         return;
       }
       setUploadedPdf(file);
@@ -1257,7 +1238,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
 
     switch (action) {
       case 'openDocument':
-        openFileInputRef.current?.click();
+        void openFilePicker();
         break;
       case 'zoomIn': handleZoomIn(); break;
       case 'zoomOut': handleZoomOut(); break;
@@ -1305,8 +1286,23 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
         if (!file) break;
         void (async () => {
           try {
-            const win = iframeWin() as (Window & { pdfcraftExportEditedPdf?: () => Promise<Uint8Array | ArrayBuffer | null> }) | null;
-            const bytes = await win?.pdfcraftExportEditedPdf?.();
+            const win = iframeWin() as (Window & {
+              pdfcraftExportEditedPdf?: () => Promise<Uint8Array | ArrayBuffer | null>;
+              PDFViewerApplication?: { pdfDocument?: { getData?: () => Promise<Uint8Array> } };
+            }) | null;
+
+            // Priority 1: EditPDFTool export (has annotation edits)
+            let bytes: Uint8Array | ArrayBuffer | null | undefined = await win?.pdfcraftExportEditedPdf?.();
+
+            // Priority 2: PDFViewerApplication.pdfDocument.getData() (works in workspace viewer)
+            if (!bytes) {
+              try {
+                bytes = await win?.PDFViewerApplication?.pdfDocument?.getData?.() ?? null;
+              } catch {
+                bytes = null;
+              }
+            }
+
             let blob: Blob;
             if (bytes) {
               const arrayBuffer = bytes instanceof ArrayBuffer
@@ -1326,8 +1322,8 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
             try {
               const handle = await resolveWritableHandle(file.name);
               if (!handle) {
+                // File opened via drag-drop/<input> — no writable handle, fallback to download
                 downloadPdfFallback(blob, file.name);
-                window.alert('Trình duyệt chưa hỗ trợ lưu đè trực tiếp. Đã tải file PDF mới về máy.');
                 handleFileChange(nextFile, { markDirty: false });
                 return;
               }
@@ -1490,7 +1486,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
         if (!file) {
           if (action === 'annot:stamp') pendingAnnotAfterLoadRef.current = 'stamp';
           if (action === 'annot:signature') pendingAnnotAfterLoadRef.current = 'signature';
-          openFileInputRef.current?.click();
+          void openFilePicker();
           break;
         }
         const tool = action.replace('annot:', '');
@@ -1528,6 +1524,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
     performDocumentRedo,
     handleFileChange,
     pushDocumentHistory,
+    openFilePicker,
     t,
   ]);
 
