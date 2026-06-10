@@ -2039,7 +2039,13 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
                   onFileUpdated={handleInlineToolFileUpdated}
                 />
               )}
-              {workspaceTool === 'ocr' && <OCRPDFTool initialFile={file} lockToInitialFile />}
+              {workspaceTool === 'ocr' && (
+                <OCRPDFTool
+                  initialFile={file}
+                  lockToInitialFile
+                  onFileUpdated={handleInlineToolFileUpdated}
+                />
+              )}
               {workspaceTool === 'merge' && <MergePDFTool initialFile={file} />}
               {workspaceTool === 'repair' && (
                 <RepairPDFTool

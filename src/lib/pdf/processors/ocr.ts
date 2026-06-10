@@ -338,6 +338,8 @@ export async function ocrPDF(
   );
 }
 
+export type SmartOcrOutputFormat = 'pdf' | 'text';
+
 export interface ServerOCROptions {
   languages: OCRLanguage[];
   deskew: boolean;
@@ -346,6 +348,7 @@ export interface ServerOCROptions {
   clean: boolean;
   forceOcr: boolean;
   optimize: number;
+  outputFormat: SmartOcrOutputFormat;
 }
 
 const DEFAULT_SERVER_OPTIONS: ServerOCROptions = {
@@ -356,17 +359,19 @@ const DEFAULT_SERVER_OPTIONS: ServerOCROptions = {
   clean: true,
   forceOcr: false,
   optimize: 1,
+  outputFormat: 'pdf',
 };
 
 /**
- * Searchable PDF via OCRmyPDF server
+ * Smart OCR via OCRmyPDF server (`/api/ocr`) — same pipeline as AI Smart OCR page.
  */
-export async function ocrSearchablePDF(
+export async function runSmartOcr(
   file: File,
   options?: Partial<ServerOCROptions>,
   onProgress?: ProgressCallback,
 ): Promise<ProcessOutput> {
-  const opts = { ...DEFAULT_SERVER_OPTIONS, ...options };
+  const opts: ServerOCROptions = { ...DEFAULT_SERVER_OPTIONS, ...options };
+  const baseName = file.name.replace(/\.pdf$/i, '');
 
   onProgress?.(10, 'Uploading PDF to OCR server...');
 
@@ -379,6 +384,7 @@ export async function ocrSearchablePDF(
   form.append('clean', String(opts.clean));
   form.append('force_ocr', String(opts.forceOcr));
   form.append('optimize', String(opts.optimize));
+  form.append('output_format', opts.outputFormat === 'text' ? 'text' : 'pdf');
 
   onProgress?.(20, 'Processing OCR...');
 
@@ -409,8 +415,26 @@ export async function ocrSearchablePDF(
 
   onProgress?.(90, 'Downloading result...');
 
+  if (opts.outputFormat === 'text') {
+    const data = (await res.json()) as { text?: string; fileName?: string };
+    const text = data.text ?? '';
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+
+    onProgress?.(100, 'Complete!');
+
+    return {
+      success: true,
+      result: blob,
+      filename: `${baseName}_ocr.txt`,
+      metadata: {
+        languages: opts.languages,
+        outputFormat: 'text',
+        textPreview: text,
+      },
+    };
+  }
+
   const blob = await res.blob();
-  const baseName = file.name.replace(/\.pdf$/i, '');
 
   onProgress?.(100, 'Complete!');
 
@@ -423,4 +447,13 @@ export async function ocrSearchablePDF(
       outputFormat: 'searchable-pdf',
     },
   };
+}
+
+/** @deprecated Use runSmartOcr — kept for existing imports */
+export async function ocrSearchablePDF(
+  file: File,
+  options?: Partial<Omit<ServerOCROptions, 'outputFormat'>>,
+  onProgress?: ProgressCallback,
+): Promise<ProcessOutput> {
+  return runSmartOcr(file, { ...options, outputFormat: 'pdf' }, onProgress);
 }
