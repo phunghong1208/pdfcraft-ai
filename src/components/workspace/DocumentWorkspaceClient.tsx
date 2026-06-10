@@ -60,7 +60,7 @@ import { WorkspaceAIIcon } from '@/components/workspace/WorkspaceAIIcon';
 import { WorkspacePagesSidebarToggle } from '@/components/workspace/WorkspacePagesSidebarToggle';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { type Locale } from '@/lib/i18n/config';
-import { peekUploadedPdf, setUploadedPdf } from '@/lib/document-session';
+import { peekUploadedPdf, peekUploadedPdfHandle, setUploadedPdf } from '@/lib/document-session';
 import { addBlankPages } from '@/lib/pdf/processors/add-blank-page';
 import { deletePages } from '@/lib/pdf/processors/delete';
 import {
@@ -782,6 +782,9 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
 
     const initialFile = peekUploadedPdf();
     if (initialFile) {
+      // Capture FileSystemFileHandle if user opened via showOpenFilePicker on home page
+      const initialHandle = peekUploadedPdfHandle();
+      if (initialHandle) fileHandleRef.current = initialHandle;
       pristinePdfRef.current = initialFile;
       setFile(initialFile);
       setIsDirty(false);
@@ -1309,18 +1312,23 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
           try {
             const win = iframeWin() as (Window & {
               pdfcraftExportEditedPdf?: () => Promise<Uint8Array | ArrayBuffer | null>;
-              PDFViewerApplication?: { pdfDocument?: { getData?: () => Promise<Uint8Array> } };
+              PDFViewerApplication?: { pdfDocument?: { saveDocument?: () => Promise<Uint8Array>; getData?: () => Promise<Uint8Array> } };
             }) | null;
 
             // Priority 1: EditPDFTool export (has annotation edits)
             let bytes: Uint8Array | ArrayBuffer | null | undefined = await win?.pdfcraftExportEditedPdf?.();
 
-            // Priority 2: PDFViewerApplication.pdfDocument.getData() (works in workspace viewer)
+            // Priority 2: saveDocument() — includes annotation/comment edits (not getData which returns original bytes)
             if (!bytes) {
               try {
-                bytes = await win?.PDFViewerApplication?.pdfDocument?.getData?.() ?? null;
+                bytes = await win?.PDFViewerApplication?.pdfDocument?.saveDocument?.() ?? null;
               } catch {
-                bytes = null;
+                // fallback to getData if saveDocument unavailable
+                try {
+                  bytes = await win?.PDFViewerApplication?.pdfDocument?.getData?.() ?? null;
+                } catch {
+                  bytes = null;
+                }
               }
             }
 

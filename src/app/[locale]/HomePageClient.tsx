@@ -28,6 +28,12 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
   const [isPreparing, setIsPreparing] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
 
+  type WritableHandle = {
+    name: string;
+    createWritable: () => Promise<{ write: (data: Blob) => Promise<void>; close: () => Promise<void> }>;
+    getFile?: () => Promise<File>;
+  };
+
   const aiActions: Array<{
     href: string;
     label: string;
@@ -64,12 +70,35 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
   ];
 
   function startUpload() {
-    inputRef.current?.click();
+    const browserWindow = window as Window & {
+      showOpenFilePicker?: (opts?: {
+        multiple?: boolean;
+        types?: Array<{ description?: string; accept: Record<string, string[]> }>;
+      }) => Promise<WritableHandle[]>;
+    };
+
+    if (browserWindow.showOpenFilePicker) {
+      void (async () => {
+        try {
+          const [handle] = await browserWindow.showOpenFilePicker!({
+            multiple: false,
+            types: [{ description: 'PDF files', accept: { 'application/pdf': ['.pdf'] } }],
+          });
+          const file = await handle.getFile?.();
+          if (file) handleSelectedFile(file, handle);
+        } catch (err) {
+          if ((err as { name?: string })?.name === 'AbortError') return;
+          inputRef.current?.click();
+        }
+      })();
+    } else {
+      inputRef.current?.click();
+    }
   }
 
-  function handleSelectedFile(file: File | null) {
+  function handleSelectedFile(file: File | null, handle?: WritableHandle | null) {
     if (!file) return;
-    setUploadedPdf(file);
+    setUploadedPdf(file, handle);
     setIsPreparing(true);
     setLoadingStep(0);
 
@@ -124,7 +153,7 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
                   type="file"
                   accept=".pdf,application/pdf"
                   className="hidden"
-                  onChange={(e) => handleSelectedFile(e.target.files?.[0] ?? null)}
+                  onChange={(e) => handleSelectedFile(e.target.files?.[0] ?? null, null)}
                 />
                 <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-xs text-[hsl(var(--color-muted-foreground))]">
                   <span>✓ {t('uploadSecure')}</span>
