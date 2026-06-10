@@ -19,7 +19,33 @@
     "privateSecure": "100 % privat und sicher",
     "terms": "AGB",
     "privacyLink": "Datenschutz",
-    "cookies": "Cookies"
+    "cookies": "Cookies",
+    "brandName": "PDF-Reader-Arbeitsbereich",
+    "tagline": "Privater KI-Arbeitsbereich",
+    "trustLocalFirst": "Lokal zuerst",
+    "trustLocalFirstDesc": "Keine Server-Uploads",
+    "trustNoCloud": "Kein Cloud-Upload",
+    "trustNoCloudDesc": "Maximale Sicherheit",
+    "trustGdpr": "Bereit für die DSGVO",
+    "trustGdprDesc": "Ihre Daten sind geschützt",
+    "trustSupport": "24/7-Support",
+    "trustSupportDesc": "Immer hier, um zu helfen",
+    "trustLanguages": "Über 100 Sprachen",
+    "trustAi": "KI-betrieben",
+    "trustGroupSecurity": "Sicherheit",
+    "trustGroupPlatform": "Plattform",
+    "trustGroupDownload": "App herunterladen",
+    "storeGetOn": "Zieh es an",
+    "storeDownloadOn": "Download auf der",
+    "downloadApp": "App herunterladen",
+    "availableOn": "Verfügbar am",
+    "googlePlayAria": "Holen Sie es sich bei Google Play",
+    "appStoreAria": "Im App Store herunterladen",
+    "trustNav": "Vertrauen und Sicherheit",
+    "copyright": "© {year} PDF Reader-Arbeitsbereich",
+    "legalNav": "Legal",
+    "privacyBadge": "100 % privat – Dateien verlassen niemals Ihr Gerät",
+    "privacyBadgeSub": "Ihre Dokumente werden sicher in Ihrem Browser verarbeitet"
   },
   "aiMenu": {
     "aiAssistant": "KI-Assistent",
@@ -35,7 +61,21 @@
     "splitPdf": "PDF teilen",
     "compressPdf": "PDF komprimieren",
     "pdfToWord": "PDF zu Word",
-    "ocrPdf": "PDF-OCR"
+    "ocrPdf": "PDF-OCR",
+    "edit": "Bearbeiten",
+    "convert": "Konvertieren",
+    "rotatePdf": "PDF drehen",
+    "organizePdf": "Seiten organisieren",
+    "extractPages": "Seiten extrahieren",
+    "deletePages": "Seiten löschen",
+    "signPdf": "PDF signieren",
+    "cropPdf": "PDF zuschneiden",
+    "addWatermark": "Wasserzeichen hinzufügen",
+    "formFiller": "Formulare ausfüllen",
+    "pageNumbers": "Seitenzahlen",
+    "headerFooter": "Kopf- und Fußzeile",
+    "convertToPdf": "In PDF konvertieren",
+    "convertFromPdf": "Konvertieren von PDF"
   },
   "homePage": {
     "badge": "KI-PDF-Arbeitsbereich",
@@ -73,6 +113,30 @@
       "split": "Teilen",
       "protect": "Schützen",
       "ocrText": "OCR-Text"
+    },
+    "popularAiBadge": "Beliebte KI",
+    "trustBar": {
+      "secure": "Sicher und privat",
+      "fast": "Blitzschnell",
+      "cloud": "Cloudbasiert",
+      "trusted": "Millionen vertrauen darauf"
+    },
+    "aiDescriptions": {
+      "summarize": "Extrahieren Sie wichtige Erkenntnisse aus jedem PDF.",
+      "translate": "Übersetzen Sie ganze Dokumente in andere Sprachen.",
+      "voice": "Konvertieren Sie PDF-Dateien sofort in natürliche Sprache.",
+      "ocr": "Konvertieren Sie Scans in bearbeitbare PDFs.",
+      "chat": "Stellen Sie Fragen zu Ihren Dateien und erhalten Sie sofort Antworten."
+    },
+    "toolDescriptions": {
+      "scanToPdf": "Konvertieren Sie Bilder sofort in PDF",
+      "merge": "Kombinieren Sie mehrere PDFs zu einem",
+      "split": "Teilen Sie PDF in separate Dateien auf",
+      "protect": "Verschlüsseln und sichern Sie Ihre PDFs",
+      "compress": "Reduzieren Sie die Größe der PDF-Datei",
+      "ocrText": "Extrahieren Sie Text aus gescannten PDFs",
+      "edit": "Ändern Sie Text und Bilder in PDFs",
+      "convert": "Wandeln Sie PDFs in andere Formate um"
     }
   }
 }

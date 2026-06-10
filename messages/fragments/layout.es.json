@@ -19,7 +19,33 @@
     "privateSecure": "100 % privado y seguro",
     "terms": "Términos",
     "privacyLink": "Privacidad",
-    "cookies": "Cookies"
+    "cookies": "Cookies",
+    "brandName": "Espacio de trabajo del lector de PDF",
+    "tagline": "Espacio de trabajo privado de IA",
+    "trustLocalFirst": "Local primero",
+    "trustLocalFirstDesc": "No hay cargas del servidor",
+    "trustNoCloud": "Sin carga en la nube",
+    "trustNoCloudDesc": "Máxima seguridad",
+    "trustGdpr": "Listo para el RGPD",
+    "trustGdprDesc": "Tus datos están protegidos",
+    "trustSupport": "Soporte 24 horas al día, 7 días a la semana",
+    "trustSupportDesc": "Siempre aquí para ayudar",
+    "trustLanguages": "Más de 100 idiomas",
+    "trustAi": "Impulsado por IA",
+    "trustGroupSecurity": "Seguridad",
+    "trustGroupPlatform": "Plataforma",
+    "trustGroupDownload": "Descargar aplicación",
+    "storeGetOn": "Consíguelo",
+    "storeDownloadOn": "Descargar en el",
+    "downloadApp": "Descargar aplicación",
+    "availableOn": "Disponible en",
+    "googlePlayAria": "Consíguelo en Google Play",
+    "appStoreAria": "Descargar en la tienda de aplicaciones",
+    "trustNav": "Confianza y seguridad",
+    "copyright": "© {año} Espacio de trabajo del lector de PDF",
+    "legalNav": "Legal",
+    "privacyBadge": "100% privado: los archivos nunca salen de su dispositivo",
+    "privacyBadgeSub": "Sus documentos se procesan de forma segura en su navegador"
   },
   "aiMenu": {
     "aiAssistant": "Asistente de IA",
@@ -35,7 +61,21 @@
     "splitPdf": "Dividir PDF",
     "compressPdf": "Comprimir PDF",
     "pdfToWord": "PDF a Word",
-    "ocrPdf": "OCR de PDF"
+    "ocrPdf": "OCR de PDF",
+    "edit": "Editar",
+    "convert": "Convertir",
+    "rotatePdf": "Girar PDF",
+    "organizePdf": "Organizar páginas",
+    "extractPages": "Extraer páginas",
+    "deletePages": "Eliminar páginas",
+    "signPdf": "Firmar PDF",
+    "cropPdf": "Recortar PDF",
+    "addWatermark": "Agregar marca de agua",
+    "formFiller": "Llenar formularios",
+    "pageNumbers": "Números de página",
+    "headerFooter": "Encabezado y pie de página",
+    "convertToPdf": "Convertir a PDF",
+    "convertFromPdf": "Convertir desde PDF"
   },
   "homePage": {
     "badge": "Espacio de trabajo PDF con IA",
@@ -73,6 +113,30 @@
       "split": "Dividir",
       "protect": "Proteger",
       "ocrText": "OCR texto"
+    },
+    "popularAiBadge": "IA popular",
+    "trustBar": {
+      "secure": "Seguro y privado",
+      "fast": "Rayo rápido",
+      "cloud": "Basado en la nube",
+      "trusted": "Con la confianza de millones"
+    },
+    "aiDescriptions": {
+      "summarize": "Extraiga información clave de cualquier PDF.",
+      "translate": "Traducir documentos completos a otros idiomas.",
+      "voice": "Convierta PDF a voz natural al instante.",
+      "ocr": "Convierta escaneos a PDF editables.",
+      "chat": "Haga preguntas sobre sus archivos y obtenga respuestas instantáneas."
+    },
+    "toolDescriptions": {
+      "scanToPdf": "Convierte imágenes a PDF al instante",
+      "merge": "Combine varios archivos PDF en uno",
+      "split": "Dividir PDF en archivos separados",
+      "protect": "Cifra y protege tus archivos PDF",
+      "compress": "Reducir el tamaño del archivo PDF",
+      "ocrText": "Extraiga texto de archivos PDF escaneados",
+      "edit": "Modificar texto e imágenes en archivos PDF",
+      "convert": "Transforma archivos PDF a otros formatos"
     }
   }
 }

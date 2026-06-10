@@ -19,7 +19,33 @@
     "privateSecure": "خاص وآمن بنسبة 100%",
     "terms": "الشروط",
     "privacyLink": "الخصوصية",
-    "cookies": "ملفات تعريف الارتباط"
+    "cookies": "ملفات تعريف الارتباط",
+    "brandName": "مساحة عمل قارئ PDF",
+    "tagline": "مساحة عمل خاصة بالذكاء الاصطناعي",
+    "trustLocalFirst": "المحلية أولا",
+    "trustLocalFirstDesc": "لا توجد تحميلات الخادم",
+    "trustNoCloud": "لا يوجد تحميل سحابي",
+    "trustNoCloudDesc": "أقصى قدر من الأمن",
+    "trustGdpr": "اللائحة العامة لحماية البيانات جاهزة",
+    "trustGdprDesc": "بياناتك محمية",
+    "trustSupport": "دعم 24/7",
+    "trustSupportDesc": "دائما هنا للمساعدة",
+    "trustLanguages": "أكثر من 100 لغة",
+    "trustAi": "مدعوم بالذكاء الاصطناعي",
+    "trustGroupSecurity": "حماية",
+    "trustGroupPlatform": "منصة",
+    "trustGroupDownload": "تنزيل التطبيق",
+    "storeGetOn": "احصل عليه",
+    "storeDownloadOn": "تحميل على",
+    "downloadApp": "تنزيل التطبيق",
+    "availableOn": "متاح على",
+    "googlePlayAria": "احصل عليه على جوجل بلاي",
+    "appStoreAria": "قم بالتنزيل على متجر التطبيقات",
+    "trustNav": "الثقة والأمن",
+    "copyright": "© {year} مساحة عمل قارئ PDF",
+    "legalNav": "قانوني",
+    "privacyBadge": "خاص بنسبة 100% - الملفات لا تترك جهازك أبدًا",
+    "privacyBadgeSub": "تتم معالجة مستنداتك بشكل آمن في متصفحك"
   },
   "aiMenu": {
     "aiAssistant": "مساعد الذكاء الاصطناعي",
@@ -35,7 +61,21 @@
     "splitPdf": "تقسيم PDF",
     "compressPdf": "ضغط PDF",
     "pdfToWord": "PDF إلى Word",
-    "ocrPdf": "OCR لملف PDF"
+    "ocrPdf": "OCR لملف PDF",
+    "edit": "يحرر",
+    "convert": "يتحول",
+    "rotatePdf": "تدوير قوات الدفاع الشعبي",
+    "organizePdf": "تنظيم الصفحات",
+    "extractPages": "استخراج الصفحات",
+    "deletePages": "حذف الصفحات",
+    "signPdf": "التوقيع على قوات الدفاع الشعبي",
+    "cropPdf": "قص ملف PDF",
+    "addWatermark": "أضف علامة مائية",
+    "formFiller": "ملء النماذج",
+    "pageNumbers": "أرقام الصفحات",
+    "headerFooter": "رأس وتذييل الصفحة",
+    "convertToPdf": "تحويل إلى قوات الدفاع الشعبي",
+    "convertFromPdf": "تحويل من قوات الدفاع الشعبي"
   },
   "homePage": {
     "badge": "مساحة عمل PDF بالذكاء الاصطناعي",
@@ -73,6 +113,30 @@
       "split": "تقسيم",
       "protect": "حماية",
       "ocrText": "OCR نص"
+    },
+    "popularAiBadge": "الذكاء الاصطناعي المشهور",
+    "trustBar": {
+      "secure": "آمنة وخاصة",
+      "fast": "بسرعة البرق",
+      "cloud": "القائم على السحابة",
+      "trusted": "موثوق بها من قبل الملايين"
+    },
+    "aiDescriptions": {
+      "summarize": "استخراج الأفكار الرئيسية من أي PDF.",
+      "translate": "ترجمة المستندات بأكملها إلى لغات أخرى.",
+      "voice": "تحويل PDF إلى كلام طبيعي على الفور.",
+      "ocr": "تحويل عمليات المسح إلى PDF قابل للتحرير.",
+      "chat": "اطرح أسئلة حول ملفاتك واحصل على إجابات فورية."
+    },
+    "toolDescriptions": {
+      "scanToPdf": "تحويل الصور إلى PDF على الفور",
+      "merge": "دمج ملفات PDF متعددة في ملف واحد",
+      "split": "تقسيم PDF إلى ملفات منفصلة",
+      "protect": "تشفير وتأمين ملفات PDF الخاصة بك",
+      "compress": "تقليل حجم ملف PDF",
+      "ocrText": "استخراج النص من ملفات PDF الممسوحة ضوئيا",
+      "edit": "تعديل النص والصور في ملفات PDF",
+      "convert": "تحويل ملفات PDF إلى صيغ أخرى"
     }
   }
 }

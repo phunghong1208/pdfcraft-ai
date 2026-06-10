@@ -29,7 +29,23 @@
     "trustGroupDownload": "下载应用",
     "downloadApp": "下载应用",
     "legalNav": "法律信息",
-    "copyright": "© {year} PDFCraft. 保留所有权利。"
+    "copyright": "© {year} PDFCraft. 保留所有权利。",
+    "trustLocalFirstDesc": "没有服务器上传",
+    "trustNoCloudDesc": "最高安全性",
+    "trustGdprDesc": "您的数据受到保护",
+    "trustSupport": "24/7 支持",
+    "trustSupportDesc": "随时为您提供帮助",
+    "trustLanguages": "100多种语言",
+    "trustAi": "人工智能驱动",
+    "trustGroupPlatform": "平台",
+    "storeGetOn": "穿上它",
+    "storeDownloadOn": "下载于",
+    "availableOn": "可用于",
+    "googlePlayAria": "在 Google Play 上获取",
+    "appStoreAria": "在应用商店下载",
+    "trustNav": "信任与安全",
+    "privacyBadge": "100% 私密 — 文件永远不会离开您的设备",
+    "privacyBadgeSub": "您的文档在浏览器中得到安全处理"
   },
   "aiMenu": {
     "aiAssistant": "AI 助手",
@@ -45,7 +61,21 @@
     "splitPdf": "拆分 PDF",
     "compressPdf": "压缩 PDF",
     "pdfToWord": "PDF 转 Word",
-    "ocrPdf": "PDF OCR"
+    "ocrPdf": "PDF OCR",
+    "edit": "编辑",
+    "convert": "转变",
+    "rotatePdf": "旋转 PDF",
+    "organizePdf": "组织页面",
+    "extractPages": "提取页面",
+    "deletePages": "删除页面",
+    "signPdf": "签署 PDF",
+    "cropPdf": "裁剪 PDF",
+    "addWatermark": "添加水印",
+    "formFiller": "填写表格",
+    "pageNumbers": "页码",
+    "headerFooter": "页眉和页脚",
+    "convertToPdf": "转换为 PDF",
+    "convertFromPdf": "从 PDF 转换"
   },
   "homePage": {
     "badge": "AI PDF 工作区",
@@ -83,6 +113,30 @@
       "split": "拆分",
       "protect": "保护",
       "ocrText": "OCR 文字"
+    },
+    "popularAiBadge": "热门人工智能",
+    "trustBar": {
+      "secure": "安全且私密",
+      "fast": "快如闪电",
+      "cloud": "基于云",
+      "trusted": "数百万人信赖"
+    },
+    "aiDescriptions": {
+      "summarize": "从任何 PDF 中提取关键见解。",
+      "translate": "将整个文档翻译成其他语言。",
+      "voice": "立即将 PDF 转换为自然语音。",
+      "ocr": "将扫描件转换为可编辑的 PDF。",
+      "chat": "询问有关您的文件的问题并立即获得答案。"
+    },
+    "toolDescriptions": {
+      "scanToPdf": "立即将图像转换为 PDF",
+      "merge": "将多个 PDF 合并为一个",
+      "split": "将 PDF 分成单独的文件",
+      "protect": "加密并保护您的 PDF",
+      "compress": "减小 PDF 文件大小",
+      "ocrText": "从扫描的 PDF 中提取文本",
+      "edit": "修改 PDF 中的文本和图像",
+      "convert": "将 PDF 转换为其他格式"
     }
   }
 }

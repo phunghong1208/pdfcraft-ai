@@ -1775,4 +1775,31 @@ export const toolContentEs: Record<string, ToolContent> = {
       { question: '¿Por qué una firma podría ser inválida?', answer: 'Las firmas pueden ser inválidas si el documento fue modificado, el certificado expiró o el certificado no es de confianza.' },
     ],
   },
+
+  'pdf-reader': {
+    title: 'Lector PDF',
+    metaDescription: 'Lector PDF en línea gratuito. Ve, navega, amplía, rota e imprime documentos PDF directamente en tu navegador.',
+    keywords: ['lector pdf', 'visor pdf', 'ver pdf en línea', 'leer pdf', 'visor pdf navegador'],
+    description: `
+      <p>El Lector PDF es un visor completo que te permite leer y navegar documentos PDF directamente en el navegador. No necesitas instalar software: sube tu PDF y empieza a leer.</p>
+      <p>Navega entre páginas, amplía o reduce, rota la vista y usa pantalla completa. También puedes imprimir o descargar para acceso sin conexión.</p>
+      <p>Toda la visualización ocurre localmente en tu navegador. Tus documentos nunca se suben a ningún servidor.</p>
+    `,
+    howToUse: [
+      { step: 1, title: 'Abre tu PDF', description: 'Haz clic para subir o arrastra un archivo PDF para abrirlo en el lector.' },
+      { step: 2, title: 'Navega páginas', description: 'Usa los controles para ir a la página anterior o siguiente, o salta a un número concreto.' },
+      { step: 3, title: 'Ajusta la vista', description: 'Amplía, reduce, rota o entra en pantalla completa para leer cómodamente.' },
+      { step: 4, title: 'Imprime o descarga', description: 'Imprime el documento o descárgalo cuando lo necesites.' },
+    ],
+    useCases: [
+      { title: 'Revisión de documentos', description: 'Revisa PDF rápidamente sin instalar software.', icon: 'book-open' },
+      { title: 'Lectura móvil', description: 'Lee PDF en cualquier dispositivo con navegador web.', icon: 'smartphone' },
+      { title: 'Vista previa rápida', description: 'Previsualiza PDF antes de descargar o imprimir.', icon: 'eye' },
+    ],
+    faq: [
+      { question: '¿Mi documento es seguro?', answer: 'Sí, tu documento se procesa íntegramente en el navegador y nunca se sube a ningún servidor.' },
+      { question: '¿Puedo anotar o editar el PDF?', answer: 'Esta herramienta es solo para visualización. Usa Firmar PDF o Anotar PDF para editar.' },
+      { question: '¿Funciona en móviles?', answer: 'Sí, el Lector PDF funciona en todos los dispositivos con un navegador moderno.' },
+    ],
+  },
 };

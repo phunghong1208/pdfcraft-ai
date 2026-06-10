@@ -19,7 +19,33 @@
     "privateSecure": "100% pribadi & aman",
     "terms": "Ketentuan",
     "privacyLink": "Privasi",
-    "cookies": "Cookie"
+    "cookies": "Cookie",
+    "brandName": "Ruang Kerja Pembaca PDF",
+    "tagline": "Ruang Kerja AI Pribadi",
+    "trustLocalFirst": "Lokal Pertama",
+    "trustLocalFirstDesc": "Tidak ada unggahan server",
+    "trustNoCloud": "Tidak Ada Unggahan Cloud",
+    "trustNoCloudDesc": "Keamanan maksimal",
+    "trustGdpr": "Siap untuk GDPR",
+    "trustGdprDesc": "Data Anda terlindungi",
+    "trustSupport": "Dukungan 24/7",
+    "trustSupportDesc": "Selalu di sini untuk membantu",
+    "trustLanguages": "100+ Bahasa",
+    "trustAi": "Didukung AI",
+    "trustGroupSecurity": "Keamanan",
+    "trustGroupPlatform": "Platform",
+    "trustGroupDownload": "Unduh aplikasi",
+    "storeGetOn": "Pakailah",
+    "storeDownloadOn": "Unduh di",
+    "downloadApp": "Unduh aplikasi",
+    "availableOn": "Tersedia di",
+    "googlePlayAria": "Dapatkan di Google Play",
+    "appStoreAria": "Unduh di App Store",
+    "trustNav": "Kepercayaan dan keamanan",
+    "copyright": "© {tahun} Ruang Kerja Pembaca PDF",
+    "legalNav": "Legal",
+    "privacyBadge": "100% Pribadi — File tidak pernah keluar dari perangkat Anda",
+    "privacyBadgeSub": "Dokumen Anda diproses dengan aman di browser Anda"
   },
   "aiMenu": {
     "aiAssistant": "Asisten AI",
@@ -30,12 +56,26 @@
     "chatWithPdf": "Obrolan dengan PDF",
     "smartOcr": "OCR Cerdas",
     "voiceReader": "Pembaca Suara",
-    "editPdf": "Edit PDF",
+    "editPdf": "Sunting PDF",
     "mergePdf": "Gabung PDF",
     "splitPdf": "Pisah PDF",
     "compressPdf": "Kompres PDF",
     "pdfToWord": "PDF ke Word",
-    "ocrPdf": "OCR PDF"
+    "ocrPdf": "OCR PDF",
+    "edit": "Sunting",
+    "convert": "Mengubah",
+    "rotatePdf": "Putar PDF",
+    "organizePdf": "Atur Halaman",
+    "extractPages": "Ekstrak Halaman",
+    "deletePages": "Hapus Halaman",
+    "signPdf": "Tanda tangani PDF",
+    "cropPdf": "Pangkas PDF",
+    "addWatermark": "Tambahkan Tanda Air",
+    "formFiller": "Isi Formulir",
+    "pageNumbers": "Nomor Halaman",
+    "headerFooter": "Tajuk & Kaki",
+    "convertToPdf": "Konversikan ke PDF",
+    "convertFromPdf": "Konversi dari PDF"
   },
   "homePage": {
     "badge": "Ruang Kerja PDF AI",
@@ -65,7 +105,7 @@
       "chat": "Obrolan dengan PDF",
       "ocr": "Pindai OCR",
       "voice": "Pembaca Suara",
-      "edit": "Edit",
+      "edit": "Sunting",
       "compress": "Kompres",
       "merge": "Gabung",
       "convert": "Konversi",
@@ -73,6 +113,30 @@
       "split": "Pisah",
       "protect": "Lindungi",
       "ocrText": "OCR teks"
+    },
+    "popularAiBadge": "AI yang populer",
+    "trustBar": {
+      "secure": "Aman & Pribadi",
+      "fast": "Secepat Kilat",
+      "cloud": "Berbasis Cloud",
+      "trusted": "Dipercaya oleh Jutaan Orang"
+    },
+    "aiDescriptions": {
+      "summarize": "Ekstrak wawasan penting dari PDF mana pun.",
+      "translate": "Terjemahkan seluruh dokumen ke bahasa lain.",
+      "voice": "Konversi PDF menjadi ucapan alami secara instan.",
+      "ocr": "Ubah pindaian menjadi PDF yang dapat diedit.",
+      "chat": "Ajukan pertanyaan tentang file Anda dan dapatkan jawaban instan."
+    },
+    "toolDescriptions": {
+      "scanToPdf": "Konversikan gambar ke PDF secara instan",
+      "merge": "Gabungkan beberapa PDF menjadi satu",
+      "split": "Bagilah PDF menjadi file terpisah",
+      "protect": "Enkripsi dan amankan PDF Anda",
+      "compress": "Kurangi ukuran file PDF",
+      "ocrText": "Ekstrak teks dari PDF yang dipindai",
+      "edit": "Ubah teks dan gambar dalam PDF",
+      "convert": "Ubah PDF ke format lain"
     }
   }
 }

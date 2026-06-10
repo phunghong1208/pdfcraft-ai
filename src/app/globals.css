@@ -200,81 +200,80 @@
   color: hsl(var(--color-foreground));
 }
 .ai-card-accent-purple {
-  --ai-glow: rgba(167, 139, 250, 0.5);
-  --ai-glow-soft: rgba(167, 139, 250, 0.14);
-  --ai-border: rgba(167, 139, 250, 0.38);
-  --ai-border-hover: rgba(167, 139, 250, 0.62);
-  --ai-icon-bg: rgba(167, 139, 250, 0.22);
-  --ai-icon-ring: rgba(167, 139, 250, 0.48);
-  --ai-icon-fg: hsl(270 85% 78%);
-  --ai-title-fg: hsl(270 62% 86%);
-  --ai-badge-bg: rgba(167, 139, 250, 0.16);
-  --ai-badge-border: rgba(167, 139, 250, 0.38);
-  --ai-shadow: 0 0 0 1px rgba(167, 139, 250, 0.06), 0 0 48px rgba(167, 139, 250, 0.14), 0 8px 32px rgba(0, 0, 0, 0.45);
-  --ai-hover-bg: linear-gradient(145deg, hsl(270 48% 34%) 0%, hsl(285 42% 40%) 55%, hsl(270 38% 26%) 100%);
+  --ai-glow: rgba(167, 139, 250, 0.18);
+  --ai-glow-soft: rgba(167, 139, 250, 0.06);
+  --ai-border: rgba(167, 139, 250, 0.2);
+  --ai-border-hover: rgba(167, 139, 250, 0.34);
+  --ai-icon-bg: rgba(167, 139, 250, 0.12);
+  --ai-icon-ring: rgba(167, 139, 250, 0.24);
+  --ai-icon-fg: hsl(270 65% 68%);
+  --ai-title-fg: hsl(var(--color-foreground));
+  --ai-badge-bg: rgba(167, 139, 250, 0.1);
+  --ai-badge-border: rgba(167, 139, 250, 0.22);
+  --ai-shadow: 0 2px 12px rgba(0, 0, 0, 0.22), 0 1px 3px rgba(0, 0, 0, 0.18);
+  --ai-hover-bg: linear-gradient(145deg, color-mix(in srgb, hsl(270 40% 18%) 55%, hsl(var(--color-card))) 0%, hsl(var(--color-card)) 100%);
 }
 .ai-card-accent-blue {
-  --ai-glow: rgba(96, 165, 250, 0.5);
-  --ai-glow-soft: rgba(96, 165, 250, 0.14);
-  --ai-border: rgba(96, 165, 250, 0.38);
-  --ai-border-hover: rgba(96, 165, 250, 0.62);
-  --ai-icon-bg: rgba(96, 165, 250, 0.22);
-  --ai-icon-ring: rgba(96, 165, 250, 0.48);
-  --ai-icon-fg: hsl(217 95% 72%);
-  --ai-title-fg: hsl(217 72% 84%);
-  --ai-badge-bg: rgba(96, 165, 250, 0.16);
-  --ai-badge-border: rgba(96, 165, 250, 0.38);
-  --ai-shadow: 0 0 0 1px rgba(96, 165, 250, 0.06), 0 0 48px rgba(96, 165, 250, 0.14), 0 8px 32px rgba(0, 0, 0, 0.45);
-  --ai-hover-bg: linear-gradient(145deg, hsl(217 65% 38%) 0%, hsl(230 58% 44%) 55%, hsl(217 55% 28%) 100%);
+  --ai-glow: rgba(96, 165, 250, 0.18);
+  --ai-glow-soft: rgba(96, 165, 250, 0.06);
+  --ai-border: rgba(96, 165, 250, 0.2);
+  --ai-border-hover: rgba(96, 165, 250, 0.34);
+  --ai-icon-bg: rgba(96, 165, 250, 0.12);
+  --ai-icon-ring: rgba(96, 165, 250, 0.24);
+  --ai-icon-fg: hsl(217 80% 68%);
+  --ai-title-fg: hsl(var(--color-foreground));
+  --ai-badge-bg: rgba(96, 165, 250, 0.1);
+  --ai-badge-border: rgba(96, 165, 250, 0.22);
+  --ai-shadow: 0 2px 12px rgba(0, 0, 0, 0.22), 0 1px 3px rgba(0, 0, 0, 0.18);
+  --ai-hover-bg: linear-gradient(145deg, color-mix(in srgb, hsl(217 45% 18%) 55%, hsl(var(--color-card))) 0%, hsl(var(--color-card)) 100%);
 }
 .ai-card-accent-coral {
-  --ai-glow: rgba(248, 113, 113, 0.5);
-  --ai-glow-soft: rgba(248, 113, 113, 0.14);
-  --ai-border: rgba(248, 113, 113, 0.38);
-  --ai-border-hover: rgba(248, 113, 113, 0.62);
-  --ai-icon-bg: rgba(248, 113, 113, 0.22);
-  --ai-icon-ring: rgba(248, 113, 113, 0.48);
-  --ai-icon-fg: hsl(0 90% 72%);
-  --ai-title-fg: hsl(0 68% 84%);
-  --ai-badge-bg: rgba(248, 113, 113, 0.16);
-  --ai-badge-border: rgba(248, 113, 113, 0.38);
-  --ai-shadow: 0 0 0 1px rgba(248, 113, 113, 0.06), 0 0 48px rgba(248, 113, 113, 0.14), 0 8px 32px rgba(0, 0, 0, 0.45);
-  --ai-hover-bg: linear-gradient(145deg, hsl(0 68% 40%) 0%, hsl(12 72% 44%) 55%, hsl(0 58% 30%) 100%);
+  --ai-glow: rgba(248, 113, 113, 0.16);
+  --ai-glow-soft: rgba(248, 113, 113, 0.06);
+  --ai-border: rgba(248, 113, 113, 0.2);
+  --ai-border-hover: rgba(248, 113, 113, 0.34);
+  --ai-icon-bg: rgba(248, 113, 113, 0.12);
+  --ai-icon-ring: rgba(248, 113, 113, 0.24);
+  --ai-icon-fg: hsl(0 78% 68%);
+  --ai-title-fg: hsl(var(--color-foreground));
+  --ai-badge-bg: rgba(248, 113, 113, 0.1);
+  --ai-badge-border: rgba(248, 113, 113, 0.22);
+  --ai-shadow: 0 2px 12px rgba(0, 0, 0, 0.22), 0 1px 3px rgba(0, 0, 0, 0.18);
+  --ai-hover-bg: linear-gradient(145deg, color-mix(in srgb, hsl(0 40% 18%) 55%, hsl(var(--color-card))) 0%, hsl(var(--color-card)) 100%);
 }
 .ai-card-accent-green {
-  --ai-glow: rgba(74, 222, 128, 0.48);
-  --ai-glow-soft: rgba(74, 222, 128, 0.14);
-  --ai-border: rgba(74, 222, 128, 0.36);
-  --ai-border-hover: rgba(74, 222, 128, 0.58);
-  --ai-icon-bg: rgba(74, 222, 128, 0.2);
-  --ai-icon-ring: rgba(74, 222, 128, 0.45);
-  --ai-icon-fg: hsl(152 70% 58%);
-  --ai-title-fg: hsl(152 52% 74%);
-  --ai-badge-bg: rgba(74, 222, 128, 0.14);
-  --ai-badge-border: rgba(74, 222, 128, 0.36);
-  --ai-shadow: 0 0 0 1px rgba(74, 222, 128, 0.06), 0 0 48px rgba(74, 222, 128, 0.12), 0 8px 32px rgba(0, 0, 0, 0.45);
-  --ai-hover-bg: linear-gradient(145deg, hsl(152 48% 30%) 0%, hsl(160 42% 36%) 55%, hsl(152 40% 24%) 100%);
+  --ai-glow: rgba(74, 222, 128, 0.16);
+  --ai-glow-soft: rgba(74, 222, 128, 0.06);
+  --ai-border: rgba(74, 222, 128, 0.2);
+  --ai-border-hover: rgba(74, 222, 128, 0.32);
+  --ai-icon-bg: rgba(74, 222, 128, 0.1);
+  --ai-icon-ring: rgba(74, 222, 128, 0.22);
+  --ai-icon-fg: hsl(152 58% 58%);
+  --ai-title-fg: hsl(var(--color-foreground));
+  --ai-badge-bg: rgba(74, 222, 128, 0.1);
+  --ai-badge-border: rgba(74, 222, 128, 0.22);
+  --ai-shadow: 0 2px 12px rgba(0, 0, 0, 0.22), 0 1px 3px rgba(0, 0, 0, 0.18);
+  --ai-hover-bg: linear-gradient(145deg, color-mix(in srgb, hsl(152 35% 16%) 55%, hsl(var(--color-card))) 0%, hsl(var(--color-card)) 100%);
 }
 .ai-card-accent-violet {
-  --ai-glow: rgba(217, 119, 250, 0.5);
-  --ai-glow-soft: rgba(217, 119, 250, 0.14);
-  --ai-border: rgba(217, 119, 250, 0.38);
-  --ai-border-hover: rgba(217, 119, 250, 0.62);
-  --ai-icon-bg: rgba(217, 119, 250, 0.22);
-  --ai-icon-ring: rgba(217, 119, 250, 0.48);
-  --ai-icon-fg: hsl(290 88% 76%);
-  --ai-title-fg: hsl(290 65% 85%);
-  --ai-badge-bg: rgba(217, 119, 250, 0.16);
-  --ai-badge-border: rgba(217, 119, 250, 0.38);
-  --ai-shadow: 0 0 0 1px rgba(217, 119, 250, 0.06), 0 0 48px rgba(217, 119, 250, 0.14), 0 8px 32px rgba(0, 0, 0, 0.45);
-  --ai-hover-bg: linear-gradient(145deg, hsl(290 50% 34%) 0%, hsl(300 45% 40%) 55%, hsl(290 40% 26%) 100%);
+  --ai-glow: rgba(217, 119, 250, 0.18);
+  --ai-glow-soft: rgba(217, 119, 250, 0.06);
+  --ai-border: rgba(217, 119, 250, 0.2);
+  --ai-border-hover: rgba(217, 119, 250, 0.34);
+  --ai-icon-bg: rgba(217, 119, 250, 0.12);
+  --ai-icon-ring: rgba(217, 119, 250, 0.24);
+  --ai-icon-fg: hsl(290 68% 70%);
+  --ai-title-fg: hsl(var(--color-foreground));
+  --ai-badge-bg: rgba(217, 119, 250, 0.1);
+  --ai-badge-border: rgba(217, 119, 250, 0.22);
+  --ai-shadow: 0 2px 12px rgba(0, 0, 0, 0.22), 0 1px 3px rgba(0, 0, 0, 0.18);
+  --ai-hover-bg: linear-gradient(145deg, color-mix(in srgb, hsl(290 40% 18%) 55%, hsl(var(--color-card))) 0%, hsl(var(--color-card)) 100%);
 }
 .ai-card[class*='ai-card-accent-'] {
   border: 1px solid var(--ai-border);
   background:
-    radial-gradient(150% 120% at -5% -10%, var(--ai-glow) 0%, transparent 52%),
-    radial-gradient(90% 70% at 105% 110%, var(--ai-glow-soft) 0%, transparent 55%),
-    hsl(222 16% 8%);
+    radial-gradient(140% 100% at -5% -10%, var(--ai-glow) 0%, transparent 48%),
+    hsl(var(--color-card));
   box-shadow: var(--ai-shadow);
 }
 :root:not(.dark) .ai-card-accent-purple {
@@ -368,13 +367,18 @@
 :root:not(.dark) .ai-card[class*='ai-card-accent-']:focus-visible .ai-card__desc {
   color: hsl(var(--color-muted-foreground));
 }
+.dark .ai-card[class*='ai-card-accent-'] .ai-card__icon {
+  box-shadow: none;
+}
+.dark .ai-card[class*='ai-card-accent-'] .ai-card__icon svg {
+  filter: none;
+}
 .dark .ai-card[class*='ai-card-accent-']:hover,
 .dark .ai-card[class*='ai-card-accent-']:focus-visible {
   border-color: var(--ai-border-hover);
   box-shadow:
-    0 0 0 1px var(--ai-border-hover),
-    0 0 64px color-mix(in srgb, var(--ai-icon-fg) 22%, transparent),
-    0 12px 40px rgba(0, 0, 0, 0.5);
+    0 8px 24px color-mix(in srgb, var(--ai-icon-fg) 12%, transparent),
+    0 2px 8px rgba(0, 0, 0, 0.28);
 }
 
 /* AI tool — lựa chọn radio dạng thẻ (light/dark) */
@@ -488,7 +492,7 @@
 }
 .dark .ai-card[class*='ai-card-accent-']:hover .action-card-arrow__icon,
 .dark .ai-card[class*='ai-card-accent-']:focus-visible .action-card-arrow__icon {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--ai-icon-fg);
 }
 .ai-card__title {
   font-size: 0.9375rem;
@@ -504,7 +508,7 @@
 }
 .dark .ai-card[class*='ai-card-accent-']:hover .ai-card__title,
 .dark .ai-card[class*='ai-card-accent-']:focus-visible .ai-card__title {
-  color: var(--ai-title-fg);
+  color: var(--ai-icon-fg);
 }
 :root:not(.dark) .ai-card[class*='ai-card-accent-'] .ai-card__icon {
   box-shadow: none;
@@ -526,14 +530,11 @@
 .ai-card[class*='ai-card-accent-'] .ai-card__icon {
   background: var(--ai-icon-bg);
   border: 1px solid var(--ai-icon-ring);
-  box-shadow:
-    0 0 24px color-mix(in srgb, var(--ai-icon-fg) 28%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 .ai-card[class*='ai-card-accent-'] .ai-card__icon svg {
   color: var(--ai-icon-fg);
-  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--ai-icon-fg) 40%, transparent));
-  transition: color 200ms ease, filter 200ms ease;
+  transition: color 200ms ease;
 }
 .ai-card__desc {
   margin-top: 0.375rem;
@@ -545,22 +546,22 @@
 .dark .ai-card[class*='ai-card-accent-']:hover,
 .dark .ai-card[class*='ai-card-accent-']:focus-visible {
   background: var(--ai-hover-bg);
-  color: #fff;
+  color: hsl(var(--color-foreground));
 }
 .dark .ai-card[class*='ai-card-accent-']:hover .ai-card__icon,
 .dark .ai-card[class*='ai-card-accent-']:focus-visible .ai-card__icon {
-  background: rgba(255, 255, 255, 0.18);
-  border-color: rgba(255, 255, 255, 0.28);
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.12);
+  background: color-mix(in srgb, var(--ai-icon-bg) 80%, transparent);
+  border-color: var(--ai-icon-ring);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--ai-icon-fg) 16%, transparent);
+  transform: scale(1.04);
 }
 .dark .ai-card[class*='ai-card-accent-']:hover .ai-card__icon svg,
 .dark .ai-card[class*='ai-card-accent-']:focus-visible .ai-card__icon svg {
-  color: #fff;
-  filter: none;
+  color: var(--ai-icon-fg);
 }
 .dark .ai-card[class*='ai-card-accent-']:hover .ai-card__desc,
 .dark .ai-card[class*='ai-card-accent-']:focus-visible .ai-card__desc {
-  color: rgba(255, 255, 255, 0.78);
+  color: hsl(var(--color-muted-foreground));
 }
 .ai-card__badge {
   position: absolute;
@@ -580,9 +581,15 @@
 }
 .ai-card:hover .ai-card__badge,
 .ai-card:focus-visible .ai-card__badge {
-  background: rgba(255, 255, 255, 0.16);
-  border-color: rgba(255, 255, 255, 0.32);
-  color: #fff;
+  background: var(--ai-badge-bg);
+  border-color: var(--ai-badge-border);
+  color: var(--ai-icon-fg);
+}
+.dark .ai-card:hover .ai-card__badge,
+.dark .ai-card:focus-visible .ai-card__badge {
+  background: color-mix(in srgb, var(--ai-icon-bg) 90%, transparent);
+  border-color: var(--ai-icon-ring);
+  color: var(--ai-icon-fg);
 }
 
 /* Tools page — tabs & AI assistant layout */

@@ -19,7 +19,33 @@
     "privateSecure": "100 % privé et sécurisé",
     "terms": "Conditions",
     "privacyLink": "Confidentialité",
-    "cookies": "Cookies"
+    "cookies": "Cookies",
+    "brandName": "Espace de travail du lecteur PDF",
+    "tagline": "Espace de travail IA privé",
+    "trustLocalFirst": "Local d’abord",
+    "trustLocalFirstDesc": "Aucun téléchargement sur le serveur",
+    "trustNoCloud": "Pas de téléchargement vers le cloud",
+    "trustNoCloudDesc": "Sécurité maximale",
+    "trustGdpr": "Prêt pour le RGPD",
+    "trustGdprDesc": "Vos données sont protégées",
+    "trustSupport": "Assistance 24h/24 et 7j/7",
+    "trustSupportDesc": "Toujours là pour aider",
+    "trustLanguages": "Plus de 100 langues",
+    "trustAi": "Alimenté par l'IA",
+    "trustGroupSecurity": "Sécurité",
+    "trustGroupPlatform": "Plate-forme",
+    "trustGroupDownload": "Télécharger l'application",
+    "storeGetOn": "Mettez-le",
+    "storeDownloadOn": "Télécharger sur le",
+    "downloadApp": "Télécharger l'application",
+    "availableOn": "Disponible sur",
+    "googlePlayAria": "Obtenez-le sur Google Play",
+    "appStoreAria": "Télécharger sur l'App Store",
+    "trustNav": "Confiance et sécurité",
+    "copyright": "© {année} Espace de travail du lecteur PDF",
+    "legalNav": "Légal",
+    "privacyBadge": "100 % privé : les fichiers ne quittent jamais votre appareil",
+    "privacyBadgeSub": "Vos documents sont traités en toute sécurité dans votre navigateur"
   },
   "aiMenu": {
     "aiAssistant": "Assistant IA",
@@ -35,7 +61,21 @@
     "splitPdf": "Diviser le PDF",
     "compressPdf": "Compresser le PDF",
     "pdfToWord": "PDF vers Word",
-    "ocrPdf": "OCR du PDF"
+    "ocrPdf": "OCR du PDF",
+    "edit": "Modifier",
+    "convert": "Convertir",
+    "rotatePdf": "Faire pivoter le PDF",
+    "organizePdf": "Organiser les pages",
+    "extractPages": "Extraire des pages",
+    "deletePages": "Supprimer des pages",
+    "signPdf": "Signer le PDF",
+    "cropPdf": "Recadrer le PDF",
+    "addWatermark": "Ajouter un filigrane",
+    "formFiller": "Remplir les formulaires",
+    "pageNumbers": "Numéros de pages",
+    "headerFooter": "En-tête et pied de page",
+    "convertToPdf": "Convertir en PDF",
+    "convertFromPdf": "Convertir à partir d'un PDF"
   },
   "homePage": {
     "badge": "Espace de travail PDF avec IA",
@@ -73,6 +113,30 @@
       "split": "Diviser",
       "protect": "Protéger",
       "ocrText": "OCR texte"
+    },
+    "popularAiBadge": "IA populaire",
+    "trustBar": {
+      "secure": "Sécurisé et privé",
+      "fast": "Rapide comme l'éclair",
+      "cloud": "Basé sur le cloud",
+      "trusted": "Des millions de personnes font confiance"
+    },
+    "aiDescriptions": {
+      "summarize": "Extrayez les informations clés de n’importe quel PDF.",
+      "translate": "Traduisez des documents entiers dans d’autres langues.",
+      "voice": "Convertissez instantanément un PDF en parole naturelle.",
+      "ocr": "Convertissez les numérisations en PDF modifiable.",
+      "chat": "Posez des questions sur vos fichiers et obtenez des réponses instantanées."
+    },
+    "toolDescriptions": {
+      "scanToPdf": "Convertissez instantanément des images en PDF",
+      "merge": "Combinez plusieurs PDF en un seul",
+      "split": "Diviser le PDF en fichiers séparés",
+      "protect": "Cryptez et sécurisez vos PDF",
+      "compress": "Réduire la taille du fichier PDF",
+      "ocrText": "Extraire le texte des PDF numérisés",
+      "edit": "Modifier le texte et les images dans les PDF",
+      "convert": "Transformez des PDF vers d'autres formats"
     }
   }
 }

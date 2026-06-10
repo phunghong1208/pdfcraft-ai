@@ -9,7 +9,7 @@
     "close": "Đóng tìm kiếm"
   },
   "footer": {
-    "brandName": "PDF Reader Workspace",
+    "brandName": "Không gian làm việc của trình đọc PDF",
     "brandLine1": "PDF Reader",
     "brandLine2": "Workspace",
     "tagline": "Không gian AI riêng tư",
@@ -19,8 +19,8 @@
     "trustNoCloudDesc": "Bảo mật tối đa",
     "trustGdpr": "Tuân thủ GDPR",
     "trustGdprDesc": "Dữ liệu của bạn được bảo vệ",
-    "trustLanguages": "100+ Languages",
-    "trustAi": "AI Powered",
+    "trustLanguages": "Hơn 100 ngôn ngữ",
+    "trustAi": "Hỗ trợ AI",
     "trustGroupSecurity": "Bảo mật",
     "trustGroupPlatform": "Nền tảng",
     "trustGroupDownload": "Tải ứng dụng",
@@ -33,13 +33,15 @@
     "googlePlayAria": "Tải trên Google Play",
     "appStoreAria": "Tải trên App Store",
     "trustNav": "Tin cậy và bảo mật",
-    "copyright": "© {year} PDF Reader Workspace",
+    "copyright": "© {year} Không gian làm việc của Trình đọc PDF",
     "legalNav": "Pháp lý",
     "terms": "Điều khoản sử dụng",
     "privacyLink": "Chính sách riêng tư",
     "cookies": "Cookie",
     "privacyBadge": "100% Riêng tư — Tệp không bao giờ rời khỏi thiết bị",
-    "privacyBadgeSub": "Tài liệu được xử lý an toàn ngay trong trình duyệt của bạn"
+    "privacyBadgeSub": "Tài liệu được xử lý an toàn ngay trong trình duyệt của bạn",
+    "trustSupport": "Hỗ trợ 24/7",
+    "trustSupportDesc": "Luôn ở đây để giúp đỡ"
   },
   "aiMenu": {
     "aiAssistant": "Trợ lý AI",

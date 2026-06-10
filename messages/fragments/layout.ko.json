@@ -19,7 +19,33 @@
     "privateSecure": "100% 비공개 및 안전",
     "terms": "이용약관",
     "privacyLink": "개인정보",
-    "cookies": "쿠키"
+    "cookies": "쿠키",
+    "brandName": "PDF 리더 작업 공간",
+    "tagline": "프라이빗 AI 작업공간",
+    "trustLocalFirst": "로컬 우선",
+    "trustLocalFirstDesc": "서버 업로드 없음",
+    "trustNoCloud": "클라우드 업로드 없음",
+    "trustNoCloudDesc": "최대의 보안",
+    "trustGdpr": "GDPR 준비",
+    "trustGdprDesc": "귀하의 데이터는 보호됩니다",
+    "trustSupport": "연중무휴 지원",
+    "trustSupportDesc": "항상 도와드리겠습니다.",
+    "trustLanguages": "100개 이상의 언어",
+    "trustAi": "AI 기반",
+    "trustGroupSecurity": "보안",
+    "trustGroupPlatform": "플랫폼",
+    "trustGroupDownload": "앱 다운로드",
+    "storeGetOn": "시작해 보세요",
+    "storeDownloadOn": "다운로드",
+    "downloadApp": "앱 다운로드",
+    "availableOn": "사용 가능 날짜",
+    "googlePlayAria": "Google Play에서 구매하세요",
+    "appStoreAria": "앱 스토어에서 다운로드",
+    "trustNav": "신뢰와 보안",
+    "copyright": "© {연도} PDF 리더 작업 공간",
+    "legalNav": "합법적인",
+    "privacyBadge": "100% 비공개 — 파일이 기기 외부로 유출되지 않습니다.",
+    "privacyBadgeSub": "귀하의 문서는 귀하의 브라우저에서 안전하게 처리됩니다"
   },
   "aiMenu": {
     "aiAssistant": "AI 도우미",
@@ -35,7 +61,21 @@
     "splitPdf": "PDF 분할",
     "compressPdf": "PDF 압축",
     "pdfToWord": "PDF를 Word로",
-    "ocrPdf": "PDF OCR"
+    "ocrPdf": "PDF OCR",
+    "edit": "편집하다",
+    "convert": "전환하다",
+    "rotatePdf": "PDF 회전",
+    "organizePdf": "페이지 구성",
+    "extractPages": "페이지 추출",
+    "deletePages": "페이지 삭제",
+    "signPdf": "PDF에 서명",
+    "cropPdf": "PDF 자르기",
+    "addWatermark": "워터마크 추가",
+    "formFiller": "양식 작성",
+    "pageNumbers": "페이지 번호",
+    "headerFooter": "머리글 및 바닥글",
+    "convertToPdf": "PDF로 변환",
+    "convertFromPdf": "PDF에서 변환"
   },
   "homePage": {
     "badge": "AI PDF 작업 공간",
@@ -73,6 +113,30 @@
       "split": "분할",
       "protect": "보호",
       "ocrText": "OCR 텍스트"
+    },
+    "popularAiBadge": "대중적인 AI",
+    "trustBar": {
+      "secure": "보안 및 비공개",
+      "fast": "번개처럼 빠른",
+      "cloud": "클라우드 기반",
+      "trusted": "수백만 명의 신뢰를 받는"
+    },
+    "aiDescriptions": {
+      "summarize": "모든 PDF에서 핵심 통찰력을 추출하세요.",
+      "translate": "전체 문서를 다른 언어로 번역하세요.",
+      "voice": "PDF를 즉시 자연스러운 음성으로 변환하세요.",
+      "ocr": "스캔을 편집 가능한 PDF로 변환합니다.",
+      "chat": "파일에 대해 질문하고 즉시 답변을 얻으세요."
+    },
+    "toolDescriptions": {
+      "scanToPdf": "이미지를 PDF로 즉시 변환",
+      "merge": "여러 PDF를 하나로 결합",
+      "split": "PDF를 별도의 파일로 나누기",
+      "protect": "PDF 암호화 및 보안",
+      "compress": "PDF 파일 크기 줄이기",
+      "ocrText": "스캔한 PDF에서 텍스트 추출",
+      "edit": "PDF의 텍스트 및 이미지 수정",
+      "convert": "PDF를 다른 형식으로 변환"
     }
   }
 }

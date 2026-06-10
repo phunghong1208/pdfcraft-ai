@@ -18,32 +18,58 @@ const enLayout = JSON.parse(
   fs.readFileSync(path.join(fragmentsDir, 'layout.en.json'), 'utf8'),
 );
 
+/** Locale overrides win; missing keys fall back to English. */
+function deepMerge(base, override) {
+  const result = { ...base };
+  for (const key of Object.keys(override)) {
+    const baseValue = base[key];
+    const overrideValue = override[key];
+    if (
+      overrideValue &&
+      typeof overrideValue === 'object' &&
+      !Array.isArray(overrideValue) &&
+      baseValue &&
+      typeof baseValue === 'object' &&
+      !Array.isArray(baseValue)
+    ) {
+      result[key] = deepMerge(baseValue, overrideValue);
+    } else {
+      result[key] = overrideValue;
+    }
+  }
+  return result;
+}
+
 function applyLayout(data, layout) {
   data.common.workspaceBadge = layout.workspaceBadge;
   data.common.upgrade = layout.upgrade;
   data.common.upgradeTitle = layout.upgradeTitle;
 
-  for (const [key, value] of Object.entries(layout.search)) {
-    data.common.search[key] = value;
-  }
-  for (const [key, value] of Object.entries(layout.footer)) {
-    data.common.footer[key] = value;
-  }
+  const prevSearch = data.common.search ?? {};
+  data.common.search = deepMerge(prevSearch, layout.search);
+
+  const prevFooter = data.common.footer ?? {};
+  data.common.footer = deepMerge(prevFooter, layout.footer);
 
   if (!data.common.ai) data.common.ai = {};
-  data.common.ai.menu = layout.aiMenu;
+  const prevMenu = data.common.ai.menu ?? {};
+  data.common.ai.menu = deepMerge(prevMenu, layout.aiMenu);
 
-  data.homePage = layout.homePage;
+  const prevHomePage = data.homePage ?? {};
+  data.homePage = deepMerge(prevHomePage, layout.homePage);
 }
 
 for (const locale of locales) {
   const fragmentPath = path.join(fragmentsDir, `layout.${locale}.json`);
-  const layout =
+  const localeFragment =
     locale === 'en'
       ? enLayout
       : fs.existsSync(fragmentPath)
         ? JSON.parse(fs.readFileSync(fragmentPath, 'utf8'))
-        : enLayout;
+        : {};
+
+  const layout =
+    locale === 'en' ? enLayout : deepMerge(enLayout, localeFragment);
 
   const messagePath = path.join(messagesDir, `${locale}.json`);
   const data = JSON.parse(fs.readFileSync(messagePath, 'utf8'));

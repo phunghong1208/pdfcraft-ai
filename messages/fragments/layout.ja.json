@@ -19,7 +19,33 @@
     "privateSecure": "100%プライベートで安全",
     "terms": "利用規約",
     "privacyLink": "プライバシー",
-    "cookies": "Cookie"
+    "cookies": "Cookie",
+    "brandName": "PDF リーダー ワークスペース",
+    "tagline": "プライベート AI ワークスペース",
+    "trustLocalFirst": "ローカルファースト",
+    "trustLocalFirstDesc": "サーバーアップロードなし",
+    "trustNoCloud": "クラウドアップロードなし",
+    "trustNoCloudDesc": "最大限のセキュリティ",
+    "trustGdpr": "GDPR対応",
+    "trustGdprDesc": "あなたのデータは保護されています",
+    "trustSupport": "年中無休のサポート",
+    "trustSupportDesc": "いつもここで助けてくれます",
+    "trustLanguages": "100以上の言語",
+    "trustAi": "AI を活用した",
+    "trustGroupSecurity": "安全",
+    "trustGroupPlatform": "プラットフォーム",
+    "trustGroupDownload": "アプリをダウンロード",
+    "storeGetOn": "それを着てください",
+    "storeDownloadOn": "でダウンロードしてください",
+    "downloadApp": "アプリをダウンロード",
+    "availableOn": "で利用可能",
+    "googlePlayAria": "Google Play で入手",
+    "appStoreAria": "App Storeでダウンロード",
+    "trustNav": "信頼と安心",
+    "copyright": "© {年} PDF リーダー ワークスペース",
+    "legalNav": "法律上の",
+    "privacyBadge": "100% プライベート — ファイルがデバイスから流出することはありません",
+    "privacyBadgeSub": "ドキュメントはブラウザで安全に処理されます"
   },
   "aiMenu": {
     "aiAssistant": "AIアシスタント",
@@ -35,7 +61,21 @@
     "splitPdf": "PDFを分割",
     "compressPdf": "PDFを圧縮",
     "pdfToWord": "PDFをWordへ",
-    "ocrPdf": "PDFのOCR"
+    "ocrPdf": "PDFのOCR",
+    "edit": "編集",
+    "convert": "変換する",
+    "rotatePdf": "PDFを回転する",
+    "organizePdf": "ページを整理する",
+    "extractPages": "ページの抽出",
+    "deletePages": "ページの削除",
+    "signPdf": "PDFに署名",
+    "cropPdf": "PDFのトリミング",
+    "addWatermark": "透かしを追加する",
+    "formFiller": "フォームに記入する",
+    "pageNumbers": "ページ番号",
+    "headerFooter": "ヘッダーとフッター",
+    "convertToPdf": "PDFに変換",
+    "convertFromPdf": "PDFから変換"
   },
   "homePage": {
     "badge": "AI PDFワークスペース",
@@ -73,6 +113,30 @@
       "split": "分割",
       "protect": "保護",
       "ocrText": "OCRテキスト"
+    },
+    "popularAiBadge": "人気のAI",
+    "trustBar": {
+      "secure": "安全かつプライベート",
+      "fast": "電光石火の速さ",
+      "cloud": "クラウドベース",
+      "trusted": "何百万もの人々に信頼されています"
+    },
+    "aiDescriptions": {
+      "summarize": "あらゆる PDF から重要な洞察を抽出します。",
+      "translate": "文書全体を他の言語に翻訳します。",
+      "voice": "PDF を瞬時に自然音声に変換します。",
+      "ocr": "スキャンを編集可能な PDF に変換します。",
+      "chat": "ファイルについて質問すると、すぐに回答が得られます。"
+    },
+    "toolDescriptions": {
+      "scanToPdf": "画像を瞬時に PDF に変換",
+      "merge": "複数の PDF を 1 つに結合する",
+      "split": "PDFを別のファイルに分割する",
+      "protect": "PDF を暗号化して保護する",
+      "compress": "PDFファイルのサイズを小さくする",
+      "ocrText": "スキャンした PDF からテキストを抽出する",
+      "edit": "PDF 内のテキストと画像を変更する",
+      "convert": "PDF を他の形式に変換する"
     }
   }
 }

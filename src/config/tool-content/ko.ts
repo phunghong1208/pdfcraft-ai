@@ -1278,4 +1278,31 @@ export const toolContentKo: Record<string, ToolContent> = {
       { question: '서명이 무효가 되는 이유는?', answer: '문서가 수정되었거나, 인증서가 만료되었거나, 인증서가 신뢰되지 않는 경우 서명이 무효가 될 수 있습니다.' },
     ],
   },
+
+  'pdf-reader': {
+    title: 'PDF 리더',
+    metaDescription: '무료 온라인 PDF 리더. 브라우저에서 PDF 문서를 보고, 이동하고, 확대/축소하고, 회전하고, 인쇄하세요.',
+    keywords: ['pdf 리더', 'pdf 뷰어', '온라인 pdf 보기', 'pdf 읽기', '브라우저 pdf 뷰어'],
+    description: `
+      <p>PDF 리더는 브라우저에서 PDF 문서를 읽고 탐색할 수 있는 기능이 풍부한 뷰어입니다. 소프트웨어 설치 없이 PDF를 업로드하고 바로 읽을 수 있습니다.</p>
+      <p>페이지 이동, 확대/축소, 화면 회전, 전체 화면 모드를 지원합니다. 인쇄하거나 오프라인용으로 다운로드할 수도 있습니다.</p>
+      <p>모든 보기는 브라우저에서 로컬로 처리되며 문서는 서버에 업로드되지 않습니다.</p>
+    `,
+    howToUse: [
+      { step: 1, title: 'PDF 열기', description: '클릭하여 업로드하거나 PDF 파일을 끌어다 놓아 리더에서 엽니다.' },
+      { step: 2, title: '페이지 이동', description: '이전/다음 페이지로 이동하거나 특정 페이지 번호로 이동합니다.' },
+      { step: 3, title: '보기 조정', description: '확대/축소, 회전, 전체 화면으로 편하게 읽으세요.' },
+      { step: 4, title: '인쇄 또는 다운로드', description: '필요할 때 인쇄하거나 다운로드합니다.' },
+    ],
+    useCases: [
+      { title: '문서 검토', description: '소프트웨어 설치 없이 PDF를 빠르게 검토합니다.', icon: 'book-open' },
+      { title: '모바일 읽기', description: '웹 브라우저가 있는 모든 기기에서 PDF를 읽을 수 있습니다.', icon: 'smartphone' },
+      { title: '빠른 미리보기', description: '다운로드나 인쇄 전에 PDF를 미리 봅니다.', icon: 'eye' },
+    ],
+    faq: [
+      { question: '내 문서는 안전한가요?', answer: '예. 문서는 브라우저에서만 처리되며 서버에 업로드되지 않습니다.' },
+      { question: 'PDF에 주석을 달거나 편집할 수 있나요?', answer: '이 도구는 보기 전용입니다. 편집은 PDF 서명 또는 주석 도구를 사용하세요.' },
+      { question: '모바일에서도 작동하나요?', answer: '예. 최신 웹 브라우저가 있는 모든 기기에서 작동합니다.' },
+    ],
+  },
 };

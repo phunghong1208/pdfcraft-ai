@@ -19,7 +19,33 @@
     "privateSecure": "100% 私密且安全",
     "terms": "條款",
     "privacyLink": "隱私",
-    "cookies": "Cookie"
+    "cookies": "Cookie",
+    "brandName": "PDF 閱讀器工作區",
+    "tagline": "私人人工智慧工作空間",
+    "trustLocalFirst": "本地優先",
+    "trustLocalFirstDesc": "沒有伺服器上傳",
+    "trustNoCloud": "沒有雲端上傳",
+    "trustNoCloudDesc": "最高安全性",
+    "trustGdpr": "GDPR 就緒",
+    "trustGdprDesc": "您的資料受到保護",
+    "trustSupport": "24/7 支持",
+    "trustSupportDesc": "隨時為您提供協助",
+    "trustLanguages": "100多種語言",
+    "trustAi": "人工智慧驅動",
+    "trustGroupSecurity": "安全",
+    "trustGroupPlatform": "平台",
+    "trustGroupDownload": "下載應用程式",
+    "storeGetOn": "穿上它",
+    "storeDownloadOn": "下載於",
+    "downloadApp": "下載應用程式",
+    "availableOn": "可用於",
+    "googlePlayAria": "在 Google Play 上取得",
+    "appStoreAria": "在應用程式商店下載",
+    "trustNav": "信任與安全",
+    "copyright": "© {year} PDF 閱讀器工作區",
+    "legalNav": "合法的",
+    "privacyBadge": "100% 私密 — 文件永遠不會離開您的設備",
+    "privacyBadgeSub": "您的文件在瀏覽器中得到安全處理"
   },
   "aiMenu": {
     "aiAssistant": "AI 助手",
@@ -35,7 +61,21 @@
     "splitPdf": "拆分 PDF",
     "compressPdf": "壓縮 PDF",
     "pdfToWord": "PDF 轉 Word",
-    "ocrPdf": "PDF OCR"
+    "ocrPdf": "PDF OCR",
+    "edit": "編輯",
+    "convert": "轉變",
+    "rotatePdf": "旋轉 PDF",
+    "organizePdf": "組織頁面",
+    "extractPages": "提取頁面",
+    "deletePages": "刪除頁面",
+    "signPdf": "簽署 PDF",
+    "cropPdf": "裁剪 PDF",
+    "addWatermark": "添加浮水印",
+    "formFiller": "填寫表格",
+    "pageNumbers": "頁碼",
+    "headerFooter": "頁首和頁尾",
+    "convertToPdf": "轉換為 PDF",
+    "convertFromPdf": "從 PDF 轉換"
   },
   "homePage": {
     "badge": "AI PDF 工作區",
@@ -73,6 +113,29 @@
       "split": "拆分",
       "protect": "保護",
       "ocrText": "OCR 文字"
+    },
+    "popularAiBadge": "熱門人工智慧",
+    "trustBar": {
+      "secure": "安全且私密",
+      "fast": "快如閃電",
+      "cloud": "基於雲端",
+      "trusted": "數百萬人信賴"
+    },
+    "aiDescriptions": {
+      "translate": "將整份文件翻譯成其他語言。",
+      "voice": "立即將 PDF 轉換為自然語音。",
+      "ocr": "將掃描件轉換為可編輯的 PDF。",
+      "chat": "詢問有關您的文件的問題並立即獲得答案。"
+    },
+    "toolDescriptions": {
+      "scanToPdf": "立即將圖像轉換為 PDF",
+      "merge": "將多個 PDF 合併為一個",
+      "split": "將 PDF 分成單獨的文件",
+      "protect": "加密並保護您的 PDF",
+      "compress": "減小 PDF 檔案大小",
+      "ocrText": "從掃描的 PDF 中提取文本",
+      "edit": "修改 PDF 中的文字和圖像",
+      "convert": "將 PDF 轉換為其他格式"
     }
   }
 }

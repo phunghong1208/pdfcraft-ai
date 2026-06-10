@@ -1739,4 +1739,31 @@ export const toolContentDe: Record<string, ToolContent> = {
       { question: 'Warum könnte eine Signatur ungültig sein?', answer: 'Signaturen können ungültig sein, wenn das Dokument geändert wurde, das Zertifikat abgelaufen ist oder das Zertifikat nicht vertrauenswürdig ist.' },
     ],
   },
+
+  'pdf-reader': {
+    title: 'PDF-Reader',
+    metaDescription: 'Kostenloser Online-PDF-Reader. PDFs im Browser anzeigen, navigieren, zoomen, drehen und drucken.',
+    keywords: ['pdf reader', 'pdf viewer', 'pdf online ansehen', 'pdf lesen', 'browser pdf viewer'],
+    description: `
+      <p>Der PDF-Reader ist ein vollständiger Viewer zum Lesen und Navigieren von PDF-Dokumenten im Browser. Keine Installation nötig – PDF hochladen und loslesen.</p>
+      <p>Blättern Sie zwischen Seiten, zoomen Sie, drehen Sie die Ansicht und nutzen Sie den Vollbildmodus. Drucken oder Download für Offline-Zugriff sind möglich.</p>
+      <p>Die gesamte Anzeige erfolgt lokal im Browser. Ihre Dokumente werden nie auf einen Server hochgeladen.</p>
+    `,
+    howToUse: [
+      { step: 1, title: 'PDF öffnen', description: 'Klicken zum Hochladen oder PDF per Drag & Drop im Reader öffnen.' },
+      { step: 2, title: 'Seiten navigieren', description: 'Mit den Steuerelementen zur vorherigen/nächsten Seite wechseln oder zu einer Seitennummer springen.' },
+      { step: 3, title: 'Ansicht anpassen', description: 'Zoomen, drehen oder Vollbild für komfortables Lesen.' },
+      { step: 4, title: 'Drucken oder herunterladen', description: 'Bei Bedarf drucken oder herunterladen.' },
+    ],
+    useCases: [
+      { title: 'Dokumentenprüfung', description: 'PDFs schnell prüfen ohne Softwareinstallation.', icon: 'book-open' },
+      { title: 'Mobil lesen', description: 'PDFs auf jedem Gerät mit Webbrowser lesen.', icon: 'smartphone' },
+      { title: 'Schnelle Vorschau', description: 'PDF vor Download oder Druck ansehen.', icon: 'eye' },
+    ],
+    faq: [
+      { question: 'Ist mein Dokument sicher?', answer: 'Ja, Ihr Dokument wird vollständig im Browser verarbeitet und nie auf einen Server hochgeladen.' },
+      { question: 'Kann ich das PDF annotieren oder bearbeiten?', answer: 'Dieses Tool ist nur zum Ansehen. Nutzen Sie PDF signieren oder Annotieren zum Bearbeiten.' },
+      { question: 'Funktioniert es auf Mobilgeräten?', answer: 'Ja, der PDF-Reader funktioniert auf allen Geräten mit modernem Browser.' },
+    ],
+  },
 };

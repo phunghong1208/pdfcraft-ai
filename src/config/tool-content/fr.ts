@@ -2093,4 +2093,31 @@ export const toolContentFr: Record<string, ToolContent> = {
       { question: 'Pourquoi une signature pourrait-elle être invalide ?', answer: 'Les signatures peuvent être invalides si le document a été modifié, le certificat a expiré ou le certificat n\'est pas de confiance.' },
     ],
   },
+
+  'pdf-reader': {
+    title: 'Lecteur PDF',
+    metaDescription: 'Lecteur PDF en ligne gratuit. Affichez, naviguez, zoomez, faites pivoter et imprimez des PDF directement dans votre navigateur.',
+    keywords: ['lecteur pdf', 'visionneuse pdf', 'voir pdf en ligne', 'lire pdf', 'visionneuse pdf navigateur'],
+    description: `
+      <p>Le Lecteur PDF est une visionneuse complète pour lire et parcourir des documents PDF dans le navigateur. Aucune installation requise : téléversez votre PDF et commencez à lire.</p>
+      <p>Naviguez entre les pages, zoomez, faites pivoter la vue et utilisez le plein écran. Vous pouvez aussi imprimer ou télécharger pour un accès hors ligne.</p>
+      <p>Toute la consultation se fait localement dans votre navigateur. Vos documents ne sont jamais envoyés sur un serveur.</p>
+    `,
+    howToUse: [
+      { step: 1, title: 'Ouvrir votre PDF', description: 'Cliquez pour téléverser ou glissez-déposez un fichier PDF dans le lecteur.' },
+      { step: 2, title: 'Naviguer dans les pages', description: 'Utilisez les contrôles pour aller à la page précédente ou suivante, ou sauter à un numéro de page.' },
+      { step: 3, title: 'Ajuster la vue', description: 'Zoomez, faites pivoter ou passez en plein écran pour une lecture confortable.' },
+      { step: 4, title: 'Imprimer ou télécharger', description: 'Imprimez le document ou téléchargez-le si nécessaire.' },
+    ],
+    useCases: [
+      { title: 'Revue de documents', description: 'Consultez rapidement des PDF sans installer de logiciel.', icon: 'book-open' },
+      { title: 'Lecture mobile', description: 'Lisez des PDF sur tout appareil avec un navigateur web.', icon: 'smartphone' },
+      { title: 'Aperçu rapide', description: 'Prévisualisez un PDF avant de le télécharger ou l\'imprimer.', icon: 'eye' },
+    ],
+    faq: [
+      { question: 'Mon document est-il sécurisé ?', answer: 'Oui, votre document est traité entièrement dans le navigateur et n\'est jamais téléversé sur un serveur.' },
+      { question: 'Puis-je annoter ou modifier le PDF ?', answer: 'Cet outil est en lecture seule. Utilisez Signer PDF ou Annoter PDF pour modifier.' },
+      { question: 'Fonctionne-t-il sur mobile ?', answer: 'Oui, le Lecteur PDF fonctionne sur tous les appareils avec un navigateur moderne.' },
+    ],
+  },
 };

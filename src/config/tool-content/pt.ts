@@ -1162,4 +1162,31 @@ export const toolContentPt: Record<string, ToolContent> = {
       { question: 'Por que uma assinatura pode ser inválida?', answer: 'Assinaturas podem ser inválidas se o documento foi modificado, o certificado expirou ou o certificado não é confiável.' },
     ],
   },
+
+  'pdf-reader': {
+    title: 'Leitor de PDF',
+    metaDescription: 'Leitor de PDF online gratuito. Veja, navegue, amplie, gire e imprima PDFs diretamente no navegador.',
+    keywords: ['leitor pdf', 'visualizador pdf', 'ver pdf online', 'ler pdf', 'visualizador pdf navegador'],
+    description: `
+      <p>O Leitor de PDF é um visualizador completo para ler e navegar documentos PDF no navegador. Sem instalação — envie o PDF e comece a ler.</p>
+      <p>Navegue entre páginas, amplie ou reduza, gire a visualização e use tela cheia. Também é possível imprimir ou baixar para acesso offline.</p>
+      <p>Toda a visualização ocorre localmente no navegador. Seus documentos nunca são enviados a nenhum servidor.</p>
+    `,
+    howToUse: [
+      { step: 1, title: 'Abra seu PDF', description: 'Clique para enviar ou arraste um arquivo PDF para abrir no leitor.' },
+      { step: 2, title: 'Navegue pelas páginas', description: 'Use os controles para ir à página anterior ou seguinte, ou pule para um número específico.' },
+      { step: 3, title: 'Ajuste a visualização', description: 'Amplie, reduza, gire ou entre em tela cheia para ler com conforto.' },
+      { step: 4, title: 'Imprima ou baixe', description: 'Imprima o documento ou baixe quando necessário.' },
+    ],
+    useCases: [
+      { title: 'Revisão de documentos', description: 'Revise PDFs rapidamente sem instalar software.', icon: 'book-open' },
+      { title: 'Leitura móvel', description: 'Leia PDFs em qualquer dispositivo com navegador web.', icon: 'smartphone' },
+      { title: 'Pré-visualização rápida', description: 'Pré-visualize PDFs antes de baixar ou imprimir.', icon: 'eye' },
+    ],
+    faq: [
+      { question: 'Meu documento é seguro?', answer: 'Sim, seu documento é processado inteiramente no navegador e nunca é enviado a nenhum servidor.' },
+      { question: 'Posso anotar ou editar o PDF?', answer: 'Esta ferramenta é apenas para visualização. Use Assinar PDF ou Anotar PDF para editar.' },
+      { question: 'Funciona em dispositivos móveis?', answer: 'Sim, o Leitor de PDF funciona em todos os dispositivos com navegador moderno.' },
+    ],
+  },
 };

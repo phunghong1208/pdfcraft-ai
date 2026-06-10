@@ -19,7 +19,33 @@
     "privateSecure": "100% privat și securizat",
     "terms": "Termeni",
     "privacyLink": "Confidențialitate",
-    "cookies": "Cookie-uri"
+    "cookies": "Cookie-uri",
+    "brandName": "Spațiu de lucru PDF Reader",
+    "tagline": "Spațiu de lucru privat AI",
+    "trustLocalFirst": "Local în primul rând",
+    "trustLocalFirstDesc": "Fără încărcări de server",
+    "trustNoCloud": "Fără încărcare în cloud",
+    "trustNoCloudDesc": "Securitate maximă",
+    "trustGdpr": "Gata pentru GDPR",
+    "trustGdprDesc": "Datele dvs. sunt protejate",
+    "trustSupport": "Asistență 24/7",
+    "trustSupportDesc": "Întotdeauna aici pentru a ajuta",
+    "trustLanguages": "Peste 100 de limbi",
+    "trustAi": "Alimentat cu AI",
+    "trustGroupSecurity": "Securitate",
+    "trustGroupPlatform": "Platformă",
+    "trustGroupDownload": "Descărcați aplicația",
+    "storeGetOn": "Pune-o",
+    "storeDownloadOn": "Descărcați pe",
+    "downloadApp": "Descărcați aplicația",
+    "availableOn": "Disponibil pe",
+    "googlePlayAria": "Obțineți-l pe Google Play",
+    "appStoreAria": "Descărcați în App Store",
+    "trustNav": "Încredere și securitate",
+    "copyright": "© {an} PDF Reader Workspace",
+    "legalNav": "Legal",
+    "privacyBadge": "100% Privat — Fișierele nu părăsesc dispozitivul dvs",
+    "privacyBadgeSub": "Documentele dumneavoastră sunt procesate în siguranță în browser"
   },
   "aiMenu": {
     "aiAssistant": "Asistent AI",
@@ -35,7 +61,21 @@
     "splitPdf": "Divizează PDF",
     "compressPdf": "Comprimă PDF",
     "pdfToWord": "PDF în Word",
-    "ocrPdf": "OCR PDF"
+    "ocrPdf": "OCR PDF",
+    "edit": "Edita",
+    "convert": "Convertit",
+    "rotatePdf": "Rotiți PDF",
+    "organizePdf": "Organizați Pagini",
+    "extractPages": "Extrage pagini",
+    "deletePages": "Șterge pagini",
+    "signPdf": "Semnează PDF",
+    "cropPdf": "Decupați PDF",
+    "addWatermark": "Adăugați filigran",
+    "formFiller": "Completați formulare",
+    "pageNumbers": "Numerele paginilor",
+    "headerFooter": "Antet și subsol",
+    "convertToPdf": "Convertiți în PDF",
+    "convertFromPdf": "Convertiți din PDF"
   },
   "homePage": {
     "badge": "Spațiu de lucru PDF AI",
@@ -73,6 +113,30 @@
       "split": "Împarte",
       "protect": "Protejează",
       "ocrText": "OCR text"
+    },
+    "popularAiBadge": "AI popular",
+    "trustBar": {
+      "secure": "Securizat și privat",
+      "fast": "Rapid fulger",
+      "cloud": "Bazat pe cloud",
+      "trusted": "De încredere de milioane"
+    },
+    "aiDescriptions": {
+      "summarize": "Extrageți informații cheie din orice PDF.",
+      "translate": "Traduceți documente întregi în alte limbi.",
+      "voice": "Convertiți instantaneu PDF în vorbire naturală.",
+      "ocr": "Convertiți scanările în PDF editabil.",
+      "chat": "Puneți întrebări despre fișierele dvs. și obțineți răspunsuri instantanee."
+    },
+    "toolDescriptions": {
+      "scanToPdf": "Convertiți instantaneu imaginile în PDF",
+      "merge": "Combinați mai multe PDF-uri într-unul singur",
+      "split": "Împărțiți PDF-ul în fișiere separate",
+      "protect": "Criptați și asigurați-vă PDF-urile",
+      "compress": "Reduceți dimensiunea fișierului PDF",
+      "ocrText": "Extrageți text din PDF-urile scanate",
+      "edit": "Modificați textul și imaginile în PDF-uri",
+      "convert": "Transformați PDF-urile în alte formate"
     }
   }
 }
