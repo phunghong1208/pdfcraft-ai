@@ -123,8 +123,8 @@
     "upgradeTitle": "Mejorar plan",
     "footer": {
       "brandName": "Espacio de trabajo del lector de PDF",
-      "brandLine1": "Lector de PDF",
-      "brandLine2": "Espacio de trabajo",
+      "brandLine1": "PDF Reader",
+      "brandLine2": "Workspace",
       "tagline": "Espacio de trabajo privado de IA",
       "trustLocalFirst": "Local primero",
       "trustLocalFirstDesc": "No hay cargas del servidor",
@@ -140,9 +140,9 @@
       "trustGroupPlatform": "Plataforma",
       "trustGroupDownload": "Descargar aplicación",
       "storeGetOn": "Consíguelo",
-      "storeGooglePlay": "GooglePlay",
+      "storeGooglePlay": "Google Play",
       "storeDownloadOn": "Descargar en el",
-      "storeAppStore": "Tienda de aplicaciones",
+      "storeAppStore": "App Store",
       "downloadApp": "Descargar aplicación",
       "availableOn": "Disponible en",
       "googlePlayAria": "Consíguelo en Google Play",
@@ -152,7 +152,7 @@
       "legalNav": "Legal",
       "terms": "Términos",
       "privacyLink": "Privacidad",
-      "cookies": "Galletas",
+      "cookies": "Cookies",
       "privacyBadge": "100% privado: los archivos nunca salen de su dispositivo",
       "privacyBadgeSub": "Sus documentos se procesan de forma segura en su navegador",
       "resources": "Recursos",
@@ -1844,7 +1844,16 @@
       "previewTitle": "Vista previa del texto extraído",
       "successMessage": "¡OCR completado con éxito! Haga clic en el botón de descarga para guardar su archivo.",
       "infoTitle": "Acerca del OCR",
-      "infoText": "OCR (reconocimiento óptico de caracteres) extrae texto de documentos e imágenes escaneados. Para obtener mejores resultados, utilice escaneos de alta calidad y seleccione los idiomas correctos."
+      "infoText": "OCR (reconocimiento óptico de caracteres) extrae texto de documentos e imágenes escaneados. Para obtener mejores resultados, utilice escaneos de alta calidad y seleccione los idiomas correctos.",
+      "optimize": "Optimization",
+      "optimizeNone": "None",
+      "optimizeDefault": "Default",
+      "optimizeAggressive": "Aggressive (smaller file)",
+      "deskew": "Deskew (straighten pages)",
+      "rotatePages": "Auto-rotate pages",
+      "removeBackground": "Remove background",
+      "clean": "Clean pages before OCR",
+      "forceOcr": "Force OCR (re-OCR even if text exists)"
     },
     "linearizePdf": {
       "uploadLabel": "Cargar archivos PDF",
@@ -2089,7 +2098,12 @@
       "posBottomRight": "Inferior derecha",
       "posTopLeft": "Superior izquierda",
       "posTopCenter": "Superior centro",
-      "posTopRight": "Superior derecha"
+      "posTopRight": "Superior derecha",
+      "appearanceTitle": "Appearance",
+      "prefixPlaceholder": "e.g., Page ",
+      "suffixPlaceholder": "e.g., -",
+      "fileMeta": "{size} • {pages} pages",
+      "previewPageOf": "Page {current}/{total}"
     },
     "watermark": {
       "uploadLabel": "Subir archivo PDF",
@@ -2132,7 +2146,8 @@
       "rangePlaceholder": "ej. 1, 3, 5-10",
       "previewTitle": "Vista previa",
       "previewNote": "Mostrando solo la primera página para un mejor rendimiento",
-      "previewGenerating": "Generando vista previa..."
+      "previewGenerating": "Generando vista previa...",
+      "previewPageOf": "Page {current} of {total}"
     },
     "headerFooter": {
       "uploadLabel": "Subir archivo PDF",
@@ -2149,7 +2164,27 @@
       "preview": "Avance",
       "previewHint": "Ingrese el texto del encabezado o pie de página para ver una vista previa",
       "addButton": "Agregar encabezado y pie de página",
-      "successMessage": "¡Encabezado y pie de página agregados exitosamente!"
+      "successMessage": "¡Encabezado y pie de página agregados exitosamente!",
+      "positionLeft": "Left",
+      "positionCenter": "Center",
+      "positionRight": "Right",
+      "headerLeftPlaceholder": "e.g., Company Name",
+      "headerCenterPlaceholder": "e.g., Document Title",
+      "headerRightPlaceholder": "e.g., '{date}'",
+      "footerLeftPlaceholder": "e.g., Confidential",
+      "footerCenterPlaceholder": "e.g., Page '{page}' of '{total}'",
+      "footerRightPlaceholder": "e.g., '{date}'",
+      "quickInsertTitle": "Quick insert",
+      "quickInsertHint": "Click to copy, then paste into any field",
+      "margin": "Margin (pt)",
+      "pageRange": "Page Range",
+      "pageRangePlaceholder": "e.g., all or 1-5, 8, 10-12",
+      "pageRangeHint": "Use \"all\" for all pages, or specify ranges like \"1-5, 8, 10-12\"",
+      "skipFirstPage": "Skip first page (cover page)",
+      "fileMeta": "{size} • {pages} pages",
+      "previewPageOf": "Page {current} of {total}",
+      "pageApplied": "Header/Footer will be added to this page",
+      "pageSkipped": "This page will be skipped"
     },
     "invertColors": {
       "uploadLabel": "Subir archivo PDF",
@@ -2851,7 +2886,25 @@
       "editText": "Editar texto",
       "editImages": "Editar imágenes",
       "addLink": "Agregar enlace",
-      "smartOcr": "OCR inteligente"
+      "smartOcr": "OCR inteligente",
+      "ocrPdf": {
+        "language": "Language",
+        "outputFormat": "Output Format",
+        "options": "Options",
+        "result": "OCR Result",
+        "readyToOcr": "Ready to OCR",
+        "noFileSelected": "No PDF selected",
+        "readyDesc": "Click the button to convert your scanned PDF into a searchable document or extract text.",
+        "noFileDesc": "Upload a scanned PDF to get started.",
+        "deskew": "Deskew (straighten pages)",
+        "clean": "Clean pages before OCR",
+        "removeBackground": "Remove background",
+        "forceOcr": "Force OCR (re-OCR even if text exists)",
+        "progressAnalyzing": "Analyzing document structure...",
+        "progressRecognizing": "Recognizing text in images...",
+        "progressFinalizing": "Finalizing output...",
+        "progressDone": "Complete!"
+      }
     },
     "textStyle": {
       "label": "Estilo de texto",

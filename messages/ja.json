@@ -2062,7 +2062,16 @@
       "previewTitle": "抽出されたテキストのプレビュー",
       "successMessage": "OCR が正常に完了しました。ダウンロード ボタンをクリックしてファイルを保存します。",
       "infoTitle": "OCRについて",
-      "infoText": "OCR (光学文字認識) は、スキャンした文書や画像からテキストを抽出します。最良の結果を得るには、高品質のスキャンを使用し、正しい言語を選択してください。"
+      "infoText": "OCR (光学文字認識) は、スキャンした文書や画像からテキストを抽出します。最良の結果を得るには、高品質のスキャンを使用し、正しい言語を選択してください。",
+      "optimize": "Optimization",
+      "optimizeNone": "None",
+      "optimizeDefault": "Default",
+      "optimizeAggressive": "Aggressive (smaller file)",
+      "deskew": "Deskew (straighten pages)",
+      "rotatePages": "Auto-rotate pages",
+      "removeBackground": "Remove background",
+      "clean": "Clean pages before OCR",
+      "forceOcr": "Force OCR (re-OCR even if text exists)"
     },
     "linearizePdf": {
       "uploadLabel": "PDF ファイルをアップロードする",
@@ -2307,7 +2316,12 @@
       "posBottomRight": "右下",
       "posTopLeft": "左上",
       "posTopCenter": "上中央",
-      "posTopRight": "右上"
+      "posTopRight": "右上",
+      "appearanceTitle": "Appearance",
+      "prefixPlaceholder": "e.g., Page ",
+      "suffixPlaceholder": "e.g., -",
+      "fileMeta": "{size} • {pages} pages",
+      "previewPageOf": "Page {current}/{total}"
     },
     "watermark": {
       "uploadLabel": "PDFファイルをアップロードする",
@@ -2350,7 +2364,8 @@
       "rangePlaceholder": "例: 1, 3, 5-10",
       "previewTitle": "プレビュー",
       "previewNote": "パフォーマンス向上のため、最初のページのみを表示しています",
-      "previewGenerating": "プレビューを生成中..."
+      "previewGenerating": "プレビューを生成中...",
+      "previewPageOf": "Page {current} of {total}"
     },
     "headerFooter": {
       "uploadLabel": "PDFファイルをアップロードする",
@@ -2367,7 +2382,27 @@
       "preview": "プレビュー",
       "previewHint": "ヘッダーまたはフッターのテキストを入力してプレビューを表示します",
       "addButton": "ヘッダーとフッターを追加する",
-      "successMessage": "ヘッダーとフッターが正常に追加されました。"
+      "successMessage": "ヘッダーとフッターが正常に追加されました。",
+      "positionLeft": "Left",
+      "positionCenter": "Center",
+      "positionRight": "Right",
+      "headerLeftPlaceholder": "e.g., Company Name",
+      "headerCenterPlaceholder": "e.g., Document Title",
+      "headerRightPlaceholder": "e.g., '{date}'",
+      "footerLeftPlaceholder": "e.g., Confidential",
+      "footerCenterPlaceholder": "e.g., Page '{page}' of '{total}'",
+      "footerRightPlaceholder": "e.g., '{date}'",
+      "quickInsertTitle": "Quick insert",
+      "quickInsertHint": "Click to copy, then paste into any field",
+      "margin": "Margin (pt)",
+      "pageRange": "Page Range",
+      "pageRangePlaceholder": "e.g., all or 1-5, 8, 10-12",
+      "pageRangeHint": "Use \"all\" for all pages, or specify ranges like \"1-5, 8, 10-12\"",
+      "skipFirstPage": "Skip first page (cover page)",
+      "fileMeta": "{size} • {pages} pages",
+      "previewPageOf": "Page {current} of {total}",
+      "pageApplied": "Header/Footer will be added to this page",
+      "pageSkipped": "This page will be skipped"
     },
     "invertColors": {
       "uploadLabel": "PDFファイルをアップロードする",
@@ -3069,7 +3104,25 @@
       "editText": "テキストの編集",
       "editImages": "画像の編集",
       "addLink": "リンクを追加",
-      "smartOcr": "スマートOCR"
+      "smartOcr": "スマートOCR",
+      "ocrPdf": {
+        "language": "Language",
+        "outputFormat": "Output Format",
+        "options": "Options",
+        "result": "OCR Result",
+        "readyToOcr": "Ready to OCR",
+        "noFileSelected": "No PDF selected",
+        "readyDesc": "Click the button to convert your scanned PDF into a searchable document or extract text.",
+        "noFileDesc": "Upload a scanned PDF to get started.",
+        "deskew": "Deskew (straighten pages)",
+        "clean": "Clean pages before OCR",
+        "removeBackground": "Remove background",
+        "forceOcr": "Force OCR (re-OCR even if text exists)",
+        "progressAnalyzing": "Analyzing document structure...",
+        "progressRecognizing": "Recognizing text in images...",
+        "progressFinalizing": "Finalizing output...",
+        "progressDone": "Complete!"
+      }
     },
     "textStyle": {
       "label": "テキストスタイル",

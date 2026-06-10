@@ -2892,7 +2892,11 @@
         "deskew": "Deskew (straighten pages)",
         "clean": "Clean pages before OCR",
         "removeBackground": "Remove background",
-        "forceOcr": "Force OCR (re-OCR even if text exists)"
+        "forceOcr": "Force OCR (re-OCR even if text exists)",
+        "progressAnalyzing": "Analyzing document structure...",
+        "progressRecognizing": "Recognizing text in images...",
+        "progressFinalizing": "Finalizing output...",
+        "progressDone": "Complete!"
       }
     },
     "textStyle": {

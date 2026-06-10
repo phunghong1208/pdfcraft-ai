@@ -1370,7 +1370,8 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
             }
             handleFileChange(nextFile, { markDirty: false });
           } catch {
-            window.alert('Không thể lưu trực tiếp. Vui lòng thử lại.');
+            downloadPdfFallback(file, file.name);
+            setIsDirty(false);
           }
         })();
         break;

@@ -21,12 +21,12 @@
       "description": "PDFCraft 隐私政策。您的文件永远不会离开您的设备 - 所有处理都在本地浏览器中进行。"
     },
     "cookies": {
-      "title": "Cookie Policy",
-      "description": "How PDFCraft uses cookies. We only use essential and preference cookies — no tracking or advertising."
+      "title": "Cookie 政策",
+      "description": "PDFCraft 如何使用 cookie。我们只使用必要的和偏好的cookie——不进行跟踪或广告。"
     },
     "terms": {
-      "title": "Terms of Service",
-      "description": "Terms of use for PDFCraft. Free PDF tools processed locally in your browser."
+      "title": "服务条款",
+      "description": "PDFCraft 使用条款。在浏览器中本地处理的免费 PDF 工具。"
     },
     "contact": {
       "title": "联系我们",
@@ -44,33 +44,33 @@
   },
   "legalPages": {
     "cookies": {
-      "heroTitle": "Cookie Policy",
-      "heroSubtitle": "We use only essential and preference cookies. No tracking or advertising.",
-      "essentialTitle": "Essential cookies",
-      "essentialDesc": "Required for the website to function properly.",
-      "preferenceTitle": "Preference cookies",
-      "preferenceDesc": "Remember your settings, such as language preference.",
-      "noTracking": "We do not use tracking cookies or advertising cookies.",
-      "moreLink": "See also our Privacy Policy"
+      "heroTitle": "Cookie 政策",
+      "heroSubtitle": "我们仅使用基本和偏好 cookie。没有跟踪或广告。",
+      "essentialTitle": "基本饼干",
+      "essentialDesc": "网站正常运行所必需的。",
+      "preferenceTitle": "偏好cookie",
+      "preferenceDesc": "记住您的设置，例如语言首选项。",
+      "noTracking": "我们不使用跟踪 cookie 或广告 cookie。",
+      "moreLink": "另请参阅我们的隐私政策"
     },
     "terms": {
-      "heroTitle": "Terms of Service",
-      "heroSubtitle": "By using PDFCraft you agree to these terms.",
-      "acceptanceTitle": "1. Acceptance",
-      "acceptanceBody": "By accessing or using this website and its PDF tools, you agree to these Terms of Service.",
-      "useTitle": "2. Use of the service",
-      "useBody": "You may use our tools for lawful personal or business purposes. You are responsible for the content of files you process.",
-      "privacyTitle": "3. Privacy",
-      "privacyBody": "Files are processed locally in your browser and are not uploaded to our servers. See our Privacy Policy for details.",
-      "disclaimerTitle": "4. Disclaimer",
-      "disclaimerBody": "Tools are provided \"as is\" without warranties. We are not liable for data loss; keep backups of important documents.",
-      "changesTitle": "5. Changes",
-      "changesBody": "We may update these terms. Continued use after changes constitutes acceptance."
+      "heroTitle": "服务条款",
+      "heroSubtitle": "使用 PDFCraft 即表示您同意这些条款。",
+      "acceptanceTitle": "1. 验收",
+      "acceptanceBody": "访问或使用本网站及其 PDF 工具，即表示您同意这些服务条款。",
+      "useTitle": "2. 服务的使用",
+      "useBody": "您可以将我们的工具用于合法的个人或商业目的。您对您处理的文件的内容负责。",
+      "privacyTitle": "3. 隐私",
+      "privacyBody": "文件在您的浏览器中本地处理，不会上传到我们的服务器。有关详细信息，请参阅我们的隐私政策。",
+      "disclaimerTitle": "4. 免责声明",
+      "disclaimerBody": "工具按“原样”提供，不提供任何保证。我们对数据丢失不承担责任；保留重要文件的备份。",
+      "changesTitle": "5. 变化",
+      "changesBody": "我们可能会更新这些条款。变更后继续使用即表示接受。"
     }
   },
   "common": {
-    "brand": "PDF Reader",
-    "brandSubtitle": "Workspace",
+    "brand": "PDF阅读器",
+    "brandSubtitle": "工作空间",
     "tagline": "专业PDF工具 - 免费且私密",
     "navigation": {
       "home": "首页",
@@ -111,7 +111,7 @@
     },
     "status": {
       "idle": "就绪",
-      "ready": "Ready",
+      "ready": "准备好",
       "uploading": "上传中...",
       "processing": "处理中...",
       "complete": "完成",
@@ -164,45 +164,45 @@
       "noUploads": "不上传文件",
       "privateSecure": "100% 私密且安全",
       "footer": "© 2025 PDFCraft. 保留所有权利。",
-      "ctaHeadline": "Ready to work smarter with PDFs?",
-      "ctaSubtitle": "Upload, edit, summarize and chat with documents using AI.",
-      "uploadCta": "Upload PDF",
-      "exploreTools": "Explore Tools",
-      "copyrightName": "PDF Reader Workspace",
-      "product": "Product",
-      "madeWith": "Made with <Heart /> and <Nextjs />",
-      "documentation": "Documentation",
-      "editPdf": "Edit PDF",
-      "compressPdf": "Compress PDF",
-      "mergePdf": "Merge PDF",
-      "splitPdf": "Split PDF",
-      "convertPdf": "Convert PDF",
-      "badgeLocal": "Local Processing",
-      "badgeNoUpload": "No Cloud Upload",
-      "badgeGdpr": "GDPR Compliant",
-      "localProcessingTitle": "Local Processing",
-      "localProcessingDesc": "Files never leave your device",
-      "noCloudTitle": "No Cloud Upload",
-      "noCloudDesc": "No server storage",
-      "gdprTitle": "GDPR Ready",
-      "gdprDesc": "Privacy-first architecture",
-      "brandEdition": "Private Edition",
-      "taglineSub": "Local-first architecture. Your files never leave your device.",
-      "motto": "Files stay private. AI stays useful.",
-      "ctaAiSummary": "AI Summary",
-      "ctaChatPdf": "Chat PDF",
-      "ctaLocalSafe": "Local Safe",
-      "aiNav": "AI features",
-      "ctaLocalFirst": "Local First",
-      "badgeOcr": "OCR Ready",
-      "badgeAiPowered": "AI Powered",
-      "desc": "Private AI documents • Local-first • No cloud upload",
-      "featureSummary": "Summary",
-      "featureChat": "Chat PDF",
-      "featureOcr": "OCR",
-      "featureProtect": "Protect",
-      "featuresNav": "Workspace features",
-      "copyrightShort": "© {year} PDF"
+      "ctaHeadline": "准备好更智能地使用 PDF 了吗？",
+      "ctaSubtitle": "使用 AI 上传、编辑、总结文档并与文档聊天。",
+      "uploadCta": "上传 PDF",
+      "exploreTools": "探索工具",
+      "copyrightName": "PDF 阅读器工作区",
+      "product": "产品",
+      "madeWith": "使用 <Heart /> 和 <Nextjs /> 制作",
+      "documentation": "文档",
+      "editPdf": "编辑PDF",
+      "compressPdf": "压缩PDF",
+      "mergePdf": "合并PDF",
+      "splitPdf": "分割PDF",
+      "convertPdf": "转换PDF",
+      "badgeLocal": "本地处理",
+      "badgeNoUpload": "没有云端上传",
+      "badgeGdpr": "符合 GDPR",
+      "localProcessingTitle": "本地处理",
+      "localProcessingDesc": "文件永远不会离开您的设备",
+      "noCloudTitle": "没有云端上传",
+      "noCloudDesc": "无服务器存储",
+      "gdprTitle": "GDPR 就绪",
+      "gdprDesc": "隐私优先的架构",
+      "brandEdition": "私人版",
+      "taglineSub": "本地优先架构。您的文件永远不会离开您的设备。",
+      "motto": "文件保持私密。人工智能仍然有用。",
+      "ctaAiSummary": "人工智能总结",
+      "ctaChatPdf": "聊天PDF",
+      "ctaLocalSafe": "本地安全",
+      "aiNav": "人工智能特点",
+      "ctaLocalFirst": "本地优先",
+      "badgeOcr": "OCR 就绪",
+      "badgeAiPowered": "人工智能驱动",
+      "desc": "私有AI文档•本地优先•无需云端上传",
+      "featureSummary": "概括",
+      "featureChat": "聊天PDF",
+      "featureOcr": "光学字符识别",
+      "featureProtect": "保护",
+      "featuresNav": "工作区功能",
+      "copyrightShort": "© {年} PDF"
     },
     "recentFiles": {
       "title": "最近文件",
@@ -259,10 +259,10 @@
       "noResults": "未找到工具"
     },
     "fileUploader": {
-      "dragDrop": "Drag and drop files here, or click to browse",
-      "dropToUpload": "Drop files to upload",
-      "support": "Support",
-      "paste": "Paste (Ctrl+V)"
+      "dragDrop": "将文件拖放到此处，或单击浏览",
+      "dropToUpload": "删除要上传的文件",
+      "support": "支持",
+      "paste": "粘贴（Ctrl+V）"
     },
     "accessibility": {
       "skipToContent": "跳转到主要内容",
@@ -613,7 +613,7 @@
       "email": {
         "title": "电子邮件",
         "description": "发送电子邮件给我们，我们将在 24-48 小时内回复。",
-        "action": "contact@pdfcraft.app"
+        "action": "联系@pdfcraft.app"
       },
       "github": {
         "title": "GitHub",
@@ -641,7 +641,7 @@
         },
         "email": {
           "label": "电子邮件",
-          "placeholder": "your@email.com"
+          "placeholder": "你的@email.com"
         },
         "subject": {
           "label": "主题",
@@ -672,10 +672,10 @@
     }
   },
   "errors": {
-    "pageError": "Something went wrong",
-    "pageErrorDescription": "An unexpected error occurred. Please try again.",
-    "tryAgain": "Try again",
-    "goHome": "Go home",
+    "pageError": "出了点问题",
+    "pageErrorDescription": "发生意外错误。请再试一次。",
+    "tryAgain": "再试一次",
+    "goHome": "回家吧",
     "fileTooLarge": "文件太大。最大大小为{maxSize}MB。",
     "fileTypeInvalid": "无效的文件类型。请上传{acceptedTypes}文件。",
     "fileCorrupted": "文件似乎已损坏或无法读取。",
@@ -967,7 +967,7 @@
       "uploadDescription": "拖放PDF文件到此处，或点击浏览。可以添加多个文件。",
       "filesTitle": "要合并的文件",
       "reorderHint": "拖放以重新排序文件。文件将按显示顺序合并。",
-      "workspaceSingleFileHint": "Workspace mode starts with the current file. Add another file to merge.",
+      "workspaceSingleFileHint": "工作区模式从当前文件开始。添加另一个文件进行合并。",
       "optionsTitle": "合并选项",
       "preserveBookmarks": "保留书签（为每个文件创建书签）",
       "mergeButton": "合并PDF",
@@ -1064,10 +1064,10 @@
       "bookmarksNotice": "注意：按书签拆分需要PDF中存在书签。如果未找到书签，将返回整个PDF作为单个文件。",
       "splitCountLabel": "拆分份数",
       "splitCountHint": "拆分为 {count} 等份（每份约 {pages} 页）",
-      "pagesPerFile": "Pages Per File",
-      "pageRanges": "Page Ranges",
-      "pageRangesPlaceholder": "e.g., 1-3, 5, 7-9",
-      "modeEveryNPages": "Every N Pages",
+      "pagesPerFile": "每个文件的页数",
+      "pageRanges": "页面范围",
+      "pageRangesPlaceholder": "例如，1-3、5、7-9",
+      "modeEveryNPages": "每 N 页",
       "pagePreviewTitle": "选择页面",
       "splitButton": "拆分PDF",
       "resultsTitle": "拆分结果",
@@ -1263,11 +1263,11 @@
       "saveButton": "保存元数据",
       "editAnother": "编辑另一个PDF",
       "modificationNote": "保存时修改日期将自动更新。",
-      "whatIsThis": "This edits document properties only (title, author, keywords, etc.). It does not change visible text or images on the PDF pages.",
-      "whereToSee": "After saving, check here again or open the file in Finder/Acrobat → File → Properties. Page content will look the same.",
+      "whatIsThis": "这仅编辑文档属性（标题、作者、关键字等）。它不会更改 PDF 页面上的可见文本或图像。",
+      "whereToSee": "保存后，再次检查此处或在 Finder/Acrobat → 文件 → 属性中打开文件。页面内容看起来是一样的。",
       "successMessage": "元数据更新成功！点击下载按钮保存文件。",
-      "workspaceSuccessMessage": "Metadata saved to the open document.",
-      "workspaceSuccessHint": "The pages look unchanged — that is normal. Reopen this tool to verify fields, or use Save on the toolbar to write the file to disk."
+      "workspaceSuccessMessage": "元数据保存到打开的文档中。",
+      "workspaceSuccessHint": "页面看起来没有变化——这是正常的。重新打开此工具以验证字段，或使用工具栏上的“保存”将文件写入磁盘。"
     },
     "editPdf": {
       "uploadLabel": "上传PDF进行编辑",
@@ -1488,10 +1488,10 @@
       "permAccessibility": "允许辅助功能",
       "permAssembly": "允许组装",
       "encryptButton": "加密PDF",
-      "passwordRequired": "Please provide at least one password.",
+      "passwordRequired": "请提供至少一个密码。",
       "successMessage": "PDF加密成功！",
       "successHint": "请妥善保存您的密码。",
-      "workspaceSuccessHint": "Download the encrypted copy below. The open document in the workspace stays unchanged so you can keep editing."
+      "workspaceSuccessHint": "下载下面的加密副本。工作区中打开的文档保持不变，因此您可以继续编辑。"
     },
     "decryptPdf": {
       "uploadLabel": "上传PDF文件",
@@ -1622,48 +1622,48 @@
     "comparePdfs": {
       "file1Label": "第一个PDF（原始）",
       "uploadFile1": "上传第一个PDF",
-      "uploadFile1Description": "Baseline document for comparison",
+      "uploadFile1Description": "比较基准文件",
       "file2Label": "第二个PDF（修改后）",
       "uploadFile2": "上传第二个PDF",
-      "uploadFile2Description": "Document with edits, additions, or deletions",
+      "uploadFile2Description": "包含编辑、添加或删除的文档",
       "uploadDescription": "拖放或点击浏览",
-      "pageMeta": "{count} pages • {size} MB",
+      "pageMeta": "{count} 页 • {size} MB",
       "compareButton": "比较PDF",
-      "startCompare": "Start comparison",
-      "loadingFile1": "Loading original PDF…",
-      "loadingFile2": "Loading modified PDF…",
-      "loadFile1Error": "Could not load the original PDF.",
-      "loadFile2Error": "Could not load the modified PDF.",
-      "comparingProgress": "Aligning pages and comparing text…",
-      "compareError": "Comparison failed. Please try again.",
+      "startCompare": "开始比较",
+      "loadingFile1": "正在加载原始 PDF...",
+      "loadingFile2": "正在加载修改后的 PDF...",
+      "loadFile1Error": "无法加载原始 PDF。",
+      "loadFile2Error": "无法加载修改后的 PDF。",
+      "comparingProgress": "对齐页面并比较文本...",
+      "compareError": "比较失败。请再试一次。",
       "resultsTitle": "比较结果",
-      "compareCompleteTitle": "Comparison complete",
-      "compareCompleteSummary": "{total} pages aligned • {diff} with differences",
+      "compareCompleteTitle": "比较完成",
+      "compareCompleteSummary": "对齐的 {total} 页 • 有差异的 {diff}",
       "newComparison": "新建比较",
-      "filterLabel": "Highlight filter",
-      "filterText": "Text changes",
-      "filterFormatting": "Formatting",
-      "filterHeaderFooter": "Headers & footers",
-      "filterMoved": "Moved paragraphs",
-      "prevPair": "Previous",
-      "nextPair": "Next",
-      "pairSequence": "Pair {current} / {total}",
-      "insertedPageBadge": "Inserted page",
-      "deletedPageBadge": "Deleted page",
-      "diffDetected": "{percent}% difference",
-      "noDifference": "No differences",
-      "originalVersion": "Original",
-      "modifiedVersion": "Modified",
-      "pageLabel": "Page {page}",
-      "tooltipDeleted": "Text removed",
-      "tooltipModified": "Text modified",
-      "tooltipMovedSource": "Paragraph moved from here",
-      "tooltipMovedDest": "Paragraph moved here",
-      "tooltipAdded": "Text added",
-      "insertedPageTitle": "Inserted page",
-      "insertedPageDesc": "This page exists only in the modified PDF. The original has no matching page.",
-      "deletedPageTitle": "Deleted page",
-      "deletedPageDesc": "This page was removed in the modified PDF. A blank placeholder keeps alignment for following pages.",
+      "filterLabel": "高亮过滤器",
+      "filterText": "文本更改",
+      "filterFormatting": "格式化",
+      "filterHeaderFooter": "页眉和页脚",
+      "filterMoved": "移动的段落",
+      "prevPair": "以前的",
+      "nextPair": "下一个",
+      "pairSequence": "对 {当前} / {总计}",
+      "insertedPageBadge": "已插入页面",
+      "deletedPageBadge": "已删除页面",
+      "diffDetected": "{percent}% 差异",
+      "noDifference": "没有差异",
+      "originalVersion": "原来的",
+      "modifiedVersion": "修改的",
+      "pageLabel": "页{页}",
+      "tooltipDeleted": "文字已删除",
+      "tooltipModified": "修改文字",
+      "tooltipMovedSource": "段落从这里移走",
+      "tooltipMovedDest": "段落移至此处",
+      "tooltipAdded": "添加文字",
+      "insertedPageTitle": "已插入页面",
+      "insertedPageDesc": "此页面仅存在于修改后的 PDF 中。原件没有匹配的页面。",
+      "deletedPageTitle": "已删除页面",
+      "deletedPageDesc": "该页面已在修改后的 PDF 中删除。空白占位符使后续页面保持对齐。",
       "viewMode": "查看模式：",
       "sideBySide": "并排显示",
       "overlay": "叠加显示",
@@ -1683,10 +1683,10 @@
       "optionsTitle": "ZIP选项",
       "compressionLevel": "压缩级别",
       "filename": "Output Filename",
-      "filenamePlaceholder": "e.g., pdfs.zip",
-      "compressionFast": "Fast (low compression)",
-      "compressionNormal": "Normal (balanced)",
-      "compressionMax": "Maximum (smallest file)",
+      "filenamePlaceholder": "例如，pdfs.zip",
+      "compressionFast": "快速（低压缩）",
+      "compressionNormal": "正常（平衡）",
+      "compressionMax": "最大（最小文件）",
       "noCompression": "不压缩（最快）",
       "lowCompression": "低压缩（快速）",
       "mediumCompression": "中等压缩（平衡）",
@@ -1844,7 +1844,16 @@
       "previewTitle": "提取文本预览",
       "successMessage": "OCR完成！点击下载按钮保存文件。",
       "infoTitle": "关于OCR",
-      "infoText": "OCR（光学字符识别）从扫描文档和图像中提取文本。为获得最佳效果，请使用高质量扫描件并选择正确的语言。"
+      "infoText": "OCR（光学字符识别）从扫描文档和图像中提取文本。为获得最佳效果，请使用高质量扫描件并选择正确的语言。",
+      "optimize": "Optimization",
+      "optimizeNone": "None",
+      "optimizeDefault": "Default",
+      "optimizeAggressive": "Aggressive (smaller file)",
+      "deskew": "Deskew (straighten pages)",
+      "rotatePages": "Auto-rotate pages",
+      "removeBackground": "Remove background",
+      "clean": "Clean pages before OCR",
+      "forceOcr": "Force OCR (re-OCR even if text exists)"
     },
     "linearizePdf": {
       "uploadLabel": "上传PDF文件",
@@ -1921,16 +1930,16 @@
       "uploadLabel": "上传PDF文件",
       "uploadDescription": "拖放PDF文件到此处进行扁平化。",
       "optionsTitle": "扁平化选项",
-      "info": "Flattening converts interactive elements (forms, annotations, layers) into static page content. The PDF will no longer be editable but will look the same in every viewer.",
+      "info": "扁平化将交互元素（表单、注释、图层）转换为静态页面内容。 PDF 将不再可编辑，但在每个查看器中看起来都一样。",
       "flattenForms": "扁平化表单字段",
-      "flattenFormsDesc": "Convert fillable form fields to static text",
+      "flattenFormsDesc": "将可填写的表单字段转换为静态文本",
       "flattenAnnotations": "扁平化注释",
-      "flattenAnnotationsDesc": "Merge comments, highlights, and stamps into page content",
-      "flattenLayers": "Flatten Layers",
-      "flattenLayersDesc": "Merge all visible layers into a single layer",
+      "flattenAnnotationsDesc": "将评论、突出显示和标记合并到页面内容中",
+      "flattenLayers": "展平图层",
+      "flattenLayersDesc": "将所有可见图层合并为一个图层",
       "flattenButton": "扁平化PDF",
       "successMessage": "PDF扁平化成功！",
-      "flattenedItems": "Flattened:"
+      "flattenedItems": "展平："
     },
     "removeMetadata": {
       "uploadLabel": "上传PDF文件",
@@ -2089,7 +2098,12 @@
       "posBottomRight": "右下角",
       "posTopLeft": "左上角",
       "posTopCenter": "顶部居中",
-      "posTopRight": "右上角"
+      "posTopRight": "右上角",
+      "appearanceTitle": "Appearance",
+      "prefixPlaceholder": "e.g., Page ",
+      "suffixPlaceholder": "e.g., -",
+      "fileMeta": "{size} • {pages} pages",
+      "previewPageOf": "Page {current}/{total}"
     },
     "watermark": {
       "uploadLabel": "上传PDF文件",
@@ -2132,7 +2146,8 @@
       "rangePlaceholder": "例如: 1, 3, 5-10",
       "previewTitle": "预览",
       "previewNote": "仅展示首页预览以优化性能",
-      "previewGenerating": "正在生成预览..."
+      "previewGenerating": "正在生成预览...",
+      "previewPageOf": "Page {current} of {total}"
     },
     "headerFooter": {
       "uploadLabel": "上传PDF文件",
@@ -2149,7 +2164,27 @@
       "preview": "预览",
       "previewHint": "输入页眉或页脚文本以查看预览",
       "addButton": "添加页眉页脚",
-      "successMessage": "页眉页脚添加成功！"
+      "successMessage": "页眉页脚添加成功！",
+      "positionLeft": "Left",
+      "positionCenter": "Center",
+      "positionRight": "Right",
+      "headerLeftPlaceholder": "e.g., Company Name",
+      "headerCenterPlaceholder": "e.g., Document Title",
+      "headerRightPlaceholder": "e.g., '{date}'",
+      "footerLeftPlaceholder": "e.g., Confidential",
+      "footerCenterPlaceholder": "e.g., Page '{page}' of '{total}'",
+      "footerRightPlaceholder": "e.g., '{date}'",
+      "quickInsertTitle": "Quick insert",
+      "quickInsertHint": "Click to copy, then paste into any field",
+      "margin": "Margin (pt)",
+      "pageRange": "Page Range",
+      "pageRangePlaceholder": "e.g., all or 1-5, 8, 10-12",
+      "pageRangeHint": "Use \"all\" for all pages, or specify ranges like \"1-5, 8, 10-12\"",
+      "skipFirstPage": "Skip first page (cover page)",
+      "fileMeta": "{size} • {pages} pages",
+      "previewPageOf": "Page {current} of {total}",
+      "pageApplied": "Header/Footer will be added to this page",
+      "pageSkipped": "This page will be skipped"
     },
     "invertColors": {
       "uploadLabel": "上传PDF文件",
@@ -2163,7 +2198,7 @@
       "colorLabel": "背景颜色",
       "applyButton": "应用背景",
       "successMessage": "背景颜色应用成功！",
-      "reapplyHint": "Each apply uses the original file — change the color and apply again as needed."
+      "reapplyHint": "每次应用都使用原始文件 - 更改颜色并根据需要再次应用。"
     },
     "textColor": {
       "uploadLabel": "上传PDF文件",
@@ -2205,13 +2240,13 @@
     "formFiller": {
       "uploadLabel": "上传PDF文件",
       "uploadDescription": "拖放PDF表单到此处。",
-      "readError": "Could not read form fields. This PDF may not contain fillable forms.",
-      "fieldsTitle": "Form fields ({count})",
-      "fieldPlaceholder": "Enter {type}",
-      "flattenOption": "Flatten form after filling (make non-editable)",
-      "noFields": "No fillable form fields found in this PDF.",
-      "fillButton": "Fill Form",
-      "processError": "Failed to fill the form.",
+      "readError": "无法读取表单字段。此 PDF 可能不包含可填写的表格。",
+      "fieldsTitle": "表单字段 ({count})",
+      "fieldPlaceholder": "输入{类型}",
+      "flattenOption": "填写后压平表格（不可编辑）",
+      "noFields": "此 PDF 中未找到可填写的表单字段。",
+      "fillButton": "填写表格",
+      "processError": "无法填写表格。",
       "saveButton": "保存表单",
       "successMessage": "表单保存成功！"
     },
@@ -2356,7 +2391,7 @@
       "showPreview": "显示预览",
       "hidePreview": "隐藏预览",
       "optionsTitle": "转换选项",
-      "fontSize": "Font Size",
+      "fontSize": "字体大小",
       "pageSizeLabel": "页面大小",
       "themeLabel": "主题",
       "gfmLabel": "启用 GitHub 风格 Markdown（表格、任务列表等）",
@@ -2367,9 +2402,9 @@
     "pdfToDocx": {
       "uploadLabel": "上传PDF文件",
       "uploadDescription": "拖放PDF文件到此处，或点击浏览。",
-      "optionsTitle": "Conversion Options",
-      "preserveFormatting": "Preserve formatting",
-      "extractImages": "Extract images",
+      "optionsTitle": "转换选项",
+      "preserveFormatting": "保留格式",
+      "extractImages": "提取图像",
       "convertButton": "转换为DOCX",
       "successMessage": "您的PDF已成功转换为DOCX！点击下载按钮保存文件。"
     },
@@ -2391,8 +2426,8 @@
     "pdfToExcel": {
       "uploadLabel": "上传 PDF 文件",
       "uploadDescription": "拖放 PDF 文件到这里，或点击浏览选择文件。",
-      "optionsTitle": "Conversion Options",
-      "detectTables": "Auto-detect tables",
+      "optionsTitle": "转换选项",
+      "detectTables": "自动检测表",
       "extractNote": "每一页的表格都将提取到 Excel 文件中的独立工作表中。",
       "convertButton": "转换为 Excel",
       "successTitle": "转换成功！",
@@ -2501,9 +2536,9 @@
       "orientationLabel": "方向",
       "rotationLabel": "页面旋转",
       "paddingLabel": "边距",
-      "bindingEdge": "Binding Edge",
-      "bindingLeft": "Left",
-      "bindingRight": "Right",
+      "bindingEdge": "装订边",
+      "bindingLeft": "左边",
+      "bindingRight": "正确的",
       "previewLabel": "布局预览",
       "previewDesc": "此预览显示页面在每张纸上的排列方式。",
       "createButton": "创建小册子",
@@ -2528,7 +2563,7 @@
       "optionsTitle": "转换选项",
       "pageSizeLabel": "页面大小",
       "includeCcBccLabel": "包含抄送/密送字段",
-      "embedAttachments": "Embed attachments in PDF",
+      "embedAttachments": "在 PDF 中嵌入附件",
       "includeAttachmentsLabel": "包含附件列表",
       "timezoneLabel": "时区",
       "convertButton": "转换为PDF",
@@ -2562,8 +2597,8 @@
       "filesTitle": "文件",
       "optionsTitle": "选项",
       "dpiLabel": "光栅化DPI",
-      "preserveSelectableText": "Preserve selectable text",
-      "pageRange": "Page Range",
+      "preserveSelectableText": "保留可选择的文本",
+      "pageRange": "页面范围",
       "convertButton": "将字体转换为轮廓",
       "downloadAllZip": "全部下载为ZIP",
       "successMessage": "转换成功！"
@@ -2635,78 +2670,78 @@
   },
   "ai": {
     "home": {
-      "badge": "AI-first PDF Workspace",
-      "title": "Your AI Workspace for PDFs",
-      "titleHighlight": "What do you want to do?",
-      "subtitle": "Upload your document and let AI help you instantly.",
+      "badge": "AI 优先的 PDF 工作区",
+      "title": "您的 PDF AI 工作区",
+      "titleHighlight": "你想让我做什么？",
+      "subtitle": "上传您的文档，让 AI 立即帮助您。",
       "dropzone": {
-        "title": "Drop PDF here",
-        "subtitle": "Start with upload and get AI suggestions right away.",
-        "cta": "Upload to start"
+        "title": "将 PDF 拖放到此处",
+        "subtitle": "从上传开始，立即获得人工智能建议。",
+        "cta": "上传开始"
       },
       "suggestions": {
-        "title": "AI Suggestions",
-        "hint": "Goal-first actions"
+        "title": "人工智能建议",
+        "hint": "目标优先的行动"
       },
       "actions": {
         "summarize": {
-          "label": "Summarize",
-          "desc": "Get concise key points quickly"
+          "label": "总结",
+          "desc": "快速掌握简洁要点"
         },
         "translate": {
-          "label": "Translate",
-          "desc": "Translate while preserving context"
+          "label": "翻译",
+          "desc": "翻译时保留上下文"
         },
         "chat": {
-          "label": "Chat",
-          "desc": "Ask questions directly from the PDF"
+          "label": "聊天",
+          "desc": "直接从 PDF 中提问"
         },
         "edit": {
-          "label": "Edit",
-          "desc": "Edit, annotate, and mark up pages"
+          "label": "编辑",
+          "desc": "编辑、注释和标记页面"
         },
         "ocr": {
-          "label": "OCR",
-          "desc": "Extract text from scanned documents"
+          "label": "光学字符识别",
+          "desc": "从扫描文档中提取文本"
         },
         "voice": {
-          "label": "Read aloud",
-          "desc": "Convert PDF content to audio"
+          "label": "大声朗读",
+          "desc": "将 PDF 内容转换为音频"
         }
       },
       "core": {
-        "title": "Core PDF Tools",
-        "mergePdf": "Merge PDF",
-        "splitPdf": "Split PDF",
-        "compressPdf": "Compress PDF",
-        "pdfToWord": "PDF to Word"
+        "title": "核心 PDF 工具",
+        "mergePdf": "合并PDF",
+        "splitPdf": "分割PDF",
+        "compressPdf": "压缩PDF",
+        "pdfToWord": "PDF 到 Word"
       }
     },
     "pages": {
       "summary": {
-        "title": "AI Summary",
-        "description": "Upload a PDF and get a concise AI-generated summary.",
-        "action": "Generate summary"
+        "title": "人工智能总结",
+        "description": "上传 PDF 并获取 AI 生成的简明摘要。",
+        "action": "生成摘要"
       },
       "translate": {
-        "title": "AI Translate",
-        "description": "Upload a PDF and translate content with your AI server.",
-        "action": "Translate document"
+        "title": "人工智能翻译",
+        "description": "上传 PDF 并使用您的 AI 服务器翻译内容。",
+        "action": "翻译文件"
       },
       "chat": {
-        "title": "Chat with PDF",
-        "description": "Upload a PDF and ask your AI server questions.",
-        "action": "Start chat analysis"
+        "title": "与 PDF 聊天",
+        "description": "上传 PDF 并向您的 AI 服务器询问问题。",
+        "action": "开始聊天分析"
       },
       "smartOcr": {
-        "title": "Smart OCR",
-        "description": "Run OCR with AI post-processing for better structure and accuracy.",
-        "action": "Run smart OCR"
+        "title": "智能识别",
+        "description": "通过 AI 后处理运行 OCR，以获得更好的结构和准确性。",
+        "action": "运行智能 OCR"
       },
       "voice": {
-        "title": "Voice Reader",
-        "description": "Convert PDF content to audio using your AI voice pipeline.",
-        "action": "Generate audio"
+        "title": "语音朗读器",
+        "description": "使用 AI 语音管道将 PDF 内容转换为音频。",
+        "action": "生成音频"
       }
     }
   },
@@ -2851,7 +2886,25 @@
       "editText": "编辑文本",
       "editImages": "编辑图像",
       "addLink": "添加链接",
-      "smartOcr": "智能 OCR"
+      "smartOcr": "智能 OCR",
+      "ocrPdf": {
+        "language": "Language",
+        "outputFormat": "Output Format",
+        "options": "Options",
+        "result": "OCR Result",
+        "readyToOcr": "Ready to OCR",
+        "noFileSelected": "No PDF selected",
+        "readyDesc": "Click the button to convert your scanned PDF into a searchable document or extract text.",
+        "noFileDesc": "Upload a scanned PDF to get started.",
+        "deskew": "Deskew (straighten pages)",
+        "clean": "Clean pages before OCR",
+        "removeBackground": "Remove background",
+        "forceOcr": "Force OCR (re-OCR even if text exists)",
+        "progressAnalyzing": "Analyzing document structure...",
+        "progressRecognizing": "Recognizing text in images...",
+        "progressFinalizing": "Finalizing output...",
+        "progressDone": "Complete!"
+      }
     },
     "textStyle": {
       "label": "文字样式",

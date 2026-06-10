@@ -69,15 +69,15 @@
     }
   },
   "common": {
-    "brand": "PDF Reader",
-    "brandSubtitle": "Workspace",
+    "brand": "Trình đọc PDF",
+    "brandSubtitle": "Không gian làm việc",
     "tagline": "Trình chỉnh sửa PDF và trợ lý tài liệu bằng AI.",
     "navigation": {
       "home": "Trang chủ",
       "tools": "Công cụ",
       "workflow": "Quy trình",
       "about": "Giới thiệu",
-      "faq": "FAQ",
+      "faq": "Câu hỏi thường gặp",
       "privacy": "Bảo mật",
       "contact": "Liên hệ"
     },
@@ -160,7 +160,7 @@
       "ctaSubtitle": "Tải lên, chỉnh sửa, tóm tắt và chat với tài liệu bằng AI.",
       "uploadCta": "Tải PDF",
       "exploreTools": "Khám phá công cụ",
-      "copyrightName": "PDF Reader Workspace",
+      "copyrightName": "Không gian làm việc của trình đọc PDF",
       "product": "Sản phẩm",
       "madeWith": "Được tạo bởi <Heart /> và <Nextjs />",
       "resources": "Tài nguyên",
@@ -184,7 +184,7 @@
       "taglineSub": "Kiến trúc local-first. Tệp không bao giờ rời khỏi thiết bị của bạn.",
       "motto": "Tệp luôn riêng tư. AI vẫn hữu ích.",
       "ctaAiSummary": "Tóm tắt AI",
-      "ctaChatPdf": "Chat PDF",
+      "ctaChatPdf": "Trò chuyện PDF",
       "ctaLocalSafe": "An toàn cục bộ",
       "aiNav": "Tính năng AI",
       "ctaLocalFirst": "Local-first",
@@ -192,11 +192,11 @@
       "badgeAiPowered": "Hỗ trợ AI",
       "desc": "Tài liệu AI riêng tư • Local-first • Không tải cloud",
       "featureSummary": "Tóm tắt",
-      "featureChat": "Chat PDF",
+      "featureChat": "Trò chuyện PDF",
       "featureOcr": "OCR",
       "featureProtect": "Bảo vệ",
       "featuresNav": "Tính năng workspace",
-      "copyrightShort": "© {year} PDF"
+      "copyrightShort": "© {năm} PDF"
     },
     "recentFiles": {
       "title": "Tệp Gần đây",
@@ -253,10 +253,10 @@
       "noResults": "Không tìm thấy công cụ nào"
     },
     "fileUploader": {
-      "dragDrop": "Drag and drop files here, or click to browse",
-      "dropToUpload": "Drop files to upload",
-      "support": "Support",
-      "paste": "Paste (Ctrl+V)"
+      "dragDrop": "Kéo và thả tập tin vào đây hoặc nhấp để duyệt",
+      "dropToUpload": "Thả tập tin để tải lên",
+      "support": "Ủng hộ",
+      "paste": "Dán (Ctrl+V)"
     },
     "accessibility": {
       "skipToContent": "Bỏ qua đến nội dung chính",
@@ -605,7 +605,7 @@
     },
     "methods": {
       "email": {
-        "title": "Email",
+        "title": "E-mail",
         "description": "Gửi email cho chúng tôi và chúng tôi sẽ trả lời trong vòng 24-48 giờ.",
         "action": "contact@pdfcraft.app"
       },
@@ -634,7 +634,7 @@
           "placeholder": "Tên của bạn"
         },
         "email": {
-          "label": "Email",
+          "label": "E-mail",
           "placeholder": "your@email.com"
         },
         "subject": {
@@ -666,10 +666,10 @@
     }
   },
   "errors": {
-    "pageError": "Something went wrong",
-    "pageErrorDescription": "An unexpected error occurred. Please try again.",
-    "tryAgain": "Try again",
-    "goHome": "Go home",
+    "pageError": "Đã xảy ra lỗi",
+    "pageErrorDescription": "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.",
+    "tryAgain": "Thử lại",
+    "goHome": "Về nhà",
     "fileTooLarge": "Tệp quá lớn. Kích thước tối đa là {maxSize}MB.",
     "fileTypeInvalid": "Loại tệp không hợp lệ. Vui lòng tải lên tệp {acceptedTypes}.",
     "fileCorrupted": "Tệp có vẻ bị hỏng hoặc không đọc được.",
@@ -773,10 +773,10 @@
     "error": "Lỗi",
     "issues": "vấn đề",
     "stop": "Dừng",
-    "validationErrors": "Validation Errors",
-    "warnings": "Warnings",
-    "executionFailed": "Workflow execution failed",
-    "retry": "Retry",
+    "validationErrors": "Lỗi xác thực",
+    "warnings": "Cảnh báo",
+    "executionFailed": "Thực hiện quy trình công việc không thành công",
+    "retry": "Thử lại",
     "nodes": "nút",
     "import": "Nhập",
     "clear": "Xóa",
@@ -815,21 +815,21 @@
     "expandSidebar": "Mở rộng thanh bên",
     "library": "Thư viện",
     "connections": "kết nối",
-    "history": "History",
-    "executionHistory": "Execution History",
-    "totalExecutions": "Total Runs",
-    "successRate": "Success Rate",
-    "avgDuration": "Avg Duration",
-    "noHistory": "No execution history yet",
-    "noHistoryHint": "Run a workflow to see history here",
-    "confirmDelete": "Are you sure you want to delete this history record?",
-    "confirmClearAllHistory": "Are you sure you want to clear all history? This cannot be undone.",
-    "unnamedWorkflow": "Unnamed Workflow",
-    "nodesSuccess": "nodes succeeded",
-    "nodesFailed": "failed",
-    "loadWorkflow": "Load Workflow",
-    "viewDetails": "View Details",
-    "detailsInConsole": "Details logged to console (F12)",
+    "history": "Lịch sử",
+    "executionHistory": "Lịch sử thực hiện",
+    "totalExecutions": "Tổng số lần chạy",
+    "successRate": "Tỷ lệ thành công",
+    "avgDuration": "Thời lượng trung bình",
+    "noHistory": "Chưa có lịch sử thực hiện",
+    "noHistoryHint": "Chạy quy trình làm việc để xem lịch sử tại đây",
+    "confirmDelete": "Bạn có chắc chắn muốn xóa bản ghi lịch sử này không?",
+    "confirmClearAllHistory": "Bạn có chắc chắn muốn xóa tất cả lịch sử không? Điều này không thể hoàn tác được.",
+    "unnamedWorkflow": "Quy trình làm việc chưa được đặt tên",
+    "nodesSuccess": "nút đã thành công",
+    "nodesFailed": "thất bại",
+    "loadWorkflow": "Tải quy trình làm việc",
+    "viewDetails": "Xem chi tiết",
+    "detailsInConsole": "Chi tiết được ghi vào bảng điều khiển (F12)",
     "workflowTemplates": {
       "mergeCompress": {
         "name": "Hợp nhất & Nén",
@@ -852,109 +852,109 @@
         "description": "Hợp nhất PDF, thêm số trang và đầu/chân trang"
       },
       "optimizeForWeb": {
-        "name": "Optimize for Web",
-        "description": "Compress and linearize PDF for fast web viewing"
+        "name": "Tối ưu hóa cho Web",
+        "description": "Nén và tuyến tính hóa PDF để xem web nhanh"
       },
       "splitAndWatermark": {
-        "name": "Split & Watermark",
-        "description": "Split PDF into pages and add watermark to each"
+        "name": "Tách & Hình mờ",
+        "description": "Chia PDF thành các trang và thêm hình mờ vào mỗi trang"
       },
       "officeToMergedPdf": {
-        "name": "Office Files to Single PDF",
-        "description": "Convert Word documents to PDF and merge them"
+        "name": "Tệp Office thành PDF đơn",
+        "description": "Chuyển đổi tài liệu Word sang PDF và hợp nhất chúng"
       },
       "rotateAndNumber": {
-        "name": "Rotate & Add Page Numbers",
-        "description": "Rotate PDF pages and add page numbers"
+        "name": "Xoay & Thêm số trang",
+        "description": "Xoay trang PDF và thêm số trang"
       },
       "printReady": {
-        "name": "Print Ready Document",
-        "description": "Prepare PDF for printing with page numbers and flatten"
+        "name": "In tài liệu sẵn sàng",
+        "description": "Chuẩn bị PDF để in với số trang và làm phẳng"
       },
       "grayscaleCompress": {
-        "name": "Grayscale & Compress",
-        "description": "Convert to grayscale and compress for smaller size"
+        "name": "Thang độ xám & nén",
+        "description": "Chuyển đổi sang thang độ xám và nén để có kích thước nhỏ hơn"
       },
       "extractAndMerge": {
-        "name": "Extract & Merge Pages",
-        "description": "Extract specific pages and merge them into a new document"
+        "name": "Trích xuất và hợp nhất các trang",
+        "description": "Trích xuất các trang cụ thể và hợp nhất chúng vào một tài liệu mới"
       },
       "confidentialDocument": {
-        "name": "Confidential Document",
-        "description": "Add confidential watermark and encrypt PDF"
+        "name": "Tài liệu mật",
+        "description": "Thêm hình mờ bí mật và mã hóa PDF"
       },
       "pdfToEditableDoc": {
-        "name": "PDF to Editable Document",
-        "description": "Convert PDF to Word document for editing"
+        "name": "PDF sang tài liệu có thể chỉnh sửa",
+        "description": "Chuyển đổi tài liệu PDF sang Word để chỉnh sửa"
       },
       "fullOptimization": {
-        "name": "Full Document Optimization",
-        "description": "Compress, flatten, and linearize for optimal performance"
+        "name": "Tối ưu hóa toàn bộ tài liệu",
+        "description": "Nén, làm phẳng và tuyến tính hóa để có hiệu suất tối ưu"
       },
       "pdfToPresentation": {
-        "name": "PDF to PowerPoint",
-        "description": "Convert PDF to editable PowerPoint presentation"
+        "name": "PDF sang PowerPoint",
+        "description": "Chuyển đổi PDF sang bản trình bày PowerPoint có thể chỉnh sửa"
       },
       "unlockAndEdit": {
-        "name": "Unlock & Edit PDF",
-        "description": "Decrypt protected PDF for editing"
+        "name": "Mở khóa và chỉnh sửa PDF",
+        "description": "Giải mã PDF được bảo vệ để chỉnh sửa"
       },
       "ebookConvert": {
-        "name": "eBook to PDF",
-        "description": "Convert EPUB eBooks to PDF format"
+        "name": "Sách điện tử sang PDF",
+        "description": "Chuyển đổi sách điện tử EPUB sang định dạng PDF"
       },
       "batchWatermark": {
-        "name": "Batch Watermark",
-        "description": "Add watermark to multiple PDF files at once"
+        "name": "Hình mờ hàng loạt",
+        "description": "Thêm hình mờ vào nhiều tệp PDF cùng một lúc"
       },
       "archivePrep": {
-        "name": "Archive Preparation",
-        "description": "Remove metadata, flatten, and compress for long-term storage"
+        "name": "Chuẩn bị lưu trữ",
+        "description": "Xóa siêu dữ liệu, làm phẳng và nén để lưu trữ lâu dài"
       },
       "reportAssembly": {
-        "name": "Report Assembly",
-        "description": "Merge documents, add page numbers, header/footer and table of contents"
+        "name": "Báo cáo hội",
+        "description": "Hợp nhất tài liệu, thêm số trang, đầu trang/chân trang và mục lục"
       },
       "invoiceProcessing": {
-        "name": "Invoice Processing",
-        "description": "Extract pages, add watermark, and compress for email"
+        "name": "Xử lý hóa đơn",
+        "description": "Trích xuất trang, thêm hình mờ và nén cho email"
       },
       "photoAlbum": {
-        "name": "Photo Album Creator",
-        "description": "Convert images to PDF with page numbers"
+        "name": "Người tạo album ảnh",
+        "description": "Chuyển đổi hình ảnh sang PDF với số trang"
       },
       "cropAndResize": {
-        "name": "Crop & Resize Pages",
-        "description": "Crop PDF pages and adjust page dimensions"
+        "name": "Cắt & Thay đổi kích thước trang",
+        "description": "Cắt trang PDF và điều chỉnh kích thước trang"
       }
     }
   },
   "tools": {
     "search": {
-      "placeholder": "Search tools...",
-      "noResults": "No tools found for \"{query}\""
+      "placeholder": "Công cụ tìm kiếm...",
+      "noResults": "Không tìm thấy công cụ nào cho \"{query}\""
     },
-    "relatedTools": "You May Also Like",
-    "about": "About This Tool",
-    "howToUse": "How to Use",
-    "useCases": "Use Cases",
-    "faq": "Frequently Asked Questions",
-    "comingSoon": "This tool is coming soon.",
-    "successTitle": "Conversion Successful!",
+    "relatedTools": "Có Thể Bạn Cũng Thích",
+    "about": "Giới thiệu về công cụ này",
+    "howToUse": "Cách sử dụng",
+    "useCases": "Trường hợp sử dụng",
+    "faq": "Câu hỏi thường gặp",
+    "comingSoon": "Công cụ này sắp ra mắt.",
+    "successTitle": "Chuyển đổi thành công!",
     "favorite": {
-      "add": "Add to Favorites",
-      "remove": "Remove from Favorites",
-      "saved": "Saved",
-      "title": "Favorite Tools",
-      "empty": "No favorite tools yet",
-      "hint": "Click the star icon on any tool to save it here for quick access."
+      "add": "Thêm vào mục yêu thích",
+      "remove": "Xóa khỏi Mục yêu thích",
+      "saved": "Đã lưu",
+      "title": "Công cụ yêu thích",
+      "empty": "Chưa có công cụ yêu thích nào",
+      "hint": "Bấm vào biểu tượng ngôi sao trên bất kỳ công cụ nào để lưu vào đây để truy cập nhanh."
     },
     "quality": {
-      "title": "Output Quality",
-      "low": "Low",
-      "medium": "Medium",
-      "high": "High",
-      "hint": "Higher quality produces larger files and takes longer to convert."
+      "title": "Chất lượng đầu ra",
+      "low": "Thấp",
+      "medium": "Trung bình",
+      "high": "Cao",
+      "hint": "Chất lượng cao hơn tạo ra các tệp lớn hơn và mất nhiều thời gian hơn để chuyển đổi."
     },
     "mergePdf": {
       "uploadLabel": "Tải lên Tệp PDF",
@@ -1058,10 +1058,10 @@
       "bookmarksNotice": "Lưu ý: Tách theo dấu trang yêu cầu PDF phải có dấu trang. Nếu không tìm thấy dấu trang, toàn bộ PDF sẽ được trả về dưới dạng một tệp duy nhất.",
       "splitCountLabel": "Số Phần",
       "splitCountHint": "Tách thành {count} phần bằng nhau (khoảng {pages} trang mỗi phần)",
-      "pagesPerFile": "Pages Per File",
-      "pageRanges": "Page Ranges",
-      "pageRangesPlaceholder": "e.g., 1-3, 5, 7-9",
-      "modeEveryNPages": "Every N Pages",
+      "pagesPerFile": "Số trang trên mỗi tệp",
+      "pageRanges": "Phạm vi trang",
+      "pageRangesPlaceholder": "ví dụ: 1-3, 5, 7-9",
+      "modeEveryNPages": "Mỗi N trang",
       "pagePreviewTitle": "Chọn Trang",
       "splitButton": "Tách PDF",
       "resultsTitle": "Kết quả Tách",
@@ -1108,7 +1108,7 @@
       "pageRange": "Phạm vi Trang (tùy chọn)",
       "pageRangePlaceholder": "ví dụ: 1-5, 8, 10-15 (để trống cho tất cả trang)",
       "previewInfo": "Mỗi trang sẽ được chia thành {rows}×{cols} = {total} ô.",
-      "createButton": "Posterize PDF",
+      "createButton": "Áp phích PDF",
       "successMessage": "Posterize PDF thành công! Nhấp nút tải để lưu tệp."
     },
     "digitalSign": {
@@ -1398,7 +1398,7 @@
       "marginLeft": "Lề Trái",
       "marginRight": "Lề Phải",
       "optionsTitle": "Tùy chọn Cắt",
-      "page": "Page"
+      "page": "Trang"
     },
     "organizePdf": {
       "uploadLabel": "Tải lên Tệp PDF",
@@ -1536,11 +1536,11 @@
       "positionHint": "Nhập 0 để chèn ở đầu, hoặc {total} để chèn ở cuối.",
       "countLabel": "Số lượng Trang Trắng",
       "position": "Vị trí",
-      "positionStart": "Document Beginning",
-      "positionEnd": "Document End",
-      "positionAfterEach": "After Each Page",
+      "positionStart": "Bắt đầu tài liệu",
+      "positionEnd": "Kết thúc tài liệu",
+      "positionAfterEach": "Sau Mỗi Trang",
       "pageSize": "Kích thước Trang",
-      "matchSource": "Match Source File",
+      "matchSource": "Tệp nguồn phù hợp",
       "addButton": "Thêm Trang Trắng",
       "successMessage": "Thêm trang trắng thành công! Nhấp nút tải để lưu tệp."
     },
@@ -1676,10 +1676,10 @@
       "optionsTitle": "Tùy chọn ZIP",
       "compressionLevel": "Mức Nén",
       "filename": "Output Filename",
-      "filenamePlaceholder": "e.g., pdfs.zip",
-      "compressionFast": "Fast (low compression)",
-      "compressionNormal": "Normal (balanced)",
-      "compressionMax": "Maximum (smallest file)",
+      "filenamePlaceholder": "ví dụ: pdfs.zip",
+      "compressionFast": "Nhanh (nén thấp)",
+      "compressionNormal": "Bình thường (cân bằng)",
+      "compressionMax": "Tối đa (tệp nhỏ nhất)",
       "noCompression": "Không nén (nhanh nhất)",
       "lowCompression": "Nén thấp (nhanh)",
       "mediumCompression": "Nén trung bình (cân bằng)",
@@ -1837,7 +1837,16 @@
       "previewTitle": "Xem trước Văn bản Trích xuất",
       "successMessage": "OCR hoàn tất thành công! Nhấp nút tải để lưu tệp.",
       "infoTitle": "Về OCR",
-      "infoText": "OCR (Nhận dạng Ký tự Quang học) trích xuất văn bản từ tài liệu quét và hình ảnh. Để có kết quả tốt nhất, sử dụng bản quét chất lượng cao và chọn đúng ngôn ngữ."
+      "infoText": "OCR (Nhận dạng Ký tự Quang học) trích xuất văn bản từ tài liệu quét và hình ảnh. Để có kết quả tốt nhất, sử dụng bản quét chất lượng cao và chọn đúng ngôn ngữ.",
+      "optimize": "Optimization",
+      "optimizeNone": "None",
+      "optimizeDefault": "Default",
+      "optimizeAggressive": "Aggressive (smaller file)",
+      "deskew": "Deskew (straighten pages)",
+      "rotatePages": "Auto-rotate pages",
+      "removeBackground": "Remove background",
+      "clean": "Clean pages before OCR",
+      "forceOcr": "Force OCR (re-OCR even if text exists)"
     },
     "linearizePdf": {
       "uploadLabel": "Tải lên Tệp PDF",
@@ -1859,7 +1868,7 @@
       "uploadDescription": "Kéo và thả tệp PDF vào đây, hoặc nhấp để duyệt.",
       "displayOptions": "Tùy chọn Hiển thị",
       "unitLabel": "Đơn vị Đo",
-      "unitPoints": "Points",
+      "unitPoints": "Điểm",
       "unitInches": "Inch",
       "unitMm": "Milimet",
       "analyzeButton": "Phân tích Kích thước",
@@ -2027,15 +2036,15 @@
       "replaceConfirm": "Điều này sẽ thay thế các dấu trang hiện tại. Tiếp tục?",
       "noBookmarksFound": "Không tìm thấy dấu trang nào trong tệp PDF này.",
       "failedExtract": "Trích xuất dấu trang thất bại.",
-      "title": "Title",
-      "page": "Page",
-      "color": "Color",
-      "style": "Style",
-      "normal": "Normal",
-      "bold": "Bold",
-      "italic": "Italic",
-      "boldItalic": "Bold & Italic",
-      "setToCurrentPage": "Set to current page"
+      "title": "Tiêu đề",
+      "page": "Trang",
+      "color": "Màu sắc",
+      "style": "Phong cách",
+      "normal": "Bình thường",
+      "bold": "In đậm",
+      "italic": "Nghiêng",
+      "boldItalic": "In đậm và in nghiêng",
+      "setToCurrentPage": "Đặt thành trang hiện tại"
     },
     "pageNumbers": {
       "uploadLabel": "Tải lên Tệp PDF",
@@ -2376,7 +2385,7 @@
       "showPreview": "Hiển thị Xem trước",
       "hidePreview": "Ẩn Xem trước",
       "optionsTitle": "Tùy chọn Chuyển đổi",
-      "fontSize": "Font Size",
+      "fontSize": "Cỡ chữ",
       "pageSizeLabel": "Kích thước Trang",
       "themeLabel": "Chủ đề",
       "gfmLabel": "Bật GitHub Flavored Markdown (bảng, danh sách nhiệm vụ, v.v.)",
@@ -2387,50 +2396,50 @@
     "pdfToDocx": {
       "uploadLabel": "Tải lên Tệp PDF",
       "uploadDescription": "Kéo và thả tệp PDF vào đây, hoặc nhấp để duyệt.",
-      "optionsTitle": "Conversion Options",
-      "preserveFormatting": "Preserve formatting",
-      "extractImages": "Extract images",
+      "optionsTitle": "Tùy chọn chuyển đổi",
+      "preserveFormatting": "Giữ nguyên định dạng",
+      "extractImages": "Trích xuất hình ảnh",
       "convertButton": "Chuyển thành DOCX",
       "successMessage": "PDF của bạn đã được chuyển thành DOCX thành công! Nhấp nút tải để lưu tệp."
     },
     "pdfToMarkdown": {
-      "uploadLabel": "Upload PDF File",
-      "uploadDescription": "Drag and drop a PDF file here, or click to browse.",
-      "optionsTitle": "Conversion Options",
-      "pageRange": "Page Range",
-      "pageRangePlaceholder": "e.g., 1-3, 5, 7",
-      "pageRangeHint": "Leave empty for all pages",
-      "includePageNumbers": "Include page numbers as headers",
-      "preserveLineBreaks": "Preserve line breaks",
-      "convertButton": "Convert to Markdown",
-      "previewTab": "Preview",
-      "sourceTab": "Markdown Source",
-      "successMessage": "Your PDF has been successfully converted to Markdown! Click the download button to save your file.",
-      "failed": "Failed to convert PDF to Markdown."
+      "uploadLabel": "Tải lên tệp PDF",
+      "uploadDescription": "Kéo và thả tệp PDF vào đây hoặc nhấp để duyệt.",
+      "optionsTitle": "Tùy chọn chuyển đổi",
+      "pageRange": "Phạm vi trang",
+      "pageRangePlaceholder": "ví dụ: 1-3, 5, 7",
+      "pageRangeHint": "Để trống cho tất cả các trang",
+      "includePageNumbers": "Bao gồm số trang làm tiêu đề",
+      "preserveLineBreaks": "Giữ nguyên ngắt dòng",
+      "convertButton": "Chuyển đổi sang Markdown",
+      "previewTab": "Xem trước",
+      "sourceTab": "Nguồn đánh dấu",
+      "successMessage": "PDF của bạn đã được chuyển đổi thành công sang Markdown! Nhấp vào nút tải xuống để lưu tập tin của bạn.",
+      "failed": "Không thể chuyển đổi PDF sang Markdown."
     },
     "pdfToExcel": {
-      "uploadLabel": "Upload PDF File",
-      "uploadDescription": "Drag and drop a PDF file here, or click to browse.",
-      "optionsTitle": "Conversion Options",
-      "detectTables": "Auto-detect tables",
-      "extractNote": "Each page's tables will be extracted to separate sheets in the Excel file.",
-      "convertButton": "Convert to Excel",
-      "successTitle": "Conversion Successful!",
-      "successMessage": "Your PDF tables have been extracted to Excel."
+      "uploadLabel": "Tải lên tệp PDF",
+      "uploadDescription": "Kéo và thả tệp PDF vào đây hoặc nhấp để duyệt.",
+      "optionsTitle": "Tùy chọn chuyển đổi",
+      "detectTables": "Tự động phát hiện bảng",
+      "extractNote": "Bảng của mỗi trang sẽ được tách ra từng sheet riêng biệt trong file Excel.",
+      "convertButton": "Chuyển đổi sang Excel",
+      "successTitle": "Chuyển đổi thành công!",
+      "successMessage": "Các bảng PDF của bạn đã được trích xuất sang Excel."
     },
     "pdfToPptx": {
-      "uploadLabel": "Upload PDF File",
-      "uploadDescription": "Drag and drop a PDF file here, or click to browse.",
-      "optionsTitle": "Conversion Options",
-      "dpiLabel": "Image Quality (DPI)",
-      "dpiHint": "Higher DPI produces better quality slides but larger file sizes.",
-      "lowSet": "Low (72 DPI - smaller file)",
-      "mediumSet": "Medium (150 DPI - balanced)",
-      "highSet": "High (200 DPI - better quality)",
-      "veryHighSet": "Very High (300 DPI - best quality)",
-      "convertButton": "Convert to PowerPoint",
-      "successTitle": "Conversion Successful!",
-      "successMessage": "Your PDF has been converted to PowerPoint. Each page is now a slide with full-quality images."
+      "uploadLabel": "Tải lên tệp PDF",
+      "uploadDescription": "Kéo và thả tệp PDF vào đây hoặc nhấp để duyệt.",
+      "optionsTitle": "Tùy chọn chuyển đổi",
+      "dpiLabel": "Chất lượng hình ảnh (DPI)",
+      "dpiHint": "Độ phân giải cao hơn sẽ tạo ra các slide có chất lượng tốt hơn nhưng kích thước tệp lớn hơn.",
+      "lowSet": "Thấp (72 dpi - tệp nhỏ hơn)",
+      "mediumSet": "Trung bình (150 dpi - cân bằng)",
+      "highSet": "Cao (200 dpi - chất lượng tốt hơn)",
+      "veryHighSet": "Rất cao (300 dpi - chất lượng tốt nhất)",
+      "convertButton": "Chuyển đổi sang PowerPoint",
+      "successTitle": "Chuyển đổi thành công!",
+      "successMessage": "PDF của bạn đã được chuyển đổi sang PowerPoint. Mỗi trang bây giờ là một slide với hình ảnh chất lượng đầy đủ."
     },
     "wordToPdf": {
       "uploadLabel": "Tải lên Tài liệu Word",
@@ -2521,9 +2530,9 @@
       "orientationLabel": "Hướng",
       "rotationLabel": "Xoay Trang",
       "paddingLabel": "Đệm",
-      "bindingEdge": "Binding Edge",
-      "bindingLeft": "Left",
-      "bindingRight": "Right",
+      "bindingEdge": "Ràng buộc cạnh",
+      "bindingLeft": "Bên trái",
+      "bindingRight": "Phải",
       "previewLabel": "Xem trước Bố cục",
       "previewDesc": "Xem trước này hiển thị cách các trang được sắp xếp trên mỗi tờ.",
       "createButton": "Tạo Sách nhỏ",
@@ -2548,7 +2557,7 @@
       "optionsTitle": "Tùy chọn Chuyển đổi",
       "pageSizeLabel": "Kích thước Trang",
       "includeCcBccLabel": "Bao gồm trường CC/BCC",
-      "embedAttachments": "Embed attachments in PDF",
+      "embedAttachments": "Nhúng tệp đính kèm vào PDF",
       "includeAttachmentsLabel": "Bao gồm danh sách đính kèm",
       "timezoneLabel": "Múi giờ",
       "convertButton": "Chuyển thành PDF",
@@ -2582,8 +2591,8 @@
       "filesTitle": "Tệp",
       "optionsTitle": "Tùy chọn",
       "dpiLabel": "DPI Raster hóa",
-      "preserveSelectableText": "Preserve selectable text",
-      "pageRange": "Page Range",
+      "preserveSelectableText": "Giữ nguyên văn bản có thể chọn",
+      "pageRange": "Phạm vi trang",
       "convertButton": "Chuyển Phông chữ thành Đường viền",
       "downloadAllZip": "Tải Tất cả dưới dạng ZIP",
       "successMessage": "Chuyển đổi tệp thành công!"
@@ -2613,44 +2622,44 @@
       "uploadDescription": "Mở tệp PDF để đọc và xem."
     },
     "findAndRedact": {
-      "uploadLabel": "Upload PDF File",
-      "uploadDescription": "Drag and drop a PDF file to search and redact text.",
-      "searchTitle": "Search for Text",
-      "searchTermLabel": "Search Terms",
-      "searchTermPlaceholder": "Enter text to search (e.g., account number, name)...",
-      "searchInputPlaceholder": "Enter search terms, separated by commas...",
-      "searchInputHelp": "Tip: Separate multiple terms with commas (,)",
-      "multipleTermsPlaceholder": "Enter search terms (one per line or comma-separated)...\nExample:\nJohn Doe\naccount123\n555-1234",
-      "termsCount": "{count} search term(s)",
-      "searchButton": "Search",
-      "searching": "Searching...",
-      "caseSensitive": "Case Sensitive",
-      "wholeWord": "Whole Words Only",
-      "useRegex": "Use Regular Expression",
-      "enterSearchTerm": "Please enter at least one search term.",
-      "noMatchesFound": "No matches found for the search terms.",
-      "searchFailed": "Failed to search the PDF.",
-      "matchesFound": "{count} matches found",
-      "filterByPage": "Filter by Page",
-      "allPages": "All Pages",
-      "pageNumber": "Page {page}",
-      "pageInfo": "Page {page}",
-      "selectedCount": "{selected} of {total} selected",
-      "selectMatchesToRedact": "Please select at least one match to redact.",
-      "redactionOptions": "Redaction Options",
-      "redactionColor": "Redaction Color",
-      "replacementText": "Replacement Text (optional)",
-      "replacementTextPlaceholder": "e.g., [REDACTED]",
-      "addBorder": "Add border around redacted areas",
-      "warningTitle": "Warning",
-      "warningText": "Redaction is permanent. Once applied, the original content cannot be recovered.",
-      "redactButton": "Redact {count} Selected",
-      "redactFailed": "Failed to apply redactions.",
-      "successMessage": "Successfully redacted the selected text! Click download to save.",
-      "previewTitle": "Preview",
-      "pagesWithMatches": "Pages with matches:",
-      "selectedMatch": "Selected",
-      "unselectedMatch": "Not selected"
+      "uploadLabel": "Tải lên tệp PDF",
+      "uploadDescription": "Kéo và thả tệp PDF để tìm kiếm và sắp xếp lại văn bản.",
+      "searchTitle": "Tìm kiếm văn bản",
+      "searchTermLabel": "Cụm từ tìm kiếm",
+      "searchTermPlaceholder": "Nhập nội dung cần tìm kiếm (ví dụ: số tài khoản, tên)...",
+      "searchInputPlaceholder": "Nhập cụm từ tìm kiếm, phân tách bằng dấu phẩy...",
+      "searchInputHelp": "Mẹo: Phân tách nhiều thuật ngữ bằng dấu phẩy (,)",
+      "multipleTermsPlaceholder": "Nhập cụm từ tìm kiếm (một cụm từ trên mỗi dòng hoặc được phân tách bằng dấu phẩy)...\nVí dụ:\nJohn Doe\ntài khoản123\n555-1234",
+      "termsCount": "{count} cụm từ tìm kiếm",
+      "searchButton": "Tìm kiếm",
+      "searching": "Đang tìm kiếm...",
+      "caseSensitive": "Phân biệt chữ hoa chữ thường",
+      "wholeWord": "Chỉ toàn bộ từ",
+      "useRegex": "Sử dụng biểu thức chính quy",
+      "enterSearchTerm": "Vui lòng nhập ít nhất một cụm từ tìm kiếm.",
+      "noMatchesFound": "Không tìm thấy kết quả phù hợp cho cụm từ tìm kiếm.",
+      "searchFailed": "Không thể tìm kiếm bản PDF.",
+      "matchesFound": "Đã tìm thấy {count} kết quả phù hợp",
+      "filterByPage": "Lọc theo trang",
+      "allPages": "Tất cả các trang",
+      "pageNumber": "Trang {trang}",
+      "pageInfo": "Trang {trang}",
+      "selectedCount": "{đã chọn} trong số {tổng} đã chọn",
+      "selectMatchesToRedact": "Vui lòng chọn ít nhất một kết quả phù hợp để sắp xếp lại.",
+      "redactionOptions": "Tùy chọn biên tập",
+      "redactionColor": "Màu biên tập",
+      "replacementText": "Văn bản thay thế (tùy chọn)",
+      "replacementTextPlaceholder": "ví dụ: [BỊ XÓA]",
+      "addBorder": "Thêm đường viền xung quanh các khu vực được xử lý lại",
+      "warningTitle": "Cảnh báo",
+      "warningText": "Việc chỉnh sửa là vĩnh viễn. Sau khi áp dụng, nội dung ban đầu không thể phục hồi được.",
+      "redactButton": "Đã chọn lại {count}",
+      "redactFailed": "Không áp dụng được các thao tác chỉnh sửa.",
+      "successMessage": "Đã biên tập thành công văn bản đã chọn! Bấm tải về để lưu.",
+      "previewTitle": "Xem trước",
+      "pagesWithMatches": "Các trang có kết quả phù hợp:",
+      "selectedMatch": "Đã chọn",
+      "unselectedMatch": "Không được chọn"
     },
     "successMessage": "OCR completed successfully! Click the download button to save your file.",
     "infoTitle": "About OCR",
@@ -2673,19 +2682,19 @@
       },
       "actions": {
         "summarize": {
-          "label": "Summarize",
+          "label": "Tóm tắt",
           "desc": "Tóm tắt nhanh ý chính tài liệu"
         },
         "translate": {
-          "label": "Translate",
+          "label": "Dịch",
           "desc": "Dịch tài liệu và giữ đúng ngữ cảnh"
         },
         "chat": {
-          "label": "Chat",
+          "label": "Trò chuyện",
           "desc": "Hỏi đáp trực tiếp với nội dung PDF"
         },
         "edit": {
-          "label": "Edit",
+          "label": "Biên tập",
           "desc": "Chỉnh sửa, chú thích và đánh dấu tài liệu"
         },
         "ocr": {
@@ -2693,7 +2702,7 @@
           "desc": "Nhận diện chữ từ tài liệu scan"
         },
         "voice": {
-          "label": "Read aloud",
+          "label": "Đọc to",
           "desc": "Chuyển nội dung PDF thành âm thanh"
         }
       },
@@ -2722,7 +2731,7 @@
         "action": "Bắt đầu phân tích chat"
       },
       "smartOcr": {
-        "title": "Smart OCR",
+        "title": "OCR thông minh",
         "description": "Chạy OCR kết hợp AI để tăng độ chính xác và cấu trúc.",
         "action": "Chạy Smart OCR"
       },
@@ -2874,7 +2883,25 @@
       "editText": "Chỉnh sửa văn bản",
       "editImages": "Chỉnh sửa hình ảnh",
       "addLink": "Thêm liên kết",
-      "smartOcr": "OCR thông minh"
+      "smartOcr": "OCR thông minh",
+      "ocrPdf": {
+        "language": "Language",
+        "outputFormat": "Output Format",
+        "options": "Options",
+        "result": "OCR Result",
+        "readyToOcr": "Ready to OCR",
+        "noFileSelected": "No PDF selected",
+        "readyDesc": "Click the button to convert your scanned PDF into a searchable document or extract text.",
+        "noFileDesc": "Upload a scanned PDF to get started.",
+        "deskew": "Deskew (straighten pages)",
+        "clean": "Clean pages before OCR",
+        "removeBackground": "Remove background",
+        "forceOcr": "Force OCR (re-OCR even if text exists)",
+        "progressAnalyzing": "Analyzing document structure...",
+        "progressRecognizing": "Recognizing text in images...",
+        "progressFinalizing": "Finalizing output...",
+        "progressDone": "Complete!"
+      }
     },
     "textStyle": {
       "label": "Kiểu chữ",

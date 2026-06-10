@@ -239,6 +239,7 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
   const [ocrClean, setOcrClean] = useState(true);
   const [ocrRemoveBg, setOcrRemoveBg] = useState(false);
   const [ocrForceOcr, setOcrForceOcr] = useState(false);
+  const [ocrProgress, setOcrProgress] = useState(0);
 
   const speech = useDocumentSpeech();
 
@@ -677,21 +678,19 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
           setResult({ fileName: translated.fileName, outputType: translateOutputType });
         }
       } else if (actionType === 'smartOcr') {
-        if (ocrOutputType === 'text') {
-          const { ocrPDF } = await import('@/lib/pdf/processors/ocr');
-          const out = await ocrPDF(file, {
-            languages: ocrLanguages.split('+').filter(Boolean) as import('@/lib/pdf/processors/ocr').OCRLanguage[],
-            outputFormat: 'text',
-            scale: 2,
-            pages: [],
-          });
-          if (!out.success || !out.result) throw new Error(out.error?.message || 'OCR failed');
-          const blob = out.result as Blob;
-          const text = await blob.text();
-          setOcrResultBlob(blob);
-          setOcrResultFileName(out.filename || `${file.name.replace(/\.pdf$/i, '')}_ocr.txt`);
-          setResult({ text, outputType: 'text' });
-        } else {
+        setOcrProgress(0);
+        const estimatedMs = Math.max(8000, (file.size / 1024 / 1024) * 6000);
+        let raf = 0;
+        const start = Date.now();
+        const tick = () => {
+          const elapsed = Date.now() - start;
+          const pct = Math.min(92, (elapsed / estimatedMs) * 90);
+          setOcrProgress(Math.round(pct));
+          if (pct < 92) raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+
+        try {
           const form = new FormData();
           form.append('file', file);
           form.append('languages', ocrLanguages);
@@ -701,18 +700,31 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
           form.append('clean', String(ocrClean));
           form.append('force_ocr', String(ocrForceOcr));
           form.append('optimize', '1');
+          form.append('output_format', ocrOutputType === 'text' ? 'text' : 'pdf');
           const res = await fetch('/api/ocr', { method: 'POST', body: form });
           if (!res.ok) {
             let detail = 'OCR failed.';
             try { const j = await res.json(); detail = j.detail || detail; } catch { /* */ }
             throw new Error(detail);
           }
-          const blob = await res.blob();
+
           const baseName = file.name.replace(/\.pdf$/i, '');
-          const fileName = `${baseName}_ocr.pdf`;
-          setOcrResultBlob(blob);
-          setOcrResultFileName(fileName);
-          setResult({ fileName, size: blob.size, outputType: 'pdf' });
+          if (ocrOutputType === 'text') {
+            const data = await res.json();
+            const textBlob = new Blob([data.text], { type: 'text/plain' });
+            setOcrResultBlob(textBlob);
+            setOcrResultFileName(`${baseName}_ocr.pdf`);
+            setResult({ text: data.text, fileName: data.fileName, outputType: 'text' });
+          } else {
+            const blob = await res.blob();
+            const fileName = `${baseName}_ocr.pdf`;
+            setOcrResultBlob(blob);
+            setOcrResultFileName(fileName);
+            setResult({ fileName, size: blob.size, outputType: 'pdf' });
+          }
+          setOcrProgress(100);
+        } finally {
+          cancelAnimationFrame(raf);
         }
       } else if (actionType !== 'chat' && actionType !== 'voice') {
         const data = await ACTION_MAP[actionType](file);
@@ -1405,13 +1417,10 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                   />
 
                   <div>
-                    <p className="text-[11px] font-medium text-[hsl(var(--color-foreground))] mb-1.5">
-                      {t('tools.ocrPdf.outputFormat')}
-                    </p>
                     <div className="flex gap-2">
                       {[
-                        { id: 'pdf' as const, label: '📄 Searchable PDF', icon: '📄' },
-                        { id: 'text' as const, label: '📝 Text (.txt)', icon: '📝' },
+                        { id: 'pdf' as const, label: '📄 Searchable PDF' },
+                        { id: 'text' as const, label: '📝 Extract Text' },
                       ].map((fmt) => (
                         <button
                           key={fmt.id}
@@ -1429,33 +1438,6 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                       ))}
                     </div>
                   </div>
-
-                  {ocrOutputType === 'pdf' && (
-                    <div>
-                      <p className="text-[11px] font-medium text-[hsl(var(--color-foreground))] mb-1.5">
-                        {t('tools.ocrPdf.options')}
-                      </p>
-                      <div className="space-y-1.5">
-                        {[
-                          { checked: ocrDeskew, set: setOcrDeskew, label: t('tools.ocrPdf.deskew') },
-                          { checked: ocrClean, set: setOcrClean, label: t('tools.ocrPdf.clean') },
-                          { checked: ocrRemoveBg, set: setOcrRemoveBg, label: t('tools.ocrPdf.removeBackground') },
-                          { checked: ocrForceOcr, set: setOcrForceOcr, label: t('tools.ocrPdf.forceOcr') },
-                        ].map((opt) => (
-                          <label key={opt.label} className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={opt.checked}
-                              onChange={(e) => opt.set(e.target.checked)}
-                              disabled={loading}
-                              className="rounded border-[hsl(var(--color-border))] h-3.5 w-3.5"
-                            />
-                            <span className="text-[11px] text-[hsl(var(--color-foreground))]">{opt.label}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 <div className="mt-auto pt-4">
@@ -1980,29 +1962,76 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                     <Sparkles className={`h-4 w-4 ${AI_UI.icon}`} />
                     {t('tools.ocrPdf.result')}
                   </h3>
-                  {ocrResultBlob && !loading && (
+                  {result && !loading && (
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       className="gap-1.5 h-8 text-[12px]"
-                      onClick={() => {
-                        if (!ocrResultBlob) return;
-                        const url = URL.createObjectURL(ocrResultBlob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = ocrResultFileName || 'ocr_result';
-                        a.click();
-                        URL.revokeObjectURL(url);
+                      onClick={async () => {
+                        if (result.outputType === 'pdf' && ocrResultBlob) {
+                          const url = URL.createObjectURL(ocrResultBlob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = ocrResultFileName || 'ocr_result.pdf';
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        } else if (result.outputType === 'text' && file) {
+                          const form = new FormData();
+                          form.append('file', file);
+                          form.append('languages', ocrLanguages);
+                          form.append('deskew', String(ocrDeskew));
+                          form.append('rotate_pages', 'true');
+                          form.append('remove_background', String(ocrRemoveBg));
+                          form.append('clean', String(ocrClean));
+                          form.append('force_ocr', String(ocrForceOcr));
+                          form.append('optimize', '1');
+                          form.append('output_format', 'pdf');
+                          const res = await fetch('/api/ocr', { method: 'POST', body: form });
+                          if (res.ok) {
+                            const blob = await res.blob();
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = ocrResultFileName || 'ocr_result.pdf';
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          }
+                        }
                       }}
                     >
                       <Download className="h-3.5 w-3.5" />
-                      Download
+                      Download PDF
                     </Button>
                   )}
                 </div>
 
-                {loading ? (
+                {loading && isSmartOcrPage ? (
+                  <div className="flex-1 flex flex-col items-center justify-center gap-4 min-h-[min(50vh,520px)]">
+                    <div className="w-full max-w-[280px]">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[12px] font-medium text-[hsl(var(--color-foreground))]">
+                          {ocrProgress < 100 ? 'Processing OCR...' : 'Done!'}
+                        </span>
+                        <span className="text-[12px] font-semibold text-[hsl(var(--color-primary))]">
+                          {ocrProgress}%
+                        </span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-[hsl(var(--color-muted)/0.3)] overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-[hsl(var(--color-primary))] transition-all duration-300 ease-out"
+                          style={{ width: `${ocrProgress}%` }}
+                        />
+                      </div>
+                      <p className="mt-2 text-[11px] text-[hsl(var(--color-muted-foreground))] text-center">
+                        {ocrProgress < 30 ? t('tools.ocrPdf.progressAnalyzing') :
+                         ocrProgress < 70 ? t('tools.ocrPdf.progressRecognizing') :
+                         ocrProgress < 100 ? t('tools.ocrPdf.progressFinalizing') :
+                         t('tools.ocrPdf.progressDone')}
+                      </p>
+                    </div>
+                  </div>
+                ) : loading ? (
                   <AiCenteredSpinner className="min-h-[min(50vh,520px)]" size="h-9 w-9" />
                 ) : result?.outputType === 'text' && result?.text ? (
                   <div className="flex-1 min-h-0 flex flex-col gap-3">
@@ -2012,9 +2041,21 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                         <div className="flex-1 min-w-0">
                           <p className="text-[12px] font-medium truncate">{ocrResultFileName}</p>
                           <p className="text-[11px] text-[hsl(var(--color-muted-foreground))]">
-                            {(ocrResultBlob.size / 1024).toFixed(0)} KB · Text
+                            {(ocrResultBlob.size / 1024).toFixed(0)} KB · Searchable PDF
                           </p>
                         </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-[11px] gap-1 shrink-0"
+                          onClick={() => {
+                            navigator.clipboard.writeText(result.text);
+                          }}
+                        >
+                          <Copy className="h-3 w-3" />
+                          Copy
+                        </Button>
                       </div>
                     )}
                     <pre className="flex-1 min-h-[min(40vh,400px)] overflow-auto rounded-lg border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.08)] p-4 text-[13px] leading-relaxed text-[hsl(var(--color-foreground))] whitespace-pre-wrap font-[var(--font-sans)]">

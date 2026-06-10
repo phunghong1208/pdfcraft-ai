@@ -21,12 +21,12 @@
       "description": "Politica de confidențialitate PDFCraft. Fișierele tale nu părăsesc niciodată dispozitivul - toată procesarea are loc local în browser."
     },
     "cookies": {
-      "title": "Cookie Policy",
-      "description": "How PDFCraft uses cookies. We only use essential and preference cookies — no tracking or advertising."
+      "title": "Politica de cookie-uri",
+      "description": "Cum folosește PDFCraft cookie-urile. Folosim doar cookie-uri esențiale și de preferință – fără urmărire sau publicitate."
     },
     "terms": {
-      "title": "Terms of Service",
-      "description": "Terms of use for PDFCraft. Free PDF tools processed locally in your browser."
+      "title": "Termeni și condiții",
+      "description": "Condiții de utilizare pentru PDFCraft. Instrumente PDF gratuite procesate local în browserul dvs."
     },
     "contact": {
       "title": "Contactează-ne",
@@ -44,33 +44,33 @@
   },
   "legalPages": {
     "cookies": {
-      "heroTitle": "Cookie Policy",
-      "heroSubtitle": "We use only essential and preference cookies. No tracking or advertising.",
-      "essentialTitle": "Essential cookies",
-      "essentialDesc": "Required for the website to function properly.",
-      "preferenceTitle": "Preference cookies",
-      "preferenceDesc": "Remember your settings, such as language preference.",
-      "noTracking": "We do not use tracking cookies or advertising cookies.",
-      "moreLink": "See also our Privacy Policy"
+      "heroTitle": "Politica de cookie-uri",
+      "heroSubtitle": "Folosim numai cookie-uri esențiale și de preferință. Fără urmărire sau publicitate.",
+      "essentialTitle": "Cookie-uri esențiale",
+      "essentialDesc": "Necesar pentru ca site-ul să funcționeze corect.",
+      "preferenceTitle": "Cookie-uri de preferință",
+      "preferenceDesc": "Amintiți-vă setările, cum ar fi preferința de limbă.",
+      "noTracking": "Nu folosim cookie-uri de urmărire sau cookie-uri de publicitate.",
+      "moreLink": "Consultați și Politica noastră de confidențialitate"
     },
     "terms": {
-      "heroTitle": "Terms of Service",
-      "heroSubtitle": "By using PDFCraft you agree to these terms.",
-      "acceptanceTitle": "1. Acceptance",
-      "acceptanceBody": "By accessing or using this website and its PDF tools, you agree to these Terms of Service.",
-      "useTitle": "2. Use of the service",
-      "useBody": "You may use our tools for lawful personal or business purposes. You are responsible for the content of files you process.",
-      "privacyTitle": "3. Privacy",
-      "privacyBody": "Files are processed locally in your browser and are not uploaded to our servers. See our Privacy Policy for details.",
-      "disclaimerTitle": "4. Disclaimer",
-      "disclaimerBody": "Tools are provided \"as is\" without warranties. We are not liable for data loss; keep backups of important documents.",
-      "changesTitle": "5. Changes",
-      "changesBody": "We may update these terms. Continued use after changes constitutes acceptance."
+      "heroTitle": "Termeni și condiții",
+      "heroSubtitle": "Prin utilizarea PDFCraft sunteți de acord cu acești termeni.",
+      "acceptanceTitle": "1. Acceptare",
+      "acceptanceBody": "Prin accesarea sau utilizarea acestui site web și a instrumentelor sale PDF, sunteți de acord cu acești Termeni și condiții.",
+      "useTitle": "2. Utilizarea serviciului",
+      "useBody": "Puteți folosi instrumentele noastre în scopuri personale sau de afaceri legale. Sunteți responsabil pentru conținutul fișierelor pe care le procesați.",
+      "privacyTitle": "3. Confidențialitate",
+      "privacyBody": "Fișierele sunt procesate local în browserul dvs. și nu sunt încărcate pe serverele noastre. Consultați Politica noastră de confidențialitate pentru detalii.",
+      "disclaimerTitle": "4. Exonerare de responsabilitate",
+      "disclaimerBody": "Instrumentele sunt furnizate „ca atare”, fără garanții. Nu suntem răspunzători pentru pierderea datelor; păstrați copii de siguranță ale documentelor importante.",
+      "changesTitle": "5. Schimbări",
+      "changesBody": "Este posibil să actualizăm acești termeni. Continuarea utilizării după modificări constituie acceptare."
     }
   },
   "common": {
-    "brand": "PDF Reader",
-    "brandSubtitle": "Workspace",
+    "brand": "Cititor PDF",
+    "brandSubtitle": "Spațiul de lucru",
     "tagline": "Instrumente PDF Profesionale - Gratuite și Private",
     "navigation": {
       "home": "Acasă",
@@ -111,7 +111,7 @@
     },
     "status": {
       "idle": "Gata",
-      "ready": "Ready",
+      "ready": "Gata",
       "uploading": "Se încarcă...",
       "processing": "Se procesează...",
       "complete": "Finalizat",
@@ -164,45 +164,45 @@
       "noUploads": "Fără încărcări de fișiere",
       "privateSecure": "100% privat și securizat",
       "footer": "© 2025 PDFCraft. Toate drepturile rezervate.",
-      "ctaHeadline": "Ready to work smarter with PDFs?",
-      "ctaSubtitle": "Upload, edit, summarize and chat with documents using AI.",
-      "uploadCta": "Upload PDF",
-      "exploreTools": "Explore Tools",
-      "copyrightName": "PDF Reader Workspace",
-      "product": "Product",
+      "ctaHeadline": "Ești gata să lucrezi mai inteligent cu PDF-urile?",
+      "ctaSubtitle": "Încărcați, editați, rezumați și discutați cu documente folosind AI.",
+      "uploadCta": "Încărcați PDF",
+      "exploreTools": "Explorați Instrumente",
+      "copyrightName": "Spațiu de lucru PDF Reader",
+      "product": "Produs",
       "madeWith": "Creat cu <Heart /> și <Nextjs />",
-      "documentation": "Documentation",
-      "editPdf": "Edit PDF",
-      "compressPdf": "Compress PDF",
-      "mergePdf": "Merge PDF",
-      "splitPdf": "Split PDF",
-      "convertPdf": "Convert PDF",
-      "badgeLocal": "Local Processing",
-      "badgeNoUpload": "No Cloud Upload",
-      "badgeGdpr": "GDPR Compliant",
-      "localProcessingTitle": "Local Processing",
-      "localProcessingDesc": "Files never leave your device",
-      "noCloudTitle": "No Cloud Upload",
-      "noCloudDesc": "No server storage",
-      "gdprTitle": "GDPR Ready",
-      "gdprDesc": "Privacy-first architecture",
-      "brandEdition": "Private Edition",
-      "taglineSub": "Local-first architecture. Your files never leave your device.",
-      "motto": "Files stay private. AI stays useful.",
-      "ctaAiSummary": "AI Summary",
+      "documentation": "Documentare",
+      "editPdf": "Editați PDF",
+      "compressPdf": "Comprimați PDF",
+      "mergePdf": "Îmbinați PDF",
+      "splitPdf": "Divizarea PDF-ului",
+      "convertPdf": "Convertiți PDF",
+      "badgeLocal": "Procesare locală",
+      "badgeNoUpload": "Fără încărcare în cloud",
+      "badgeGdpr": "Conform GDPR",
+      "localProcessingTitle": "Procesare locală",
+      "localProcessingDesc": "Fișierele nu părăsesc niciodată dispozitivul dvs",
+      "noCloudTitle": "Fără încărcare în cloud",
+      "noCloudDesc": "Fără stocare pe server",
+      "gdprTitle": "Gata pentru GDPR",
+      "gdprDesc": "Arhitectură pe primul loc pentru confidențialitate",
+      "brandEdition": "Ediție privată",
+      "taglineSub": "Arhitectură locală în primul rând. Fișierele dvs. nu părăsesc niciodată dispozitivul dvs.",
+      "motto": "Fișierele rămân private. AI rămâne util.",
+      "ctaAiSummary": "Rezumat AI",
       "ctaChatPdf": "Chat PDF",
-      "ctaLocalSafe": "Local Safe",
-      "aiNav": "AI features",
-      "ctaLocalFirst": "Local First",
-      "badgeOcr": "OCR Ready",
-      "badgeAiPowered": "AI Powered",
-      "desc": "Private AI documents • Local-first • No cloud upload",
-      "featureSummary": "Summary",
+      "ctaLocalSafe": "Seif local",
+      "aiNav": "Caracteristici AI",
+      "ctaLocalFirst": "Local în primul rând",
+      "badgeOcr": "Gata OCR",
+      "badgeAiPowered": "Alimentat cu AI",
+      "desc": "Documente private AI • Local-în primul rând • Fără încărcare în cloud",
+      "featureSummary": "Rezumat",
       "featureChat": "Chat PDF",
       "featureOcr": "OCR",
-      "featureProtect": "Protect",
-      "featuresNav": "Workspace features",
-      "copyrightShort": "© {year} PDF"
+      "featureProtect": "Proteja",
+      "featuresNav": "Caracteristicile spațiului de lucru",
+      "copyrightShort": "© {an} PDF"
     },
     "recentFiles": {
       "title": "Fișiere Recente",
@@ -535,19 +535,19 @@
       },
       "languages": {
         "supported": {
-          "question": "What languages are supported?",
-          "answer": "PDFCraft is available in 9 languages: English, Japanese, Korean, Spanish, French, German, Chinese, Portuguese, and Arabic (with RTL support)."
+          "question": "Ce limbi sunt acceptate?",
+          "answer": "PDFCraft este disponibil în 9 limbi: engleză, japoneză, coreeană, spaniolă, franceză, germană, chineză, portugheză și arabă (cu suport RTL)."
         },
         "change": {
-          "question": "How do I change the language?",
-          "answer": "You can change the language using the language selector in the header. Your preference will be saved for future visits."
+          "question": "Cum schimb limba?",
+          "answer": "Puteți schimba limba folosind selectorul de limbă din antet. Preferința dvs. va fi salvată pentru vizitele viitoare."
         }
       }
     },
     "cta": {
-      "title": "Still have questions?",
-      "description": "Can't find the answer you're looking for? Feel free to reach out to us.",
-      "button": "Contact Us"
+      "title": "Mai ai întrebări?",
+      "description": "Nu puteți găsi răspunsul pe care îl căutați? Simțiți-vă liber să ne contactați.",
+      "button": "Contactaţi-ne"
     }
   },
   "aboutPage": {
@@ -611,7 +611,7 @@
     },
     "methods": {
       "email": {
-        "title": "Email",
+        "title": "E-mail",
         "description": "Trimite-ne un e-mail și îți vom răspunde în 24-48 de ore.",
         "action": "contact@pdfcraft.app"
       },
@@ -621,7 +621,7 @@
         "action": "Vezi pe GitHub"
       },
       "twitter": {
-        "title": "Twitter",
+        "title": "Stare de nervozitate",
         "description": "Urmărește-ne pentru noutăți și anunțuri.",
         "action": "@pdfcraft"
       }
@@ -640,7 +640,7 @@
           "placeholder": "Numele tău"
         },
         "email": {
-          "label": "Email",
+          "label": "E-mail",
           "placeholder": "emailul@tau.com"
         },
         "subject": {
@@ -967,7 +967,7 @@
       "uploadDescription": "Trage și plasează fișierele PDF aici, sau fă clic pentru a răsfoi. Poți adăuga mai multe fișiere.",
       "filesTitle": "Fișiere de Combinat",
       "reorderHint": "Trage și plasează pentru a reordona fișierele. Fișierele vor fi combinate în ordinea afișată.",
-      "workspaceSingleFileHint": "Workspace mode starts with the current file. Add another file to merge.",
+      "workspaceSingleFileHint": "Modul spațiu de lucru începe cu fișierul curent. Adăugați un alt fișier pentru a îmbina.",
       "optionsTitle": "Opțiuni Combinare",
       "preserveBookmarks": "Păstrează marcajele (creează marcaj pentru fiecare fișier)",
       "mergeButton": "Combină PDF-urile",
@@ -1070,7 +1070,7 @@
       "modeEveryNPages": "La Fiecare N Pagini",
       "pagePreviewTitle": "Selectează Paginile",
       "splitButton": "Divizează PDF",
-      "resultsTitle": "Split Results",
+      "resultsTitle": "Împărțiți rezultatele",
       "successMessage": "PDF-ul a fost divizat cu succes! Fă clic pe butoanele de descărcare pentru a salva fișierele.",
       "modeVisualShort": "Selecție Vizuală",
       "modeBookmarksShort": "Marcaje",
@@ -1128,7 +1128,7 @@
       "unlockButton": "Deblochează",
       "subject": "Subiect",
       "issuer": "Emitent",
-      "valid": "Valid",
+      "valid": "Valabil",
       "warningExpired": "Avertisment: Certificatul este expirat sau nu este încă valid. Semnarea poate funcționa, dar semnătura va apărea ca fiind nevalidă.",
       "signatureOptionsTitle": "Opțiuni Semnătură",
       "reasonLabel": "Motiv",
@@ -1263,11 +1263,11 @@
       "saveButton": "Salvează Metadatele",
       "editAnother": "Editează un Alt PDF",
       "modificationNote": "Data modificării va fi actualizată automat la salvare.",
-      "whatIsThis": "This edits document properties only (title, author, keywords, etc.). It does not change visible text or images on the PDF pages.",
-      "whereToSee": "After saving, check here again or open the file in Finder/Acrobat → File → Properties. Page content will look the same.",
+      "whatIsThis": "Aceasta editează numai proprietățile documentului (titlu, autor, cuvinte cheie etc.). Nu modifică textul sau imaginile vizibile pe paginile PDF.",
+      "whereToSee": "După salvare, verificați din nou aici sau deschideți fișierul în Finder/Acrobat → Fișier → Proprietăți. Conținutul paginii va arăta la fel.",
       "successMessage": "Metadate actualizate cu succes! Fă clic pe butonul de descărcare pentru a salva fișierul.",
-      "workspaceSuccessMessage": "Metadata saved to the open document.",
-      "workspaceSuccessHint": "The pages look unchanged — that is normal. Reopen this tool to verify fields, or use Save on the toolbar to write the file to disk."
+      "workspaceSuccessMessage": "Metadatele salvate în documentul deschis.",
+      "workspaceSuccessHint": "Paginile arată neschimbat - este normal. Redeschideți acest instrument pentru a verifica câmpurile sau utilizați Salvare pe bara de instrumente pentru a scrie fișierul pe disc."
     },
     "editPdf": {
       "uploadLabel": "Încarcă PDF pentru Editare",
@@ -1348,7 +1348,7 @@
       "algorithmLabel": "Algoritm Comprimare",
       "algorithmStandard": "Standard",
       "algorithmCondense": "Condensare",
-      "algorithmPhoton": "Photon",
+      "algorithmPhoton": "Foton",
       "algorithmStandardDesc": "Comprimare de uz general folosind fluxuri de obiecte",
       "algorithmCondenseDesc": "Optimizează structura păstrând interactivitatea",
       "algorithmPhotonDesc": "Rasterizează paginile — cel mai bun pentru PDF-uri cu multe imagini",
@@ -1488,10 +1488,10 @@
       "permAccessibility": "Permite Accesibilitatea",
       "permAssembly": "Permite Asamblarea",
       "encryptButton": "Criptează PDF",
-      "passwordRequired": "Please provide at least one password.",
+      "passwordRequired": "Vă rugăm să furnizați cel puțin o parolă.",
       "successMessage": "PDF criptat cu succes!",
       "successHint": "Nu uita să îți salvezi parolele în siguranță.",
-      "workspaceSuccessHint": "Download the encrypted copy below. The open document in the workspace stays unchanged so you can keep editing."
+      "workspaceSuccessHint": "Descărcați copia criptată de mai jos. Documentul deschis în spațiul de lucru rămâne neschimbat, astfel încât să puteți continua editarea."
     },
     "decryptPdf": {
       "uploadLabel": "Încarcă Fișier PDF",
@@ -1621,48 +1621,48 @@
     "comparePdfs": {
       "file1Label": "Primul PDF (Original)",
       "uploadFile1": "Încarcă Primul PDF",
-      "uploadFile1Description": "Baseline document for comparison",
+      "uploadFile1Description": "Document de referință pentru comparație",
       "file2Label": "Al Doilea PDF (Modificat)",
       "uploadFile2": "Încarcă al Doilea PDF",
-      "uploadFile2Description": "Document with edits, additions, or deletions",
+      "uploadFile2Description": "Document cu modificări, completări sau ștergeri",
       "uploadDescription": "Trage și plasează sau fă clic pentru a răsfoi",
-      "pageMeta": "{count} pages • {size} MB",
+      "pageMeta": "{count} pagini • {size} MB",
       "compareButton": "Compară PDF-urile",
-      "startCompare": "Start comparison",
-      "loadingFile1": "Loading original PDF…",
-      "loadingFile2": "Loading modified PDF…",
-      "loadFile1Error": "Could not load the original PDF.",
-      "loadFile2Error": "Could not load the modified PDF.",
-      "comparingProgress": "Aligning pages and comparing text…",
-      "compareError": "Comparison failed. Please try again.",
+      "startCompare": "Începeți comparația",
+      "loadingFile1": "Se încarcă PDF original...",
+      "loadingFile2": "Se încarcă PDF modificat...",
+      "loadFile1Error": "Nu s-a putut încărca PDF-ul original.",
+      "loadFile2Error": "PDF-ul modificat nu a putut fi încărcat.",
+      "comparingProgress": "Se aliniază paginile și se compară textul...",
+      "compareError": "Comparația a eșuat. Vă rugăm să încercați din nou.",
       "resultsTitle": "Rezultate Comparare",
-      "compareCompleteTitle": "Comparison complete",
-      "compareCompleteSummary": "{total} pages aligned • {diff} with differences",
+      "compareCompleteTitle": "Comparație finalizată",
+      "compareCompleteSummary": "{total} pagini aliniate • {dif} cu diferențe",
       "newComparison": "Comparare Nouă",
-      "filterLabel": "Highlight filter",
-      "filterText": "Text changes",
-      "filterFormatting": "Formatting",
-      "filterHeaderFooter": "Headers & footers",
-      "filterMoved": "Moved paragraphs",
-      "prevPair": "Previous",
-      "nextPair": "Next",
-      "pairSequence": "Pair {current} / {total}",
-      "insertedPageBadge": "Inserted page",
-      "deletedPageBadge": "Deleted page",
-      "diffDetected": "{percent}% difference",
-      "noDifference": "No differences",
+      "filterLabel": "Evidențiați filtrul",
+      "filterText": "Textul se modifică",
+      "filterFormatting": "Formatare",
+      "filterHeaderFooter": "Anteturi și subsoluri",
+      "filterMoved": "Paragrafe mutate",
+      "prevPair": "Anterior",
+      "nextPair": "Următorul",
+      "pairSequence": "Pereche {current} / {total}",
+      "insertedPageBadge": "Pagina inserată",
+      "deletedPageBadge": "Pagina ștearsă",
+      "diffDetected": "Diferență de {%}%.",
+      "noDifference": "Fără diferențe",
       "originalVersion": "Original",
-      "modifiedVersion": "Modified",
-      "pageLabel": "Page {page}",
-      "tooltipDeleted": "Text removed",
-      "tooltipModified": "Text modified",
-      "tooltipMovedSource": "Paragraph moved from here",
-      "tooltipMovedDest": "Paragraph moved here",
-      "tooltipAdded": "Text added",
-      "insertedPageTitle": "Inserted page",
-      "insertedPageDesc": "This page exists only in the modified PDF. The original has no matching page.",
-      "deletedPageTitle": "Deleted page",
-      "deletedPageDesc": "This page was removed in the modified PDF. A blank placeholder keeps alignment for following pages.",
+      "modifiedVersion": "Modificat",
+      "pageLabel": "Pagina {pagina}",
+      "tooltipDeleted": "Text eliminat",
+      "tooltipModified": "Text modificat",
+      "tooltipMovedSource": "Paragraful a fost mutat de aici",
+      "tooltipMovedDest": "Paragraful a fost mutat aici",
+      "tooltipAdded": "Text adăugat",
+      "insertedPageTitle": "Pagina inserată",
+      "insertedPageDesc": "Această pagină există doar în PDF-ul modificat. Originalul nu are o pagină care să se potrivească.",
+      "deletedPageTitle": "Pagina ștearsă",
+      "deletedPageDesc": "Această pagină a fost eliminată din PDF-ul modificat. Un substituent gol păstrează alinierea pentru paginile următoare.",
       "viewMode": "Mod Vizualizare:",
       "sideBySide": "Alăturat",
       "overlay": "Suprapunere",
@@ -1811,7 +1811,7 @@
       "uploadLabel": "Încarcă Fișier PDF",
       "uploadDescription": "Trage și plasează un fișier PDF aici, sau fă clic pentru a răsfoi.",
       "optionsTitle": "Opțiuni Extragere",
-      "includeText": "Include Text",
+      "includeText": "Includeți text",
       "includeMetadata": "Include Metadate",
       "includePageInfo": "Include Info Pagină",
       "includeOutline": "Include Structură (Outline)",
@@ -1843,7 +1843,16 @@
       "previewTitle": "Previzualizare Text Extras",
       "successMessage": "OCR finalizat cu succes! Fă clic pe butonul de descărcare pentru a salva fișierul.",
       "infoTitle": "Despre OCR",
-      "infoText": "OCR (Recunoașterea Optică a Caracterelor) extrage textul din documente scanate și imagini. Pentru cele mai bune rezultate, folosește scanări de înaltă calitate și selectează limbile corecte."
+      "infoText": "OCR (Recunoașterea Optică a Caracterelor) extrage textul din documente scanate și imagini. Pentru cele mai bune rezultate, folosește scanări de înaltă calitate și selectează limbile corecte.",
+      "optimize": "Optimization",
+      "optimizeNone": "None",
+      "optimizeDefault": "Default",
+      "optimizeAggressive": "Aggressive (smaller file)",
+      "deskew": "Deskew (straighten pages)",
+      "rotatePages": "Auto-rotate pages",
+      "removeBackground": "Remove background",
+      "clean": "Clean pages before OCR",
+      "forceOcr": "Force OCR (re-OCR even if text exists)"
     },
     "linearizePdf": {
       "uploadLabel": "Încarcă Fișiere PDF",
@@ -1920,16 +1929,16 @@
       "uploadLabel": "Încarcă Fișier PDF",
       "uploadDescription": "Trage și plasează un fișier PDF pentru aplatizare.",
       "optionsTitle": "Opțiuni Aplatizare",
-      "info": "Flattening converts interactive elements (forms, annotations, layers) into static page content. The PDF will no longer be editable but will look the same in every viewer.",
+      "info": "Aplatizarea transformă elementele interactive (formulare, adnotări, straturi) în conținut static de pagină. PDF-ul nu va mai fi editabil, dar va arăta la fel în fiecare vizualizator.",
       "flattenForms": "Aplatizează Câmpurile Formularului",
-      "flattenFormsDesc": "Convert fillable form fields to static text",
+      "flattenFormsDesc": "Convertiți câmpurile de formular completabile în text static",
       "flattenAnnotations": "Aplatizează Adnotările",
-      "flattenAnnotationsDesc": "Merge comments, highlights, and stamps into page content",
-      "flattenLayers": "Flatten Layers",
-      "flattenLayersDesc": "Merge all visible layers into a single layer",
+      "flattenAnnotationsDesc": "Îmbinați comentariile, evidențierile și ștampilele în conținutul paginii",
+      "flattenLayers": "Aplatizați Straturile",
+      "flattenLayersDesc": "Îmbină toate straturile vizibile într-un singur strat",
       "flattenButton": "Aplatizează PDF",
       "successMessage": "PDF aplatizat cu succes!",
-      "flattenedItems": "Flattened:"
+      "flattenedItems": "Aplatizat:"
     },
     "removeMetadata": {
       "uploadLabel": "Încarcă Fișier PDF",
@@ -2088,7 +2097,12 @@
       "posBottomRight": "Dreapta Jos",
       "posTopLeft": "Stânga Sus",
       "posTopCenter": "Centru Sus",
-      "posTopRight": "Dreapta Sus"
+      "posTopRight": "Dreapta Sus",
+      "appearanceTitle": "Appearance",
+      "prefixPlaceholder": "e.g., Page ",
+      "suffixPlaceholder": "e.g., -",
+      "fileMeta": "{size} • {pages} pages",
+      "previewPageOf": "Page {current}/{total}"
     },
     "watermark": {
       "uploadLabel": "Încarcă Fișier PDF",
@@ -2101,7 +2115,7 @@
       "watermarkImage": "Imagine Filigran (PNG/JPG)",
       "position": "Poziție",
       "posCenter": "Centru",
-      "posDiagonal": "Diagonal",
+      "posDiagonal": "Diagonală",
       "posTopLeft": "Stânga Sus",
       "posTopRight": "Dreapta Sus",
       "posBottomLeft": "Stânga Jos",
@@ -2131,7 +2145,8 @@
       "rangePlaceholder": "ex: 1, 3, 5-10",
       "previewTitle": "Previzualizare",
       "previewNote": "Se afișează doar prima pagină pentru o performanță mai bună",
-      "previewGenerating": "Se generează previzualizarea..."
+      "previewGenerating": "Se generează previzualizarea...",
+      "previewPageOf": "Page {current} of {total}"
     },
     "headerFooter": {
       "uploadLabel": "Încarcă Fișier PDF",
@@ -2148,7 +2163,27 @@
       "preview": "Previzualizare",
       "previewHint": "Introdu textul pentru antet sau subsol pentru a vedea previzualizarea",
       "addButton": "Adaugă Antet și Subsol",
-      "successMessage": "Antet și subsol adăugate cu succes!"
+      "successMessage": "Antet și subsol adăugate cu succes!",
+      "positionLeft": "Left",
+      "positionCenter": "Center",
+      "positionRight": "Right",
+      "headerLeftPlaceholder": "e.g., Company Name",
+      "headerCenterPlaceholder": "e.g., Document Title",
+      "headerRightPlaceholder": "e.g., '{date}'",
+      "footerLeftPlaceholder": "e.g., Confidential",
+      "footerCenterPlaceholder": "e.g., Page '{page}' of '{total}'",
+      "footerRightPlaceholder": "e.g., '{date}'",
+      "quickInsertTitle": "Quick insert",
+      "quickInsertHint": "Click to copy, then paste into any field",
+      "margin": "Margin (pt)",
+      "pageRange": "Page Range",
+      "pageRangePlaceholder": "e.g., all or 1-5, 8, 10-12",
+      "pageRangeHint": "Use \"all\" for all pages, or specify ranges like \"1-5, 8, 10-12\"",
+      "skipFirstPage": "Skip first page (cover page)",
+      "fileMeta": "{size} • {pages} pages",
+      "previewPageOf": "Page {current} of {total}",
+      "pageApplied": "Header/Footer will be added to this page",
+      "pageSkipped": "This page will be skipped"
     },
     "invertColors": {
       "uploadLabel": "Încarcă Fișier PDF",
@@ -2162,7 +2197,7 @@
       "colorLabel": "Culoare Fundal",
       "applyButton": "Aplică Fundalul",
       "successMessage": "Culoarea de fundal a fost aplicată cu succes!",
-      "reapplyHint": "Each apply uses the original file — change the color and apply again as needed."
+      "reapplyHint": "Fiecare aplicare folosește fișierul original - schimbați culoarea și aplicați din nou după cum este necesar."
     },
     "textColor": {
       "uploadLabel": "Încarcă Fișier PDF",
@@ -2204,13 +2239,13 @@
     "formFiller": {
       "uploadLabel": "Încarcă Fișier PDF",
       "uploadDescription": "Trage și plasează un formular PDF.",
-      "readError": "Could not read form fields. This PDF may not contain fillable forms.",
-      "fieldsTitle": "Form fields ({count})",
-      "fieldPlaceholder": "Enter {type}",
-      "flattenOption": "Flatten form after filling (make non-editable)",
-      "noFields": "No fillable form fields found in this PDF.",
-      "fillButton": "Fill Form",
-      "processError": "Failed to fill the form.",
+      "readError": "Nu s-au putut citi câmpurile formularului. Este posibil ca acest PDF să nu conțină formulare care pot fi completate.",
+      "fieldsTitle": "Câmpuri de formular ({count})",
+      "fieldPlaceholder": "Introdu {type}",
+      "flattenOption": "Aplatizați forma după umplere (faceți-o needitabilă)",
+      "noFields": "Nu s-au găsit câmpuri de formular completabile în acest PDF.",
+      "fillButton": "Completați formularul",
+      "processError": "Nu s-a completat formularul.",
       "saveButton": "Salvează Formularul",
       "successMessage": "Formular salvat cu succes!"
     },
@@ -2635,77 +2670,77 @@
   "ai": {
     "home": {
       "badge": "AI-first PDF Workspace",
-      "title": "Your AI Workspace for PDFs",
-      "titleHighlight": "What do you want to do?",
-      "subtitle": "Upload your document and let AI help you instantly.",
+      "title": "Spațiul tău de lucru AI pentru PDF-uri",
+      "titleHighlight": "Ce vreţi să faceţi?",
+      "subtitle": "Încărcați documentul și lăsați AI să vă ajute instantaneu.",
       "dropzone": {
-        "title": "Drop PDF here",
-        "subtitle": "Start with upload and get AI suggestions right away.",
-        "cta": "Upload to start"
+        "title": "Aruncă PDF aici",
+        "subtitle": "Începeți cu încărcarea și primiți imediat sugestii AI.",
+        "cta": "Încărcați pentru a începe"
       },
       "suggestions": {
-        "title": "AI Suggestions",
-        "hint": "Goal-first actions"
+        "title": "Sugestii AI",
+        "hint": "Acțiuni în primul rând"
       },
       "actions": {
         "summarize": {
-          "label": "Summarize",
-          "desc": "Get concise key points quickly"
+          "label": "Rezuma",
+          "desc": "Obțineți rapid puncte cheie concise"
         },
         "translate": {
-          "label": "Translate",
-          "desc": "Translate while preserving context"
+          "label": "Traduce",
+          "desc": "Traduceți păstrând contextul"
         },
         "chat": {
           "label": "Chat",
-          "desc": "Ask questions directly from the PDF"
+          "desc": "Pune întrebări direct din PDF"
         },
         "edit": {
-          "label": "Edit",
-          "desc": "Edit, annotate, and mark up pages"
+          "label": "Edita",
+          "desc": "Editați, adnotați și marcați paginile"
         },
         "ocr": {
           "label": "OCR",
-          "desc": "Extract text from scanned documents"
+          "desc": "Extrageți text din documentele scanate"
         },
         "voice": {
-          "label": "Read aloud",
-          "desc": "Convert PDF content to audio"
+          "label": "Citiți cu voce tare",
+          "desc": "Conversia conținutului PDF în audio"
         }
       },
       "core": {
-        "title": "Core PDF Tools",
-        "mergePdf": "Merge PDF",
-        "splitPdf": "Split PDF",
-        "compressPdf": "Compress PDF",
-        "pdfToWord": "PDF to Word"
+        "title": "Instrumente PDF de bază",
+        "mergePdf": "Îmbinați PDF",
+        "splitPdf": "Divizarea PDF-ului",
+        "compressPdf": "Comprimați PDF",
+        "pdfToWord": "PDF în Word"
       }
     },
     "pages": {
       "summary": {
-        "title": "AI Summary",
-        "description": "Upload a PDF and get a concise AI-generated summary.",
-        "action": "Generate summary"
+        "title": "Rezumat AI",
+        "description": "Încărcați un PDF și obțineți un rezumat concis generat de AI.",
+        "action": "Generați un rezumat"
       },
       "translate": {
         "title": "AI Translate",
-        "description": "Upload a PDF and translate content with your AI server.",
-        "action": "Translate document"
+        "description": "Încărcați un PDF și traduceți conținut cu serverul dvs. AI.",
+        "action": "Traduceți documentul"
       },
       "chat": {
-        "title": "Chat with PDF",
-        "description": "Upload a PDF and ask your AI server questions.",
-        "action": "Start chat analysis"
+        "title": "Chat cu PDF",
+        "description": "Încarcă un PDF și pune întrebări serverului tău AI.",
+        "action": "Începeți analiza chatului"
       },
       "smartOcr": {
-        "title": "Smart OCR",
-        "description": "Run OCR with AI post-processing for better structure and accuracy.",
-        "action": "Run smart OCR"
+        "title": "OCR inteligent",
+        "description": "Rulați OCR cu post-procesare AI pentru o mai bună structură și precizie.",
+        "action": "Rulați OCR inteligent"
       },
       "voice": {
-        "title": "Voice Reader",
-        "description": "Convert PDF content to audio using your AI voice pipeline.",
-        "action": "Generate audio"
+        "title": "Cititor de voce",
+        "description": "Convertiți conținutul PDF în audio folosind canalul dvs. de voce AI.",
+        "action": "Generați audio"
       }
     }
   },
@@ -2850,7 +2885,25 @@
       "editText": "Editați textul",
       "editImages": "Editați imagini",
       "addLink": "Adăugați link",
-      "smartOcr": "OCR inteligent"
+      "smartOcr": "OCR inteligent",
+      "ocrPdf": {
+        "language": "Language",
+        "outputFormat": "Output Format",
+        "options": "Options",
+        "result": "OCR Result",
+        "readyToOcr": "Ready to OCR",
+        "noFileSelected": "No PDF selected",
+        "readyDesc": "Click the button to convert your scanned PDF into a searchable document or extract text.",
+        "noFileDesc": "Upload a scanned PDF to get started.",
+        "deskew": "Deskew (straighten pages)",
+        "clean": "Clean pages before OCR",
+        "removeBackground": "Remove background",
+        "forceOcr": "Force OCR (re-OCR even if text exists)",
+        "progressAnalyzing": "Analyzing document structure...",
+        "progressRecognizing": "Recognizing text in images...",
+        "progressFinalizing": "Finalizing output...",
+        "progressDone": "Complete!"
+      }
     },
     "textStyle": {
       "label": "Stilul textului",
