@@ -40,12 +40,17 @@ export function ToolIcon({
   const s = sizeMap[size];
   const radius = shape === 'circle' ? 'rounded-full' : s.rounded;
 
+  const glyphStyle = {
+    width: 'var(--pdf-icon-glyph-size)',
+    height: 'var(--pdf-icon-glyph-size)',
+  } as const;
+
+  const boxClass = `${s.box} ${radius} flex shrink-0 items-center justify-center border ${iconToneClass(resolvedTone)} icon-badge--convert ${elevated ? 'icon-badge--elevated' : ''} ${className}`;
+
   if (iconId) {
     return (
-      <div
-        className={`${s.box} ${radius} flex shrink-0 items-center justify-center border ${iconToneClass(resolvedTone)} icon-badge--convert ${elevated ? 'icon-badge--elevated' : ''} ${className}`}
-      >
-        <PdfReaderIcon id={iconId} className="text-[var(--tone-fg)]" />
+      <div className={boxClass}>
+        <PdfReaderIcon id={iconId} className="shrink-0 text-[var(--tone-fg)]" style={glyphStyle} />
       </div>
     );
   }
@@ -54,10 +59,12 @@ export function ToolIcon({
   if (!Lucide) return null;
 
   return (
-    <div
-      className={`${s.box} ${radius} flex shrink-0 items-center justify-center border ${iconToneClass(resolvedTone)} bg-[var(--tone-bg)] border-[var(--tone-border)] ${elevated ? 'icon-badge--elevated' : ''} ${className}`}
-    >
-      <Lucide className="text-[var(--tone-fg)]" strokeWidth={1.75} style={{ width: 'var(--pdf-icon-glyph-size)', height: 'var(--pdf-icon-glyph-size)' }} />
+    <div className={boxClass}>
+      <Lucide
+        className="shrink-0 text-[var(--tone-fg)]"
+        strokeWidth={1.65}
+        style={glyphStyle}
+      />
     </div>
   );
 }
