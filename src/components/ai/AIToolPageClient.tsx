@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FileText,
   Loader2,
@@ -16,8 +16,17 @@ import {
 } from 'lucide-react';
 import { AiCenteredSpinner } from '@/components/ai/AiCenteredSpinner';
 import { AI_UI } from '@/lib/ai-ui-classes';
-import { isPdfNoExtractableTextError, buildPdfSpeechIndex } from '@/lib/pdf/extract-pdf-text';
+import {
+  isPdfNoExtractableTextError,
+  buildPdfSpeechIndex,
+  type PdfSpeechSegment,
+} from '@/lib/pdf/extract-pdf-text';
+import {
+  applyReadAlongHighlight,
+  clearReadAlongHighlight,
+} from '@/lib/pdf/pdf-read-along-highlight';
 import { useDocumentSpeech } from '@/lib/hooks/useDocumentSpeech';
+import { EditPDFTool } from '@/components/tools/edit-pdf/EditPDFTool';
 import { WorkspaceAiMarkdown } from '@/components/workspace/WorkspaceAiMarkdown';
 import { useLocale, useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/Button';
@@ -72,8 +81,38 @@ type SummaryResult = {
   fileName?: string;
 };
 
-const ACTION_MAP: Record<Exclude<AIActionType, 'summary' | 'chat' | 'voice' | 'translate' | 'smartOcr'>, (file: File) => Promise<unknown>> = {
+type OcrTextResult = {
+  outputType: 'text';
+  text: string;
+  fileName?: string;
 };
+
+type OcrPdfResult = {
+  outputType: 'pdf';
+  fileName: string;
+  size?: number;
+};
+
+type OcrResult = OcrTextResult | OcrPdfResult;
+
+type TranslateResultMeta =
+  | { outputType: TranslateOutputType; textLength: number }
+  | { outputType: TranslateOutputType; fileName: string };
+
+type AiToolResult = SummaryResult | OcrResult | TranslateResultMeta | null;
+
+function isOcrResult(result: AiToolResult): result is OcrResult {
+  return (
+    result != null &&
+    typeof result === 'object' &&
+    'outputType' in result &&
+    (result.outputType === 'text' || result.outputType === 'pdf')
+  );
+}
+
+function isOcrTextResult(result: AiToolResult): result is OcrTextResult {
+  return isOcrResult(result) && result.outputType === 'text';
+}
 
 const VOICE_SPEEDS = [0.85, 1, 1.15, 1.3] as const;
 
@@ -95,7 +134,6 @@ const OCR_LANGUAGE_ITEMS: LanguageItem[] = [
 
 const SUMMARY_STORAGE_KEY = 'pdfcraft-ai-summary-last';
 const PDF_PREVIEW_HEIGHT = 'h-[220px]';
-const VOICE_PDF_PREVIEW_HEIGHT = 'h-[min(48vh,520px)]';
 const TRANSLATE_PREVIEW_PANEL = 'flex-1 min-h-[min(50vh,520px)] w-full';
 const AI_MODEL_LABEL =
   process.env.NEXT_PUBLIC_WORKSPACE_AI_MODEL_LABEL?.trim() || 'PDFCraft Document AI';
@@ -155,10 +193,11 @@ function saveStoredSummary(
   sessionStorage.setItem(SUMMARY_STORAGE_KEY, JSON.stringify(payload));
 }
 
-function getSummaryTextFromResult(result: unknown): string {
-  if (!result || typeof result !== 'object') return '';
-  const r = result as SummaryResult;
-  return (r.summary ?? r.markdown ?? '').trim();
+function getSummaryTextFromResult(result: AiToolResult): string {
+  if (!result || typeof result !== 'object' || isOcrResult(result) || 'outputType' in result) {
+    return '';
+  }
+  return (result.summary ?? result.markdown ?? '').trim();
 }
 
 /** Nút primary đỏ (pill) — icon Sparkles giống panel workspace */
@@ -202,7 +241,7 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
   const t = useTranslations('workspace');
   const tWorkspace = t;
   const [file, setFile] = useState<File | null>(null);
-  const [result, setResult] = useState<unknown>(null);
+  const [result, setResult] = useState<AiToolResult>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [summaryTierId, setSummaryTierId] = useState<WorkspacePresetTierId>(WORKSPACE_DEFAULT_PRESET_TIER);
@@ -240,8 +279,26 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
   const [ocrRemoveBg, setOcrRemoveBg] = useState(false);
   const [ocrForceOcr, setOcrForceOcr] = useState(false);
   const [ocrProgress, setOcrProgress] = useState(0);
+  const [isDarkTheme, setIsDarkTheme] = useState(false);
 
-  const speech = useDocumentSpeech();
+  const voicePdfIframeRef = useRef<HTMLIFrameElement | null>(null);
+  const voiceSegmentsRef = useRef<PdfSpeechSegment[]>([]);
+
+  const handleVoicePdfIframeRef = useCallback((iframe: HTMLIFrameElement | null) => {
+    voicePdfIframeRef.current = iframe;
+  }, []);
+
+  const speech = useDocumentSpeech({
+    onBoundary: ({ charIndex, charLength }) => {
+      const iframe = voicePdfIframeRef.current;
+      if (charLength === 0) {
+        clearReadAlongHighlight(iframe);
+        return;
+      }
+      if (!voiceSegmentsRef.current.length) return;
+      applyReadAlongHighlight(iframe, voiceSegmentsRef.current, charIndex, charLength);
+    },
+  });
 
   const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : ''), [file]);
   const translatedPreviewUrl = useMemo(
@@ -290,6 +347,24 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
   }, [locale]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const syncTheme = () => {
+      try {
+        setIsDarkTheme(window.localStorage.getItem('theme') === 'dark');
+      } catch {
+        setIsDarkTheme(false);
+      }
+    };
+    syncTheme();
+    window.addEventListener('storage', syncTheme);
+    window.addEventListener('pdfcraft-theme-changed', syncTheme as EventListener);
+    return () => {
+      window.removeEventListener('storage', syncTheme);
+      window.removeEventListener('pdfcraft-theme-changed', syncTheme as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
     if (actionType !== 'summary') return;
     const stored = loadStoredSummary();
     if (!stored?.summary.trim()) return;
@@ -306,6 +381,26 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
       t('aiSummaryPage.restoredFileHint', { name: stored.fileName }),
     );
   }, [actionType, t]);
+
+  /** Khôi phục tóm tắt sau HMR / reload khi request đã lưu sessionStorage */
+  useEffect(() => {
+    if (actionType !== 'summary' || loading) return;
+    if (getSummaryTextFromResult(result)) return;
+    const stored = loadStoredSummary();
+    if (!stored?.summary.trim()) return;
+    setResult({
+      summary: stored.summary,
+      markdown: stored.summary,
+      document_id: stored.documentId,
+      documentId: stored.documentId,
+      fileName: stored.fileName,
+    });
+    setSummaryGeneratedAt(stored.savedAt);
+    setRestoredHint((prev) =>
+      prev ??
+      t('aiSummaryPage.restoredAt', { time: formatSummaryTime(stored.savedAt, locale) }),
+    );
+  }, [actionType, loading, result, locale, t]);
 
   const restoreSummaryForFile = useCallback((target: File) => {
     const stored = loadStoredSummary();
@@ -334,6 +429,8 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
       setChatHint(null);
       setVoiceHint(null);
       speech.stop();
+      voiceSegmentsRef.current = [];
+      clearReadAlongHighlight(voicePdfIframeRef.current);
       setTranslatedBlob(null);
       setTranslatedFileName(null);
       setTranslatedText(null);
@@ -401,12 +498,15 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
     setError(null);
       setVoiceHint(null);
       speech.stop();
+      clearReadAlongHighlight(voicePdfIframeRef.current);
+      voiceSegmentsRef.current = [];
       setVoiceSummaryText(null);
       setDocumentId(null);
 
     try {
-      const { text } = await buildPdfSpeechIndex(file);
+      const { text, segments } = await buildPdfSpeechIndex(file);
       if (text.trim()) {
+        voiceSegmentsRef.current = segments;
         applyVoiceReadiness(text, null, null);
         return;
       }
@@ -420,13 +520,15 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
         setError(t('aiVoicePage.noExtractableText'));
         return;
       }
+      voiceSegmentsRef.current = [];
       applyVoiceReadiness(apiText, newId, 'fallbackReadHint');
     } catch (err) {
       const msg = err instanceof Error ? err.message : '';
       if (isPdfNoExtractableTextError(msg)) {
         try {
-          const { text: retryText } = await buildPdfSpeechIndex(file);
+          const { text: retryText, segments } = await buildPdfSpeechIndex(file);
           if (retryText.trim()) {
+            voiceSegmentsRef.current = segments;
             applyVoiceReadiness(retryText, null, null);
             return;
           }
@@ -647,19 +749,22 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
           language: answerLanguage,
         })) as SummaryResult;
         const withMeta = { ...data, fileName: file.name };
-        setResult(withMeta);
         const text = getSummaryTextFromResult(withMeta);
-        if (text) {
-          const at = Date.now();
-          setSummaryGeneratedAt(at);
-          saveStoredSummary(
-            file,
-            text,
-            withMeta.document_id ?? withMeta.documentId ?? null,
-            answerLanguage,
+        if (!text) {
+          throw new Error(
+            'Không nhận được nội dung tóm tắt. Nếu PDF là bản scan, hãy dùng OCR thông minh trước.',
           );
-          saveWorkspaceAiAnswerLanguage(answerLanguage, locale);
         }
+        const at = Date.now();
+        setResult(withMeta);
+        setSummaryGeneratedAt(at);
+        saveStoredSummary(
+          file,
+          text,
+          withMeta.document_id ?? withMeta.documentId ?? null,
+          answerLanguage,
+        );
+        saveWorkspaceAiAnswerLanguage(answerLanguage, locale);
       } else if (actionType === 'translate') {
         const translated = await translateDocument(file, {
           sourceLang,
@@ -726,9 +831,6 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
         } finally {
           cancelAnimationFrame(raf);
         }
-      } else if (actionType !== 'chat' && actionType !== 'voice') {
-        const data = await ACTION_MAP[actionType](file);
-        setResult(data);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong');
@@ -892,14 +994,14 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
         <div
           className={
             isDenseAiPage
-              ? `grid grid-cols-1 xl:grid-cols-[minmax(300px,380px)_1fr] gap-6 ${isTranslatePage || isSmartOcrPage ? 'items-stretch' : 'items-start'}`
+              ? `grid grid-cols-1 xl:grid-cols-[minmax(300px,380px)_1fr] gap-6 ${isSummaryPage || isChatPage || isVoicePage || isTranslatePage || isSmartOcrPage ? 'items-stretch' : 'items-start'}`
               : 'grid grid-cols-1 lg:grid-cols-2 gap-6'
           }
         >
           <Card
             className={`border border-[hsl(var(--color-border)/0.7)] ${
               isDenseAiPage ? 'p-4 xl:sticky xl:top-28' : 'p-6'
-            }`}
+            } ${isVoicePage ? 'flex flex-col min-h-[min(calc(100dvh-11rem),840px)]' : ''}`}
           >
             {isSummaryPage ? (
               <>
@@ -1287,9 +1389,9 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                 )}
               </>
             ) : isVoicePage ? (
-              <>
+              <div className="flex flex-col gap-3 h-full min-h-0">
                 <label
-                  className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 cursor-pointer transition-all ${
+                  className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-3 py-4 cursor-pointer transition-all shrink-0 ${
                     uploadDragOver
                       ? 'border-[hsl(var(--color-primary))] bg-[hsl(var(--color-primary)/0.06)]'
                       : 'border-[hsl(var(--color-border))] hover:border-[hsl(var(--color-primary)/0.45)] hover:bg-[hsl(var(--color-muted)/0.25)]'
@@ -1305,20 +1407,17 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                     pickFileFromDrop(e.dataTransfer.files);
                   }}
                 >
-                  <span className="text-3xl leading-none select-none" aria-hidden>
+                  <span className="text-2xl leading-none select-none" aria-hidden>
                     📄🔊
                   </span>
-                  <span className="mt-3 text-[15px] font-semibold text-[hsl(var(--color-foreground))]">
+                  <span className="mt-2 text-[14px] font-semibold text-[hsl(var(--color-foreground))]">
                     {t('aiSummaryPage.uploadTitle')}
                   </span>
-                  <span className="mt-1 text-center text-[12px] text-[hsl(var(--color-muted-foreground))] max-w-[240px] leading-snug">
+                  <span className="mt-1 text-center text-[11px] text-[hsl(var(--color-muted-foreground))] leading-snug">
                     {t('aiVoicePage.uploadSubtitle')}
                   </span>
-                  <span className="mt-3 text-[11px] font-medium text-[hsl(var(--color-primary))]">
+                  <span className="mt-2 text-[11px] font-medium text-[hsl(var(--color-primary))]">
                     {t('aiSummaryPage.uploadDropHint')}
-                  </span>
-                  <span className="mt-1 text-[10px] text-[hsl(var(--color-muted-foreground))]">
-                    {t('aiSummaryPage.uploadFormats')}
                   </span>
                   <input
                     type="file"
@@ -1329,13 +1428,15 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                 </label>
 
                 {file && (
-                  <div className="mt-3 flex items-center gap-2 rounded-lg border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.15)] px-3 py-2">
+                  <div className="flex items-center gap-2 rounded-lg border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.15)] px-3 py-2 shrink-0">
                     <FileText className="h-4 w-4 shrink-0 text-[hsl(var(--color-primary))]" />
                     <span className="text-[12px] truncate font-medium">{file.name}</span>
                   </div>
                 )}
 
-                <div className="mt-3 rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.12)] p-3">
+                <div
+                  className={`flex-1 min-h-0 flex flex-col rounded-xl border p-3 shadow-sm ${AI_UI.cardBorder} ${AI_UI.cardBg}`}
+                >
                   <WorkspaceAiLanguageSelect
                     compact
                     variant="light"
@@ -1354,23 +1455,136 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                     }}
                     disabled={isPreparingVoice || (speech.isPlaying && !speech.isPaused)}
                   />
+
+                  <div className="my-3 border-t border-[hsl(var(--color-border)/0.55)] shrink-0" />
+
+                  <div className="flex-1 min-h-0 flex flex-col">
+                    <h3 className="text-sm font-semibold inline-flex items-center gap-1.5 text-[hsl(var(--color-foreground))] mb-2 shrink-0">
+                      <Volume2 className={`h-3.5 w-3.5 ${AI_UI.icon}`} />
+                      {t('aiVoicePage.listenTitle')}
+                    </h3>
+
+                    {!voiceReady ? (
+                      <div className="flex-1 flex flex-col items-center justify-center text-center px-2 gap-2 min-h-[180px]">
+                        {isPreparingVoice ? (
+                          <AiCenteredSpinner className="flex-1 w-full" size="h-8 w-8" />
+                        ) : error ? (
+                          <>
+                            <Volume2 className={`h-8 w-8 ${AI_UI.icon}`} />
+                            <p className="text-[11px] font-medium text-red-400">{t('aiVoicePage.prepareFailedTitle')}</p>
+                            <p className="text-[10px] text-red-300/90 leading-relaxed">{error}</p>
+                          </>
+                        ) : !file ? (
+                          <p className="text-[11px] text-[hsl(var(--color-muted-foreground))] leading-relaxed">
+                            {t('aiToolPage.selectFileFirst')}
+                          </p>
+                        ) : (
+                          <AiCenteredSpinner className="flex-1 w-full" size="h-8 w-8" />
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex-1 min-h-0 flex flex-col gap-3">
+                        <div className={`rounded-xl border p-4 flex flex-col items-center gap-3 ${AI_UI.playerShell}`}>
+                          <div
+                            className={`flex items-end justify-center gap-1 h-8 ${
+                              speech.isPlaying ? '' : 'opacity-30'
+                            }`}
+                            aria-hidden
+                          >
+                            {[0, 1, 2, 3, 4].map((i) => (
+                              <span
+                                key={i}
+                                className={`w-1 rounded-full ${AI_UI.waveBar} ${
+                                  speech.isPlaying ? 'h-5 animate-pulse' : 'h-1.5'
+                                }`}
+                                style={
+                                  speech.isPlaying ? { animationDelay: `${i * 0.12}s` } : undefined
+                                }
+                              />
+                            ))}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={handleVoiceToggle}
+                            disabled={!speech.supported}
+                            className={`h-14 w-14 rounded-full flex items-center justify-center text-white hover:scale-[1.03] active:scale-[0.98] transition-transform disabled:opacity-40 ${AI_UI.playerBtn}`}
+                            aria-label={
+                              speech.isPlaying
+                                ? t('aiPanel.voice.pause')
+                                : speech.isPaused
+                                  ? t('aiPanel.voice.resume')
+                                  : t('aiPanel.voice.play')
+                            }
+                          >
+                            {speech.isPlaying ? (
+                              <Pause className="h-6 w-6" />
+                            ) : (
+                              <Play className="h-6 w-6 ml-0.5" />
+                            )}
+                          </button>
+
+                          <div className="text-center space-y-0.5 min-w-0 w-full">
+                            <p className={`text-[11px] font-medium ${AI_UI.playerStatus}`}>
+                              {voiceStatusLabel}
+                            </p>
+                            {file && speech.isPlaying && (
+                              <p className="text-[10px] text-[hsl(var(--color-muted-foreground))] truncate px-2">
+                                {t('aiPanel.voice.nowReading', { name: file.name })}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div>
+                          <p className="text-[10px] font-medium text-[hsl(var(--color-foreground))] mb-1">
+                            {t('aiPanel.voice.speed')}
+                          </p>
+                          <div className="flex gap-1" role="radiogroup" aria-label={t('aiPanel.voice.speed')}>
+                            {VOICE_SPEEDS.map((rate) => (
+                              <button
+                                key={rate}
+                                type="button"
+                                onClick={() => handleVoiceSpeedChange(rate)}
+                                aria-pressed={voiceRate === rate}
+                                className={`flex-1 rounded-md py-1 text-[10px] font-medium border transition-all ${
+                                  voiceRate === rate
+                                    ? AI_UI.speedOn
+                                    : 'border-[hsl(var(--color-border))] text-[hsl(var(--color-muted-foreground))] hover:bg-[hsl(var(--color-muted))]/50'
+                                }`}
+                              >
+                                {rate}×
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => {
+                            speech.stop();
+                            clearReadAlongHighlight(voicePdfIframeRef.current);
+                          }}
+                          disabled={!speech.isActive && !speech.isSynthSpeaking()}
+                          className="w-full h-8 text-[11px]"
+                        >
+                          <Square className="h-3 w-3 mr-1" />
+                          {t('aiPanel.voice.stop')}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {voiceHint && !error && (
-                  <p className="mt-2 text-[11px] text-[hsl(var(--color-primary))] leading-snug">{voiceHint}</p>
+                  <p className="text-[11px] text-[hsl(var(--color-primary))] leading-snug shrink-0">{voiceHint}</p>
                 )}
-                {error && <p className="mt-2 text-[12px] text-red-500 leading-snug">{error}</p>}
-                {restoredHint && (
-                  <p className="mt-2 text-[11px] text-[hsl(var(--color-muted-foreground))] leading-snug">
-                    {restoredHint}
-                  </p>
+                {error && !voiceReady && (
+                  <p className="text-[11px] text-red-500 leading-snug shrink-0">{error}</p>
                 )}
-                {!file && (
-                  <p className="mt-2 text-[11px] text-[hsl(var(--color-muted-foreground))]">
-                    {t('aiToolPage.selectFileFirst')}
-                  </p>
-                )}
-              </>
+              </div>
             ) : isSmartOcrPage ? (
               <>
                 <label
@@ -1486,31 +1700,12 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
           </Card>
 
           {isSummaryPage ? (
-            <div className="flex flex-col gap-3 min-h-[min(70vh,760px)]">
-              <Card className="p-3 border border-[hsl(var(--color-border)/0.7)] shrink-0">
-                <h2 className="text-[11px] font-semibold uppercase tracking-wide text-[hsl(var(--color-muted-foreground))] mb-2">
-                  {t('aiPanel.previewPdf')}
-                </h2>
-                {previewUrl ? (
-                  <iframe
-                    src={previewUrl}
-                    className={`w-full rounded-lg border border-[hsl(var(--color-border))] ${PDF_PREVIEW_HEIGHT}`}
-                    title="PDF preview"
-                  />
-                ) : (
-                  <div
-                    className={`rounded-lg border border-dashed border-[hsl(var(--color-border))] flex items-center justify-center text-xs text-[hsl(var(--color-muted-foreground))] ${PDF_PREVIEW_HEIGHT}`}
-                  >
-                    {t('aiPanel.noFile')}
-                  </div>
-                )}
-              </Card>
-
-              <Card className={`p-4 border ${AI_UI.cardBorder} ${AI_UI.cardBg} flex flex-col flex-1 min-h-0 shadow-sm`}>
-                <div className="flex flex-wrap items-start justify-between gap-2 mb-2 shrink-0">
+              <Card
+                className={`p-4 border ${AI_UI.cardBorder} ${AI_UI.cardBg} flex flex-col min-h-[min(calc(100dvh-11rem),840px)] h-full shadow-sm`}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2 mb-3 shrink-0">
                   <div>
-                    <h3 className="text-base font-semibold inline-flex items-center gap-1.5 text-[hsl(var(--color-foreground))]">
-                      <Sparkles className={`h-4 w-4 ${AI_UI.icon}`} />
+                    <h3 className="text-base font-semibold text-[hsl(var(--color-foreground))]">
                       {t('aiPanel.summaryByAi')}
                     </h3>
                     {summaryText && !loading && summaryGeneratedAt && (
@@ -1566,13 +1761,13 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
 
                 <div className="flex-1 min-h-0 flex flex-col rounded-xl border border-[hsl(var(--color-border))] overflow-hidden bg-[hsl(var(--color-background))]">
                   {loading ? (
-                    <AiCenteredSpinner className="min-h-[min(50vh,520px)]" size="h-9 w-9" />
+                    <AiCenteredSpinner className="min-h-[min(60vh,560px)]" size="h-9 w-9" />
                   ) : summaryText ? (
-                    <div className="flex-1 overflow-auto p-4 md:p-5 scrollbar-thin min-h-[min(50vh,520px)]">
+                    <div className="flex-1 overflow-auto p-4 md:p-5 scrollbar-thin min-h-[min(60vh,560px)]">
                       <WorkspaceAiMarkdown content={summaryText} variant="light" />
                     </div>
                   ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center gap-2 p-8 text-center min-h-[min(40vh,400px)]">
+                    <div className="flex-1 flex flex-col items-center justify-center gap-2 p-8 text-center min-h-[min(55vh,480px)]">
                       <Sparkles className={`h-10 w-10 ${AI_UI.iconMuted}`} />
                       <p className="text-sm text-[hsl(var(--color-muted-foreground))] max-w-sm leading-relaxed">
                         {t('aiPanel.summaryPlaceholder')}
@@ -1581,31 +1776,11 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                   )}
                 </div>
               </Card>
-            </div>
           ) : isChatPage ? (
-            <div className="flex flex-col gap-3 min-h-[min(70vh,760px)]">
-              <Card className="p-3 border border-[hsl(var(--color-border)/0.7)] shrink-0">
-                <h2 className="text-[11px] font-semibold uppercase tracking-wide text-[hsl(var(--color-muted-foreground))] mb-2">
-                  {t('aiPanel.previewPdf')}
-                </h2>
-                {previewUrl ? (
-                  <iframe
-                    src={previewUrl}
-                    className={`w-full rounded-lg border border-[hsl(var(--color-border))] ${PDF_PREVIEW_HEIGHT}`}
-                    title="PDF preview"
-                  />
-                ) : (
-                  <div
-                    className={`rounded-lg border border-dashed border-[hsl(var(--color-border))] flex items-center justify-center text-xs text-[hsl(var(--color-muted-foreground))] ${PDF_PREVIEW_HEIGHT}`}
-                  >
-                    {t('aiPanel.noFile')}
-                  </div>
-                )}
-              </Card>
-
-              <Card className={`p-4 border ${AI_UI.cardBorder} ${AI_UI.cardBg} flex flex-col flex-1 min-h-0 shadow-sm`}>
-                <h3 className="text-base font-semibold inline-flex items-center gap-1.5 text-[hsl(var(--color-foreground))] mb-2 shrink-0">
-                  <Sparkles className={`h-4 w-4 ${AI_UI.icon}`} />
+              <Card
+                className={`p-4 border ${AI_UI.cardBorder} ${AI_UI.cardBg} flex flex-col min-h-[min(calc(100dvh-11rem),840px)] h-full shadow-sm`}
+              >
+                <h3 className="text-base font-semibold text-[hsl(var(--color-foreground))] mb-3 shrink-0">
                   {t('aiPanel.askDocument')}
                 </h3>
 
@@ -1614,7 +1789,7 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                     !chatReady ? 'opacity-95' : ''
                   }`}
                 >
-                  <div className="flex-1 min-h-[min(42vh,400px)] flex flex-col">
+                  <div className="flex-1 min-h-0 flex flex-col">
                     {isPreparingChat ? (
                       <AiCenteredSpinner className="flex-1" size="h-9 w-9" />
                     ) : (
@@ -1695,7 +1870,6 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                   <p className="mt-2 text-[11px] text-[hsl(var(--color-primary))] shrink-0 leading-snug">{chatHint}</p>
                 )}
               </Card>
-            </div>
           ) : isTranslatePage ? (
             <div className="flex flex-col gap-3 min-h-[min(70vh,760px)] h-full">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 flex-1 items-stretch min-h-0">
@@ -1801,159 +1975,28 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
               </div>
             </div>
           ) : isVoicePage ? (
-            <div className="flex flex-col gap-3 min-h-[min(70vh,760px)]">
-              <Card className="p-3 border border-[hsl(var(--color-border)/0.7)] shrink-0">
-                <h2 className="text-[11px] font-semibold uppercase tracking-wide text-[hsl(var(--color-muted-foreground))] mb-2">
-                  {t('aiPanel.previewPdf')}
-                </h2>
-                {previewUrl ? (
-                  <iframe
-                    src={previewUrl}
-                    className={`w-full rounded-lg border border-[hsl(var(--color-border))] ${VOICE_PDF_PREVIEW_HEIGHT}`}
-                    title={file?.name ?? 'PDF preview'}
+            <Card className="p-0 border border-[hsl(var(--color-border)/0.7)] flex flex-col min-h-[min(calc(100dvh-11rem),840px)] h-full overflow-hidden">
+              <h2 className="text-[11px] font-semibold uppercase tracking-wide text-[hsl(var(--color-muted-foreground))] px-3 pt-3 pb-2 shrink-0">
+                {t('aiPanel.previewPdf')}
+              </h2>
+              <div className="flex-1 min-h-0 relative">
+                {file && previewUrl ? (
+                  <EditPDFTool
+                    key={previewUrl}
+                    className="absolute inset-0 h-full"
+                    immersive
+                    theme={isDarkTheme ? 'dark' : 'light'}
+                    sourceFile={file}
+                    sourcePdfUrl={previewUrl}
+                    onIframeRef={handleVoicePdfIframeRef}
                   />
                 ) : (
-                  <div
-                    className={`rounded-lg border border-dashed border-[hsl(var(--color-border))] flex items-center justify-center text-xs text-[hsl(var(--color-muted-foreground))] ${PDF_PREVIEW_HEIGHT}`}
-                  >
+                  <div className="absolute inset-0 m-3 rounded-lg border border-dashed border-[hsl(var(--color-border))] flex items-center justify-center text-xs text-[hsl(var(--color-muted-foreground))]">
                     {t('aiPanel.noFile')}
                   </div>
                 )}
-              </Card>
-
-              <Card className={`p-4 border ${AI_UI.cardBorder} ${AI_UI.cardBg} flex flex-col flex-1 min-h-0 shadow-sm`}>
-                <h3 className="text-base font-semibold inline-flex items-center gap-1.5 text-[hsl(var(--color-foreground))] mb-3 shrink-0">
-                  <Volume2 className={`h-4 w-4 ${AI_UI.icon}`} />
-                  {t('aiVoicePage.listenTitle')}
-                </h3>
-
-                {!voiceReady ? (
-                  <div className="flex-1 flex flex-col items-center justify-center text-center px-4 gap-3 min-h-[min(42vh,400px)]">
-                    {isPreparingVoice ? (
-                      <AiCenteredSpinner className="flex-1 w-full" size="h-9 w-9" />
-                    ) : error ? (
-                      <>
-                        <div
-                          className={`h-16 w-16 rounded-full flex items-center justify-center ${AI_UI.playerIconRing}`}
-                        >
-                          <Volume2 className={`h-7 w-7 ${AI_UI.icon}`} />
-                        </div>
-                        <p className="text-[12px] font-medium text-red-400">{t('aiVoicePage.prepareFailedTitle')}</p>
-                        <p className="text-[11px] text-red-300/90 max-w-sm leading-relaxed">{error}</p>
-                        <p className="text-[11px] text-[hsl(var(--color-muted-foreground))] max-w-sm leading-relaxed">
-                          {t('aiVoicePage.prepareFailedHint')}
-                        </p>
-                      </>
-                    ) : !file ? (
-                      <>
-                        <div
-                          className={`h-16 w-16 rounded-full flex items-center justify-center ${AI_UI.playerIconRing}`}
-                        >
-                          <Volume2 className={`h-7 w-7 ${AI_UI.iconMuted}`} />
-                        </div>
-                        <p className="text-[12px] font-medium text-[hsl(var(--color-foreground))]">
-                          {t('aiToolPage.selectFileFirst')}
-                        </p>
-                        <p className="text-[11px] text-[hsl(var(--color-muted-foreground))] max-w-xs leading-relaxed">
-                          {t('aiVoicePage.uploadSubtitle')}
-                        </p>
-                      </>
-                    ) : (
-                      <AiCenteredSpinner className="flex-1 w-full" size="h-9 w-9" />
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex-1 min-h-0 flex flex-col gap-4">
-                    <div className={`rounded-2xl border p-5 flex flex-col items-center gap-4 ${AI_UI.playerShell}`}>
-                      <div
-                        className={`flex items-end justify-center gap-1 h-10 ${
-                          speech.isPlaying ? '' : 'opacity-30'
-                        }`}
-                        aria-hidden
-                      >
-                        {[0, 1, 2, 3, 4].map((i) => (
-                          <span
-                            key={i}
-                            className={`w-1 rounded-full ${AI_UI.waveBar} ${
-                              speech.isPlaying ? 'h-6 animate-pulse' : 'h-2'
-                            }`}
-                            style={
-                              speech.isPlaying ? { animationDelay: `${i * 0.12}s` } : undefined
-                            }
-                          />
-                        ))}
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={handleVoiceToggle}
-                        disabled={!speech.supported}
-                        className={`h-16 w-16 rounded-full flex items-center justify-center text-white hover:scale-[1.03] active:scale-[0.98] transition-transform disabled:opacity-40 ${AI_UI.playerBtn}`}
-                        aria-label={
-                          speech.isPlaying
-                            ? t('aiPanel.voice.pause')
-                            : speech.isPaused
-                              ? t('aiPanel.voice.resume')
-                              : t('aiPanel.voice.play')
-                        }
-                      >
-                        {speech.isPlaying ? (
-                          <Pause className="h-7 w-7" />
-                        ) : (
-                          <Play className="h-7 w-7 ml-0.5" />
-                        )}
-                      </button>
-
-                      <div className="text-center space-y-1 min-w-0 w-full">
-                        <p className={`text-[12px] font-medium ${AI_UI.playerStatus}`}>
-                          {voiceStatusLabel}
-                        </p>
-                        {file && speech.isPlaying && (
-                          <p className="text-[10px] text-[hsl(var(--color-muted-foreground))] truncate px-2">
-                            {t('aiPanel.voice.nowReading', { name: file.name })}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div>
-                      <p className="text-[11px] font-medium text-[hsl(var(--color-foreground))] mb-1.5">
-                        {t('aiPanel.voice.speed')}
-                      </p>
-                      <div className="flex gap-1.5" role="radiogroup" aria-label={t('aiPanel.voice.speed')}>
-                        {VOICE_SPEEDS.map((rate) => (
-                          <button
-                            key={rate}
-                            type="button"
-                            onClick={() => handleVoiceSpeedChange(rate)}
-                            aria-pressed={voiceRate === rate}
-                            className={`flex-1 rounded-lg py-1.5 text-[11px] font-medium border transition-all ${
-                              voiceRate === rate
-                                ? AI_UI.speedOn
-                                : 'border-[hsl(var(--color-border))] text-[hsl(var(--color-muted-foreground))] hover:bg-[hsl(var(--color-muted))]/50'
-                            }`}
-                          >
-                            {rate}×
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      onClick={speech.stop}
-                      disabled={!speech.isActive && !speech.isSynthSpeaking()}
-                      className="w-full h-9 text-[12px]"
-                    >
-                      <Square className="h-3.5 w-3.5 mr-1.5" />
-                      {t('aiPanel.voice.stop')}
-                    </Button>
-                  </div>
-                )}
-              </Card>
-            </div>
+              </div>
+            </Card>
           ) : isSmartOcrPage ? (
             <div className="flex flex-col gap-3 min-h-[min(70vh,760px)]">
               <Card className={`p-4 border ${AI_UI.cardBorder} ${AI_UI.cardBg} flex flex-col flex-1 min-h-0 shadow-sm`}>
@@ -1962,7 +2005,7 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                     <Sparkles className={`h-4 w-4 ${AI_UI.icon}`} />
                     {t('tools.ocrPdf.result')}
                   </h3>
-                  {result && !loading && (
+                  {isOcrResult(result) && !loading && (
                     <Button
                       type="button"
                       variant="outline"
@@ -2033,7 +2076,7 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                   </div>
                 ) : loading ? (
                   <AiCenteredSpinner className="min-h-[min(50vh,520px)]" size="h-9 w-9" />
-                ) : result?.outputType === 'text' && result?.text ? (
+                ) : isOcrTextResult(result) ? (
                   <div className="flex-1 min-h-0 flex flex-col gap-3">
                     {ocrResultBlob && (
                       <div className="flex items-center gap-3 rounded-lg border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.12)] px-3 py-2">

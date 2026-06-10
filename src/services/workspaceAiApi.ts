@@ -198,6 +198,9 @@ function pickText(data: Record<string, unknown>, keys: string[]): string {
   for (const key of keys) {
     const value = data[key];
     if (typeof value === 'string' && value.trim()) return value.trim();
+    if (value != null && typeof value !== 'object' && String(value).trim()) {
+      return String(value).trim();
+    }
   }
   return '';
 }
@@ -354,8 +357,16 @@ export async function summarizeWorkspaceDocument(
   const data = (await res.json()) as WorkspaceSummaryResponse & Record<string, unknown>;
   const text = extractWorkspaceSummaryText(data);
   if (!text) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[summary] Empty body keys:', Object.keys(data), data);
+    }
+    const pageCount = data.page_count ?? data.pageCount;
+    const hint =
+      pageCount != null
+        ? ` PDF có ${pageCount} trang — nếu là bản scan, hãy chạy OCR trước.`
+        : ' Nếu PDF là bản scan/ảnh, hãy dùng OCR thông minh trước.';
     throw new Error(
-      'Server trả về thành công nhưng không có nội dung tóm tắt. Kiểm tra PDF có text và response API.',
+      `Server trả 200 nhưng không có nội dung tóm tắt.${hint}`,
     );
   }
 
