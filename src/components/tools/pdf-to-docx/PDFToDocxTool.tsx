@@ -8,7 +8,7 @@ import { ProcessingProgress, ProcessingStatus } from '../ProcessingProgress';
 import { DownloadButton } from '../DownloadButton';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { pdfToDocx } from '@/lib/pdf/processors/pdf-to-docx';
+import { createPDFToDocxProcessor } from '@/lib/pdf/processors/pdf-to-docx';
 import { useToolInitialFile } from '@/lib/hooks/useToolInitialFile';
 import type { UploadedFile, ProcessOutput } from '@/types/pdf';
 
@@ -43,8 +43,8 @@ export function PDFToDocxTool({ className = '', initialFile = null }: PDFToDocxT
     const [result, setResult] = useState<Blob | Blob[] | null>(null);
     const [error, setError] = useState<string | null>(null);
 
-    // Ref for cancellation
     const cancelledRef = useRef(false);
+    const processorRef = useRef(createPDFToDocxProcessor());
 
     /**
      * Handle file selected from uploader
@@ -100,15 +100,14 @@ export function PDFToDocxTool({ className = '', initialFile = null }: PDFToDocxT
         setResult(null);
 
         try {
-            const output: ProcessOutput = await pdfToDocx(
-                file.file,
-                {},
+            const output: ProcessOutput = await processorRef.current.process(
+                { files: [file.file], options: {} },
                 (prog, message) => {
                     if (!cancelledRef.current) {
                         setProgress(prog);
                         setProgressMessage(message || '');
                     }
-                }
+                },
             );
 
             if (cancelledRef.current) {
@@ -136,6 +135,7 @@ export function PDFToDocxTool({ className = '', initialFile = null }: PDFToDocxT
      */
     const handleCancel = useCallback(() => {
         cancelledRef.current = true;
+        processorRef.current.cancel();
         setStatus('idle');
         setProgress(0);
     }, []);
