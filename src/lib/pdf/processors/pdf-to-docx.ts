@@ -1,8 +1,8 @@
 /**
  * PDF to DOCX Processor
  *
- * Converts PDF files to Word documents (DOCX).
- * Uses Pyodide + pdf2docx via a Web Worker (client-side).
+ * Primary: pdf2docx (giữ layout, ảnh, font).
+ * Fallback: PyMuPDF table extractor chỉ khi pdf2docx lỗi.
  */
 
 import type {
@@ -17,7 +17,8 @@ export interface PDFToDocxOptions {
   /** Reserved for future options */
 }
 
-/** Shared worker — reuse across conversions to avoid reloading Pyodide wheels */
+type WorkerEngine = 'auto' | 'pymupdf' | 'pdf2docx';
+
 let sharedWorker: Worker | null = null;
 let sharedWorkerReady: Promise<void> | null = null;
 
@@ -73,6 +74,51 @@ function terminateSharedWorker(): void {
   sharedWorkerReady = null;
 }
 
+function workerRequest<T>(
+  worker: Worker,
+  type: string,
+  data: Record<string, unknown>,
+  onProgress?: (message: string, percent?: number) => void,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const msgId = `${type}-${Date.now()}`;
+
+    const handleMessage = (event: MessageEvent) => {
+      const { type: msgType, id, error, message, percent, ...rest } = event.data;
+
+      if (msgType === 'status' || msgType === 'progress') {
+        onProgress?.(message, typeof percent === 'number' ? percent : undefined);
+        return;
+      }
+
+      if (id !== msgId) return;
+
+      if (msgType === 'error') {
+        cleanup();
+        reject(new Error(error || 'Worker request failed'));
+        return;
+      }
+
+      cleanup();
+      resolve(rest as T);
+    };
+
+    const handleError = (ev: ErrorEvent) => {
+      cleanup();
+      reject(new Error('Worker error: ' + ev.message));
+    };
+
+    const cleanup = () => {
+      worker.removeEventListener('message', handleMessage);
+      worker.removeEventListener('error', handleError);
+    };
+
+    worker.addEventListener('message', handleMessage);
+    worker.addEventListener('error', handleError);
+    worker.postMessage({ type, id: msgId, data });
+  });
+}
+
 export class PDFToDocxProcessor extends BasePDFProcessor {
   private activeMsgId: string | null = null;
 
@@ -84,6 +130,25 @@ export class PDFToDocxProcessor extends BasePDFProcessor {
   protected reset(): void {
     super.reset();
     this.activeMsgId = null;
+  }
+
+  private async convertWithWorker(
+    worker: Worker,
+    file: File,
+    engine: WorkerEngine,
+  ): Promise<Blob> {
+    const result = await workerRequest<{ result: Blob }>(
+      worker,
+      'convert',
+      { file, engine },
+      (message, percent) => {
+        if (this.checkCancelled()) return;
+        const value = typeof percent === 'number' ? percent : this.progress;
+        this.updateProgress(value, message);
+      },
+    );
+
+    return result.result;
   }
 
   async process(
@@ -114,7 +179,7 @@ export class PDFToDocxProcessor extends BasePDFProcessor {
     }
 
     try {
-      this.updateProgress(10, 'Initializing converter...');
+      this.updateProgress(8, 'Initializing converter...');
 
       let worker: Worker;
       try {
@@ -139,53 +204,18 @@ export class PDFToDocxProcessor extends BasePDFProcessor {
         );
       }
 
-      this.updateProgress(30, 'Converting with pdf2docx...');
+      let docxBlob: Blob;
+      let engineUsed = 'pdf2docx';
 
-      const docxBlob = await new Promise<Blob>((resolve, reject) => {
-        const msgId = 'convert-' + Date.now();
-        this.activeMsgId = msgId;
-
-        const handleMessage = (event: MessageEvent) => {
-          const { type, id, result, error, message, percent } = event.data;
-
-          if (type === 'status' || type === 'progress') {
-            if (this.checkCancelled()) return;
-            const progressValue = typeof percent === 'number' ? percent : this.progress;
-            this.updateProgress(progressValue, message);
-            return;
-          }
-
-          if (id !== msgId) return;
-
-          if (type === 'convert-complete') {
-            cleanup();
-            resolve(result);
-          } else if (type === 'error') {
-            cleanup();
-            reject(new Error(error || 'Conversion failed'));
-          }
-        };
-
-        const handleError = (error: ErrorEvent) => {
-          cleanup();
-          reject(new Error('Worker error: ' + error.message));
-        };
-
-        const cleanup = () => {
-          this.activeMsgId = null;
-          worker.removeEventListener('message', handleMessage);
-          worker.removeEventListener('error', handleError);
-        };
-
-        worker.addEventListener('message', handleMessage);
-        worker.addEventListener('error', handleError);
-
-        worker.postMessage({
-          type: 'convert',
-          id: msgId,
-          data: { file },
-        });
-      });
+      this.updateProgress(20, 'Converting with pdf2docx...');
+      try {
+        docxBlob = await this.convertWithWorker(worker, file, 'pdf2docx');
+      } catch (pdf2docxError) {
+        console.warn('[PDF→DOCX] pdf2docx failed, falling back to PyMuPDF tables:', pdf2docxError);
+        this.updateProgress(25, 'pdf2docx failed — extracting tables with PyMuPDF...');
+        docxBlob = await this.convertWithWorker(worker, file, 'pymupdf');
+        engineUsed = 'pymupdf-tables';
+      }
 
       if (this.checkCancelled()) {
         return this.createErrorOutput(
@@ -197,7 +227,10 @@ export class PDFToDocxProcessor extends BasePDFProcessor {
       this.updateProgress(100, 'Conversion complete!');
 
       const baseName = file.name.replace(/\.pdf$/i, '');
-      return this.createSuccessOutput(docxBlob, `${baseName}.docx`, { format: 'docx' });
+      return this.createSuccessOutput(docxBlob, `${baseName}.docx`, {
+        format: 'docx',
+        engine: engineUsed,
+      });
     } catch (error) {
       console.error('Conversion error:', error);
 

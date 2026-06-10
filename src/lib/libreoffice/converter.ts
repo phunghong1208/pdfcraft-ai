@@ -341,6 +341,10 @@ export class LibreOfficeConverter {
         return this.convert(file, 'pdf');
     }
 
+    async convertToDocx(file: File): Promise<Blob> {
+        return this.convert(file, 'docx');
+    }
+
     async wordToPdf(file: File): Promise<Blob> {
         return this.convertToPdf(file);
     }
