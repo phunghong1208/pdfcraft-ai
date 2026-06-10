@@ -279,6 +279,7 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
   const [ocrRemoveBg, setOcrRemoveBg] = useState(false);
   const [ocrForceOcr, setOcrForceOcr] = useState(false);
   const [ocrProgress, setOcrProgress] = useState(0);
+  const [ocrCopyDone, setOcrCopyDone] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
 
   const voicePdfIframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -2000,52 +2001,102 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
           ) : isSmartOcrPage ? (
             <div className="flex flex-col gap-3 min-h-[min(70vh,760px)]">
               <Card className={`p-4 border ${AI_UI.cardBorder} ${AI_UI.cardBg} flex flex-col flex-1 min-h-0 shadow-sm`}>
-                <div className="flex items-center justify-between mb-3 shrink-0">
-                  <h3 className="text-base font-semibold inline-flex items-center gap-1.5 text-[hsl(var(--color-foreground))]">
-                    <Sparkles className={`h-4 w-4 ${AI_UI.icon}`} />
-                    {t('tools.ocrPdf.result')}
-                  </h3>
+                <div className="flex flex-wrap items-start justify-between gap-2 mb-3 shrink-0">
+                  <div>
+                    <h3 className="text-base font-semibold inline-flex items-center gap-1.5 text-[hsl(var(--color-foreground))]">
+                      <Sparkles className={`h-4 w-4 ${AI_UI.icon}`} />
+                      {t('tools.ocrPdf.result')}
+                    </h3>
+                    {isOcrResult(result) && !loading && ocrResultFileName && (
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-[hsl(var(--color-muted-foreground))]">
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 font-medium ${AI_UI.pill}`}>
+                          OCRmyPDF
+                        </span>
+                        <span>{ocrResultFileName}</span>
+                        {ocrResultBlob && (
+                          <>
+                            <span>·</span>
+                            <span>{(ocrResultBlob.size / 1024).toFixed(0)} KB</span>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   {isOcrResult(result) && !loading && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5 h-8 text-[12px]"
-                      onClick={async () => {
-                        if (result.outputType === 'pdf' && ocrResultBlob) {
-                          const url = URL.createObjectURL(ocrResultBlob);
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = ocrResultFileName || 'ocr_result.pdf';
-                          a.click();
-                          URL.revokeObjectURL(url);
-                        } else if (result.outputType === 'text' && file) {
-                          const form = new FormData();
-                          form.append('file', file);
-                          form.append('languages', ocrLanguages);
-                          form.append('deskew', String(ocrDeskew));
-                          form.append('rotate_pages', 'true');
-                          form.append('remove_background', String(ocrRemoveBg));
-                          form.append('clean', String(ocrClean));
-                          form.append('force_ocr', String(ocrForceOcr));
-                          form.append('optimize', '1');
-                          form.append('output_format', 'pdf');
-                          const res = await fetch('/api/ocr', { method: 'POST', body: form });
-                          if (res.ok) {
-                            const blob = await res.blob();
-                            const url = URL.createObjectURL(blob);
+                    <div className="flex flex-wrap gap-1.5">
+                      {isOcrTextResult(result) && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="gap-1.5 h-8 text-[12px]"
+                          onClick={async () => {
+                            if (!result?.text) return;
+                            try {
+                              await navigator.clipboard.writeText(result.text);
+                            } catch {
+                              const ta = document.createElement('textarea');
+                              ta.value = result.text;
+                              ta.style.position = 'fixed';
+                              ta.style.opacity = '0';
+                              document.body.appendChild(ta);
+                              ta.select();
+                              document.execCommand('copy');
+                              document.body.removeChild(ta);
+                            }
+                            setOcrCopyDone(true);
+                            window.setTimeout(() => setOcrCopyDone(false), 2000);
+                          }}
+                        >
+                          {ocrCopyDone ? (
+                            <Check className="h-3.5 w-3.5 text-emerald-600" />
+                          ) : (
+                            <Copy className="h-3.5 w-3.5" />
+                          )}
+                          {ocrCopyDone ? t('aiPanel.copied') : t('aiPanel.copy')}
+                        </Button>
+                      )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 h-8 text-[12px]"
+                        onClick={async () => {
+                          if (result.outputType === 'pdf' && ocrResultBlob) {
+                            const url = URL.createObjectURL(ocrResultBlob);
                             const a = document.createElement('a');
                             a.href = url;
                             a.download = ocrResultFileName || 'ocr_result.pdf';
                             a.click();
                             URL.revokeObjectURL(url);
+                          } else if (result.outputType === 'text' && file) {
+                            const form = new FormData();
+                            form.append('file', file);
+                            form.append('languages', ocrLanguages);
+                            form.append('deskew', String(ocrDeskew));
+                            form.append('rotate_pages', 'true');
+                            form.append('remove_background', String(ocrRemoveBg));
+                            form.append('clean', String(ocrClean));
+                            form.append('force_ocr', String(ocrForceOcr));
+                            form.append('optimize', '1');
+                            form.append('output_format', 'pdf');
+                            const res = await fetch('/api/ocr', { method: 'POST', body: form });
+                            if (res.ok) {
+                              const blob = await res.blob();
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = ocrResultFileName || 'ocr_result.pdf';
+                              a.click();
+                              URL.revokeObjectURL(url);
+                            }
                           }
-                        }
-                      }}
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                      Download PDF
-                    </Button>
+                        }}
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        Download PDF
+                      </Button>
+                    </div>
                   )}
                 </div>
 
