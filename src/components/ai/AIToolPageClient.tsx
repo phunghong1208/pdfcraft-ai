@@ -2049,8 +2049,20 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                           variant="ghost"
                           size="sm"
                           className="h-7 px-2 text-[11px] gap-1 shrink-0"
-                          onClick={() => {
-                            navigator.clipboard.writeText(result.text);
+                          onClick={async () => {
+                            if (!result?.text) return;
+                            try {
+                              await navigator.clipboard.writeText(result.text);
+                            } catch {
+                              const ta = document.createElement('textarea');
+                              ta.value = result.text;
+                              ta.style.position = 'fixed';
+                              ta.style.opacity = '0';
+                              document.body.appendChild(ta);
+                              ta.select();
+                              document.execCommand('copy');
+                              document.body.removeChild(ta);
+                            }
                           }}
                         >
                           <Copy className="h-3 w-3" />
