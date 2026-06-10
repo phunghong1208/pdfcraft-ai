@@ -145,6 +145,30 @@ function countSummaryWords(text: string): number {
   return Math.max(1, Math.ceil(trimmed.length / 6));
 }
 
+async function copyTextToClipboard(text: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+}
+
+function downloadBlob(blob: Blob, fileName: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function formatSummaryTime(ms: number, locale: string): string {
   return new Date(ms).toLocaleTimeString(locale === 'vi' ? 'vi-VN' : undefined, {
     hour: '2-digit',
@@ -280,6 +304,7 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
   const [ocrForceOcr, setOcrForceOcr] = useState(false);
   const [ocrProgress, setOcrProgress] = useState(0);
   const [ocrCopyDone, setOcrCopyDone] = useState(false);
+  const [isOcrDownloadingPdf, setIsOcrDownloadingPdf] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
 
   const voicePdfIframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -819,7 +844,7 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
             const data = await res.json();
             const textBlob = new Blob([data.text], { type: 'text/plain' });
             setOcrResultBlob(textBlob);
-            setOcrResultFileName(`${baseName}_ocr.pdf`);
+            setOcrResultFileName(`${baseName}_ocr.txt`);
             setResult({ text: data.text, fileName: data.fileName, outputType: 'text' });
           } else {
             const blob = await res.blob();
@@ -850,13 +875,76 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
   const handleCopySummary = useCallback(async () => {
     if (!summaryText.trim()) return;
     try {
-      await navigator.clipboard.writeText(summaryText);
+      await copyTextToClipboard(summaryText);
       setCopyDone(true);
       window.setTimeout(() => setCopyDone(false), 2000);
     } catch {
       setError(tWorkspace('aiPanel.copyFailed'));
     }
   }, [summaryText, tWorkspace]);
+
+  const handleOcrCopy = useCallback(async () => {
+    if (!isOcrTextResult(result) || !result.text.trim()) return;
+    try {
+      await copyTextToClipboard(result.text);
+      setOcrCopyDone(true);
+      window.setTimeout(() => setOcrCopyDone(false), 2000);
+    } catch {
+      setError(t('aiPanel.copyFailed'));
+    }
+  }, [result, t]);
+
+  const handleOcrDownloadPdf = useCallback(async () => {
+    if (!isOcrResult(result)) return;
+    setIsOcrDownloadingPdf(true);
+    setError(null);
+    try {
+      if (result.outputType === 'pdf' && ocrResultBlob) {
+        downloadBlob(ocrResultBlob, ocrResultFileName || 'ocr_result.pdf');
+        return;
+      }
+      if (result.outputType === 'text' && file) {
+        const form = new FormData();
+        form.append('file', file);
+        form.append('languages', ocrLanguages);
+        form.append('deskew', String(ocrDeskew));
+        form.append('rotate_pages', 'true');
+        form.append('remove_background', String(ocrRemoveBg));
+        form.append('clean', String(ocrClean));
+        form.append('force_ocr', String(ocrForceOcr));
+        form.append('optimize', '1');
+        form.append('output_format', 'pdf');
+        const res = await fetch('/api/ocr', { method: 'POST', body: form });
+        if (!res.ok) {
+          let detail = 'OCR failed.';
+          try {
+            const j = await res.json();
+            detail = j.detail || detail;
+          } catch {
+            // ignore
+          }
+          throw new Error(detail);
+        }
+        const blob = await res.blob();
+        const baseName = file.name.replace(/\.pdf$/i, '');
+        downloadBlob(blob, `${baseName}_ocr.pdf`);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Download failed');
+    } finally {
+      setIsOcrDownloadingPdf(false);
+    }
+  }, [
+    result,
+    ocrResultBlob,
+    ocrResultFileName,
+    file,
+    ocrLanguages,
+    ocrDeskew,
+    ocrRemoveBg,
+    ocrClean,
+    ocrForceOcr,
+  ]);
 
   const handleDownloadSummary = useCallback(() => {
     if (!summaryText.trim()) return;
@@ -2030,23 +2118,7 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                           variant="outline"
                           size="sm"
                           className="gap-1.5 h-8 text-[12px]"
-                          onClick={async () => {
-                            if (!result?.text) return;
-                            try {
-                              await navigator.clipboard.writeText(result.text);
-                            } catch {
-                              const ta = document.createElement('textarea');
-                              ta.value = result.text;
-                              ta.style.position = 'fixed';
-                              ta.style.opacity = '0';
-                              document.body.appendChild(ta);
-                              ta.select();
-                              document.execCommand('copy');
-                              document.body.removeChild(ta);
-                            }
-                            setOcrCopyDone(true);
-                            window.setTimeout(() => setOcrCopyDone(false), 2000);
-                          }}
+                          onClick={() => void handleOcrCopy()}
                         >
                           {ocrCopyDone ? (
                             <Check className="h-3.5 w-3.5 text-emerald-600" />
@@ -2061,40 +2133,15 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                         variant="outline"
                         size="sm"
                         className="gap-1.5 h-8 text-[12px]"
-                        onClick={async () => {
-                          if (result.outputType === 'pdf' && ocrResultBlob) {
-                            const url = URL.createObjectURL(ocrResultBlob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = ocrResultFileName || 'ocr_result.pdf';
-                            a.click();
-                            URL.revokeObjectURL(url);
-                          } else if (result.outputType === 'text' && file) {
-                            const form = new FormData();
-                            form.append('file', file);
-                            form.append('languages', ocrLanguages);
-                            form.append('deskew', String(ocrDeskew));
-                            form.append('rotate_pages', 'true');
-                            form.append('remove_background', String(ocrRemoveBg));
-                            form.append('clean', String(ocrClean));
-                            form.append('force_ocr', String(ocrForceOcr));
-                            form.append('optimize', '1');
-                            form.append('output_format', 'pdf');
-                            const res = await fetch('/api/ocr', { method: 'POST', body: form });
-                            if (res.ok) {
-                              const blob = await res.blob();
-                              const url = URL.createObjectURL(blob);
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = ocrResultFileName || 'ocr_result.pdf';
-                              a.click();
-                              URL.revokeObjectURL(url);
-                            }
-                          }
-                        }}
+                        onClick={() => void handleOcrDownloadPdf()}
+                        disabled={isOcrDownloadingPdf || (result.outputType === 'text' && !file)}
                       >
-                        <Download className="h-3.5 w-3.5" />
-                        Download PDF
+                        {isOcrDownloadingPdf ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Download className="h-3.5 w-3.5" />
+                        )}
+                        {t('tools.ocrPdf.downloadPdf')}
                       </Button>
                     </div>
                   )}
@@ -2130,38 +2177,14 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                 ) : isOcrTextResult(result) ? (
                   <div className="flex-1 min-h-0 flex flex-col gap-3">
                     {ocrResultBlob && (
-                      <div className="flex items-center gap-3 rounded-lg border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.12)] px-3 py-2">
+                      <div className="flex items-center gap-3 rounded-lg border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.12)] px-3 py-2 shrink-0">
                         <FileText className="h-4 w-4 shrink-0 text-emerald-500" />
                         <div className="flex-1 min-w-0">
                           <p className="text-[12px] font-medium truncate">{ocrResultFileName}</p>
                           <p className="text-[11px] text-[hsl(var(--color-muted-foreground))]">
-                            {(ocrResultBlob.size / 1024).toFixed(0)} KB · Searchable PDF
+                            {(ocrResultBlob.size / 1024).toFixed(0)} KB · {t('tools.ocrPdf.extractedText')}
                           </p>
                         </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 px-2 text-[11px] gap-1 shrink-0"
-                          onClick={async () => {
-                            if (!result?.text) return;
-                            try {
-                              await navigator.clipboard.writeText(result.text);
-                            } catch {
-                              const ta = document.createElement('textarea');
-                              ta.value = result.text;
-                              ta.style.position = 'fixed';
-                              ta.style.opacity = '0';
-                              document.body.appendChild(ta);
-                              ta.select();
-                              document.execCommand('copy');
-                              document.body.removeChild(ta);
-                            }
-                          }}
-                        >
-                          <Copy className="h-3 w-3" />
-                          Copy
-                        </Button>
                       </div>
                     )}
                     <pre className="flex-1 min-h-[min(40vh,400px)] overflow-auto rounded-lg border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.08)] p-4 text-[13px] leading-relaxed text-[hsl(var(--color-foreground))] whitespace-pre-wrap font-[var(--font-sans)]">
@@ -2176,7 +2199,7 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                         <div className="flex-1 min-w-0">
                           <p className="text-[12px] font-medium truncate">{ocrResultFileName}</p>
                           <p className="text-[11px] text-[hsl(var(--color-muted-foreground))]">
-                            {(ocrResultBlob.size / 1024).toFixed(0)} KB · Searchable PDF
+                            {(ocrResultBlob.size / 1024).toFixed(0)} KB · {t('tools.ocrPdf.searchablePdf')}
                           </p>
                         </div>
                       </div>

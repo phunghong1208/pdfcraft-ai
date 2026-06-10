@@ -2900,7 +2900,10 @@
         "progressAnalyzing": "Phân tích cấu trúc tài liệu...",
         "progressRecognizing": "Nhận dạng văn bản trong hình ảnh...",
         "progressFinalizing": "Đang hoàn thiện đầu ra...",
-        "progressDone": "Hoàn thành!"
+        "progressDone": "Hoàn thành!",
+        "downloadPdf": "Tải PDF",
+        "searchablePdf": "PDF có thể tìm kiếm",
+        "extractedText": "Văn bản trích xuất"
       }
     },
     "textStyle": {

@@ -2896,7 +2896,10 @@
         "progressAnalyzing": "Analyzing document structure...",
         "progressRecognizing": "Recognizing text in images...",
         "progressFinalizing": "Finalizing output...",
-        "progressDone": "Complete!"
+        "progressDone": "Complete!",
+        "downloadPdf": "Download PDF",
+        "searchablePdf": "Searchable PDF",
+        "extractedText": "Extracted text"
       }
     },
     "textStyle": {
