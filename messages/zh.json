@@ -311,7 +311,7 @@
     "uploadCta": "上传到工作区",
     "uploadSecure": "安全处理",
     "uploadOcr": "AI 驱动 OCR",
-    "uploadLanguages": "支持 100+ 种语言",
+    "uploadLanguages": "多语言支持",
     "aiActionsTitle": "AI 操作",
     "useInWorkspace": "在工作区中使用",
     "coreActionsTitle": "核心 PDF 操作",
@@ -334,7 +334,11 @@
       "split": "拆分",
       "protect": "保护",
       "ocrText": "OCR 文字"
-    }
+    },
+    "heroTitleBefore": "用 ",
+    "heroTitleAccent": "AI",
+    "heroTitleAfter": " 理解任何 PDF",
+    "uploadDropHint": "拖放或选择文件"
   },
   "toolsPage": {
     "title": "专业 PDF 工具",

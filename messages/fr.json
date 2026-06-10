@@ -529,7 +529,7 @@
     "uploadCta": "Importer dans l'espace de travail",
     "uploadSecure": "Traitement sécurisé",
     "uploadOcr": "OCR alimenté par l'IA",
-    "uploadLanguages": "Plus de 100 langues prises en charge",
+    "uploadLanguages": "Prise en charge multilingue",
     "aiActionsTitle": "Actions IA",
     "useInWorkspace": "Utiliser dans l'espace de travail",
     "coreActionsTitle": "Actions PDF essentielles",
@@ -552,7 +552,11 @@
       "split": "Diviser",
       "protect": "Protéger",
       "ocrText": "OCR texte"
-    }
+    },
+    "heroTitleBefore": "Comprenez n'importe quel PDF grâce à l'",
+    "heroTitleAccent": "IA",
+    "heroTitleAfter": "",
+    "uploadDropHint": "Glissez-déposez ou choisissez un fichier"
   },
   "toolsPage": {
     "title": "Professional PDF Tools",

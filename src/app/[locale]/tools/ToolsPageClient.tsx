@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
-  Search, X, Sparkles, Languages, MessagesSquare, ScanText, Volume2, Table2, Bot,
+  Search, X, Sparkles, Languages, MessagesSquare, ScanText, Volume2, Table2,
   PencilLine, FileCog, Zap, ShieldCheck, ArrowRight,
 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
@@ -41,13 +41,13 @@ const AI_ACTIONS: Array<{
   accent: AiCardAccent;
   popular?: boolean;
   aiBadge?: boolean;
+  wide?: boolean;
 }> = [
   { id: 'summarize', icon: Sparkles, href: '/ai-summary', accent: 'purple', aiBadge: true },
   { id: 'translate', icon: Languages, href: '/ai-translate', accent: 'blue' },
   { id: 'voice', icon: Volume2, href: '/voice-reader', accent: 'coral' },
-  { id: 'chat', icon: MessagesSquare, href: '/chat-pdf', accent: 'violet', popular: true },
-  { id: 'tables', icon: Table2, href: '/chat-pdf', accent: 'blue' },
-  { id: 'explain', icon: Bot, href: '/chat-pdf', accent: 'purple' },
+  { id: 'ocr', icon: ScanText, href: '/smart-ocr', accent: 'green' },
+  { id: 'chat', icon: MessagesSquare, href: '/chat-pdf', accent: 'violet', wide: true, popular: true },
 ];
 
 const CONTEXT_SUGGESTION_HREFS: Record<string, string> = {
@@ -166,76 +166,65 @@ export default function ToolsPageClient({ locale, localizedToolContent }: ToolsP
             </div>
 
             {activeTab === 'ai' ? (
-              <div className="tools-page-ai-layout">
-                <div className="min-w-0">
-                  <div className="flex items-center justify-between gap-3 mb-4">
-                    <div>
-                      <h2 className="text-xl font-bold">{t('toolsPage.aiSectionTitle')}</h2>
-                      <p className="mt-1 text-sm text-[hsl(var(--color-muted-foreground))]">
-                        {t('toolsPage.aiSectionSubtitle')}
-                      </p>
-                    </div>
-                    <Link
-                      href={`/${locale}/workspace`}
-                      className="shrink-0 text-sm text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))]"
-                    >
-                      {tHome('useInWorkspace')}
-                    </Link>
+              <div className="max-w-4xl mx-auto">
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <div>
+                    <h2 className="text-xl font-bold">{t('toolsPage.aiSectionTitle')}</h2>
+                    <p className="mt-1 text-sm text-[hsl(var(--color-muted-foreground))]">
+                      {t('toolsPage.aiSectionSubtitle')}
+                    </p>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {AI_ACTIONS.map((action) => {
-                      const Icon = action.icon;
-                      return (
-                        <Link
-                          key={action.id}
-                          href={`/${locale}${action.href}`}
-                          className={`${aiCardAccentClass(action.accent)} p-3.5 block h-full`}
-                        >
-                          {action.aiBadge && (
-                            <span className="ai-card__badge">{tHome('aiBadge')}</span>
-                          )}
-                          {action.popular && (
-                            <span className="ai-card__badge">{t('toolsPage.popularAiBadge')}</span>
-                          )}
-                          <div className="ai-card__body">
-                            <div className="ai-card__icon">
-                              <Icon strokeWidth={1.75} />
-                            </div>
-                            <div className="ai-card__copy">
-                              <div className="ai-card__title">{t(`toolsPage.aiActions.${action.id}.label`)}</div>
-                              <p className="ai-card__desc">{t(`toolsPage.aiActions.${action.id}.description`)}</p>
-                            </div>
-                            <div className="ai-card__foot">
-                              <ArrowRight className="action-card-arrow__icon" strokeWidth={1.75} aria-hidden />
-                            </div>
+                  <Link
+                    href={`/${locale}/workspace`}
+                    className="shrink-0 text-sm text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))]"
+                  >
+                    {tHome('useInWorkspace')}
+                  </Link>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {AI_ACTIONS.map((action) => {
+                    const Icon = action.icon;
+                    return (
+                      <Link
+                        key={action.id}
+                        href={`/${locale}${action.href}`}
+                        className={`${aiCardAccentClass(action.accent)} p-3.5 block h-full ${action.wide ? 'sm:col-span-2 lg:col-span-2' : ''}`}
+                      >
+                        {action.aiBadge && (
+                          <span className="ai-card__badge">{tHome('aiBadge')}</span>
+                        )}
+                        {action.popular && (
+                          <span className="ai-card__badge">{t('toolsPage.popularAiBadge')}</span>
+                        )}
+                        <div className="ai-card__body">
+                          <div className="ai-card__icon">
+                            <Icon strokeWidth={1.75} />
                           </div>
-                        </Link>
-                      );
-                    })}
-                  </div>
+                          <div className="ai-card__copy">
+                            <div className="ai-card__title">{t(`toolsPage.aiActions.${action.id}.label`)}</div>
+                            <p className="ai-card__desc">{t(`toolsPage.aiActions.${action.id}.description`)}</p>
+                          </div>
+                          <div className="ai-card__foot">
+                            <ArrowRight className="action-card-arrow__icon" strokeWidth={1.75} aria-hidden />
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
 
-                <aside className="tools-page-context">
-                  <h3 className="tools-page-context__title">{t('toolsPage.contextualTitle')}</h3>
-                  <ul className="tools-page-context__list">
-                    {contextualSuggestions.map((item) => (
-                      <li key={item.id}>
-                        <Link
-                          href={`/${locale}${CONTEXT_SUGGESTION_HREFS[item.id]}`}
-                          className="tools-page-context__item"
-                        >
-                          <span className="tools-page-context__icon">
-                            <item.icon strokeWidth={1.75} aria-hidden />
-                          </span>
-                          <span>{item.label}</span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                  <Link href={`/${locale}/workspace`} className="mt-auto pt-4 block">
-                    <Button size="sm" className="w-full">{t('toolsPage.openWorkspace')}</Button>
-                  </Link>
-                </aside>
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                  {contextualSuggestions.map((item) => (
+                    <Link
+                      key={item.id}
+                      href={`/${locale}${CONTEXT_SUGGESTION_HREFS[item.id]}`}
+                      className="tools-page-tab"
+                    >
+                      <item.icon className="tools-page-tab__icon" strokeWidth={1.75} aria-hidden />
+                      <span>{item.label}</span>
+                    </Link>
+                  ))}
+                </div>
               </div>
             ) : visibleTools.length > 0 ? (
               <ToolGrid

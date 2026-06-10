@@ -343,7 +343,7 @@
     "uploadCta": "الرفع إلى مساحة العمل",
     "uploadSecure": "معالجة آمنة",
     "uploadOcr": "OCR مدعوم بالذكاء الاصطناعي",
-    "uploadLanguages": "يدعم أكثر من 100 لغة",
+    "uploadLanguages": "دعم متعدد اللغات",
     "aiActionsTitle": "إجراءات الذكاء الاصطناعي",
     "useInWorkspace": "استخدام في مساحة العمل",
     "coreActionsTitle": "إجراءات PDF الأساسية",
@@ -366,7 +366,11 @@
       "split": "تقسيم",
       "protect": "حماية",
       "ocrText": "OCR نص"
-    }
+    },
+    "heroTitleBefore": "افهم أي PDF ",
+    "heroTitleAccent": "بالذكاء الاصطناعي",
+    "heroTitleAfter": "",
+    "uploadDropHint": "اسحب وأفلت أو اختر ملفًا"
   },
   "toolsPage": {
     "title": "أدوات PDF احترافية",

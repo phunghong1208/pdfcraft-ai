@@ -529,7 +529,7 @@
     "uploadCta": "작업 공간에 업로드",
     "uploadSecure": "안전한 처리",
     "uploadOcr": "AI 기반 OCR",
-    "uploadLanguages": "100개 이상의 언어 지원",
+    "uploadLanguages": "다국어 지원",
     "aiActionsTitle": "AI 작업",
     "useInWorkspace": "작업 공간에서 사용",
     "coreActionsTitle": "핵심 PDF 작업",
@@ -552,7 +552,11 @@
       "split": "분할",
       "protect": "보호",
       "ocrText": "OCR 텍스트"
-    }
+    },
+    "heroTitleBefore": "",
+    "heroTitleAccent": "AI",
+    "heroTitleAfter": "로 모든 PDF를 이해하세요",
+    "uploadDropHint": "끌어다 놓거나 파일 선택"
   },
   "toolsPage": {
     "title": "Professional PDF Tools",

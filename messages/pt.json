@@ -529,7 +529,7 @@
     "uploadCta": "Enviar para a área de trabalho",
     "uploadSecure": "Processamento seguro",
     "uploadOcr": "OCR com IA",
-    "uploadLanguages": "Suporta mais de 100 idiomas",
+    "uploadLanguages": "Suporte multilíngue",
     "aiActionsTitle": "Ações de IA",
     "useInWorkspace": "Usar na área de trabalho",
     "coreActionsTitle": "Ações principais de PDF",
@@ -552,7 +552,11 @@
       "split": "Dividir",
       "protect": "Proteger",
       "ocrText": "OCR texto"
-    }
+    },
+    "heroTitleBefore": "Entenda qualquer PDF com ",
+    "heroTitleAccent": "IA",
+    "heroTitleAfter": "",
+    "uploadDropHint": "Arraste e solte ou escolha um arquivo"
   },
   "toolsPage": {
     "title": "Ferramentas PDF Profissionais",

@@ -213,7 +213,7 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold">{t('coreActionsTitle')}</h2>
+                <h2 className="text-2xl font-bold">{t('coreActionsTitle')}</h2>
                 <Link href={`/${locale}/tools`} className="text-sm text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))]">
                   {t('viewAllTools')}
                 </Link>

@@ -529,7 +529,7 @@
     "uploadCta": "ワークスペースにアップロード",
     "uploadSecure": "安全な処理",
     "uploadOcr": "AI搭載OCR",
-    "uploadLanguages": "100以上の言語に対応",
+    "uploadLanguages": "多言語対応",
     "aiActionsTitle": "AIアクション",
     "useInWorkspace": "ワークスペースで使用",
     "coreActionsTitle": "主要なPDF操作",
@@ -552,7 +552,11 @@
       "split": "分割",
       "protect": "保護",
       "ocrText": "OCRテキスト"
-    }
+    },
+    "heroTitleBefore": "",
+    "heroTitleAccent": "AI",
+    "heroTitleAfter": "ですべてのPDFを理解",
+    "uploadDropHint": "ドラッグ＆ドロップ、またはファイルを選択"
   },
   "toolsPage": {
     "title": "Professional PDF Tools",

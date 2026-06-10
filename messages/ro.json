@@ -311,7 +311,7 @@
     "uploadCta": "Încarcă în spațiul de lucru",
     "uploadSecure": "Procesare securizată",
     "uploadOcr": "OCR alimentat de AI",
-    "uploadLanguages": "Suportă peste 100 de limbi",
+    "uploadLanguages": "Suport multilingv",
     "aiActionsTitle": "Acțiuni AI",
     "useInWorkspace": "Folosește în spațiul de lucru",
     "coreActionsTitle": "Acțiuni PDF de bază",
@@ -334,7 +334,11 @@
       "split": "Împarte",
       "protect": "Protejează",
       "ocrText": "OCR text"
-    }
+    },
+    "heroTitleBefore": "Înțelege orice PDF cu ",
+    "heroTitleAccent": "AI",
+    "heroTitleAfter": "",
+    "uploadDropHint": "Trage și plasează sau alege un fișier"
   },
   "toolsPage": {
     "title": "Instrumente PDF Profesionale",

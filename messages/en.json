@@ -324,7 +324,7 @@
     "uploadCta": "Upload to Workspace",
     "uploadSecure": "Secure processing",
     "uploadOcr": "AI-powered OCR",
-    "uploadLanguages": "Supports 100+ languages",
+    "uploadLanguages": "Multi-language support",
     "aiActionsTitle": "AI Actions",
     "popularAiBadge": "Popular AI",
     "aiBadge": "AI",
@@ -372,7 +372,11 @@
       "split": "Split",
       "protect": "Protect",
       "ocrText": "OCR Text"
-    }
+    },
+    "heroTitleBefore": "Understand Any PDF with ",
+    "heroTitleAccent": "AI",
+    "heroTitleAfter": "",
+    "uploadDropHint": "Drag & drop or choose a file"
   },
   "toolsPage": {
     "title": "Professional PDF Tools",
@@ -397,7 +401,7 @@
       "optimize": "Optimize",
       "security": "Security"
     },
-    "aiSectionTitle": "Power-ups",
+    "aiSectionTitle": "AI Actions",
     "aiSectionSubtitle": "Supercharge your documents with AI.",
     "popularAiBadge": "Popular AI",
     "aiActions": {

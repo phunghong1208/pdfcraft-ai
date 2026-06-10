@@ -311,7 +311,7 @@
     "uploadCta": "In den Arbeitsbereich hochladen",
     "uploadSecure": "Sichere Verarbeitung",
     "uploadOcr": "KI-gestützte OCR",
-    "uploadLanguages": "Unterstützt über 100 Sprachen",
+    "uploadLanguages": "Mehrsprachige Unterstützung",
     "aiActionsTitle": "KI-Aktionen",
     "useInWorkspace": "Im Arbeitsbereich verwenden",
     "coreActionsTitle": "Zentrale PDF-Aktionen",
@@ -334,7 +334,11 @@
       "split": "Teilen",
       "protect": "Schützen",
       "ocrText": "OCR-Text"
-    }
+    },
+    "heroTitleBefore": "Jede PDF mit ",
+    "heroTitleAccent": "KI",
+    "heroTitleAfter": " verstehen",
+    "uploadDropHint": "Ziehen & ablegen oder Datei wählen"
   },
   "toolsPage": {
     "title": "Professional PDF Tools",

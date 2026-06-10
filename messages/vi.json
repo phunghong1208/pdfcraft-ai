@@ -324,7 +324,7 @@
     "uploadCta": "Tải lên Workspace",
     "uploadSecure": "Xử lý an toàn",
     "uploadOcr": "OCR tích hợp AI",
-    "uploadLanguages": "Hỗ trợ 100+ ngôn ngữ",
+    "uploadLanguages": "Hỗ trợ đa ngôn ngữ",
     "aiActionsTitle": "Thao tác AI",
     "popularAiBadge": "AI phổ biến",
     "aiBadge": "AI",
@@ -372,7 +372,11 @@
       "split": "Tách",
       "protect": "Bảo vệ",
       "ocrText": "OCR văn bản"
-    }
+    },
+    "heroTitleBefore": "Hiểu mọi tài liệu PDF với ",
+    "heroTitleAccent": "AI",
+    "heroTitleAfter": "",
+    "uploadDropHint": "Kéo & thả hoặc chọn tệp"
   },
   "toolsPage": {
     "title": "Công cụ PDF Chuyên nghiệp",
@@ -397,7 +401,7 @@
       "optimize": "Tối ưu",
       "security": "Bảo mật"
     },
-    "aiSectionTitle": "Tăng lực",
+    "aiSectionTitle": "Thao tác AI",
     "aiSectionSubtitle": "Tăng tốc xử lý tài liệu với AI.",
     "popularAiBadge": "AI phổ biến",
     "aiActions": {

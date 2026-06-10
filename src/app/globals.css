@@ -207,6 +207,7 @@
   --ai-icon-bg: rgba(167, 139, 250, 0.22);
   --ai-icon-ring: rgba(167, 139, 250, 0.48);
   --ai-icon-fg: hsl(270 85% 78%);
+  --ai-title-fg: hsl(270 62% 86%);
   --ai-badge-bg: rgba(167, 139, 250, 0.16);
   --ai-badge-border: rgba(167, 139, 250, 0.38);
   --ai-shadow: 0 0 0 1px rgba(167, 139, 250, 0.06), 0 0 48px rgba(167, 139, 250, 0.14), 0 8px 32px rgba(0, 0, 0, 0.45);
@@ -220,6 +221,7 @@
   --ai-icon-bg: rgba(96, 165, 250, 0.22);
   --ai-icon-ring: rgba(96, 165, 250, 0.48);
   --ai-icon-fg: hsl(217 95% 72%);
+  --ai-title-fg: hsl(217 72% 84%);
   --ai-badge-bg: rgba(96, 165, 250, 0.16);
   --ai-badge-border: rgba(96, 165, 250, 0.38);
   --ai-shadow: 0 0 0 1px rgba(96, 165, 250, 0.06), 0 0 48px rgba(96, 165, 250, 0.14), 0 8px 32px rgba(0, 0, 0, 0.45);
@@ -233,6 +235,7 @@
   --ai-icon-bg: rgba(248, 113, 113, 0.22);
   --ai-icon-ring: rgba(248, 113, 113, 0.48);
   --ai-icon-fg: hsl(0 90% 72%);
+  --ai-title-fg: hsl(0 68% 84%);
   --ai-badge-bg: rgba(248, 113, 113, 0.16);
   --ai-badge-border: rgba(248, 113, 113, 0.38);
   --ai-shadow: 0 0 0 1px rgba(248, 113, 113, 0.06), 0 0 48px rgba(248, 113, 113, 0.14), 0 8px 32px rgba(0, 0, 0, 0.45);
@@ -246,6 +249,7 @@
   --ai-icon-bg: rgba(74, 222, 128, 0.2);
   --ai-icon-ring: rgba(74, 222, 128, 0.45);
   --ai-icon-fg: hsl(152 70% 58%);
+  --ai-title-fg: hsl(152 52% 74%);
   --ai-badge-bg: rgba(74, 222, 128, 0.14);
   --ai-badge-border: rgba(74, 222, 128, 0.36);
   --ai-shadow: 0 0 0 1px rgba(74, 222, 128, 0.06), 0 0 48px rgba(74, 222, 128, 0.12), 0 8px 32px rgba(0, 0, 0, 0.45);
@@ -259,6 +263,7 @@
   --ai-icon-bg: rgba(217, 119, 250, 0.22);
   --ai-icon-ring: rgba(217, 119, 250, 0.48);
   --ai-icon-fg: hsl(290 88% 76%);
+  --ai-title-fg: hsl(290 65% 85%);
   --ai-badge-bg: rgba(217, 119, 250, 0.16);
   --ai-badge-border: rgba(217, 119, 250, 0.38);
   --ai-shadow: 0 0 0 1px rgba(217, 119, 250, 0.06), 0 0 48px rgba(217, 119, 250, 0.14), 0 8px 32px rgba(0, 0, 0, 0.45);
@@ -491,6 +496,15 @@
   line-height: 1.35;
   letter-spacing: -0.01em;
   color: hsl(var(--color-foreground));
+  transition: color 200ms ease;
+}
+:root:not(.dark) .ai-card[class*='ai-card-accent-']:hover .ai-card__title,
+:root:not(.dark) .ai-card[class*='ai-card-accent-']:focus-visible .ai-card__title {
+  color: var(--ai-icon-fg);
+}
+.dark .ai-card[class*='ai-card-accent-']:hover .ai-card__title,
+.dark .ai-card[class*='ai-card-accent-']:focus-visible .ai-card__title {
+  color: var(--ai-title-fg);
 }
 :root:not(.dark) .ai-card[class*='ai-card-accent-'] .ai-card__icon {
   box-shadow: none;
@@ -608,11 +622,23 @@
   border: 1px solid hsl(var(--color-border));
   background: hsl(var(--color-card));
   color: hsl(var(--color-muted-foreground));
-  transition: background 150ms ease, color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+  transition: background 180ms ease, color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
 .tools-page-tab:hover:not(.tools-page-tab--active) {
-  color: hsl(var(--color-foreground));
-  background: hsl(var(--color-muted) / 0.55);
+  color: hsl(var(--color-primary));
+  border-color: hsl(var(--color-primary) / 0.35);
+  background: hsl(var(--color-primary) / 0.08);
+  box-shadow: 0 2px 8px hsl(var(--color-primary) / 0.1);
+  transform: translateY(-1px);
+}
+.dark .tools-page-tab:hover:not(.tools-page-tab--active) {
+  color: hsl(var(--color-primary));
+  border-color: hsl(var(--color-primary) / 0.3);
+  background: hsl(var(--color-primary) / 0.1);
+  box-shadow: 0 2px 12px hsl(var(--color-primary) / 0.15);
+}
+.tools-page-tab:hover:not(.tools-page-tab--active) .tools-page-tab__icon {
+  color: hsl(var(--color-primary));
 }
 .tools-page-tab--active {
   border-color: hsl(var(--color-primary) / 0.35);
@@ -769,6 +795,11 @@
   font-weight: 600;
   line-height: 1.35;
   letter-spacing: -0.01em;
+  transition: color 200ms ease;
+}
+.tool-action-card:hover .tool-action-card__title,
+.tool-action-card:focus-visible .tool-action-card__title {
+  color: var(--tone-fg);
 }
 .tool-action-card__desc {
   flex: 1;
@@ -776,6 +807,127 @@
   font-size: 0.8125rem;
   line-height: 1.55;
   color: hsl(var(--color-muted-foreground));
+}
+
+/* ── Tool grid card (tools page) — synced with homepage tool-action-card ── */
+.tool-grid-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid hsl(var(--color-border));
+  background: hsl(var(--color-card));
+  padding: 0.875rem;
+  min-height: 7.75rem;
+  text-decoration: none;
+  color: hsl(var(--color-foreground));
+  transition:
+    transform 220ms ease,
+    box-shadow 220ms ease,
+    border-color 220ms ease,
+    background 220ms ease;
+}
+.tool-grid-card:focus-visible {
+  outline: 2px solid hsl(var(--color-ring));
+  outline-offset: 2px;
+}
+.dark .tool-grid-card {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: hsl(220 10% 10%);
+}
+.tool-grid-card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--tone-fg) 55%, transparent);
+  box-shadow:
+    0 8px 28px color-mix(in srgb, var(--tone-fg) 16%, transparent),
+    0 2px 6px rgba(0, 0, 0, 0.06);
+  background: color-mix(in srgb, var(--tone-bg) 22%, hsl(var(--color-card)));
+}
+.dark .tool-grid-card:hover {
+  border-color: var(--tone-border);
+  box-shadow:
+    0 0 48px color-mix(in srgb, var(--tone-fg) 14%, transparent),
+    0 12px 40px rgba(0, 0, 0, 0.45);
+  background: color-mix(in srgb, var(--tone-bg) 28%, hsl(220 10% 10%));
+}
+.tool-grid-card__fav {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 2;
+}
+.tool-grid-card__body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 0.625rem;
+  min-height: 0;
+}
+.tool-grid-card__icon {
+  transition: transform 220ms ease, box-shadow 220ms ease;
+}
+.tool-grid-card:hover .tool-grid-card__icon {
+  transform: scale(1.06);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--tone-fg) 22%, transparent);
+}
+.tool-grid-card__copy {
+  flex: 1;
+  min-width: 0;
+}
+.tool-grid-card__title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  color: hsl(var(--color-card-foreground));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 200ms ease;
+}
+.tool-grid-card:hover .tool-grid-card__title {
+  color: var(--tone-fg);
+}
+.tool-grid-card__desc {
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: hsl(var(--color-muted-foreground));
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.tool-grid-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 0.5rem;
+}
+.tool-grid-card__category {
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: hsl(var(--color-muted-foreground));
+  transition: color 200ms ease;
+}
+.tool-grid-card:hover .tool-grid-card__category {
+  color: var(--tone-fg);
+}
+.tool-grid-card__arrow {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  color: hsl(var(--color-muted-foreground));
+  opacity: 0.45;
+  transition: opacity 200ms ease, color 200ms ease, transform 200ms ease;
+}
+.tool-grid-card:hover .tool-grid-card__arrow {
+  opacity: 1;
+  color: var(--tone-fg);
+  transform: translateX(3px);
 }
 
 /* Featured action card (Scan to PDF style) */
@@ -1295,18 +1447,23 @@ select option {
   border: none;
   white-space: nowrap;
   color: hsl(var(--color-muted-foreground));
-  transition: color 0.2s ease, background 0.2s ease;
+  transition: color 0.18s ease, background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
 }
 .site-header__nav-item:hover {
-  color: hsl(var(--color-foreground));
-  background: hsl(var(--color-muted) / 0.55);
+  color: hsl(var(--color-primary));
+  background: hsl(var(--color-primary) / 0.08);
+  transform: translateY(-1px);
+}
+.site-header__nav-item:hover .site-header__nav-icon {
+  opacity: 1;
+  color: hsl(var(--color-primary));
 }
 .dark .site-header__nav-item {
   color: rgba(255, 255, 255, 0.62);
 }
 .dark .site-header__nav-item:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.06);
+  color: hsl(var(--color-primary));
+  background: hsl(var(--color-primary) / 0.1);
 }
 .site-header__nav-icon {
   width: 1rem;

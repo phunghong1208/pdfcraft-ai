@@ -311,7 +311,7 @@
     "uploadCta": "Unggah ke Ruang Kerja",
     "uploadSecure": "Pemrosesan aman",
     "uploadOcr": "OCR bertenaga AI",
-    "uploadLanguages": "Mendukung 100+ bahasa",
+    "uploadLanguages": "Dukungan multi-bahasa",
     "aiActionsTitle": "Tindakan AI",
     "useInWorkspace": "Gunakan di Ruang Kerja",
     "coreActionsTitle": "Tindakan PDF Inti",
@@ -334,7 +334,11 @@
       "split": "Pisah",
       "protect": "Lindungi",
       "ocrText": "OCR teks"
-    }
+    },
+    "heroTitleBefore": "Pahami PDF Apa Pun dengan ",
+    "heroTitleAccent": "AI",
+    "heroTitleAfter": "",
+    "uploadDropHint": "Seret & lepas atau pilih file"
   },
   "toolsPage": {
     "title": "Alat PDF Profesional",

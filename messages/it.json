@@ -304,15 +304,15 @@
   },
   "homePage": {
     "badge": "Area di lavoro PDF con AI",
-    "heroTitle": "Comprendi qualsiasi PDF con l'AI",
+    "heroTitle": "Comprendi qualsiasi PDF con l'IA",
     "heroSubtitle": "Riassumi, traduci, chatta e modifica i documenti all'istante.",
     "uploadTitle": "Carica un documento per iniziare",
     "uploadDescription": "Apri l'area di lavoro del documento e usa azioni AI contestuali.",
     "uploadCta": "Carica nell'area di lavoro",
     "uploadSecure": "Elaborazione sicura",
     "uploadOcr": "OCR basato su AI",
-    "uploadLanguages": "Supporta oltre 100 lingue",
-    "aiActionsTitle": "Azioni AI",
+    "uploadLanguages": "Supporto multilingue",
+    "aiActionsTitle": "Azioni IA",
     "useInWorkspace": "Usa nell'area di lavoro",
     "coreActionsTitle": "Azioni PDF principali",
     "viewAllTools": "Vedi tutti gli strumenti",
@@ -334,7 +334,11 @@
       "split": "Dividi",
       "protect": "Proteggi",
       "ocrText": "OCR testo"
-    }
+    },
+    "heroTitleBefore": "Comprendi qualsiasi PDF con l'",
+    "heroTitleAccent": "IA",
+    "heroTitleAfter": "",
+    "uploadDropHint": "Trascina e rilascia o scegli un file"
   },
   "toolsPage": {
     "title": "Strumenti PDF Professionali",
