@@ -41,6 +41,12 @@ services:
     profiles:
       - prod
 
+  ocr:
+    build: ./services/ocr
+    ports:
+      - "8100:8100"
+    restart: unless-stopped
+
 volumes:
   node_modules:
   static_out:

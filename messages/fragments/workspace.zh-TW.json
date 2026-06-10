@@ -14,7 +14,7 @@
     "tool": "工具",
     "fillsign": "填寫與簽名",
     "protect": "保護",
-    "ai": "AI"
+    "ai": "人工智慧"
   },
   "header": {
     "save": "儲存",
@@ -47,14 +47,16 @@
     "security": "安全",
     "redact": "塗黑",
     "permissions": "權限",
-    "aiTools": "AI 工具"
+    "aiTools": "AI 工具",
+    "file": "文件",
+    "document": "文件"
   },
   "tools": {
     "zoomIn": "放大",
     "zoomOut": "縮小",
     "fitPage": "符合頁面",
     "compress": "壓縮",
-    "ocr": "OCR",
+    "ocr": "光學字元辨識",
     "merge": "合併",
     "split": "拆分",
     "print": "列印",
@@ -115,12 +117,24 @@
     "summarize": "摘要",
     "translate": "翻譯",
     "smartOcr": "智慧 OCR",
-    "open": "開啟"
+    "open": "開啟",
+    "zoom": "飛漲",
+    "fitWidth": "適合寬度",
+    "reorderPages": "重新排序頁面",
+    "reverseOrder": "逆序",
+    "textComment": "文字評論",
+    "eSign": "電子簽名",
+    "clearComments": "清除評論",
+    "passwordProtect": "密碼保護",
+    "editText": "編輯文字",
+    "editImages": "編輯影像",
+    "addLink": "添加連結"
   },
   "sidebar": {
     "newPdf": "新建 PDF",
     "hidePages": "隱藏頁面",
-    "showThumbnails": "顯示縮圖"
+    "showThumbnails": "顯示縮圖",
+    "openPages": "打開頁面面板"
   },
   "aiPanel": {
     "title": "AI 助手",
@@ -137,7 +151,7 @@
       "summarize": "摘要",
       "translate": "翻譯",
       "extractTables": "擷取表格",
-      "ocr": "OCR"
+      "ocr": "光學字元辨識"
     },
     "thinking": "思考中...",
     "placeholder": "詢問此文件...",
@@ -173,8 +187,62 @@
       "stop": "停止",
       "play": "開始朗讀",
       "pause": "暫停",
-      "resume": "繼續"
-    }
+      "resume": "繼續",
+      "subtitle": "使用內建瀏覽器語音收聽您的文檔",
+      "statusPlaying": "閱讀…",
+      "statusPaused": "已暫停",
+      "nowReading": "播放：{名稱}",
+      "voiceLabel": "嗓音",
+      "voiceLoading": "正在加載聲音...",
+      "genderFemale": "女性",
+      "genderMale": "男性",
+      "genderNeutral": "其他",
+      "noVoicesHint": "您的瀏覽器中沒有該語言的語音。在 macOS 上：系統設定 → 輔助功能 → 語音內容 → 系統語音。",
+      "prepareTitle": "文件尚未準備好閱讀",
+      "prepareHint": "首先處理 PDF 一次（與啟用聊天相同）——大約 1-2 分鐘。",
+      "prepareButton": "流程文件",
+      "unsupported": "此瀏覽器不支援語音合成。"
+    },
+    "newBadge": "新的",
+    "indexing": "AI聊天索引文件...",
+    "summarizing": "總結（可能需要 1-2 分鐘，請保持此選項卡開啟）...",
+    "indexError": "無法準備聊天文件。",
+    "startSummaryForChat": "總結一下，開啟聊天功能",
+    "chatReady": "聊天已準備就緒 - 輸入您的問題。",
+    "summaryMissingDocumentId": "摘要已完成，但伺服器未回傳 document_id — 聊天不可用。",
+    "chatReindexing": "正在同步聊天文檔（重新運行摘要）...",
+    "chatNoContext": "Chat 在索引中找不到此文件。",
+    "chatNoContextHint": "再次點擊“摘要”標籤上的“產生摘要”，等待其完成，然後提出您的問題。",
+    "chatError": "聊天請求失敗。",
+    "summaryError": "摘要請求失敗。",
+    "noFile": "首先上傳 PDF。",
+    "noDocumentId": "文檔尚未建立索引。等待或先運行摘要。",
+    "languageShort": "語言",
+    "analyzing": "✨ AI 正在分析您的文件...",
+    "thinkingAi": "✨ AI 在思考…",
+    "chatRoleUser": "你",
+    "chatRoleAssistant": "人工智慧助手",
+    "copy": "複製",
+    "copied": "已複製",
+    "copyFailed": "無法複製到剪貼簿。",
+    "exportPdf": "匯出PDF",
+    "exportFailed": "PDF 匯出失敗。",
+    "chatContext": {
+      "label": "聊天深度",
+      "light": {
+        "title": "光"
+      },
+      "balanced": {
+        "title": "中"
+      },
+      "deep": {
+        "title": "深的"
+      }
+    },
+    "summaryDone": "總結已經準備好了。開啟“摘要”標籤進行閱讀。",
+    "documentId": "文件 ID：{id}",
+    "previewPdf": "PDF預覽",
+    "translateComingSoon": "文件翻譯 - 即將推出。"
   },
   "inlineTools": {
     "compress": "壓縮 PDF",
@@ -182,9 +250,93 @@
     "merge": "合併 PDF",
     "split": "拆分 PDF",
     "dialogLabel": "工作區工具",
-    "close": "關閉"
+    "close": "關閉",
+    "background-color": "背景顏色"
   },
   "statusBar": {
     "aiAssistant": "AI 助手"
+  },
+  "viewLayers": {
+    "title": "查看圖層",
+    "original": "原始PDF",
+    "originalHint": "頁面點陣圖（畫布）",
+    "annotation": "註解",
+    "annotationHint": "內建 PDF 反白與註釋 — 由 PDF.js 呈現",
+    "textLayer": "文字層",
+    "textLayerHint": "本機 PDF 的可選文本",
+    "ocrLayer": "OCR層",
+    "ocrLayerHint": "掃描 PDF 上的 OCR 文字 — 如果未對齊則關閉"
+  },
+  "textStyle": {
+    "label": "文字樣式",
+    "fontFamily": "字體",
+    "fontSize": "尺寸",
+    "color": "顏色",
+    "clearConfirm": "刪除此文件上的所有註釋？"
+  },
+  "aiToolPage": {
+    "prepareHint": "處理過程大約需要 1-2 分鐘。保持此選項卡打開。",
+    "selectFileFirst": "首先選擇一個 PDF 檔案。"
+  },
+  "aiSummaryPage": {
+    "uploadTitle": "上傳 PDF",
+    "uploadSubtitle": "AI 讀取、分析並建立結構化摘要",
+    "uploadDropHint": "拖放或選擇一個文件",
+    "uploadFormats": "僅 PDF · 一個文件",
+    "modelLabel": "PDF工藝文件AI",
+    "generatedAt": "創建於{時間}",
+    "wordCount": "{count} 個字",
+    "downloadSummary": "下載摘要",
+    "downloadFailed": "無法下載摘要檔。",
+    "restoredAt": "從{時間}恢復",
+    "restoredFileHint": "為「{name}」儲存摘要。重新選擇文件以預覽 PDF。"
+  },
+  "aiTranslatePage": {
+    "uploadTitle": "上傳 PDF",
+    "uploadSubtitle": "選擇翻譯的語言和輸出佈局",
+    "uploadDropHint": "拖放或選擇一個文件",
+    "uploadFormats": "PDF·單一文件",
+    "fromLabel": "從",
+    "toLabel": "到",
+    "swapLanguages": "交換語言",
+    "outputTitle": "輸出 PDF 佈局",
+    "keepLayoutTitle": "保持佈局",
+    "keepLayoutDesc": "輸出盡可能保持原始佈局，包括圖像和圖形。",
+    "textOnlyTitle": "僅文本",
+    "textOnlyDesc": "輸出僅包含文字和層次結構 - 更適合複製貼上。",
+    "modelLabel": "模型",
+    "originalPdf": "原始PDF",
+    "translatedPdf": "翻譯後的 PDF",
+    "downloadTranslated": "下載翻譯後的 PDF",
+    "downloadText": "下載.txt",
+    "translatedText": "翻譯",
+    "copyTranslated": "複製",
+    "copied": "已複製",
+    "exportPdf": "下載PDF",
+    "exportPdfFailed": "無法從翻譯建立 PDF。",
+    "placeholder": "選擇一個檔案並點擊翻譯以取得翻譯。",
+    "processingHint": "翻譯可能需要 1-2 分鐘。保持此選項卡打開。"
+  },
+  "aiChatPage": {
+    "uploadSubtitle": "上傳一次，準備好文件，然後提問",
+    "documentReady": "文件已準備好 - 請在下面提出您的問題。",
+    "restoredFileHint": "«{name}» 的聊天已恢復。重新選擇文件以預覽 PDF。"
+  },
+  "aiVoicePage": {
+    "uploadSubtitle": "上傳 PDF — 自動擷取文字以供瀏覽器朗讀",
+    "documentReady": "準備好大聲朗讀 - 按播放。",
+    "restoredFileHint": "«{name}» 的閱讀會話已恢復。重新選擇文件以預覽 PDF。",
+    "listenTitle": "大聲朗讀",
+    "readContentHint": "按下播放即可收聽該文件。",
+    "fallbackReadHint": "使用從 PDF 中提取的文本（AI 無法總結此文件）。",
+    "prepareFailedTitle": "無法準備音訊",
+    "prepareFailedHint": "如果文件僅掃描，請嘗試使用其他 PDF 或執行 OCR。",
+    "noExtractableText": "無法從此 PDF 讀取任何文字。嘗試 OCR 或其他文件。"
+  },
+  "split": {
+    "openInWorkspace": "在工作區中打開",
+    "downloadZip": "全部下載為 ZIP",
+    "singleApplied": "拆分完成 — 在工作區中開啟。",
+    "pickFileHint": "選擇一部分繼續編輯，或全部下載為 ZIP。"
   }
 }

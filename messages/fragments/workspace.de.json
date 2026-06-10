@@ -47,7 +47,9 @@
     "security": "Sicherheit",
     "redact": "Schwärzen",
     "permissions": "Berechtigungen",
-    "aiTools": "KI-Werkzeuge"
+    "aiTools": "KI-Werkzeuge",
+    "file": "Datei",
+    "document": "Dokumentieren"
   },
   "tools": {
     "zoomIn": "Vergrößern",
@@ -115,17 +117,29 @@
     "summarize": "Zusammenfassen",
     "translate": "Übersetzen",
     "smartOcr": "Intelligente OCR",
-    "open": "Öffnen"
+    "open": "Öffnen",
+    "zoom": "Zoom",
+    "fitWidth": "Breite anpassen",
+    "reorderPages": "Seiten neu anordnen",
+    "reverseOrder": "Umgekehrte Reihenfolge",
+    "textComment": "Textkommentar",
+    "eSign": "E-Sign",
+    "clearComments": "Klare Kommentare",
+    "passwordProtect": "Passwortschutz",
+    "editText": "Text bearbeiten",
+    "editImages": "Bilder bearbeiten",
+    "addLink": "Link hinzufügen"
   },
   "sidebar": {
     "newPdf": "Neue PDF",
     "hidePages": "Seiten ausblenden",
-    "showThumbnails": "Miniaturansichten anzeigen"
+    "showThumbnails": "Miniaturansichten anzeigen",
+    "openPages": "Seitenbereich öffnen"
   },
   "aiPanel": {
     "title": "KI-Assistent",
     "tabs": {
-      "chat": "Chat",
+      "chat": "Chatten",
       "summary": "Zusammenfassung",
       "translate": "Übersetzen",
       "voice": "Einblicke"
@@ -173,8 +187,62 @@
       "stop": "Stopp",
       "play": "Lesen starten",
       "pause": "Pause",
-      "resume": "Fortsetzen"
-    }
+      "resume": "Fortsetzen",
+      "subtitle": "Hören Sie sich Ihr Dokument mit integrierter Browser-Sprachausgabe an",
+      "statusPlaying": "Lektüre…",
+      "statusPaused": "Angehalten",
+      "nowReading": "Spielt: {Name}",
+      "voiceLabel": "Stimme",
+      "voiceLoading": "Stimmen werden geladen…",
+      "genderFemale": "Weiblich",
+      "genderMale": "Männlich",
+      "genderNeutral": "Andere",
+      "noVoicesHint": "Keine Stimme für diese Sprache in Ihrem Browser. Unter macOS: Systemeinstellungen → Barrierefreiheit → Gesprochener Inhalt → Systemstimme.",
+      "prepareTitle": "Dokument nicht zum Lesen bereit",
+      "prepareHint": "Verarbeiten Sie das PDF zunächst einmal (wie beim Aktivieren des Chats) – etwa 1–2 Minuten.",
+      "prepareButton": "Prozessdokument",
+      "unsupported": "Die Sprachsynthese wird in diesem Browser nicht unterstützt."
+    },
+    "newBadge": "Neu",
+    "indexing": "Indizierungsdokument für KI-Chat...",
+    "summarizing": "Zusammenfassung (kann 1–2 Minuten dauern, lassen Sie diesen Tab geöffnet) ...",
+    "indexError": "Dokument konnte nicht für den Chat vorbereitet werden.",
+    "startSummaryForChat": "Fassen Sie zusammen, um den Chat zu aktivieren",
+    "chatReady": "Der Chat ist bereit – geben Sie Ihre Frage ein.",
+    "summaryMissingDocumentId": "Zusammenfassung abgeschlossen, aber der Server hat document_id nicht zurückgegeben – Chat ist nicht verfügbar.",
+    "chatReindexing": "Dokument für Chat wird synchronisiert (Zusammenfassung erneut ausführen)…",
+    "chatNoContext": "Chat konnte dieses Dokument nicht im Index finden.",
+    "chatNoContextHint": "Tippen Sie auf der Registerkarte „Zusammenfassung“ erneut auf „Zusammenfassung erstellen“, warten Sie, bis der Vorgang abgeschlossen ist, und stellen Sie dann Ihre Frage.",
+    "chatError": "Die Chat-Anfrage ist fehlgeschlagen.",
+    "summaryError": "Die Zusammenfassungsanforderung ist fehlgeschlagen.",
+    "noFile": "Laden Sie zunächst ein PDF hoch.",
+    "noDocumentId": "Das Dokument ist noch nicht indiziert. Warten Sie oder führen Sie zuerst die Zusammenfassung aus.",
+    "languageShort": "Sprache",
+    "analyzing": "✨ KI analysiert Ihr Dokument…",
+    "thinkingAi": "✨ KI denkt…",
+    "chatRoleUser": "Du",
+    "chatRoleAssistant": "KI-Assistent",
+    "copy": "Kopie",
+    "copied": "Kopiert",
+    "copyFailed": "Konnte nicht in die Zwischenablage kopieren.",
+    "exportPdf": "PDF exportieren",
+    "exportFailed": "Der PDF-Export ist fehlgeschlagen.",
+    "chatContext": {
+      "label": "Chat-Tiefe",
+      "light": {
+        "title": "Licht"
+      },
+      "balanced": {
+        "title": "Mitte"
+      },
+      "deep": {
+        "title": "Tief"
+      }
+    },
+    "summaryDone": "Zusammenfassung ist fertig. Öffnen Sie die Registerkarte „Zusammenfassung“, um sie zu lesen.",
+    "documentId": "Dokument-ID: {id}",
+    "previewPdf": "PDF-Vorschau",
+    "translateComingSoon": "Dokumentübersetzung – bald verfügbar."
   },
   "inlineTools": {
     "compress": "PDF komprimieren",
@@ -182,9 +250,93 @@
     "merge": "PDF zusammenführen",
     "split": "PDF teilen",
     "dialogLabel": "Arbeitsbereich-Werkzeug",
-    "close": "Schließen"
+    "close": "Schließen",
+    "background-color": "Hintergrundfarbe"
   },
   "statusBar": {
     "aiAssistant": "KI-Assistent"
+  },
+  "viewLayers": {
+    "title": "Ebenen anzeigen",
+    "original": "Original-PDF",
+    "originalHint": "Seitenbitmap (Leinwand)",
+    "annotation": "Anmerkungen",
+    "annotationHint": "Integrierte PDF-Hervorhebungen und Kommentare – gerendert von PDF.js",
+    "textLayer": "Textebene",
+    "textLayerHint": "Auswählbarer Text für native PDFs",
+    "ocrLayer": "OCR-Ebene",
+    "ocrLayerHint": "OCR-Text auf gescannten PDFs – bei falscher Ausrichtung deaktivieren"
+  },
+  "textStyle": {
+    "label": "Textstil",
+    "fontFamily": "Schriftart",
+    "fontSize": "Größe",
+    "color": "Farbe",
+    "clearConfirm": "Alle Anmerkungen zu diesem Dokument entfernen?"
+  },
+  "aiToolPage": {
+    "prepareHint": "Die Bearbeitung dauert ca. 1–2 Minuten. Lassen Sie diese Registerkarte geöffnet.",
+    "selectFileFirst": "Wählen Sie zunächst eine PDF-Datei aus."
+  },
+  "aiSummaryPage": {
+    "uploadTitle": "PDF hochladen",
+    "uploadSubtitle": "KI liest, analysiert und erstellt eine strukturierte Zusammenfassung",
+    "uploadDropHint": "Ziehen Sie eine Datei per Drag & Drop oder wählen Sie sie aus",
+    "uploadFormats": "Nur PDF · eine Datei",
+    "modelLabel": "PDFCraft-Dokument-KI",
+    "generatedAt": "Erstellt um {time}",
+    "wordCount": "{count} Wörter",
+    "downloadSummary": "Zusammenfassung herunterladen",
+    "downloadFailed": "Die Zusammenfassungsdatei konnte nicht heruntergeladen werden.",
+    "restoredAt": "Wiederhergestellt von {time}",
+    "restoredFileHint": "Zusammenfassung für „{name}“ gespeichert. Wählen Sie die Datei erneut aus, um eine Vorschau der PDF-Datei anzuzeigen."
+  },
+  "aiTranslatePage": {
+    "uploadTitle": "PDF hochladen",
+    "uploadSubtitle": "Wählen Sie Sprachen und Ausgabelayout für die Übersetzung aus",
+    "uploadDropHint": "Ziehen Sie eine Datei per Drag & Drop oder wählen Sie sie aus",
+    "uploadFormats": "PDF · Einzeldatei",
+    "fromLabel": "Aus",
+    "toLabel": "Zu",
+    "swapLanguages": "Sprachen tauschen",
+    "outputTitle": "PDF-Layout ausgeben",
+    "keepLayoutTitle": "Layout beibehalten",
+    "keepLayoutDesc": "Bei der Ausgabe bleibt das ursprüngliche Layout, einschließlich Bildern und Grafiken, so nah wie möglich.",
+    "textOnlyTitle": "Nur Text",
+    "textOnlyDesc": "Die Ausgabe enthält nur Text und Hierarchie – besser zum Kopieren und Einfügen.",
+    "modelLabel": "Modell",
+    "originalPdf": "Original-PDF",
+    "translatedPdf": "Übersetztes PDF",
+    "downloadTranslated": "Laden Sie das übersetzte PDF herunter",
+    "downloadText": "Laden Sie .txt herunter",
+    "translatedText": "Übersetzung",
+    "copyTranslated": "Kopie",
+    "copied": "Kopiert",
+    "exportPdf": "PDF herunterladen",
+    "exportPdfFailed": "Aus der Übersetzung konnte kein PDF erstellt werden.",
+    "placeholder": "Wählen Sie eine Datei aus und klicken Sie auf Übersetzen, um die Übersetzung zu erhalten.",
+    "processingHint": "Die Übersetzung kann 1–2 Minuten dauern. Lassen Sie diese Registerkarte geöffnet."
+  },
+  "aiChatPage": {
+    "uploadSubtitle": "Einmal hochladen, das Dokument vorbereiten und dann alles fragen",
+    "documentReady": "Dokument bereit – stellen Sie unten Ihre Frage.",
+    "restoredFileHint": "Chat für „{name}“ wiederhergestellt. Wählen Sie die Datei erneut aus, um eine Vorschau der PDF-Datei anzuzeigen."
+  },
+  "aiVoicePage": {
+    "uploadSubtitle": "Laden Sie eine PDF-Datei hoch – der Text wird automatisch zum Vorlesen im Browser extrahiert",
+    "documentReady": "Bereit zum Vorlesen – drücken Sie die Wiedergabetaste.",
+    "restoredFileHint": "Lesesitzung für „{name}“ wiederhergestellt. Wählen Sie die Datei erneut aus, um eine Vorschau der PDF-Datei anzuzeigen.",
+    "listenTitle": "Vorlesen",
+    "readContentHint": "Drücken Sie die Wiedergabetaste, um das Dokument anzuhören.",
+    "fallbackReadHint": "Verwendung von aus dem PDF extrahiertem Text (KI konnte diese Datei nicht zusammenfassen).",
+    "prepareFailedTitle": "Audio konnte nicht vorbereitet werden",
+    "prepareFailedHint": "Versuchen Sie es mit einer anderen PDF-Datei oder führen Sie OCR aus, wenn es sich bei der Datei nur um eine Scan-Datei handelt.",
+    "noExtractableText": "Aus diesem PDF konnte kein Text gelesen werden. Versuchen Sie es mit OCR oder einer anderen Datei."
+  },
+  "split": {
+    "openInWorkspace": "Im Arbeitsbereich öffnen",
+    "downloadZip": "Laden Sie alles als ZIP herunter",
+    "singleApplied": "Teilung abgeschlossen – im Arbeitsbereich geöffnet.",
+    "pickFileHint": "Wählen Sie einen Teil aus, um die Bearbeitung fortzusetzen, oder laden Sie alles als ZIP herunter."
   }
 }

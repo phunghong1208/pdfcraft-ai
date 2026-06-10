@@ -4,6 +4,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ChevronRight, Languages } from 'lucide-react';
 import { WORKSPACE_AI_RESPONSE_LANGUAGES } from '@/services/workspaceAiApi';
 
+export interface LanguageItem {
+  apiName: string;
+  nativeName: string;
+}
+
 export interface WorkspaceAiLanguageSelectProps {
   value: string;
   onChange: (language: string) => void;
@@ -13,6 +18,8 @@ export interface WorkspaceAiLanguageSelectProps {
   variant?: 'dark' | 'light';
   /** Một dòng gọn trong toolbar */
   compact?: boolean;
+  /** Custom language list — defaults to WORKSPACE_AI_RESPONSE_LANGUAGES */
+  items?: LanguageItem[];
 }
 
 export function WorkspaceAiLanguageSelect({
@@ -23,13 +30,16 @@ export function WorkspaceAiLanguageSelect({
   hint,
   variant = 'dark',
   compact = false,
+  items,
 }: WorkspaceAiLanguageSelectProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
+  const languages = items ?? WORKSPACE_AI_RESPONSE_LANGUAGES;
+
   const selected = useMemo(
-    () => WORKSPACE_AI_RESPONSE_LANGUAGES.find((l) => l.apiName === value),
-    [value],
+    () => languages.find((l) => l.apiName === value),
+    [languages, value],
   );
 
   const isDark = variant === 'dark';
@@ -124,7 +134,7 @@ export function WorkspaceAiLanguageSelect({
 
       {open ? (
         <ul role="listbox" aria-label={label} className={menuClass}>
-          {WORKSPACE_AI_RESPONSE_LANGUAGES.map((lang) => {
+          {languages.map((lang) => {
             const active = lang.apiName === value;
             return (
               <li key={lang.apiName} role="option" aria-selected={active}>

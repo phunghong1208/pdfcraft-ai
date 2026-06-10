@@ -6,7 +6,7 @@
     "description": "Scegli un file .pdf (si apre direttamente nell'area di lavoro)"
   },
   "tabs": {
-    "home": "Home",
+    "home": "Casa",
     "edit": "Modifica",
     "page": "Pagina",
     "comment": "Commento",
@@ -25,7 +25,7 @@
     "view": "Visualizza",
     "process": "Elabora",
     "organize": "Organizza",
-    "output": "Output",
+    "output": "Produzione",
     "history": "Cronologia",
     "page": "Pagina",
     "insert": "Inserisci",
@@ -47,7 +47,9 @@
     "security": "Sicurezza",
     "redact": "Oscura",
     "permissions": "Permessi",
-    "aiTools": "Strumenti AI"
+    "aiTools": "Strumenti AI",
+    "file": "File",
+    "document": "Documento"
   },
   "tools": {
     "zoomIn": "Zoom avanti",
@@ -115,17 +117,29 @@
     "summarize": "Riassumi",
     "translate": "Traduci",
     "smartOcr": "OCR intelligente",
-    "open": "Apri"
+    "open": "Apri",
+    "zoom": "Zoom",
+    "fitWidth": "Adatta larghezza",
+    "reorderPages": "Riordina le pagine",
+    "reverseOrder": "Ordine inverso",
+    "textComment": "Commento testuale",
+    "eSign": "Firma elettronica",
+    "clearComments": "Cancella commenti",
+    "passwordProtect": "Proteggi con password",
+    "editText": "Modifica testo",
+    "editImages": "Modifica immagini",
+    "addLink": "Aggiungi collegamento"
   },
   "sidebar": {
     "newPdf": "Nuovo PDF",
     "hidePages": "Nascondi pagine",
-    "showThumbnails": "Mostra miniature"
+    "showThumbnails": "Mostra miniature",
+    "openPages": "Pannello delle pagine aperte"
   },
   "aiPanel": {
     "title": "Assistente AI",
     "tabs": {
-      "chat": "Chat",
+      "chat": "Chiacchierata",
       "summary": "Riepilogo",
       "translate": "Traduci",
       "voice": "Approfondimenti"
@@ -170,21 +184,159 @@
     "voice": {
       "speed": "Velocità",
       "statusIdle": "Pronto per la riproduzione",
-      "stop": "Stop",
+      "stop": "Fermare",
       "play": "Avvia lettura",
       "pause": "Pausa",
-      "resume": "Riprendi"
-    }
+      "resume": "Riprendi",
+      "subtitle": "Ascolta il tuo documento con la voce del browser integrata",
+      "statusPlaying": "Lettura…",
+      "statusPaused": "In pausa",
+      "nowReading": "In riproduzione: {nome}",
+      "voiceLabel": "Voce",
+      "voiceLoading": "Caricamento voci…",
+      "genderFemale": "Femmina",
+      "genderMale": "Maschio",
+      "genderNeutral": "Altro",
+      "noVoicesHint": "Nessuna voce per questa lingua nel tuo browser. Su macOS: Impostazioni di sistema → Accessibilità → Contenuto parlato → Voce di sistema.",
+      "prepareTitle": "Documento non pronto per la lettura",
+      "prepareHint": "Elabora prima il PDF una volta (come abilitare la chat): circa 1-2 minuti.",
+      "prepareButton": "Documento di processo",
+      "unsupported": "La sintesi vocale non è supportata in questo browser."
+    },
+    "newBadge": "Nuovo",
+    "indexing": "Indicizzazione del documento per la chat AI...",
+    "summarizing": "Riassumendo (potrebbero essere necessari 1–2 minuti, tieni aperta questa scheda)...",
+    "indexError": "Impossibile preparare il documento per la chat.",
+    "startSummaryForChat": "Riepilogare per abilitare la chat",
+    "chatReady": "La chat è pronta: digita la tua domanda.",
+    "summaryMissingDocumentId": "Il riepilogo è terminato ma il server non ha restituito document_id: la chat non è disponibile.",
+    "chatReindexing": "Sincronizzazione del documento per la chat (riesecuzione del riepilogo)…",
+    "chatNoContext": "Chat non è riuscita a trovare questo documento nell'indice.",
+    "chatNoContextHint": "Tocca di nuovo \"Genera riepilogo\" nella scheda Riepilogo, attendi fino al termine, quindi fai la tua domanda.",
+    "chatError": "Richiesta di chat non riuscita.",
+    "summaryError": "Richiesta di riepilogo non riuscita.",
+    "noFile": "Carica prima un PDF.",
+    "noDocumentId": "Il documento non è ancora indicizzato. Attendi o esegui prima il Riepilogo.",
+    "languageShort": "Lingua",
+    "analyzing": "✨ L'intelligenza artificiale sta analizzando il tuo documento...",
+    "thinkingAi": "✨ L'intelligenza artificiale sta pensando...",
+    "chatRoleUser": "Voi",
+    "chatRoleAssistant": "Assistente AI",
+    "copy": "Copia",
+    "copied": "Copiato",
+    "copyFailed": "Impossibile copiare negli appunti.",
+    "exportPdf": "Esporta PDF",
+    "exportFailed": "Esportazione PDF non riuscita.",
+    "chatContext": {
+      "label": "Profondità della chat",
+      "light": {
+        "title": "Leggero"
+      },
+      "balanced": {
+        "title": "Metà"
+      },
+      "deep": {
+        "title": "Profondo"
+      }
+    },
+    "summaryDone": "Il riepilogo è pronto. Apri la scheda Riepilogo per leggerlo.",
+    "documentId": "ID documento: {id}",
+    "previewPdf": "Anteprima PDF",
+    "translateComingSoon": "Traduzione di documenti: disponibile a breve."
   },
   "inlineTools": {
     "compress": "Comprimi PDF",
-    "ocr": "OCR PDF",
+    "ocr": "PDF OCR",
     "merge": "Unisci PDF",
     "split": "Dividi PDF",
     "dialogLabel": "Strumento area di lavoro",
-    "close": "Chiudi"
+    "close": "Chiudi",
+    "background-color": "Colore di sfondo"
   },
   "statusBar": {
     "aiAssistant": "Assistente AI"
+  },
+  "viewLayers": {
+    "title": "Visualizza livelli",
+    "original": "PDF originale",
+    "originalHint": "Bitmap della pagina (tela)",
+    "annotation": "Annotazioni",
+    "annotationHint": "Evidenziazioni e commenti PDF integrati, renderizzati da PDF.js",
+    "textLayer": "Livello di testo",
+    "textLayerHint": "Testo selezionabile per PDF nativi",
+    "ocrLayer": "Strato dell'OCR",
+    "ocrLayerHint": "Testo OCR sui PDF scansionati: disattiva se disallineato"
+  },
+  "textStyle": {
+    "label": "Stile del testo",
+    "fontFamily": "Font",
+    "fontSize": "Misurare",
+    "color": "Colore",
+    "clearConfirm": "Rimuovere tutte le annotazioni su questo documento?"
+  },
+  "aiToolPage": {
+    "prepareHint": "L'elaborazione richiede circa 1–2 minuti. Tieni aperta questa scheda.",
+    "selectFileFirst": "Scegli prima un file PDF."
+  },
+  "aiSummaryPage": {
+    "uploadTitle": "Carica PDF",
+    "uploadSubtitle": "L'intelligenza artificiale legge, analizza e crea un riepilogo strutturato",
+    "uploadDropHint": "Trascina e rilascia o scegli un file",
+    "uploadFormats": "Solo PDF · un file",
+    "modelLabel": "Documento PDFCraft AI",
+    "generatedAt": "Creato alle {time}",
+    "wordCount": "{contare} parole",
+    "downloadSummary": "Scarica il riepilogo",
+    "downloadFailed": "Impossibile scaricare il file di riepilogo.",
+    "restoredAt": "Ripristinato da {time}",
+    "restoredFileHint": "Riepilogo salvato per «{name}». Seleziona nuovamente il file per visualizzare l'anteprima del PDF."
+  },
+  "aiTranslatePage": {
+    "uploadTitle": "Carica PDF",
+    "uploadSubtitle": "Scegli le lingue e il layout di output per la traduzione",
+    "uploadDropHint": "Trascina e rilascia o scegli un file",
+    "uploadFormats": "PDF · file unico",
+    "fromLabel": "Da",
+    "toLabel": "A",
+    "swapLanguages": "Scambiare le lingue",
+    "outputTitle": "Layout PDF di output",
+    "keepLayoutTitle": "Mantieni il layout",
+    "keepLayoutDesc": "L'output mantiene il layout originale il più fedelmente possibile, comprese immagini e grafica.",
+    "textOnlyTitle": "Solo testo",
+    "textOnlyDesc": "L'output contiene solo testo e gerarchia, meglio per il copia-incolla.",
+    "modelLabel": "Modello",
+    "originalPdf": "PDF originale",
+    "translatedPdf": "PDF tradotto",
+    "downloadTranslated": "Scarica il PDF tradotto",
+    "downloadText": "Scarica .txt",
+    "translatedText": "Traduzione",
+    "copyTranslated": "Copia",
+    "copied": "Copiato",
+    "exportPdf": "Scarica PDF",
+    "exportPdfFailed": "Impossibile creare PDF dalla traduzione.",
+    "placeholder": "Seleziona un file e fai clic su Traduci per ottenere la traduzione.",
+    "processingHint": "La traduzione potrebbe richiedere 1–2 minuti. Tieni aperta questa scheda."
+  },
+  "aiChatPage": {
+    "uploadSubtitle": "Carica una volta, prepara il documento, quindi chiedi qualsiasi cosa",
+    "documentReady": "Documento pronto: fai la tua domanda qui sotto.",
+    "restoredFileHint": "Chat ripristinata per «{name}». Seleziona nuovamente il file per visualizzare l'anteprima del PDF."
+  },
+  "aiVoicePage": {
+    "uploadSubtitle": "Carica un PDF: il testo viene estratto automaticamente per la lettura ad alta voce del browser",
+    "documentReady": "Pronto per leggere ad alta voce: premi Play.",
+    "restoredFileHint": "Sessione di lettura ripristinata per «{name}». Seleziona nuovamente il file per visualizzare l'anteprima del PDF.",
+    "listenTitle": "Leggi ad alta voce",
+    "readContentHint": "Premi play per ascoltare il documento.",
+    "fallbackReadHint": "Utilizzando il testo estratto dal PDF (AI non è riuscita a riassumere questo file).",
+    "prepareFailedTitle": "Impossibile preparare l'audio",
+    "prepareFailedHint": "Prova un altro PDF o esegui l'OCR se il file è di sola scansione.",
+    "noExtractableText": "Nessun testo può essere letto da questo PDF. Prova l'OCR o un altro file."
+  },
+  "split": {
+    "openInWorkspace": "Apri nell'area di lavoro",
+    "downloadZip": "Scarica tutto come ZIP",
+    "singleApplied": "Divisione completata: aperta nell'area di lavoro.",
+    "pickFileHint": "Scegli una parte per continuare a modificare o scarica tutto come ZIP."
   }
 }

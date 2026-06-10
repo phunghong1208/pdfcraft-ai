@@ -1,5 +1,4 @@
 'use client';
-
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FileText,
@@ -23,7 +22,7 @@ import { WorkspaceAiMarkdown } from '@/components/workspace/WorkspaceAiMarkdown'
 import { useLocale, useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { WorkspaceAiLanguageSelect } from '@/components/workspace/WorkspaceAiLanguageSelect';
+import { WorkspaceAiLanguageSelect, type LanguageItem } from '@/components/workspace/WorkspaceAiLanguageSelect';
 import {
   loadWorkspaceAiAnswerLanguage,
   saveWorkspaceAiAnswerLanguage,
@@ -41,7 +40,7 @@ import {
   getSpeechLangForWorkspaceAiAnswerLanguage,
   type WorkspacePresetTierId,
 } from '@/services/workspaceAiApi';
-import { smartOcrPdf, summarizePdf } from '@/services/aiApi';
+import { summarizePdf } from '@/services/aiApi';
 import {
   TRANSLATE_LANGUAGE_OPTIONS,
   getDefaultTranslateLanguagePair,
@@ -73,11 +72,26 @@ type SummaryResult = {
   fileName?: string;
 };
 
-const ACTION_MAP: Record<Exclude<AIActionType, 'summary' | 'chat' | 'voice' | 'translate'>, (file: File) => Promise<unknown>> = {
-  smartOcr: smartOcrPdf,
+const ACTION_MAP: Record<Exclude<AIActionType, 'summary' | 'chat' | 'voice' | 'translate' | 'smartOcr'>, (file: File) => Promise<unknown>> = {
 };
 
 const VOICE_SPEEDS = [0.85, 1, 1.15, 1.3] as const;
+
+const OCR_LANGUAGE_ITEMS: LanguageItem[] = [
+  { apiName: 'vie+eng', nativeName: 'Tiếng Việt + English' },
+  { apiName: 'eng', nativeName: 'English' },
+  { apiName: 'jpn+eng', nativeName: '日本語 + English' },
+  { apiName: 'kor+eng', nativeName: '한국어 + English' },
+  { apiName: 'chi_sim+eng', nativeName: '简体中文 + English' },
+  { apiName: 'chi_tra+eng', nativeName: '繁體中文 + English' },
+  { apiName: 'fra+eng', nativeName: 'Français + English' },
+  { apiName: 'deu+eng', nativeName: 'Deutsch + English' },
+  { apiName: 'spa+eng', nativeName: 'Español + English' },
+  { apiName: 'por+eng', nativeName: 'Português + English' },
+  { apiName: 'ita+eng', nativeName: 'Italiano + English' },
+  { apiName: 'ind+eng', nativeName: 'Bahasa Indonesia + English' },
+  { apiName: 'ron+eng', nativeName: 'Română + English' },
+];
 
 const SUMMARY_STORAGE_KEY = 'pdfcraft-ai-summary-last';
 const PDF_PREVIEW_HEIGHT = 'h-[220px]';
@@ -217,6 +231,14 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
   const [translatedText, setTranslatedText] = useState<string | null>(null);
   const [translateCopyDone, setTranslateCopyDone] = useState(false);
   const [isExportingTranslatedPdf, setIsExportingTranslatedPdf] = useState(false);
+  const [ocrResultBlob, setOcrResultBlob] = useState<Blob | null>(null);
+  const [ocrResultFileName, setOcrResultFileName] = useState<string | null>(null);
+  const [ocrLanguages, setOcrLanguages] = useState('vie+eng');
+  const [ocrOutputType, setOcrOutputType] = useState<'pdf' | 'text'>('pdf');
+  const [ocrDeskew, setOcrDeskew] = useState(true);
+  const [ocrClean, setOcrClean] = useState(true);
+  const [ocrRemoveBg, setOcrRemoveBg] = useState(false);
+  const [ocrForceOcr, setOcrForceOcr] = useState(false);
 
   const speech = useDocumentSpeech();
 
@@ -225,11 +247,16 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
     () => (translatedBlob ? URL.createObjectURL(translatedBlob) : ''),
     [translatedBlob],
   );
+  const ocrPreviewUrl = useMemo(
+    () => (ocrResultBlob ? URL.createObjectURL(ocrResultBlob) : ''),
+    [ocrResultBlob],
+  );
+  const isSmartOcrPage = actionType === 'smartOcr';
   const isSummaryPage = actionType === 'summary';
   const isChatPage = actionType === 'chat';
   const isVoicePage = actionType === 'voice';
   const isTranslatePage = actionType === 'translate';
-  const isDenseAiPage = isSummaryPage || isChatPage || isVoicePage || isTranslatePage;
+  const isDenseAiPage = isSummaryPage || isChatPage || isVoicePage || isTranslatePage || isSmartOcrPage;
   const speechLang = useMemo(
     () => getSpeechLangForWorkspaceAiAnswerLanguage(answerLanguage),
     [answerLanguage],
@@ -250,6 +277,12 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
       if (translatedPreviewUrl) URL.revokeObjectURL(translatedPreviewUrl);
     };
   }, [translatedPreviewUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (ocrPreviewUrl) URL.revokeObjectURL(ocrPreviewUrl);
+    };
+  }, [ocrPreviewUrl]);
 
   useEffect(() => {
     setAnswerLanguage(loadWorkspaceAiAnswerLanguage(locale));
@@ -304,6 +337,8 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
       setTranslatedFileName(null);
       setTranslatedText(null);
       setTranslateCopyDone(false);
+      setOcrResultBlob(null);
+      setOcrResultFileName(null);
       if (!next) {
         setResult(null);
         setDocumentId(null);
@@ -641,6 +676,44 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
           setTranslatedFileName(translated.fileName);
           setResult({ fileName: translated.fileName, outputType: translateOutputType });
         }
+      } else if (actionType === 'smartOcr') {
+        if (ocrOutputType === 'text') {
+          const { ocrPDF } = await import('@/lib/pdf/processors/ocr');
+          const out = await ocrPDF(file, {
+            languages: ocrLanguages.split('+').filter(Boolean) as import('@/lib/pdf/processors/ocr').OCRLanguage[],
+            outputFormat: 'text',
+            scale: 2,
+            pages: [],
+          });
+          if (!out.success || !out.result) throw new Error(out.error?.message || 'OCR failed');
+          const blob = out.result as Blob;
+          const text = await blob.text();
+          setOcrResultBlob(blob);
+          setOcrResultFileName(out.filename || `${file.name.replace(/\.pdf$/i, '')}_ocr.txt`);
+          setResult({ text, outputType: 'text' });
+        } else {
+          const form = new FormData();
+          form.append('file', file);
+          form.append('languages', ocrLanguages);
+          form.append('deskew', String(ocrDeskew));
+          form.append('rotate_pages', 'true');
+          form.append('remove_background', String(ocrRemoveBg));
+          form.append('clean', String(ocrClean));
+          form.append('force_ocr', String(ocrForceOcr));
+          form.append('optimize', '1');
+          const res = await fetch('/api/ocr', { method: 'POST', body: form });
+          if (!res.ok) {
+            let detail = 'OCR failed.';
+            try { const j = await res.json(); detail = j.detail || detail; } catch { /* */ }
+            throw new Error(detail);
+          }
+          const blob = await res.blob();
+          const baseName = file.name.replace(/\.pdf$/i, '');
+          const fileName = `${baseName}_ocr.pdf`;
+          setOcrResultBlob(blob);
+          setOcrResultFileName(fileName);
+          setResult({ fileName, size: blob.size, outputType: 'pdf' });
+        }
       } else if (actionType !== 'chat' && actionType !== 'voice') {
         const data = await ACTION_MAP[actionType](file);
         setResult(data);
@@ -807,7 +880,7 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
         <div
           className={
             isDenseAiPage
-              ? `grid grid-cols-1 xl:grid-cols-[minmax(300px,380px)_1fr] gap-6 ${isTranslatePage ? 'items-stretch' : 'items-start'}`
+              ? `grid grid-cols-1 xl:grid-cols-[minmax(300px,380px)_1fr] gap-6 ${isTranslatePage || isSmartOcrPage ? 'items-stretch' : 'items-start'}`
               : 'grid grid-cols-1 lg:grid-cols-2 gap-6'
           }
         >
@@ -1285,6 +1358,121 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                     {t('aiToolPage.selectFileFirst')}
                   </p>
                 )}
+              </>
+            ) : isSmartOcrPage ? (
+              <>
+                <label
+                  className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 cursor-pointer transition-all ${
+                    uploadDragOver
+                      ? 'border-[hsl(var(--color-primary))] bg-[hsl(var(--color-primary)/0.06)]'
+                      : 'border-[hsl(var(--color-border))] hover:border-[hsl(var(--color-primary)/0.45)] hover:bg-[hsl(var(--color-muted)/0.25)]'
+                  }`}
+                  onDragOver={(e) => { e.preventDefault(); setUploadDragOver(true); }}
+                  onDragLeave={() => setUploadDragOver(false)}
+                  onDrop={(e) => { e.preventDefault(); setUploadDragOver(false); pickFileFromDrop(e.dataTransfer.files); }}
+                >
+                  <span className="text-3xl leading-none select-none" aria-hidden>📄🔍</span>
+                  <span className="mt-3 text-[15px] font-semibold text-[hsl(var(--color-foreground))]">
+                    {t('aiSummaryPage.uploadTitle')}
+                  </span>
+                  <span className="mt-1 text-center text-[12px] text-[hsl(var(--color-muted-foreground))] max-w-[240px] leading-snug">
+                    {t('aiSummaryPage.uploadFormats')}
+                  </span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,application/pdf"
+                    onChange={(e) => handleFileSelect(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+
+                {file && (
+                  <div className="mt-3 flex items-center gap-2 rounded-lg border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.15)] px-3 py-2">
+                    <FileText className="h-4 w-4 shrink-0 text-[hsl(var(--color-primary))]" />
+                    <span className="text-[12px] truncate font-medium">{file.name}</span>
+                  </div>
+                )}
+
+                <div className="mt-3 rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.12)] p-3 space-y-3">
+                  <WorkspaceAiLanguageSelect
+                    compact
+                    variant="light"
+                    label={t('tools.ocrPdf.language')}
+                    value={ocrLanguages}
+                    onChange={setOcrLanguages}
+                    disabled={loading}
+                    items={OCR_LANGUAGE_ITEMS}
+                  />
+
+                  <div>
+                    <p className="text-[11px] font-medium text-[hsl(var(--color-foreground))] mb-1.5">
+                      {t('tools.ocrPdf.outputFormat')}
+                    </p>
+                    <div className="flex gap-2">
+                      {[
+                        { id: 'pdf' as const, label: '📄 Searchable PDF', icon: '📄' },
+                        { id: 'text' as const, label: '📝 Text (.txt)', icon: '📝' },
+                      ].map((fmt) => (
+                        <button
+                          key={fmt.id}
+                          type="button"
+                          disabled={loading}
+                          onClick={() => setOcrOutputType(fmt.id)}
+                          className={`flex-1 rounded-lg py-2 text-[12px] font-medium border transition-all disabled:opacity-40 ${
+                            ocrOutputType === fmt.id
+                              ? 'bg-[hsl(var(--color-primary)/0.12)] border-[hsl(var(--color-primary)/0.4)] text-[hsl(var(--color-primary))]'
+                              : 'border-[hsl(var(--color-border))] text-[hsl(var(--color-muted-foreground))] hover:bg-[hsl(var(--color-muted)/0.3)]'
+                          }`}
+                        >
+                          {fmt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {ocrOutputType === 'pdf' && (
+                    <div>
+                      <p className="text-[11px] font-medium text-[hsl(var(--color-foreground))] mb-1.5">
+                        {t('tools.ocrPdf.options')}
+                      </p>
+                      <div className="space-y-1.5">
+                        {[
+                          { checked: ocrDeskew, set: setOcrDeskew, label: t('tools.ocrPdf.deskew') },
+                          { checked: ocrClean, set: setOcrClean, label: t('tools.ocrPdf.clean') },
+                          { checked: ocrRemoveBg, set: setOcrRemoveBg, label: t('tools.ocrPdf.removeBackground') },
+                          { checked: ocrForceOcr, set: setOcrForceOcr, label: t('tools.ocrPdf.forceOcr') },
+                        ].map((opt) => (
+                          <label key={opt.label} className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={opt.checked}
+                              onChange={(e) => opt.set(e.target.checked)}
+                              disabled={loading}
+                              className="rounded border-[hsl(var(--color-border))] h-3.5 w-3.5"
+                            />
+                            <span className="text-[11px] text-[hsl(var(--color-foreground))]">{opt.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-auto pt-4">
+                  <AiGradientButton
+                    busy={loading}
+                    label={actionLabel}
+                    onClick={() => void handleRun()}
+                    disabled={!file || loading}
+                  />
+
+                  {error && <p className="mt-2 text-[12px] text-red-500 leading-snug">{error}</p>}
+                  {!file && (
+                    <p className="mt-2 text-[11px] text-[hsl(var(--color-muted-foreground))]">
+                      {t('aiToolPage.selectFileFirst')}
+                    </p>
+                  )}
+                </div>
               </>
             ) : (
               <>
@@ -1784,6 +1972,91 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                 )}
               </Card>
             </div>
+          ) : isSmartOcrPage ? (
+            <div className="flex flex-col gap-3 min-h-[min(70vh,760px)]">
+              <Card className={`p-4 border ${AI_UI.cardBorder} ${AI_UI.cardBg} flex flex-col flex-1 min-h-0 shadow-sm`}>
+                <div className="flex items-center justify-between mb-3 shrink-0">
+                  <h3 className="text-base font-semibold inline-flex items-center gap-1.5 text-[hsl(var(--color-foreground))]">
+                    <Sparkles className={`h-4 w-4 ${AI_UI.icon}`} />
+                    {t('tools.ocrPdf.result')}
+                  </h3>
+                  {ocrResultBlob && !loading && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 h-8 text-[12px]"
+                      onClick={() => {
+                        if (!ocrResultBlob) return;
+                        const url = URL.createObjectURL(ocrResultBlob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = ocrResultFileName || 'ocr_result';
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      }}
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Download
+                    </Button>
+                  )}
+                </div>
+
+                {loading ? (
+                  <AiCenteredSpinner className="min-h-[min(50vh,520px)]" size="h-9 w-9" />
+                ) : result?.outputType === 'text' && result?.text ? (
+                  <div className="flex-1 min-h-0 flex flex-col gap-3">
+                    {ocrResultBlob && (
+                      <div className="flex items-center gap-3 rounded-lg border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.12)] px-3 py-2">
+                        <FileText className="h-4 w-4 shrink-0 text-emerald-500" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[12px] font-medium truncate">{ocrResultFileName}</p>
+                          <p className="text-[11px] text-[hsl(var(--color-muted-foreground))]">
+                            {(ocrResultBlob.size / 1024).toFixed(0)} KB · Text
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    <pre className="flex-1 min-h-[min(40vh,400px)] overflow-auto rounded-lg border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.08)] p-4 text-[13px] leading-relaxed text-[hsl(var(--color-foreground))] whitespace-pre-wrap font-[var(--font-sans)]">
+                      {result.text}
+                    </pre>
+                  </div>
+                ) : ocrPreviewUrl ? (
+                  <div className="flex-1 min-h-0 flex flex-col gap-3">
+                    {ocrResultBlob && (
+                      <div className="flex items-center gap-3 rounded-lg border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.12)] px-3 py-2">
+                        <FileText className="h-4 w-4 shrink-0 text-emerald-500" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[12px] font-medium truncate">{ocrResultFileName}</p>
+                          <p className="text-[11px] text-[hsl(var(--color-muted-foreground))]">
+                            {(ocrResultBlob.size / 1024).toFixed(0)} KB · Searchable PDF
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    <iframe
+                      src={ocrPreviewUrl}
+                      className="w-full flex-1 rounded-lg border border-[hsl(var(--color-border))] min-h-[min(40vh,400px)]"
+                      title={ocrResultFileName ?? 'OCR result'}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center gap-3 p-8 text-center min-h-[min(40vh,400px)]">
+                    <div className={`h-16 w-16 rounded-full flex items-center justify-center ${AI_UI.playerIconRing}`}>
+                      <Sparkles className={`h-7 w-7 ${AI_UI.iconMuted}`} />
+                    </div>
+                    <p className="text-[13px] font-medium text-[hsl(var(--color-foreground))]">
+                      {file ? t('tools.ocrPdf.readyToOcr') : t('tools.ocrPdf.noFileSelected')}
+                    </p>
+                    <p className="text-[11px] text-[hsl(var(--color-muted-foreground))] max-w-[280px] leading-relaxed">
+                      {file
+                        ? t('tools.ocrPdf.readyDesc')
+                        : t('tools.ocrPdf.noFileDesc')}
+                    </p>
+                  </div>
+                )}
+              </Card>
+            </div>
           ) : (
             <Card className="p-6 border border-[hsl(var(--color-border)/0.7)]">
               <h2 className="text-lg font-semibold mb-3">Preview & Result</h2>
@@ -1795,9 +2068,9 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                 </div>
               )}
               <div className="mt-4">
-                <h3 className="font-medium mb-2">Kết quả</h3>
+                <h3 className="font-medium mb-2">Result</h3>
                 <pre className="max-h-56 overflow-auto rounded-lg bg-[hsl(var(--color-muted)/0.5)] p-3 text-xs">
-                  {result ? JSON.stringify(result, null, 2) : 'Chưa có kết quả.'}
+                  {result ? JSON.stringify(result, null, 2) : 'No result yet.'}
                 </pre>
               </div>
             </Card>

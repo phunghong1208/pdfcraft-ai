@@ -1836,6 +1836,15 @@
       "processButton": "Start OCR",
       "previewTitle": "Extracted Text Preview",
       "successMessage": "OCR completed successfully! Click the download button to save your file.",
+      "optimize": "Optimization",
+      "optimizeNone": "None",
+      "optimizeDefault": "Default",
+      "optimizeAggressive": "Aggressive (smaller file)",
+      "deskew": "Deskew (straighten pages)",
+      "rotatePages": "Auto-rotate pages",
+      "removeBackground": "Remove background",
+      "clean": "Clean pages before OCR",
+      "forceOcr": "Force OCR (re-OCR even if text exists)",
       "infoTitle": "About OCR",
       "infoText": "OCR (Optical Character Recognition) extracts text from scanned documents and images. For best results, use high-quality scans and select the correct language(s)."
     },
@@ -2870,7 +2879,21 @@
       "editText": "Edit Text",
       "editImages": "Edit Images",
       "addLink": "Add Link",
-      "smartOcr": "Smart OCR"
+      "smartOcr": "Smart OCR",
+      "ocrPdf": {
+        "language": "Language",
+        "outputFormat": "Output Format",
+        "options": "Options",
+        "result": "OCR Result",
+        "readyToOcr": "Ready to OCR",
+        "noFileSelected": "No PDF selected",
+        "readyDesc": "Click the button to convert your scanned PDF into a searchable document or extract text.",
+        "noFileDesc": "Upload a scanned PDF to get started.",
+        "deskew": "Deskew (straighten pages)",
+        "clean": "Clean pages before OCR",
+        "removeBackground": "Remove background",
+        "forceOcr": "Force OCR (re-OCR even if text exists)"
+      }
     },
     "textStyle": {
       "label": "Text style",

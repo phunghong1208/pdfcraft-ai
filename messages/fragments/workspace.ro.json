@@ -47,7 +47,9 @@
     "security": "Securitate",
     "redact": "Cenzurare",
     "permissions": "Permisiuni",
-    "aiTools": "Instrumente AI"
+    "aiTools": "Instrumente AI",
+    "file": "Fişier",
+    "document": "Document"
   },
   "tools": {
     "zoomIn": "Mărește",
@@ -115,12 +117,24 @@
     "summarize": "Rezumă",
     "translate": "Traduce",
     "smartOcr": "OCR inteligent",
-    "open": "Deschide"
+    "open": "Deschide",
+    "zoom": "Zoom",
+    "fitWidth": "Lățimea de potrivire",
+    "reorderPages": "Reordonați paginile",
+    "reverseOrder": "Ordine inversă",
+    "textComment": "Comentariu text",
+    "eSign": "E-Sign",
+    "clearComments": "Ștergeți comentariile",
+    "passwordProtect": "Protejează cu parolă",
+    "editText": "Editați textul",
+    "editImages": "Editați imagini",
+    "addLink": "Adăugați link"
   },
   "sidebar": {
     "newPdf": "PDF nou",
     "hidePages": "Ascunde paginile",
-    "showThumbnails": "Afișează miniaturile"
+    "showThumbnails": "Afișează miniaturile",
+    "openPages": "Deschideți panoul de pagini"
   },
   "aiPanel": {
     "title": "Asistent AI",
@@ -173,8 +187,62 @@
       "stop": "Oprește",
       "play": "Începe citirea",
       "pause": "Pauză",
-      "resume": "Continuă"
-    }
+      "resume": "Continuă",
+      "subtitle": "Ascultați documentul dvs. cu vorbirea în browser încorporată",
+      "statusPlaying": "Lectură…",
+      "statusPaused": "Întrerupt",
+      "nowReading": "Se joacă: {name}",
+      "voiceLabel": "Voce",
+      "voiceLoading": "Se încarcă vocile...",
+      "genderFemale": "Femeie",
+      "genderMale": "Bărbat",
+      "genderNeutral": "Alte",
+      "noVoicesHint": "Nicio voce pentru această limbă în browser. Pe macOS: Setări sistem → Accesibilitate → Conținut vorbit → Voce sistem.",
+      "prepareTitle": "Documentul nu este gata de citit",
+      "prepareHint": "Procesați mai întâi PDF-ul o dată (la fel ca și activarea chatului) - aproximativ 1-2 minute.",
+      "prepareButton": "Document de proces",
+      "unsupported": "Sinteza vorbirii nu este acceptată în acest browser."
+    },
+    "newBadge": "Nou",
+    "indexing": "Se indexează documentul pentru chatul AI...",
+    "summarizing": "Rezumat (poate dura 1-2 minute, păstrați această filă deschisă)...",
+    "indexError": "Nu s-a putut pregăti documentul pentru chat.",
+    "startSummaryForChat": "Rezumați pentru a activa chatul",
+    "chatReady": "Chatul este gata - introduceți întrebarea.",
+    "summaryMissingDocumentId": "Rezumatul s-a terminat, dar serverul nu a returnat document_id — chatul nu este disponibil.",
+    "chatReindexing": "Se sincronizează documentul pentru chat (reluare rezumat)...",
+    "chatNoContext": "Chat nu a putut găsi acest document în index.",
+    "chatNoContextHint": "Atingeți „Generează rezumat” din nou în fila Rezumat, așteptați până se termină, apoi adresați-vă întrebarea.",
+    "chatError": "Solicitarea de chat nu a reușit.",
+    "summaryError": "Solicitarea rezumatului a eșuat.",
+    "noFile": "Încărcați mai întâi un PDF.",
+    "noDocumentId": "Documentul nu este indexat încă. Mai întâi așteptați sau rulați Rezumatul.",
+    "languageShort": "Limbă",
+    "analyzing": "✨ AI îți analizează documentul...",
+    "thinkingAi": "✨ AI se gândește...",
+    "chatRoleUser": "Tu",
+    "chatRoleAssistant": "Asistent AI",
+    "copy": "Copie",
+    "copied": "Copiat",
+    "copyFailed": "Nu s-a putut copia în clipboard.",
+    "exportPdf": "Exportați PDF",
+    "exportFailed": "Exportul PDF nu a reușit.",
+    "chatContext": {
+      "label": "Profunzime chat",
+      "light": {
+        "title": "Aprinde"
+      },
+      "balanced": {
+        "title": "la mijloc"
+      },
+      "deep": {
+        "title": "Adânc"
+      }
+    },
+    "summaryDone": "Rezumatul este gata. Deschideți fila Rezumat pentru a o citi.",
+    "documentId": "ID document: {id}",
+    "previewPdf": "Previzualizare PDF",
+    "translateComingSoon": "Traducerea documentelor — în curând."
   },
   "inlineTools": {
     "compress": "Comprimă PDF",
@@ -182,9 +250,93 @@
     "merge": "Combină PDF",
     "split": "Divizează PDF",
     "dialogLabel": "Instrument spațiu de lucru",
-    "close": "Închide"
+    "close": "Închide",
+    "background-color": "Culoare de fundal"
   },
   "statusBar": {
     "aiAssistant": "Asistent AI"
+  },
+  "viewLayers": {
+    "title": "Vizualizați straturi",
+    "original": "PDF original",
+    "originalHint": "Bitmap paginii (pânză)",
+    "annotation": "Adnotări",
+    "annotationHint": "Evidențieri și comentarii PDF încorporate — redate de PDF.js",
+    "textLayer": "Stratul de text",
+    "textLayerHint": "Text selectabil pentru PDF-urile native",
+    "ocrLayer": "Stratul OCR",
+    "ocrLayerHint": "Text OCR pe PDF-urile scanate — dezactivați dacă este nealiniat"
+  },
+  "textStyle": {
+    "label": "Stilul textului",
+    "fontFamily": "Font",
+    "fontSize": "Dimensiune",
+    "color": "Culoare",
+    "clearConfirm": "Eliminați toate adnotările din acest document?"
+  },
+  "aiToolPage": {
+    "prepareHint": "Procesarea durează aproximativ 1-2 minute. Păstrați această filă deschisă.",
+    "selectFileFirst": "Alegeți mai întâi un fișier PDF."
+  },
+  "aiSummaryPage": {
+    "uploadTitle": "Încărcați PDF",
+    "uploadSubtitle": "AI citește, analizează și creează un rezumat structurat",
+    "uploadDropHint": "Trageți și plasați sau alegeți un fișier",
+    "uploadFormats": "Doar PDF · un singur fișier",
+    "modelLabel": "PDFCraft Document AI",
+    "generatedAt": "Creat la {time}",
+    "wordCount": "{count} cuvinte",
+    "downloadSummary": "Descărcați rezumatul",
+    "downloadFailed": "Nu s-a putut descărca fișierul rezumat.",
+    "restoredAt": "Restaurat de la {time}",
+    "restoredFileHint": "Rezumat salvat pentru „{name}”. Reselectați fișierul pentru a previzualiza PDF-ul."
+  },
+  "aiTranslatePage": {
+    "uploadTitle": "Încărcați PDF",
+    "uploadSubtitle": "Alegeți limbile și aspectul de ieșire pentru traducere",
+    "uploadDropHint": "Trageți și plasați sau alegeți un fișier",
+    "uploadFormats": "PDF · un singur fișier",
+    "fromLabel": "Din",
+    "toLabel": "La",
+    "swapLanguages": "Schimbați limbile",
+    "outputTitle": "Ieșire aspect PDF",
+    "keepLayoutTitle": "Păstrați aspectul",
+    "keepLayoutDesc": "Ieșirea păstrează aspectul original cât mai aproape posibil, inclusiv imagini și grafică.",
+    "textOnlyTitle": "Doar text",
+    "textOnlyDesc": "Ieșirea conține doar text și ierarhie - mai bine pentru copiere-lipire.",
+    "modelLabel": "Model",
+    "originalPdf": "PDF original",
+    "translatedPdf": "PDF tradus",
+    "downloadTranslated": "Descărcați PDF tradus",
+    "downloadText": "Descărcați .txt",
+    "translatedText": "Traducere",
+    "copyTranslated": "Copie",
+    "copied": "Copiat",
+    "exportPdf": "Descărcați PDF",
+    "exportPdfFailed": "Nu s-a putut crea PDF din traducere.",
+    "placeholder": "Selectați un fișier și faceți clic pe Traducere pentru a obține traducerea.",
+    "processingHint": "Traducerea poate dura 1-2 minute. Păstrați această filă deschisă."
+  },
+  "aiChatPage": {
+    "uploadSubtitle": "Încărcați o dată, pregătiți documentul, apoi întrebați orice",
+    "documentReady": "Document gata - adresați-vă întrebarea mai jos.",
+    "restoredFileHint": "Chat restabilit pentru „{name}”. Reselectați fișierul pentru a previzualiza PDF-ul."
+  },
+  "aiVoicePage": {
+    "uploadSubtitle": "Încărcați un PDF — textul este extras automat pentru citire cu voce tare din browser",
+    "documentReady": "Gata de citit cu voce tare — apăsați pe redare.",
+    "restoredFileHint": "Sesiunea de citire a fost restabilită pentru «{name}». Reselectați fișierul pentru a previzualiza PDF-ul.",
+    "listenTitle": "Citiți cu voce tare",
+    "readContentHint": "Apăsați pe redare pentru a asculta documentul.",
+    "fallbackReadHint": "Folosind text extras din PDF (AI nu a putut rezuma acest fișier).",
+    "prepareFailedTitle": "Nu s-a putut pregăti audio",
+    "prepareFailedHint": "Încercați un alt PDF sau rulați OCR dacă fișierul este doar scanat.",
+    "noExtractableText": "Niciun text nu a putut fi citit din acest PDF. Încercați OCR sau alt fișier."
+  },
+  "split": {
+    "openInWorkspace": "Deschideți în spațiul de lucru",
+    "downloadZip": "Descărcați totul ca ZIP",
+    "singleApplied": "Split complet — deschis în spațiul de lucru.",
+    "pickFileHint": "Alegeți o parte pentru a continua editarea sau descărcați totul ca ZIP."
   }
 }

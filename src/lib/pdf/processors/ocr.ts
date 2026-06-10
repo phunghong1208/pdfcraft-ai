@@ -18,7 +18,7 @@ import { loadPdfjs, loadPdfLib } from '../loader';
 /**
  * Supported OCR languages
  */
-export type OCRLanguage = 'eng' | 'chi_sim' | 'chi_tra' | 'jpn' | 'kor' | 'spa' | 'fra' | 'deu' | 'por' | 'ara';
+export type OCRLanguage = 'eng' | 'chi_sim' | 'chi_tra' | 'jpn' | 'kor' | 'spa' | 'fra' | 'deu' | 'por' | 'ara' | 'vie' | 'ita' | 'ind' | 'ron';
 
 /**
  * OCR options
@@ -61,6 +61,10 @@ export const OCR_LANGUAGE_NAMES: Record<OCRLanguage, string> = {
   deu: 'German',
   por: 'Portuguese',
   ara: 'Arabic',
+  vie: 'Vietnamese',
+  ita: 'Italian',
+  ind: 'Indonesian',
+  ron: 'Romanian',
 };
 
 // Tesseract worker type
@@ -317,7 +321,7 @@ export function createOCRProcessor(): OCRProcessor {
 }
 
 /**
- * Perform OCR on PDF (convenience function)
+ * Perform OCR on PDF — text extraction (client-side Tesseract)
  */
 export async function ocrPDF(
   file: File,
@@ -332,4 +336,91 @@ export async function ocrPDF(
     },
     onProgress
   );
+}
+
+export interface ServerOCROptions {
+  languages: OCRLanguage[];
+  deskew: boolean;
+  rotatePages: boolean;
+  removeBackground: boolean;
+  clean: boolean;
+  forceOcr: boolean;
+  optimize: number;
+}
+
+const DEFAULT_SERVER_OPTIONS: ServerOCROptions = {
+  languages: ['vie', 'eng'],
+  deskew: true,
+  rotatePages: true,
+  removeBackground: false,
+  clean: true,
+  forceOcr: false,
+  optimize: 1,
+};
+
+/**
+ * Searchable PDF via OCRmyPDF server
+ */
+export async function ocrSearchablePDF(
+  file: File,
+  options?: Partial<ServerOCROptions>,
+  onProgress?: ProgressCallback,
+): Promise<ProcessOutput> {
+  const opts = { ...DEFAULT_SERVER_OPTIONS, ...options };
+
+  onProgress?.(10, 'Uploading PDF to OCR server...');
+
+  const form = new FormData();
+  form.append('file', file);
+  form.append('languages', opts.languages.join('+'));
+  form.append('deskew', String(opts.deskew));
+  form.append('rotate_pages', String(opts.rotatePages));
+  form.append('remove_background', String(opts.removeBackground));
+  form.append('clean', String(opts.clean));
+  form.append('force_ocr', String(opts.forceOcr));
+  form.append('optimize', String(opts.optimize));
+
+  onProgress?.(20, 'Processing OCR...');
+
+  let res: Response;
+  try {
+    res = await fetch('/api/ocr', { method: 'POST', body: form });
+  } catch {
+    return {
+      success: false,
+      error: {
+        code: PDFErrorCode.PROCESSING_FAILED,
+        message: 'Cannot reach OCR server. Make sure the OCR service is running.',
+      },
+    };
+  }
+
+  if (!res.ok) {
+    let detail = 'OCR processing failed.';
+    try {
+      const json = await res.json();
+      detail = json.detail || detail;
+    } catch { /* ignore */ }
+    return {
+      success: false,
+      error: { code: PDFErrorCode.PROCESSING_FAILED, message: detail },
+    };
+  }
+
+  onProgress?.(90, 'Downloading result...');
+
+  const blob = await res.blob();
+  const baseName = file.name.replace(/\.pdf$/i, '');
+
+  onProgress?.(100, 'Complete!');
+
+  return {
+    success: true,
+    result: blob,
+    filename: `${baseName}_ocr.pdf`,
+    metadata: {
+      languages: opts.languages,
+      outputFormat: 'searchable-pdf',
+    },
+  };
 }

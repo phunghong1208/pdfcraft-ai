@@ -47,7 +47,9 @@
     "security": "セキュリティ",
     "redact": "墨消し",
     "permissions": "権限",
-    "aiTools": "AIツール"
+    "aiTools": "AIツール",
+    "file": "ファイル",
+    "document": "書類"
   },
   "tools": {
     "zoomIn": "拡大",
@@ -115,12 +117,24 @@
     "summarize": "要約",
     "translate": "翻訳",
     "smartOcr": "スマートOCR",
-    "open": "開く"
+    "open": "開く",
+    "zoom": "ズーム",
+    "fitWidth": "フィット幅",
+    "reorderPages": "ページの並べ替え",
+    "reverseOrder": "逆順",
+    "textComment": "テキストコメント",
+    "eSign": "電子サイン",
+    "clearComments": "コメントをクリアする",
+    "passwordProtect": "パスワード保護",
+    "editText": "テキストの編集",
+    "editImages": "画像の編集",
+    "addLink": "リンクを追加"
   },
   "sidebar": {
     "newPdf": "新規PDF",
     "hidePages": "ページを非表示",
-    "showThumbnails": "サムネイルを表示"
+    "showThumbnails": "サムネイルを表示",
+    "openPages": "ページパネルを開く"
   },
   "aiPanel": {
     "title": "AIアシスタント",
@@ -173,15 +187,69 @@
       "stop": "停止",
       "play": "読み上げ開始",
       "pause": "一時停止",
-      "resume": "再開"
-    }
+      "resume": "再開",
+      "subtitle": "内蔵のブラウザ音声でドキュメントを聞く",
+      "statusPlaying": "読む…",
+      "statusPaused": "一時停止中",
+      "nowReading": "プレイ中: {名前}",
+      "voiceLabel": "声",
+      "voiceLoading": "音声を読み込んでいます…",
+      "genderFemale": "女性",
+      "genderMale": "男",
+      "genderNeutral": "他の",
+      "noVoicesHint": "お使いのブラウザにはこの言語の音声がありません。 macOS の場合: システム設定 → アクセシビリティ → 音声コンテンツ → システム音声。",
+      "prepareTitle": "文書を読み取る準備ができていません",
+      "prepareHint": "最初に PDF を 1 回処理します (チャットを有効にするのと同じ) — 約 1 ～ 2 分。",
+      "prepareButton": "プロセス文書",
+      "unsupported": "このブラウザでは音声合成はサポートされていません。"
+    },
+    "newBadge": "新しい",
+    "indexing": "AI チャット用のドキュメントのインデックス作成中...",
+    "summarizing": "要約しています (1 ～ 2 分かかる場合があります。このタブを開いたままにしてください)...",
+    "indexError": "チャット用のドキュメントを準備できませんでした。",
+    "startSummaryForChat": "チャットを有効にするための要約",
+    "chatReady": "チャットの準備ができました — 質問を入力してください。",
+    "summaryMissingDocumentId": "サマリーは終了しましたが、サーバーが document_id を返しませんでした。チャットは利用できません。",
+    "chatReindexing": "チャット用にドキュメントを同期しています (要約の再実行)…",
+    "chatNoContext": "チャットはインデックス内にこのドキュメントを見つけることができませんでした。",
+    "chatNoContextHint": "[概要] タブでもう一度 [概要を生成] をタップし、完了するまで待ってから質問します。",
+    "chatError": "チャットリクエストが失敗しました。",
+    "summaryError": "サマリーリクエストが失敗しました。",
+    "noFile": "まず PDF をアップロードします。",
+    "noDocumentId": "ドキュメントはまだインデックス付けされていません。待つか、最初に「概要」を実行してください。",
+    "languageShort": "言語",
+    "analyzing": "✨ AI があなたの文書を分析しています…",
+    "thinkingAi": "✨AIは考えています…",
+    "chatRoleUser": "あなた",
+    "chatRoleAssistant": "AIアシスタント",
+    "copy": "コピー",
+    "copied": "コピーされました",
+    "copyFailed": "クリップボードにコピーできませんでした。",
+    "exportPdf": "PDFをエクスポート",
+    "exportFailed": "PDF のエクスポートに失敗しました。",
+    "chatContext": {
+      "label": "チャットの深さ",
+      "light": {
+        "title": "ライト"
+      },
+      "balanced": {
+        "title": "ミッド"
+      },
+      "deep": {
+        "title": "深い"
+      }
+    },
+    "summaryDone": "概要が準備できました。 [概要] タブを開いて読んでください。",
+    "documentId": "ドキュメント ID: {id}",
+    "previewPdf": "PDF プレビュー",
+    "translateComingSoon": "ドキュメント翻訳 — 近日公開予定。"
   },
   "aiSummaryPage": {
     "uploadTitle": "PDFをアップロード",
     "uploadSubtitle": "AIが読み取り、分析し、構造化された要約を作成します",
     "uploadDropHint": "ドラッグ＆ドロップ、またはファイルを選択",
     "uploadFormats": "PDFのみ · 1ファイル",
-    "modelLabel": "PDFCraft Document AI",
+    "modelLabel": "PDFクラフトドキュメントAI",
     "generatedAt": "作成 {time}",
     "wordCount": "{count} 語",
     "downloadSummary": "要約をダウンロード",
@@ -196,9 +264,80 @@
     "merge": "PDFを結合",
     "split": "PDFを分割",
     "dialogLabel": "ワークスペースツール",
-    "close": "閉じる"
+    "close": "閉じる",
+    "background-color": "背景色"
   },
   "statusBar": {
     "aiAssistant": "AIアシスタント"
+  },
+  "viewLayers": {
+    "title": "レイヤーを表示する",
+    "original": "オリジナルPDF",
+    "originalHint": "ページビットマップ(キャンバス)",
+    "annotation": "注釈",
+    "annotationHint": "組み込みの PDF ハイライトとコメント — PDF.js によってレンダリング",
+    "textLayer": "テキストレイヤー",
+    "textLayerHint": "ネイティブ PDF で選択可能なテキスト",
+    "ocrLayer": "OCR層",
+    "ocrLayerHint": "スキャンした PDF 上の OCR テキスト - 位置がずれている場合はオフにする"
+  },
+  "textStyle": {
+    "label": "テキストスタイル",
+    "fontFamily": "フォント",
+    "fontSize": "サイズ",
+    "color": "色",
+    "clearConfirm": "この文書のすべての注釈を削除しますか?"
+  },
+  "aiToolPage": {
+    "prepareHint": "処理には約 1 ～ 2 分かかります。このタブを開いたままにしてください。",
+    "selectFileFirst": "最初に PDF ファイルを選択します。"
+  },
+  "aiTranslatePage": {
+    "uploadTitle": "PDFをアップロードする",
+    "uploadSubtitle": "翻訳用の言語と出力レイアウトを選択します",
+    "uploadDropHint": "ドラッグ＆ドロップまたはファイルを選択",
+    "uploadFormats": "PDF・単一ファイル",
+    "fromLabel": "から",
+    "toLabel": "に",
+    "swapLanguages": "言語を交換する",
+    "outputTitle": "出力PDFレイアウト",
+    "keepLayoutTitle": "レイアウトを維持する",
+    "keepLayoutDesc": "出力では、画像やグラフィックスなど、元のレイアウトができるだけ維持されます。",
+    "textOnlyTitle": "テキストのみ",
+    "textOnlyDesc": "出力にはテキストと階層のみが含まれます。コピーアンドペーストに適しています。",
+    "modelLabel": "モデル",
+    "originalPdf": "オリジナルPDF",
+    "translatedPdf": "翻訳されたPDF",
+    "downloadTranslated": "翻訳された PDF をダウンロード",
+    "downloadText": ".txtをダウンロード",
+    "translatedText": "翻訳",
+    "copyTranslated": "コピー",
+    "copied": "コピーされました",
+    "exportPdf": "PDFをダウンロード",
+    "exportPdfFailed": "翻訳から PDF を作成できませんでした。",
+    "placeholder": "ファイルを選択し、「翻訳」をクリックして翻訳を取得します。",
+    "processingHint": "翻訳には 1 ～ 2 分かかる場合があります。このタブを開いたままにしてください。"
+  },
+  "aiChatPage": {
+    "uploadSubtitle": "一度アップロードして、書類を準備して、あとは何でも聞いてください",
+    "documentReady": "文書の準備ができました - 以下で質問してください。",
+    "restoredFileHint": "«{name}» のチャットが復元されました。ファイルを再選択して PDF をプレビューします。"
+  },
+  "aiVoicePage": {
+    "uploadSubtitle": "PDF をアップロードする — テキストはブラウザーで読み上げるために自動的に抽出されます",
+    "documentReady": "読み上げの準備ができました — 再生を押してください。",
+    "restoredFileHint": "«{name}» の読書セッションが復元されました。ファイルを再選択して PDF をプレビューします。",
+    "listenTitle": "声に出して読む",
+    "readContentHint": "再生を押してドキュメントを聞いてください。",
+    "fallbackReadHint": "PDF から抽出したテキストを使用します (AI はこのファイルを要約できませんでした)。",
+    "prepareFailedTitle": "音声を準備できませんでした",
+    "prepareFailedHint": "別の PDF を試すか、ファイルがスキャン専用の場合は OCR を実行します。",
+    "noExtractableText": "この PDF からはテキストを読み取ることができませんでした。 OCR または別のファイルを試してください。"
+  },
+  "split": {
+    "openInWorkspace": "ワークスペースで開く",
+    "downloadZip": "すべてZIPでダウンロード",
+    "singleApplied": "分割が完了しました — ワークスペースで開かれました。",
+    "pickFileHint": "編集を続ける部分を選択するか、すべてを ZIP としてダウンロードします。"
   }
 }

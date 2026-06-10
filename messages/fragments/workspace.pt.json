@@ -47,7 +47,9 @@
     "security": "Segurança",
     "redact": "Redigir",
     "permissions": "Permissões",
-    "aiTools": "Ferramentas de IA"
+    "aiTools": "Ferramentas de IA",
+    "file": "Arquivo",
+    "document": "Documento"
   },
   "tools": {
     "zoomIn": "Ampliar",
@@ -115,17 +117,29 @@
     "summarize": "Resumir",
     "translate": "Traduzir",
     "smartOcr": "OCR inteligente",
-    "open": "Abrir"
+    "open": "Abrir",
+    "zoom": "Zoom",
+    "fitWidth": "Ajustar largura",
+    "reorderPages": "Reordenar páginas",
+    "reverseOrder": "Ordem inversa",
+    "textComment": "Comentário de texto",
+    "eSign": "Assinatura eletrônica",
+    "clearComments": "Limpar comentários",
+    "passwordProtect": "Proteção por senha",
+    "editText": "Editar texto",
+    "editImages": "Editar imagens",
+    "addLink": "Adicionar link"
   },
   "sidebar": {
     "newPdf": "Novo PDF",
     "hidePages": "Ocultar páginas",
-    "showThumbnails": "Mostrar miniaturas"
+    "showThumbnails": "Mostrar miniaturas",
+    "openPages": "Painel de páginas abertas"
   },
   "aiPanel": {
     "title": "Assistente de IA",
     "tabs": {
-      "chat": "Chat",
+      "chat": "Bater papo",
       "summary": "Resumo",
       "translate": "Traduzir",
       "voice": "Insights"
@@ -173,8 +187,62 @@
       "stop": "Parar",
       "play": "Iniciar leitura",
       "pause": "Pausar",
-      "resume": "Retomar"
-    }
+      "resume": "Retomar",
+      "subtitle": "Ouça seu documento com a fala integrada do navegador",
+      "statusPlaying": "Leitura…",
+      "statusPaused": "Pausado",
+      "nowReading": "Jogando: {nome}",
+      "voiceLabel": "Voz",
+      "voiceLoading": "Carregando vozes…",
+      "genderFemale": "Fêmea",
+      "genderMale": "Macho",
+      "genderNeutral": "Outro",
+      "noVoicesHint": "Não há voz para este idioma no seu navegador. No macOS: Configurações do sistema → Acessibilidade → Conteúdo falado → Voz do sistema.",
+      "prepareTitle": "Documento não pronto para leitura",
+      "prepareHint": "Processe o PDF primeiro uma vez (o mesmo que ativar o bate-papo) — cerca de 1–2 minutos.",
+      "prepareButton": "Documento de processo",
+      "unsupported": "A síntese de fala não é compatível com este navegador."
+    },
+    "newBadge": "Novo",
+    "indexing": "Documento de indexação para chat de IA...",
+    "summarizing": "Resumindo (pode levar de 1 a 2 minutos, mantenha esta aba aberta)...",
+    "indexError": "Não foi possível preparar o documento para bate-papo.",
+    "startSummaryForChat": "Resumir para ativar o bate-papo",
+    "chatReady": "O bate-papo está pronto – digite sua pergunta.",
+    "summaryMissingDocumentId": "O resumo foi concluído, mas o servidor não retornou document_id — o chat está indisponível.",
+    "chatReindexing": "Sincronizando documento para bate-papo (reexecutando resumo)…",
+    "chatNoContext": "O Chat não conseguiu encontrar este documento no índice.",
+    "chatNoContextHint": "Toque em “Gerar resumo” novamente na guia Resumo, espere até terminar e faça sua pergunta.",
+    "chatError": "Falha na solicitação de bate-papo.",
+    "summaryError": "Falha na solicitação de resumo.",
+    "noFile": "Carregue um PDF primeiro.",
+    "noDocumentId": "O documento ainda não está indexado. Aguarde ou execute o Resumo primeiro.",
+    "languageShort": "Linguagem",
+    "analyzing": "✨ AI está analisando seu documento…",
+    "thinkingAi": "✨ IA está pensando…",
+    "chatRoleUser": "Você",
+    "chatRoleAssistant": "Assistente de IA",
+    "copy": "Cópia",
+    "copied": "Copiado",
+    "copyFailed": "Não foi possível copiar para a área de transferência.",
+    "exportPdf": "Exportar PDF",
+    "exportFailed": "Falha na exportação de PDF.",
+    "chatContext": {
+      "label": "Profundidade do bate-papo",
+      "light": {
+        "title": "Luz"
+      },
+      "balanced": {
+        "title": "Meio"
+      },
+      "deep": {
+        "title": "Profundo"
+      }
+    },
+    "summaryDone": "O resumo está pronto. Abra a guia Resumo para lê-lo.",
+    "documentId": "ID do documento: {id}",
+    "previewPdf": "Visualização de PDF",
+    "translateComingSoon": "Tradução de documentos — em breve."
   },
   "inlineTools": {
     "compress": "Comprimir PDF",
@@ -182,9 +250,93 @@
     "merge": "Unir PDF",
     "split": "Dividir PDF",
     "dialogLabel": "Ferramenta da área de trabalho",
-    "close": "Fechar"
+    "close": "Fechar",
+    "background-color": "Cor de fundo"
   },
   "statusBar": {
     "aiAssistant": "Assistente de IA"
+  },
+  "viewLayers": {
+    "title": "Ver camadas",
+    "original": "PDF original",
+    "originalHint": "Bitmap da página (tela)",
+    "annotation": "Anotações",
+    "annotationHint": "Destaques e comentários de PDF integrados — renderizados por PDF.js",
+    "textLayer": "Camada de texto",
+    "textLayerHint": "Texto selecionável para PDFs nativos",
+    "ocrLayer": "Camada de OCR",
+    "ocrLayerHint": "OCR de texto em PDFs digitalizados – desative se estiver desalinhado"
+  },
+  "textStyle": {
+    "label": "Estilo de texto",
+    "fontFamily": "Fonte",
+    "fontSize": "Tamanho",
+    "color": "Cor",
+    "clearConfirm": "Remover todas as anotações deste documento?"
+  },
+  "aiToolPage": {
+    "prepareHint": "O processamento leva cerca de 1–2 minutos. Mantenha esta aba aberta.",
+    "selectFileFirst": "Escolha um arquivo PDF primeiro."
+  },
+  "aiSummaryPage": {
+    "uploadTitle": "Carregar PDF",
+    "uploadSubtitle": "A IA lê, analisa e cria um resumo estruturado",
+    "uploadDropHint": "Arraste e solte ou escolha um arquivo",
+    "uploadFormats": "Somente PDF · um arquivo",
+    "modelLabel": "PDFCraft Documento AI",
+    "generatedAt": "Criado às {hora}",
+    "wordCount": "{contar} palavras",
+    "downloadSummary": "Baixar resumo",
+    "downloadFailed": "Não foi possível baixar o arquivo de resumo.",
+    "restoredAt": "Restaurado de {time}",
+    "restoredFileHint": "Resumo salvo para «{name}». Selecione novamente o arquivo para visualizar o PDF."
+  },
+  "aiTranslatePage": {
+    "uploadTitle": "Carregar PDF",
+    "uploadSubtitle": "Escolha os idiomas e o layout de saída para tradução",
+    "uploadDropHint": "Arraste e solte ou escolha um arquivo",
+    "uploadFormats": "PDF · arquivo único",
+    "fromLabel": "De",
+    "toLabel": "Para",
+    "swapLanguages": "Trocar idiomas",
+    "outputTitle": "Layout de PDF de saída",
+    "keepLayoutTitle": "Manter layout",
+    "keepLayoutDesc": "A saída mantém o layout original o mais próximo possível, incluindo imagens e gráficos.",
+    "textOnlyTitle": "Somente texto",
+    "textOnlyDesc": "A saída contém apenas texto e hierarquia – melhor para copiar e colar.",
+    "modelLabel": "Modelo",
+    "originalPdf": "PDF original",
+    "translatedPdf": "PDF traduzido",
+    "downloadTranslated": "Baixar PDF traduzido",
+    "downloadText": "Baixar .txt",
+    "translatedText": "Tradução",
+    "copyTranslated": "Cópia",
+    "copied": "Copiado",
+    "exportPdf": "Baixar PDF",
+    "exportPdfFailed": "Não foi possível criar o PDF a partir da tradução.",
+    "placeholder": "Selecione um arquivo e clique em Traduzir para obter a tradução.",
+    "processingHint": "A tradução pode levar de 1 a 2 minutos. Mantenha esta aba aberta."
+  },
+  "aiChatPage": {
+    "uploadSubtitle": "Faça upload uma vez, prepare o documento e pergunte qualquer coisa",
+    "documentReady": "Documento pronto – faça sua pergunta abaixo.",
+    "restoredFileHint": "Bate-papo restaurado para «{name}». Selecione novamente o arquivo para visualizar o PDF."
+  },
+  "aiVoicePage": {
+    "uploadSubtitle": "Carregue um PDF — o texto é extraído automaticamente para leitura em voz alta no navegador",
+    "documentReady": "Pronto para ler em voz alta – pressione play.",
+    "restoredFileHint": "Sessão de leitura restaurada para «{name}». Selecione novamente o arquivo para visualizar o PDF.",
+    "listenTitle": "Ler em voz alta",
+    "readContentHint": "Pressione play para ouvir o documento.",
+    "fallbackReadHint": "Usando texto extraído do PDF (AI não conseguiu resumir este arquivo).",
+    "prepareFailedTitle": "Não foi possível preparar o áudio",
+    "prepareFailedHint": "Tente outro PDF ou execute o OCR se o arquivo for somente digitalizado.",
+    "noExtractableText": "Nenhum texto pôde ser lido deste PDF. Experimente o OCR ou outro arquivo."
+  },
+  "split": {
+    "openInWorkspace": "Abrir no espaço de trabalho",
+    "downloadZip": "Baixe tudo como ZIP",
+    "singleApplied": "Divisão concluída — aberta na área de trabalho.",
+    "pickFileHint": "Escolha uma parte para continuar editando ou baixe tudo como ZIP."
   }
 }

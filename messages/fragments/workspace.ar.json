@@ -47,14 +47,16 @@
     "security": "أمان",
     "redact": "إخفاء",
     "permissions": "أذونات",
-    "aiTools": "أدوات الذكاء الاصطناعي"
+    "aiTools": "أدوات الذكاء الاصطناعي",
+    "file": "ملف",
+    "document": "وثيقة"
   },
   "tools": {
     "zoomIn": "تكبير",
     "zoomOut": "تصغير",
     "fitPage": "ملاءمة الصفحة",
     "compress": "ضغط",
-    "ocr": "OCR",
+    "ocr": "التعرف الضوئي على الحروف",
     "merge": "دمج",
     "split": "تقسيم",
     "print": "طباعة",
@@ -115,12 +117,24 @@
     "summarize": "تلخيص",
     "translate": "ترجمة",
     "smartOcr": "OCR ذكي",
-    "open": "فتح"
+    "open": "فتح",
+    "zoom": "تكبير",
+    "fitWidth": "عرض مناسب",
+    "reorderPages": "إعادة ترتيب الصفحات",
+    "reverseOrder": "ترتيب عكسي",
+    "textComment": "تعليق نصي",
+    "eSign": "التوقيع الإلكتروني",
+    "clearComments": "مسح التعليقات",
+    "passwordProtect": "حماية كلمة المرور",
+    "editText": "تحرير النص",
+    "editImages": "تحرير الصور",
+    "addLink": "إضافة رابط"
   },
   "sidebar": {
     "newPdf": "PDF جديد",
     "hidePages": "إخفاء الصفحات",
-    "showThumbnails": "عرض الصور المصغرة"
+    "showThumbnails": "عرض الصور المصغرة",
+    "openPages": "لوحة الصفحات المفتوحة"
   },
   "aiPanel": {
     "title": "مساعد الذكاء الاصطناعي",
@@ -137,7 +151,7 @@
       "summarize": "تلخيص",
       "translate": "ترجمة",
       "extractTables": "استخراج الجداول",
-      "ocr": "OCR"
+      "ocr": "التعرف الضوئي على الحروف"
     },
     "thinking": "جارٍ التفكير...",
     "placeholder": "اسأل عن هذا المستند...",
@@ -173,8 +187,62 @@
       "stop": "إيقاف",
       "play": "بدء القراءة",
       "pause": "إيقاف مؤقت",
-      "resume": "استئناف"
-    }
+      "resume": "استئناف",
+      "subtitle": "استمع إلى المستند الخاص بك باستخدام كلام المتصفح المدمج",
+      "statusPlaying": "قراءة…",
+      "statusPaused": "متوقف مؤقتًا",
+      "nowReading": "اللعب: {الاسم}",
+      "voiceLabel": "صوت",
+      "voiceLoading": "جارٍ تحميل الأصوات...",
+      "genderFemale": "أنثى",
+      "genderMale": "ذكر",
+      "genderNeutral": "آخر",
+      "noVoicesHint": "لا يوجد صوت لهذه اللغة في متصفحك. على نظام التشغيل macOS: إعدادات النظام ← إمكانية الوصول ← المحتوى المنطوق ← صوت النظام.",
+      "prepareTitle": "المستند غير جاهز للقراءة",
+      "prepareHint": "قم بمعالجة ملف PDF مرة واحدة أولاً (مثل تمكين الدردشة) - حوالي 1-2 دقيقة.",
+      "prepareButton": "وثيقة العملية",
+      "unsupported": "تركيب الكلام غير مدعوم في هذا المتصفح."
+    },
+    "newBadge": "جديد",
+    "indexing": "وثيقة فهرسة للدردشة AI...",
+    "summarizing": "التلخيص (قد يستغرق من دقيقة إلى دقيقتين، أبقِ علامة التبويب هذه مفتوحة)...",
+    "indexError": "تعذر إعداد المستند للدردشة.",
+    "startSummaryForChat": "تلخيص لتمكين الدردشة",
+    "chatReady": "الدردشة جاهزة – اكتب سؤالك.",
+    "summaryMissingDocumentId": "انتهى الملخص ولكن الخادم لم يُرجع document_id — الدردشة غير متاحة.",
+    "chatReindexing": "جارٍ مزامنة المستند للدردشة (إعادة تشغيل الملخص)...",
+    "chatNoContext": "تعذر على الدردشة العثور على هذا المستند في الفهرس.",
+    "chatNoContextHint": "اضغط على \"إنشاء ملخص\" مرة أخرى في علامة التبويب \"الملخص\"، وانتظر حتى ينتهي، ثم اطرح سؤالك.",
+    "chatError": "فشل طلب الدردشة.",
+    "summaryError": "فشل طلب الملخص.",
+    "noFile": "قم بتحميل ملف PDF أولاً.",
+    "noDocumentId": "لم تتم فهرسة الوثيقة بعد. انتظر أو قم بتشغيل الملخص أولاً.",
+    "languageShort": "لغة",
+    "analyzing": "✨ يقوم الذكاء الاصطناعي بتحليل وثيقتك...",
+    "thinkingAi": "✨ الذكاء الاصطناعي يفكر...",
+    "chatRoleUser": "أنت",
+    "chatRoleAssistant": "مساعد الذكاء الاصطناعي",
+    "copy": "ينسخ",
+    "copied": "منقول",
+    "copyFailed": "تعذر النسخ إلى الحافظة.",
+    "exportPdf": "تصدير قوات الدفاع الشعبي",
+    "exportFailed": "فشل تصدير PDF.",
+    "chatContext": {
+      "label": "عمق الدردشة",
+      "light": {
+        "title": "ضوء"
+      },
+      "balanced": {
+        "title": "منتصف"
+      },
+      "deep": {
+        "title": "عميق"
+      }
+    },
+    "summaryDone": "الملخص جاهز. افتح علامة التبويب \"الملخص\" لقراءتها.",
+    "documentId": "معرف المستند: {id}",
+    "previewPdf": "معاينة قوات الدفاع الشعبي",
+    "translateComingSoon": "ترجمة المستندات – قريباً."
   },
   "inlineTools": {
     "compress": "ضغط PDF",
@@ -182,9 +250,93 @@
     "merge": "دمج PDF",
     "split": "تقسيم PDF",
     "dialogLabel": "أداة مساحة العمل",
-    "close": "إغلاق"
+    "close": "إغلاق",
+    "background-color": "لون الخلفية"
   },
   "statusBar": {
     "aiAssistant": "مساعد الذكاء الاصطناعي"
+  },
+  "viewLayers": {
+    "title": "عرض الطبقات",
+    "original": "قوات الدفاع الشعبي الأصلية",
+    "originalHint": "الصورة النقطية للصفحة (قماش)",
+    "annotation": "الشروح",
+    "annotationHint": "ميزات وتعليقات PDF المضمنة - المقدمة بواسطة PDF.js",
+    "textLayer": "طبقة النص",
+    "textLayerHint": "نص قابل للتحديد لملفات PDF الأصلية",
+    "ocrLayer": "طبقة التعرف الضوئي على الحروف",
+    "ocrLayerHint": "نص التعرف الضوئي على الحروف (OCR) على ملفات PDF الممسوحة ضوئيًا — قم بإيقاف تشغيله إذا تمت محاذاته بشكل غير صحيح"
+  },
+  "textStyle": {
+    "label": "نمط النص",
+    "fontFamily": "الخط",
+    "fontSize": "مقاس",
+    "color": "لون",
+    "clearConfirm": "هل تريد إزالة جميع التعليقات التوضيحية في هذا المستند؟"
+  },
+  "aiToolPage": {
+    "prepareHint": "تستغرق المعالجة حوالي 1-2 دقيقة. أبقِ علامة التبويب هذه مفتوحة.",
+    "selectFileFirst": "اختر ملف PDF أولاً."
+  },
+  "aiSummaryPage": {
+    "uploadTitle": "تحميل PDF",
+    "uploadSubtitle": "يقوم الذكاء الاصطناعي بقراءة وتحليل وإنشاء ملخص منظم",
+    "uploadDropHint": "قم بسحب وإفلات أو اختيار ملف",
+    "uploadFormats": "PDF فقط · ملف واحد",
+    "modelLabel": "مستند PDFCraft AI",
+    "generatedAt": "تم الإنشاء في {الوقت}",
+    "wordCount": "{عد} كلمة",
+    "downloadSummary": "تحميل ملخص",
+    "downloadFailed": "تعذر تنزيل ملف الملخص.",
+    "restoredAt": "تمت الاستعادة من {time}",
+    "restoredFileHint": "تم حفظ الملخص لـ «{name}». أعد تحديد الملف لمعاينة ملف PDF."
+  },
+  "aiTranslatePage": {
+    "uploadTitle": "تحميل PDF",
+    "uploadSubtitle": "اختر اللغات وتخطيط الإخراج للترجمة",
+    "uploadDropHint": "قم بسحب وإفلات أو اختيار ملف",
+    "uploadFormats": "PDF · ملف واحد",
+    "fromLabel": "من",
+    "toLabel": "ل",
+    "swapLanguages": "تبادل اللغات",
+    "outputTitle": "تخطيط إخراج PDF",
+    "keepLayoutTitle": "الحفاظ على التخطيط",
+    "keepLayoutDesc": "يحافظ الإخراج على التخطيط الأصلي قدر الإمكان، بما في ذلك الصور والرسومات.",
+    "textOnlyTitle": "النص فقط",
+    "textOnlyDesc": "يحتوي الإخراج على نص وتسلسل هرمي فقط، وهو أفضل للنسخ واللصق.",
+    "modelLabel": "نموذج",
+    "originalPdf": "قوات الدفاع الشعبي الأصلية",
+    "translatedPdf": "PDF مترجم",
+    "downloadTranslated": "تحميل ملف PDF مترجم",
+    "downloadText": "تحميل .txt",
+    "translatedText": "ترجمة",
+    "copyTranslated": "ينسخ",
+    "copied": "منقول",
+    "exportPdf": "تحميل قوات الدفاع الشعبي",
+    "exportPdfFailed": "لا يمكن إنشاء PDF من الترجمة.",
+    "placeholder": "حدد ملفًا وانقر فوق \"ترجمة\" للحصول على الترجمة.",
+    "processingHint": "قد تستغرق الترجمة من دقيقة إلى دقيقتين. أبقِ علامة التبويب هذه مفتوحة."
+  },
+  "aiChatPage": {
+    "uploadSubtitle": "قم بالتحميل مرة واحدة، وقم بإعداد المستند، ثم اسأل أي شيء",
+    "documentReady": "المستند جاهز - اطرح سؤالك أدناه.",
+    "restoredFileHint": "تمت استعادة الدردشة لـ «{name}». أعد تحديد الملف لمعاينة ملف PDF."
+  },
+  "aiVoicePage": {
+    "uploadSubtitle": "تحميل ملف PDF — يتم استخراج النص تلقائيًا ليتمكن المتصفح من القراءة بصوت عالٍ",
+    "documentReady": "جاهز للقراءة بصوت عالٍ - اضغط على تشغيل.",
+    "restoredFileHint": "تمت استعادة جلسة القراءة لـ «{name}». أعد تحديد الملف لمعاينة ملف PDF.",
+    "listenTitle": "اقرأ بصوت عالٍ",
+    "readContentHint": "اضغط على تشغيل للاستماع إلى المستند.",
+    "fallbackReadHint": "استخدام النص المستخرج من ملف PDF (تعذر على منظمة العفو الدولية تلخيص هذا الملف).",
+    "prepareFailedTitle": "تعذر تحضير الصوت",
+    "prepareFailedHint": "جرب ملف PDF آخر أو قم بتشغيل OCR إذا كان الملف للمسح الضوئي فقط.",
+    "noExtractableText": "لا يمكن قراءة أي نص من ملف PDF هذا. حاول التعرف الضوئي على الحروف أو ملف آخر."
+  },
+  "split": {
+    "openInWorkspace": "فتح في مساحة العمل",
+    "downloadZip": "قم بتنزيل الكل بصيغة ZIP",
+    "singleApplied": "اكتمل التقسيم — تم فتحه في مساحة العمل.",
+    "pickFileHint": "اختر جزءًا لمواصلة التحرير، أو قم بتنزيل الكل بصيغة ZIP."
   }
 }

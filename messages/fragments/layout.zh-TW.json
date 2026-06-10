@@ -122,6 +122,7 @@
       "trusted": "數百萬人信賴"
     },
     "aiDescriptions": {
+      "summarize": "從任何 PDF 擷取關鍵重點。",
       "translate": "將整份文件翻譯成其他語言。",
       "voice": "立即將 PDF 轉換為自然語音。",
       "ocr": "將掃描件轉換為可編輯的 PDF。",

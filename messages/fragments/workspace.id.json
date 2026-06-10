@@ -7,7 +7,7 @@
   },
   "tabs": {
     "home": "Beranda",
-    "edit": "Edit",
+    "edit": "Sunting",
     "page": "Halaman",
     "comment": "Komentar",
     "convert": "Konversi",
@@ -40,14 +40,16 @@
     "export": "Ekspor",
     "import": "Impor",
     "extract": "Ekstrak",
-    "watermark": "Watermark",
+    "watermark": "Tanda air",
     "advanced": "Lanjutan",
     "fill": "Isi",
     "sign": "Tanda tangan",
     "security": "Keamanan",
     "redact": "Sensor",
     "permissions": "Izin",
-    "aiTools": "Alat AI"
+    "aiTools": "Alat AI",
+    "file": "Mengajukan",
+    "document": "Dokumen"
   },
   "tools": {
     "zoomIn": "Perbesar",
@@ -66,8 +68,8 @@
     "rotate": "Putar",
     "addPage": "Tambah Halaman",
     "deletePage": "Hapus Halaman",
-    "watermark": "Watermark",
-    "headerFooter": "Header/Footer",
+    "watermark": "Tanda air",
+    "headerFooter": "Tajuk/Footer",
     "pageNumbers": "Nomor Halaman",
     "background": "Latar",
     "delete": "Hapus",
@@ -115,12 +117,24 @@
     "summarize": "Ringkas",
     "translate": "Terjemahkan",
     "smartOcr": "OCR Cerdas",
-    "open": "Buka"
+    "open": "Buka",
+    "zoom": "Perbesar",
+    "fitWidth": "Lebar Pas",
+    "reorderPages": "Susun Ulang Halaman",
+    "reverseOrder": "Urutan Terbalik",
+    "textComment": "Komentar Teks",
+    "eSign": "Tanda Tangan Elektronik",
+    "clearComments": "Hapus Komentar",
+    "passwordProtect": "Perlindungan Kata Sandi",
+    "editText": "Sunting Teks",
+    "editImages": "Sunting Gambar",
+    "addLink": "Tambahkan Tautan"
   },
   "sidebar": {
     "newPdf": "PDF Baru",
     "hidePages": "Sembunyikan halaman",
-    "showThumbnails": "Tampilkan thumbnail"
+    "showThumbnails": "Tampilkan thumbnail",
+    "openPages": "Buka panel halaman"
   },
   "aiPanel": {
     "title": "Asisten AI",
@@ -173,18 +187,155 @@
       "stop": "Berhenti",
       "play": "Mulai baca",
       "pause": "Jeda",
-      "resume": "Lanjutkan"
-    }
+      "resume": "Lanjutkan",
+      "subtitle": "Dengarkan dokumen Anda dengan ucapan browser bawaan",
+      "statusPlaying": "Membaca…",
+      "statusPaused": "Dijeda",
+      "nowReading": "Memutar: {nama}",
+      "voiceLabel": "Suara",
+      "voiceLoading": "Memuat suara…",
+      "genderFemale": "Perempuan",
+      "genderMale": "Pria",
+      "genderNeutral": "Lainnya",
+      "noVoicesHint": "Tidak ada suara untuk bahasa ini di browser Anda. Di macOS: Pengaturan Sistem → Aksesibilitas → Konten Lisan → Suara Sistem.",
+      "prepareTitle": "Dokumen belum siap untuk dibaca",
+      "prepareHint": "Proses PDF terlebih dahulu (sama seperti mengaktifkan obrolan) — sekitar 1–2 menit.",
+      "prepareButton": "Dokumen proses",
+      "unsupported": "Sintesis ucapan tidak didukung di browser ini."
+    },
+    "newBadge": "Baru",
+    "summarizing": "Meringkas (mungkin memerlukan waktu 1–2 menit, biarkan tab ini tetap terbuka)...",
+    "indexError": "Tidak dapat menyiapkan dokumen untuk obrolan.",
+    "startSummaryForChat": "Ringkas untuk mengaktifkan obrolan",
+    "chatReady": "Obrolan sudah siap — ketik pertanyaan Anda.",
+    "summaryMissingDocumentId": "Ringkasan selesai tetapi server tidak mengembalikan document_id — obrolan tidak tersedia.",
+    "chatReindexing": "Menyinkronkan dokumen untuk obrolan (menjalankan kembali ringkasan)…",
+    "chatNoContext": "Obrolan tidak dapat menemukan dokumen ini di indeks.",
+    "chatNoContextHint": "Ketuk lagi “Buat ringkasan” pada tab Ringkasan, tunggu hingga selesai, lalu ajukan pertanyaan Anda.",
+    "chatError": "Permintaan obrolan gagal.",
+    "summaryError": "Permintaan ringkasan gagal.",
+    "noFile": "Unggah PDF terlebih dahulu.",
+    "noDocumentId": "Dokumen belum diindeks. Tunggu atau jalankan Ringkasan terlebih dahulu.",
+    "languageShort": "Bahasa",
+    "analyzing": "✨ AI sedang menganalisis dokumen Anda…",
+    "thinkingAi": "✨ AI sedang berpikir…",
+    "chatRoleUser": "Anda",
+    "chatRoleAssistant": "Asisten AI",
+    "copy": "Menyalin",
+    "copied": "Disalin",
+    "copyFailed": "Tidak dapat menyalin ke papan klip.",
+    "exportPdf": "Ekspor PDF",
+    "exportFailed": "Ekspor PDF gagal.",
+    "chatContext": {
+      "label": "Kedalaman obrolan",
+      "light": {
+        "title": "Lampu"
+      },
+      "balanced": {
+        "title": "Pertengahan"
+      },
+      "deep": {
+        "title": "Dalam"
+      }
+    },
+    "summaryDone": "Ringkasan sudah siap. Buka tab Ringkasan untuk membacanya.",
+    "documentId": "ID Dokumen: {id}",
+    "previewPdf": "Pratinjau PDF",
+    "translateComingSoon": "Terjemahan dokumen — segera hadir."
   },
   "inlineTools": {
     "compress": "Kompres PDF",
-    "ocr": "OCR PDF",
+    "ocr": "PDF OCR",
     "merge": "Gabung PDF",
     "split": "Pisah PDF",
     "dialogLabel": "Alat ruang kerja",
-    "close": "Tutup"
+    "close": "Tutup",
+    "background-color": "Warna latar belakang"
   },
   "statusBar": {
     "aiAssistant": "Asisten AI"
+  },
+  "viewLayers": {
+    "title": "Lihat lapisan",
+    "original": "PDF asli",
+    "originalHint": "Bitmap halaman (kanvas)",
+    "annotation": "Anotasi",
+    "annotationHint": "Sorotan dan komentar PDF bawaan — dirender oleh PDF.js",
+    "textLayer": "Lapisan teks",
+    "textLayerHint": "Teks yang dapat dipilih untuk PDF asli",
+    "ocrLayer": "lapisan OCR",
+    "ocrLayerHint": "Teks OCR pada PDF yang dipindai — matikan jika tidak sejajar"
+  },
+  "textStyle": {
+    "label": "Gaya teks",
+    "fontFamily": "huruf",
+    "fontSize": "Ukuran",
+    "color": "Warna",
+    "clearConfirm": "Hapus semua anotasi pada dokumen ini?"
+  },
+  "aiToolPage": {
+    "prepareHint": "Pemrosesan memakan waktu sekitar 1–2 menit. Biarkan tab ini tetap terbuka.",
+    "selectFileFirst": "Pilih file PDF terlebih dahulu."
+  },
+  "aiSummaryPage": {
+    "uploadTitle": "Unggah PDF",
+    "uploadSubtitle": "AI membaca, menganalisis, dan membuat ringkasan terstruktur",
+    "uploadDropHint": "Seret & lepas atau pilih file",
+    "uploadFormats": "Hanya PDF · satu file",
+    "modelLabel": "Dokumen PDFCraft AI",
+    "generatedAt": "Dibuat pada {time}",
+    "wordCount": "{hitung} kata",
+    "downloadSummary": "Unduh ringkasan",
+    "downloadFailed": "Tidak dapat mengunduh file ringkasan.",
+    "restoredAt": "Dipulihkan dari {time}",
+    "restoredFileHint": "Ringkasan disimpan untuk «{name}». Pilih kembali file untuk melihat pratinjau PDF."
+  },
+  "aiTranslatePage": {
+    "uploadTitle": "Unggah PDF",
+    "uploadSubtitle": "Pilih bahasa dan tata letak keluaran untuk terjemahan",
+    "uploadDropHint": "Seret & lepas atau pilih file",
+    "uploadFormats": "PDF · file tunggal",
+    "fromLabel": "Dari",
+    "toLabel": "Ke",
+    "swapLanguages": "Tukar bahasa",
+    "outputTitle": "Keluaran tata letak PDF",
+    "keepLayoutTitle": "Pertahankan tata letak",
+    "keepLayoutDesc": "Output menjaga tata letak aslinya semirip mungkin, termasuk gambar dan grafik.",
+    "textOnlyTitle": "Hanya teks",
+    "textOnlyDesc": "Output hanya berisi teks dan hierarki — lebih baik untuk salin-tempel.",
+    "modelLabel": "Model",
+    "originalPdf": "PDF asli",
+    "translatedPdf": "PDF yang diterjemahkan",
+    "downloadTranslated": "Unduh PDF yang diterjemahkan",
+    "downloadText": "Unduh .txt",
+    "translatedText": "Terjemahan",
+    "copyTranslated": "Menyalin",
+    "copied": "Disalin",
+    "exportPdf": "Unduh PDF",
+    "exportPdfFailed": "Tidak dapat membuat PDF dari terjemahan.",
+    "placeholder": "Pilih file dan klik Terjemahkan untuk mendapatkan terjemahannya.",
+    "processingHint": "Terjemahan mungkin memerlukan waktu 1–2 menit. Biarkan tab ini tetap terbuka."
+  },
+  "aiChatPage": {
+    "uploadSubtitle": "Upload sekali, siapkan dokumennya, lalu tanyakan apa saja",
+    "documentReady": "Dokumen sudah siap — ajukan pertanyaan Anda di bawah.",
+    "restoredFileHint": "Obrolan dipulihkan untuk «{name}». Pilih kembali file untuk melihat pratinjau PDF."
+  },
+  "aiVoicePage": {
+    "uploadSubtitle": "Unggah PDF — teks diekstraksi secara otomatis untuk dibaca oleh browser",
+    "documentReady": "Siap membaca dengan lantang — tekan putar.",
+    "restoredFileHint": "Sesi membaca dipulihkan untuk «{name}». Pilih kembali file untuk melihat pratinjau PDF.",
+    "listenTitle": "Membacakan",
+    "readContentHint": "Tekan putar untuk mendengarkan dokumen.",
+    "fallbackReadHint": "Menggunakan teks yang diekstraksi dari PDF (AI tidak dapat meringkas file ini).",
+    "prepareFailedTitle": "Tidak dapat menyiapkan audio",
+    "prepareFailedHint": "Coba PDF lain atau jalankan OCR jika file hanya dapat dipindai.",
+    "noExtractableText": "Tidak ada teks yang dapat dibaca dari PDF ini. Coba OCR atau file lain."
+  },
+  "split": {
+    "openInWorkspace": "Buka di ruang kerja",
+    "downloadZip": "Unduh semuanya sebagai ZIP",
+    "singleApplied": "Pemisahan selesai — dibuka di ruang kerja.",
+    "pickFileHint": "Pilih bagian untuk melanjutkan pengeditan, atau unduh semuanya sebagai ZIP."
   }
 }

@@ -68,8 +68,31 @@ export async function chatWithPdf(file: File) {
   return postPdfFile<{ answer: string; context?: string[] }>('/pdf/chat', file);
 }
 
-export async function smartOcrPdf(file: File) {
-  return postPdfFile<{ text: string; markdown?: string; outputFileUrl?: string }>('/pdf/smart-ocr', file);
+export async function smartOcrPdf(file: File): Promise<{ blob: Blob; fileName: string }> {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('languages', 'vie+eng');
+  form.append('deskew', 'true');
+  form.append('rotate_pages', 'true');
+  form.append('remove_background', 'false');
+  form.append('clean', 'true');
+  form.append('force_ocr', 'false');
+  form.append('optimize', '1');
+
+  const res = await fetch('/api/ocr', { method: 'POST', body: form });
+
+  if (!res.ok) {
+    let detail = 'OCR processing failed.';
+    try {
+      const json = await res.json();
+      detail = json.detail || detail;
+    } catch { /* ignore */ }
+    throw new Error(detail);
+  }
+
+  const blob = await res.blob();
+  const baseName = file.name.replace(/\.pdf$/i, '');
+  return { blob, fileName: `${baseName}_ocr.pdf` };
 }
 
 export async function voiceReaderPdf(file: File) {

@@ -7,7 +7,7 @@ import { ProcessingProgress, ProcessingStatus } from '../ProcessingProgress';
 import { DownloadButton } from '../DownloadButton';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { ocrPDF, type OCROptions, type OCRLanguage, OCR_LANGUAGE_NAMES } from '@/lib/pdf/processors/ocr';
+import { ocrPDF, ocrSearchablePDF, type OCROptions, type OCRLanguage, OCR_LANGUAGE_NAMES, type ServerOCROptions } from '@/lib/pdf/processors/ocr';
 import { Select } from '@/components/ui/FormField';
 import type { UploadedFile, ProcessOutput } from '@/types/pdf';
 
@@ -51,10 +51,16 @@ export function OCRPDFTool({
   const [error, setError] = useState<string | null>(null);
   
   // Options state
-  const [languages, setLanguages] = useState<OCRLanguage[]>(['eng']);
-  const [outputFormat, setOutputFormat] = useState<OCROptions['outputFormat']>('text');
+  const [languages, setLanguages] = useState<OCRLanguage[]>(['vie', 'eng']);
+  const [outputFormat, setOutputFormat] = useState<OCROptions['outputFormat']>('searchable-pdf');
   const [scale, setScale] = useState(2);
   const [pageRange, setPageRange] = useState('');
+  const [deskew, setDeskew] = useState(true);
+  const [rotatePages, setRotatePages] = useState(true);
+  const [removeBackground, setRemoveBackground] = useState(false);
+  const [clean, setClean] = useState(true);
+  const [forceOcr, setForceOcr] = useState(false);
+  const [optimize, setOptimize] = useState(1);
   
   // Ref for cancellation
   const cancelledRef = useRef(false);
@@ -161,24 +167,36 @@ export function OCRPDFTool({
     setResult(null);
     setTextPreview(null);
 
-    const options: Partial<OCROptions> = {
-      languages,
-      outputFormat,
-      scale,
-      pages: parsePageRange(pageRange),
+    const progressCb = (prog: number, message?: string) => {
+      if (!cancelledRef.current) {
+        setProgress(prog);
+        setProgressMessage(message || '');
+      }
     };
 
     try {
-      const output: ProcessOutput = await ocrPDF(
-        file.file,
-        options,
-        (prog, message) => {
-          if (!cancelledRef.current) {
-            setProgress(prog);
-            setProgressMessage(message || '');
-          }
-        }
-      );
+      let output: ProcessOutput;
+
+      if (outputFormat === 'searchable-pdf') {
+        const serverOpts: Partial<ServerOCROptions> = {
+          languages,
+          deskew,
+          rotatePages,
+          removeBackground,
+          clean,
+          forceOcr,
+          optimize,
+        };
+        output = await ocrSearchablePDF(file.file, serverOpts, progressCb);
+      } else {
+        const clientOpts: Partial<OCROptions> = {
+          languages,
+          outputFormat,
+          scale,
+          pages: parsePageRange(pageRange),
+        };
+        output = await ocrPDF(file.file, clientOpts, progressCb);
+      }
 
       if (cancelledRef.current) {
         setStatus('idle');
@@ -188,13 +206,12 @@ export function OCRPDFTool({
       if (output.success && output.result) {
         const blob = output.result as Blob;
         setResult(blob);
-        
-        // Read text for preview if text output
+
         if (outputFormat === 'text') {
           const text = await blob.text();
           setTextPreview(text.length > 5000 ? text.substring(0, 5000) + '\n...(truncated)' : text);
         }
-        
+
         setStatus('complete');
       } else {
         setError(output.error?.message || 'Failed to perform OCR on PDF.');
@@ -206,7 +223,7 @@ export function OCRPDFTool({
         setStatus('error');
       }
     }
-  }, [file, languages, outputFormat, scale, pageRange]);
+  }, [file, languages, outputFormat, scale, pageRange, deskew, rotatePages, removeBackground, clean, forceOcr, optimize]);
 
   /**
    * Handle cancel operation
@@ -229,7 +246,7 @@ export function OCRPDFTool({
   const isProcessing = status === 'processing' || status === 'uploading';
   const canProcess = file && !isProcessing;
 
-  const availableLanguages: OCRLanguage[] = ['eng', 'chi_sim', 'chi_tra', 'jpn', 'kor', 'spa', 'fra', 'deu', 'por', 'ara'];
+  const availableLanguages: OCRLanguage[] = ['eng', 'vie', 'chi_sim', 'chi_tra', 'jpn', 'kor', 'spa', 'fra', 'deu', 'por', 'ara', 'ita', 'ind', 'ron'];
 
   return (
     <div className={`space-y-6 ${className}`.trim()}>
@@ -325,56 +342,140 @@ export function OCRPDFTool({
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {/* Output Format */}
-              <div>
-                <label className="block text-sm font-medium text-[hsl(var(--color-foreground))] mb-2">
-                  {tTools('ocrPdf.outputFormat') || 'Output Format'}
-                </label>
-                <Select
-                  value={outputFormat}
-                  onChange={(e) => setOutputFormat(e.target.value as OCROptions['outputFormat'])}
-                  disabled={isProcessing}
-                >
-                  <option value="text">{tTools('ocrPdf.formatText') || 'Text File (.txt)'}</option>
-                  <option value="searchable-pdf">{tTools('ocrPdf.formatPdf') || 'Searchable PDF'}</option>
-                </Select>
-              </div>
-
-              {/* Quality/Scale */}
-              <div>
-                <label className="block text-sm font-medium text-[hsl(var(--color-foreground))] mb-2">
-                  {tTools('ocrPdf.quality') || 'Quality'}
-                </label>
-                <Select
-                  value={scale}
-                  onChange={(e) => setScale(parseFloat(e.target.value))}
-                  disabled={isProcessing}
-                >
-                  <option value="1">{tTools('ocrPdf.qualityLow') || 'Low (Faster)'}</option>
-                  <option value="2">{tTools('ocrPdf.qualityMedium') || 'Medium (Recommended)'}</option>
-                  <option value="3">{tTools('ocrPdf.qualityHigh') || 'High (Slower)'}</option>
-                </Select>
-              </div>
-
-              {/* Page Range */}
-              <div>
-                <label className="block text-sm font-medium text-[hsl(var(--color-foreground))] mb-2">
-                  {tTools('ocrPdf.pageRange') || 'Page Range'}
-                </label>
-                <input
-                  type="text"
-                  value={pageRange}
-                  onChange={(e) => setPageRange(e.target.value)}
-                  placeholder={tTools('ocrPdf.pageRangePlaceholder') || 'e.g., 1-3, 5, 7'}
-                  disabled={isProcessing}
-                  className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[hsl(var(--color-border))] bg-[hsl(var(--color-background))] text-[hsl(var(--color-foreground))] text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--color-primary))]"
-                />
-                <p className="text-xs text-[hsl(var(--color-muted-foreground))] mt-1">
-                  {tTools('ocrPdf.pageRangeHint') || 'Leave empty for all pages'}
-                </p>
-              </div>
+            {/* Output Format */}
+            <div>
+              <label className="block text-sm font-medium text-[hsl(var(--color-foreground))] mb-2">
+                {tTools('ocrPdf.outputFormat') || 'Output Format'}
+              </label>
+              <Select
+                value={outputFormat}
+                onChange={(e) => setOutputFormat(e.target.value as OCROptions['outputFormat'])}
+                disabled={isProcessing}
+              >
+                <option value="searchable-pdf">{tTools('ocrPdf.formatPdf') || 'Searchable PDF'}</option>
+                <option value="text">{tTools('ocrPdf.formatText') || 'Text File (.txt)'}</option>
+              </Select>
             </div>
+
+            {outputFormat === 'searchable-pdf' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Optimize level */}
+                <div>
+                  <label className="block text-sm font-medium text-[hsl(var(--color-foreground))] mb-2">
+                    {tTools('ocrPdf.optimize') || 'Optimization'}
+                  </label>
+                  <Select
+                    value={optimize}
+                    onChange={(e) => setOptimize(Number(e.target.value))}
+                    disabled={isProcessing}
+                  >
+                    <option value="0">{tTools('ocrPdf.optimizeNone') || 'None'}</option>
+                    <option value="1">{tTools('ocrPdf.optimizeDefault') || 'Default'}</option>
+                    <option value="2">{tTools('ocrPdf.optimizeAggressive') || 'Aggressive (smaller file)'}</option>
+                  </Select>
+                </div>
+
+                {/* Toggle options */}
+                <div className="space-y-3 pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={deskew}
+                      onChange={(e) => setDeskew(e.target.checked)}
+                      disabled={isProcessing}
+                      className="rounded border-[hsl(var(--color-border))]"
+                    />
+                    <span className="text-sm text-[hsl(var(--color-foreground))]">
+                      {tTools('ocrPdf.deskew') || 'Deskew (straighten pages)'}
+                    </span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={rotatePages}
+                      onChange={(e) => setRotatePages(e.target.checked)}
+                      disabled={isProcessing}
+                      className="rounded border-[hsl(var(--color-border))]"
+                    />
+                    <span className="text-sm text-[hsl(var(--color-foreground))]">
+                      {tTools('ocrPdf.rotatePages') || 'Auto-rotate pages'}
+                    </span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={clean}
+                      onChange={(e) => setClean(e.target.checked)}
+                      disabled={isProcessing}
+                      className="rounded border-[hsl(var(--color-border))]"
+                    />
+                    <span className="text-sm text-[hsl(var(--color-foreground))]">
+                      {tTools('ocrPdf.clean') || 'Clean pages before OCR'}
+                    </span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={removeBackground}
+                      onChange={(e) => setRemoveBackground(e.target.checked)}
+                      disabled={isProcessing}
+                      className="rounded border-[hsl(var(--color-border))]"
+                    />
+                    <span className="text-sm text-[hsl(var(--color-foreground))]">
+                      {tTools('ocrPdf.removeBackground') || 'Remove background'}
+                    </span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={forceOcr}
+                      onChange={(e) => setForceOcr(e.target.checked)}
+                      disabled={isProcessing}
+                      className="rounded border-[hsl(var(--color-border))]"
+                    />
+                    <span className="text-sm text-[hsl(var(--color-foreground))]">
+                      {tTools('ocrPdf.forceOcr') || 'Force OCR (re-OCR even if text exists)'}
+                    </span>
+                  </label>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Quality/Scale (Tesseract only) */}
+                <div>
+                  <label className="block text-sm font-medium text-[hsl(var(--color-foreground))] mb-2">
+                    {tTools('ocrPdf.quality') || 'Quality'}
+                  </label>
+                  <Select
+                    value={scale}
+                    onChange={(e) => setScale(parseFloat(e.target.value))}
+                    disabled={isProcessing}
+                  >
+                    <option value="1">{tTools('ocrPdf.qualityLow') || 'Low (Faster)'}</option>
+                    <option value="2">{tTools('ocrPdf.qualityMedium') || 'Medium (Recommended)'}</option>
+                    <option value="3">{tTools('ocrPdf.qualityHigh') || 'High (Slower)'}</option>
+                  </Select>
+                </div>
+
+                {/* Page Range (Tesseract only) */}
+                <div>
+                  <label className="block text-sm font-medium text-[hsl(var(--color-foreground))] mb-2">
+                    {tTools('ocrPdf.pageRange') || 'Page Range'}
+                  </label>
+                  <input
+                    type="text"
+                    value={pageRange}
+                    onChange={(e) => setPageRange(e.target.value)}
+                    placeholder={tTools('ocrPdf.pageRangePlaceholder') || 'e.g., 1-3, 5, 7'}
+                    disabled={isProcessing}
+                    className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[hsl(var(--color-border))] bg-[hsl(var(--color-background))] text-[hsl(var(--color-foreground))] text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--color-primary))]"
+                  />
+                  <p className="text-xs text-[hsl(var(--color-muted-foreground))] mt-1">
+                    {tTools('ocrPdf.pageRangeHint') || 'Leave empty for all pages'}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </Card>
       )}

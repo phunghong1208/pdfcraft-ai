@@ -14,7 +14,7 @@
     "tool": "Công cụ",
     "fillsign": "Điền & Ký",
     "protect": "Bảo vệ",
-    "ai": "AI"
+    "ai": "trí tuệ nhân tạo"
   },
   "header": {
     "save": "Lưu",
@@ -47,7 +47,9 @@
     "security": "Bảo mật",
     "redact": "Che",
     "permissions": "Quyền",
-    "aiTools": "Công cụ AI"
+    "aiTools": "Công cụ AI",
+    "file": "Tài liệu",
+    "document": "Tài liệu"
   },
   "viewLayers": {
     "title": "Lớp hiển thị",
@@ -113,7 +115,7 @@
     "repair": "Sửa file",
     "stamps": "Tem",
     "compare": "So sánh",
-    "metadata": "Metadata",
+    "metadata": "Siêu dữ liệu",
     "flatten": "Làm phẳng",
     "formFiller": "Điền biểu mẫu",
     "formCreator": "Tạo biểu mẫu",
@@ -128,7 +130,16 @@
     "chatPdf": "Chat với PDF",
     "summarize": "Tóm tắt",
     "translate": "Dịch",
-    "smartOcr": "OCR thông minh"
+    "smartOcr": "OCR thông minh",
+    "reorderPages": "Sắp xếp lại các trang",
+    "reverseOrder": "Thứ tự ngược lại",
+    "textComment": "Bình luận văn bản",
+    "eSign": "Ký điện tử",
+    "clearComments": "Xóa bình luận",
+    "passwordProtect": "Bảo vệ bằng mật khẩu",
+    "editText": "Chỉnh sửa văn bản",
+    "editImages": "Chỉnh sửa hình ảnh",
+    "addLink": "Thêm liên kết"
   },
   "textStyle": {
     "label": "Kiểu chữ",
@@ -208,7 +219,7 @@
     "previewPdf": "Xem PDF",
     "title": "Trợ lý AI",
     "tabs": {
-      "chat": "Chat",
+      "chat": "Trò chuyện",
       "summary": "Tóm tắt",
       "translate": "Dịch",
       "voice": "Đọc file"
@@ -260,7 +271,7 @@
     "uploadSubtitle": "AI sẽ đọc, phân tích và tạo tóm tắt có cấu trúc",
     "uploadDropHint": "Kéo thả hoặc chọn tệp",
     "uploadFormats": "Chỉ PDF · một tệp",
-    "modelLabel": "PDFCraft Document AI",
+    "modelLabel": "Tài liệu PDFCraft AI",
     "generatedAt": "Tạo lúc {time}",
     "wordCount": "{count} từ",
     "downloadSummary": "Tải tóm tắt",
@@ -286,7 +297,7 @@
   },
   "inlineTools": {
     "compress": "Nén PDF",
-    "ocr": "OCR PDF",
+    "ocr": "PDF OCR",
     "merge": "Ghép PDF",
     "split": "Tách PDF",
     "background-color": "Đổi màu nền",
@@ -301,5 +312,31 @@
   },
   "statusBar": {
     "aiAssistant": "Trợ lý AI"
+  },
+  "aiTranslatePage": {
+    "uploadTitle": "Tải lên bản PDF",
+    "uploadSubtitle": "Chọn ngôn ngữ và bố cục đầu ra để dịch",
+    "uploadDropHint": "Kéo và thả hoặc chọn một tập tin",
+    "uploadFormats": "PDF · tập tin đơn",
+    "fromLabel": "Từ",
+    "toLabel": "ĐẾN",
+    "swapLanguages": "Trao đổi ngôn ngữ",
+    "outputTitle": "Bố cục PDF đầu ra",
+    "keepLayoutTitle": "Giữ bố cục",
+    "keepLayoutDesc": "Đầu ra giữ nguyên bố cục gốc nhất có thể, bao gồm cả hình ảnh và đồ họa.",
+    "textOnlyTitle": "Chỉ văn bản",
+    "textOnlyDesc": "Đầu ra chỉ chứa văn bản và phân cấp - tốt hơn cho việc sao chép-dán.",
+    "modelLabel": "Người mẫu",
+    "originalPdf": "PDF gốc",
+    "translatedPdf": "Đã dịch PDF",
+    "downloadTranslated": "Tải xuống bản PDF đã dịch",
+    "downloadText": "Tải xuống .txt",
+    "translatedText": "Dịch thuật",
+    "copyTranslated": "Sao chép",
+    "copied": "Đã sao chép",
+    "exportPdf": "Tải xuống bản PDF",
+    "exportPdfFailed": "Không thể tạo PDF từ bản dịch.",
+    "placeholder": "Chọn file và nhấn Translate để nhận bản dịch.",
+    "processingHint": "Quá trình dịch có thể mất 1–2 phút. Giữ tab này mở."
   }
 }

@@ -14,7 +14,7 @@
     "tool": "도구",
     "fillsign": "작성 및 서명",
     "protect": "보호",
-    "ai": "AI"
+    "ai": "일체 포함"
   },
   "header": {
     "save": "저장",
@@ -47,7 +47,9 @@
     "security": "보안",
     "redact": "가리기",
     "permissions": "권한",
-    "aiTools": "AI 도구"
+    "aiTools": "AI 도구",
+    "file": "파일",
+    "document": "문서"
   },
   "tools": {
     "zoomIn": "확대",
@@ -115,12 +117,24 @@
     "summarize": "요약",
     "translate": "번역",
     "smartOcr": "스마트 OCR",
-    "open": "열기"
+    "open": "열기",
+    "zoom": "줌",
+    "fitWidth": "너비에 맞게",
+    "reorderPages": "페이지 재정렬",
+    "reverseOrder": "역순",
+    "textComment": "텍스트 코멘트",
+    "eSign": "전자 서명",
+    "clearComments": "댓글 지우기",
+    "passwordProtect": "비밀번호 보호",
+    "editText": "텍스트 편집",
+    "editImages": "이미지 편집",
+    "addLink": "링크 추가"
   },
   "sidebar": {
     "newPdf": "새 PDF",
     "hidePages": "페이지 숨기기",
-    "showThumbnails": "썸네일 표시"
+    "showThumbnails": "썸네일 표시",
+    "openPages": "페이지 패널 열기"
   },
   "aiPanel": {
     "title": "AI 도우미",
@@ -173,8 +187,62 @@
       "stop": "중지",
       "play": "읽기 시작",
       "pause": "일시 정지",
-      "resume": "계속"
-    }
+      "resume": "계속",
+      "subtitle": "내장된 브라우저 음성으로 문서 듣기",
+      "statusPlaying": "독서…",
+      "statusPaused": "일시중지됨",
+      "nowReading": "재생 중: {name}",
+      "voiceLabel": "목소리",
+      "voiceLoading": "음성 로드 중…",
+      "genderFemale": "여성",
+      "genderMale": "남성",
+      "genderNeutral": "다른",
+      "noVoicesHint": "브라우저에 이 언어에 대한 음성이 없습니다. macOS: 시스템 설정 → 접근성 → 음성 콘텐츠 → 시스템 음성.",
+      "prepareTitle": "문서를 읽을 준비가 되지 않았습니다.",
+      "prepareHint": "먼저 PDF를 한 번 처리합니다(채팅 활성화와 동일). 약 1~2분 정도 소요됩니다.",
+      "prepareButton": "프로세스 문서",
+      "unsupported": "이 브라우저에서는 음성 합성이 지원되지 않습니다."
+    },
+    "newBadge": "새로운",
+    "indexing": "AI 채팅용 문서 인덱싱 중...",
+    "summarizing": "요약하는 중(1~2분 정도 걸릴 수 있음, 이 탭을 열어 두세요)...",
+    "indexError": "채팅용 문서를 준비할 수 없습니다.",
+    "startSummaryForChat": "채팅을 활성화하려면 요약하세요.",
+    "chatReady": "채팅이 준비되었습니다. 질문을 입력하세요.",
+    "summaryMissingDocumentId": "요약이 완료되었지만 서버가 document_id를 반환하지 않았습니다. 채팅을 사용할 수 없습니다.",
+    "chatReindexing": "채팅용 문서 동기화 중(요약 다시 실행 중)…",
+    "chatNoContext": "Chat이 색인에서 이 문서를 찾을 수 없습니다.",
+    "chatNoContextHint": "요약 탭에서 “요약 생성”을 다시 탭하고 완료될 때까지 기다린 후 질문하세요.",
+    "chatError": "채팅 요청이 실패했습니다.",
+    "summaryError": "요약 요청이 실패했습니다.",
+    "noFile": "먼저 PDF를 업로드하세요.",
+    "noDocumentId": "문서가 아직 색인화되지 않았습니다. 기다리거나 요약을 먼저 실행하세요.",
+    "languageShort": "언어",
+    "analyzing": "✨ AI가 문서를 분석하고 있습니다…",
+    "thinkingAi": "✨ AI가 생각하고 있다…",
+    "chatRoleUser": "너",
+    "chatRoleAssistant": "AI 어시스턴트",
+    "copy": "복사",
+    "copied": "복사됨",
+    "copyFailed": "클립보드에 복사할 수 없습니다.",
+    "exportPdf": "PDF 내보내기",
+    "exportFailed": "PDF 내보내기에 실패했습니다.",
+    "chatContext": {
+      "label": "채팅 깊이",
+      "light": {
+        "title": "빛"
+      },
+      "balanced": {
+        "title": "중간"
+      },
+      "deep": {
+        "title": "깊은"
+      }
+    },
+    "summaryDone": "요약이 준비되었습니다. 요약 탭을 열어서 읽어보세요.",
+    "documentId": "문서 ID: {id}",
+    "previewPdf": "PDF 미리보기",
+    "translateComingSoon": "문서 번역 — 곧 제공될 예정입니다."
   },
   "inlineTools": {
     "compress": "PDF 압축",
@@ -182,9 +250,93 @@
     "merge": "PDF 병합",
     "split": "PDF 분할",
     "dialogLabel": "작업 공간 도구",
-    "close": "닫기"
+    "close": "닫기",
+    "background-color": "배경색"
   },
   "statusBar": {
     "aiAssistant": "AI 도우미"
+  },
+  "viewLayers": {
+    "title": "레이어 보기",
+    "original": "원본 PDF",
+    "originalHint": "페이지 비트맵(캔버스)",
+    "annotation": "주석",
+    "annotationHint": "내장된 PDF 하이라이트 및 주석 — PDF.js로 렌더링",
+    "textLayer": "텍스트 레이어",
+    "textLayerHint": "기본 PDF에 대해 선택 가능한 텍스트",
+    "ocrLayer": "OCR 레이어",
+    "ocrLayerHint": "스캔한 PDF의 OCR 텍스트 — 잘못 정렬된 경우 끄기"
+  },
+  "textStyle": {
+    "label": "텍스트 스타일",
+    "fontFamily": "세례반",
+    "fontSize": "크기",
+    "color": "색상",
+    "clearConfirm": "이 문서의 모든 주석을 삭제하시겠습니까?"
+  },
+  "aiToolPage": {
+    "prepareHint": "처리에는 약 1~2분 정도 소요됩니다. 이 탭을 열어두세요.",
+    "selectFileFirst": "먼저 PDF 파일을 선택하세요."
+  },
+  "aiSummaryPage": {
+    "uploadTitle": "PDF 업로드",
+    "uploadSubtitle": "AI가 구조화된 요약을 읽고 분석하고 생성합니다.",
+    "uploadDropHint": "드래그 앤 드롭 또는 파일 선택",
+    "uploadFormats": "PDF만 · 파일 1개",
+    "modelLabel": "PDFCraft 문서 AI",
+    "generatedAt": "{시간}에 생성됨",
+    "wordCount": "{count} 단어",
+    "downloadSummary": "요약 다운로드",
+    "downloadFailed": "요약 파일을 다운로드할 수 없습니다.",
+    "restoredAt": "{time}부터 복원됨",
+    "restoredFileHint": "«{name}»에 대한 요약이 저장되었습니다. PDF를 미리 보려면 파일을 다시 선택하세요."
+  },
+  "aiTranslatePage": {
+    "uploadTitle": "PDF 업로드",
+    "uploadSubtitle": "번역을 위한 언어 및 출력 레이아웃 선택",
+    "uploadDropHint": "드래그 앤 드롭 또는 파일 선택",
+    "uploadFormats": "PDF · 단일 파일",
+    "fromLabel": "에서",
+    "toLabel": "에게",
+    "swapLanguages": "언어 교환",
+    "outputTitle": "PDF 레이아웃 출력",
+    "keepLayoutTitle": "레이아웃 유지",
+    "keepLayoutDesc": "출력은 이미지와 그래픽을 포함하여 원본 레이아웃을 최대한 가깝게 유지합니다.",
+    "textOnlyTitle": "텍스트만",
+    "textOnlyDesc": "출력에는 텍스트와 계층 구조만 포함되므로 복사하여 붙여넣기에 더 좋습니다.",
+    "modelLabel": "모델",
+    "originalPdf": "원본 PDF",
+    "translatedPdf": "번역된 PDF",
+    "downloadTranslated": "번역된 PDF 다운로드",
+    "downloadText": ".txt 다운로드",
+    "translatedText": "번역",
+    "copyTranslated": "복사",
+    "copied": "복사됨",
+    "exportPdf": "PDF 다운로드",
+    "exportPdfFailed": "번역에서 PDF를 생성할 수 없습니다.",
+    "placeholder": "파일을 선택하고 번역을 클릭하여 번역을 받으세요.",
+    "processingHint": "번역에는 1~2분 정도 소요될 수 있습니다. 이 탭을 열어두세요."
+  },
+  "aiChatPage": {
+    "uploadSubtitle": "한 번 업로드하고 서류를 준비한 뒤 무엇이든 물어보세요",
+    "documentReady": "문서가 준비되었습니다. 아래에 질문을 남겨주세요.",
+    "restoredFileHint": "«{name}»에 대한 채팅이 복원되었습니다. PDF를 미리 보려면 파일을 다시 선택하세요."
+  },
+  "aiVoicePage": {
+    "uploadSubtitle": "PDF 업로드 — 브라우저에서 소리내어 읽을 수 있도록 텍스트가 자동으로 추출됩니다.",
+    "documentReady": "소리내어 읽을 준비가 되었습니다. 재생을 누르세요.",
+    "restoredFileHint": "«{name}»에 대한 읽기 세션이 복원되었습니다. PDF를 미리 보려면 파일을 다시 선택하세요.",
+    "listenTitle": "소리내어 읽기",
+    "readContentHint": "문서를 들으려면 재생을 누르세요.",
+    "fallbackReadHint": "PDF에서 추출된 텍스트 사용(AI는 이 파일을 요약할 수 없음)",
+    "prepareFailedTitle": "오디오를 준비할 수 없습니다.",
+    "prepareFailedHint": "다른 PDF를 시도하거나 파일이 스캔 전용인 경우 OCR을 실행하세요.",
+    "noExtractableText": "이 PDF에서 텍스트를 읽을 수 없습니다. OCR이나 다른 파일을 사용해 보세요."
+  },
+  "split": {
+    "openInWorkspace": "작업공간에서 열기",
+    "downloadZip": "모두 ZIP으로 다운로드",
+    "singleApplied": "분할 완료 — 작업 공간에서 열립니다.",
+    "pickFileHint": "편집을 계속하려면 부분을 선택하거나 모두 ZIP으로 다운로드하세요."
   }
 }
