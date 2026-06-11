@@ -12,6 +12,28 @@ export interface TextEdit {
   newText: string;
 }
 
+function isTextEdit(value: unknown): value is TextEdit {
+  if (!value || typeof value !== 'object') return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.pageNumber === 'number' &&
+    typeof v.pdfX === 'number' &&
+    typeof v.pdfY === 'number' &&
+    typeof v.pdfWidth === 'number' &&
+    typeof v.pdfHeight === 'number' &&
+    typeof v.fontSize === 'number' &&
+    typeof v.fontFamily === 'string' &&
+    typeof v.originalText === 'string' &&
+    typeof v.newText === 'string'
+  );
+}
+
+/** Validate text edits posted from the PDF.js iframe script. */
+export function parseTextEdits(edits: unknown): TextEdit[] {
+  if (!Array.isArray(edits)) return [];
+  return edits.filter(isTextEdit);
+}
+
 export async function applyTextEdits(
   pdfBytes: ArrayBuffer | Uint8Array,
   edits: TextEdit[],

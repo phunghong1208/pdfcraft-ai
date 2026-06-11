@@ -1345,6 +1345,8 @@ export function EditPDFTool({
             '.pdfcraft-edit-text .textLayer { pointer-events: auto !important; z-index: 5 !important; }',
             '.pdfcraft-edit-text .textLayer > span { pointer-events: auto !important; cursor: text !important; border-radius: 2px; transition: background 0.1s; }',
             '.pdfcraft-edit-text .textLayer > span:hover { background: rgba(22,119,255,0.12) !important; }',
+            '.pdfcraft-edit-text .CustomToolbar { display: none !important; }',
+            '.pdfcraft-edit-text .popbar, .pdfcraft-edit-text .annotation-popbar { display: none !important; }',
             '.pdfcraft-text-editor { position: absolute; z-index: 10; outline: none; padding: 1px 2px; box-sizing: border-box; overflow: hidden; white-space: pre; border: 2px solid #1677ff; background: #fff; }',
             '.pdfcraft-text-editor:focus { box-shadow: 0 0 0 2px rgba(22,119,255,0.18); }',
             '.pdfcraft-text-editor.finalized { border: 1px dashed rgba(22,119,255,0.4); cursor: pointer; }',
@@ -1356,7 +1358,10 @@ export function EditPDFTool({
         function setEditTextMode(on){
           editTextActive = !!on;
           document.documentElement.classList.toggle('pdfcraft-edit-text', editTextActive);
-          if(editTextActive) injectEditTextStyles();
+          if(editTextActive){
+            injectEditTextStyles();
+            try{ closePopbar(); }catch(e){}
+          }
         }
 
         function getPageNumberFromEl(el){
@@ -1365,44 +1370,86 @@ export function EditPDFTool({
           return parseInt(page.getAttribute('data-page-number') || '0', 10);
         }
 
-        function getViewportScale(){
-          try{
-            var app = window.PDFViewerApplication;
-            if(app && app.pdfViewer){
-              var v = app.pdfViewer.getPageView(0);
-              if(v && v.viewport) return v.viewport.scale;
-            }
-          }catch(e){}
-          return 1;
+        function getTextLayerSpans(textLayer){
+          var spans = textLayer.querySelectorAll('span[role="presentation"]');
+          if(spans.length) return spans;
+          return textLayer.querySelectorAll(':scope > span:not(.markedContent)');
         }
 
-        function createTextEditor(span){
-          if(!editTextActive) return;
-          if(span.__pdfcraftEditing) return;
-          var page = span.closest('.page');
-          if(!page) return;
-          var pageNum = getPageNumberFromEl(span);
-          if(pageNum < 1) return;
-          var originalText = span.textContent || '';
-          if(!originalText.trim()) return;
+        function collectLineSpans(clickedSpan){
+          var textLayer = clickedSpan.closest('.textLayer');
+          if(!textLayer) return [clickedSpan];
+          var allSpans = getTextLayerSpans(textLayer);
+          if(!allSpans.length) return [clickedSpan];
+          var clickedRect = clickedSpan.getBoundingClientRect();
+          var cy = clickedRect.top + clickedRect.height / 2;
+          var threshold = clickedRect.height * 0.5;
+          var lineSpans = [];
+          for(var i = 0; i < allSpans.length; i++){
+            var sp = allSpans[i];
+            if(sp.__pdfcraftEditing) continue;
+            var r = sp.getBoundingClientRect();
+            if(r.width < 1 || r.height < 1) continue;
+            var spMid = r.top + r.height / 2;
+            if(Math.abs(spMid - cy) < threshold){
+              lineSpans.push(sp);
+            }
+          }
+          if(!lineSpans.length) return [clickedSpan];
+          lineSpans.sort(function(a,b){ return a.getBoundingClientRect().left - b.getBoundingClientRect().left; });
+          return lineSpans;
+        }
 
-          span.__pdfcraftEditing = true;
-          var pageRect = page.getBoundingClientRect();
-          var spanRect = span.getBoundingClientRect();
-          var x = spanRect.left - pageRect.left;
-          var y = spanRect.top - pageRect.top;
-          var w = spanRect.width;
-          var h = spanRect.height;
+        function getSpanFontInfo(span){
           var cs = window.getComputedStyle(span);
           var fontSize = parseFloat(cs.fontSize) || 14;
           var fontFamily = cs.fontFamily || 'sans-serif';
+          var transform = span.style.transform || cs.transform || '';
+          var scaleMatch = transform.match(/scaleX\\(([\\d.]+)\\)/);
+          var scaleX = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
+          return { fontSize: fontSize, fontFamily: fontFamily, scaleX: scaleX };
+        }
+
+        function createLineEditor(lineSpans, clickedSpan){
+          if(!editTextActive || !lineSpans.length) return;
+          var page = clickedSpan.closest('.page');
+          if(!page) return;
+          var pageNum = getPageNumberFromEl(clickedSpan);
+          if(pageNum < 1) return;
+          var pageRect = page.getBoundingClientRect();
+          var firstRect = lineSpans[0].getBoundingClientRect();
+          var lastRect = lineSpans[lineSpans.length - 1].getBoundingClientRect();
+          var x = firstRect.left - pageRect.left;
+          var y = firstRect.top - pageRect.top;
+          var right = lastRect.right - pageRect.left;
+          var maxH = 0;
+          var parts = [];
+          for(var i = 0; i < lineSpans.length; i++){
+            var sp = lineSpans[i];
+            var r = sp.getBoundingClientRect();
+            var spY = r.top - pageRect.top;
+            if(spY < y) y = spY;
+            if(r.right - pageRect.left > right) right = r.right - pageRect.left;
+            if(r.height > maxH) maxH = r.height;
+            parts.push(sp.textContent || '');
+            sp.__pdfcraftEditing = true;
+          }
+          var w = right - x;
+          var originalText = parts.join('');
+          if(!originalText.trim()) return;
+
+          var fi = getSpanFontInfo(lineSpans[0]);
+          var fontSize = fi.fontSize;
+          var fontFamily = fi.fontFamily;
+          var h = Math.max(maxH, fontSize * 1.3);
+          var pad = 2;
 
           var cover = document.createElement('div');
           cover.className = 'pdfcraft-text-cover';
-          cover.style.left = x + 'px';
-          cover.style.top = y + 'px';
-          cover.style.width = w + 'px';
-          cover.style.height = h + 'px';
+          cover.style.left = (x - pad) + 'px';
+          cover.style.top = (y - pad) + 'px';
+          cover.style.width = (w + pad * 2) + 'px';
+          cover.style.height = (h + pad * 2) + 'px';
           page.appendChild(cover);
 
           var editor = document.createElement('div');
@@ -1417,6 +1464,7 @@ export function EditPDFTool({
           editor.style.fontFamily = fontFamily;
           editor.style.lineHeight = h + 'px';
           editor.style.color = '#000';
+          editor.style.letterSpacing = '0px';
           page.appendChild(editor);
           editor.focus();
           try{
@@ -1428,7 +1476,6 @@ export function EditPDFTool({
           }catch(e){}
 
           var finalized = false;
-          var editRecord = null;
           function finalize(){
             if(finalized) return;
             finalized = true;
@@ -1437,7 +1484,8 @@ export function EditPDFTool({
               editor.contentEditable = 'false';
               editor.classList.add('finalized');
               editor.textContent = newText;
-              cover.style.width = Math.max(w, editor.scrollWidth + 4) + 'px';
+              var edW = Math.max(w, editor.scrollWidth + 4);
+              cover.style.width = (edW + pad * 2) + 'px';
 
               var pw = page.clientWidth;
               var ph = page.clientHeight;
@@ -1451,22 +1499,20 @@ export function EditPDFTool({
                 }
               }catch(e){}
 
-              editRecord = {
+              window.__pdfcraftTextEdits.push({
                 pageNumber: pageNum,
                 pdfX: (x / pw) * pdfW,
                 pdfY: pdfH - ((y + h) / ph) * pdfH,
-                pdfWidth: (Math.max(w, editor.scrollWidth + 4) / pw) * pdfW,
+                pdfWidth: (edW / pw) * pdfW,
                 pdfHeight: (h / ph) * pdfH,
                 fontSize: (fontSize / ph) * pdfH,
                 fontFamily: fontFamily,
                 originalText: originalText,
                 newText: newText
-              };
-              window.__pdfcraftTextEdits.push(editRecord);
+              });
 
               editor.addEventListener('dblclick', function(){
                 finalized = false;
-                editRecord = null;
                 editor.contentEditable = 'true';
                 editor.classList.remove('finalized');
                 editor.focus();
@@ -1475,7 +1521,7 @@ export function EditPDFTool({
             } else {
               cover.remove();
               editor.remove();
-              span.__pdfcraftEditing = false;
+              for(var j = 0; j < lineSpans.length; j++) lineSpans[j].__pdfcraftEditing = false;
             }
           }
 
@@ -1484,7 +1530,7 @@ export function EditPDFTool({
             if(ev.key === 'Escape'){
               cover.remove();
               editor.remove();
-              span.__pdfcraftEditing = false;
+              for(var j = 0; j < lineSpans.length; j++) lineSpans[j].__pdfcraftEditing = false;
               return;
             }
             if(ev.key === 'Enter' && !ev.shiftKey){
@@ -1496,12 +1542,25 @@ export function EditPDFTool({
 
         document.addEventListener('click', function(evt){
           if(!editTextActive) return;
-          var span = evt.target && evt.target.closest && evt.target.closest('.textLayer > span');
-          if(!span) return;
-          if(span.closest('.pdfcraft-text-editor')) return;
+          if(evt.target.closest && evt.target.closest('.pdfcraft-text-editor')) return;
+          var span = evt.target && evt.target.closest && (
+            evt.target.closest('span[role="presentation"]') ||
+            evt.target.closest('.textLayer > span:not(.markedContent)')
+          );
+          if(!span || !span.closest('.textLayer')) return;
+          if(span.__pdfcraftEditing) return;
           evt.preventDefault();
           evt.stopPropagation();
-          createTextEditor(span);
+          var lineSpans = collectLineSpans(span);
+          createLineEditor(lineSpans, span);
+        }, true);
+
+        document.addEventListener('mouseup', function(evt){
+          if(!editTextActive) return;
+          try{
+            var sel = window.getSelection();
+            if(sel && !sel.isCollapsed) sel.removeAllRanges();
+          }catch(e){}
         }, true);
 
         function setTool(toolName){

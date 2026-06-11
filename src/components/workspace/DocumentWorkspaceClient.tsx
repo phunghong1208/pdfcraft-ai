@@ -1320,7 +1320,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
             const win = iframeWin() as (Window & {
               pdfcraftExportEditedPdf?: () => Promise<Uint8Array | ArrayBuffer | null>;
               PDFViewerApplication?: { pdfDocument?: { saveDocument?: () => Promise<Uint8Array>; getData?: () => Promise<Uint8Array> } };
-              __pdfcraftTextEdits?: Array<Record<string, unknown>>;
+              __pdfcraftTextEdits?: unknown[];
             }) | null;
 
             // Priority 1: EditPDFTool export (has annotation edits)
@@ -1344,11 +1344,15 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
             const textEdits = win?.__pdfcraftTextEdits;
             if (bytes && textEdits && textEdits.length > 0) {
               try {
-                const { applyTextEdits } = await import('@/lib/pdf/apply-text-edits');
-                const buf = bytes instanceof ArrayBuffer
-                  ? bytes
-                  : bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-                bytes = await applyTextEdits(buf, textEdits as Parameters<typeof applyTextEdits>[1]);
+                const { applyTextEdits, parseTextEdits } = await import('@/lib/pdf/apply-text-edits');
+                const validEdits = parseTextEdits(textEdits);
+                const buf =
+                  bytes instanceof Uint8Array
+                    ? bytes
+                    : new Uint8Array(bytes as ArrayBuffer);
+                if (validEdits.length > 0) {
+                  bytes = await applyTextEdits(buf, validEdits);
+                }
               } catch (editErr) {
                 console.warn('applyTextEdits failed, saving without text edits', editErr);
               }
