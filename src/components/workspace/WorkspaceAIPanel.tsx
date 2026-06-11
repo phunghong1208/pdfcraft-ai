@@ -13,6 +13,12 @@ import {
   Check,
   User,
   FileText,
+  ArrowLeftRight,
+  Languages,
+  ScanLine,
+  AlignLeft,
+  FileOutput,
+  ChevronRight,
 } from 'lucide-react';
 import { WorkspaceAiMarkdown } from '@/components/workspace/WorkspaceAiMarkdown';
 import { markdownToPDF } from '@/lib/pdf/processors/markdown-to-pdf';
@@ -53,6 +59,14 @@ import {
   savePersistedWorkspaceAi,
   type WorkspaceAiChatMessage,
 } from '@/lib/workspace-ai-persistence';
+import {
+  getDefaultTranslateLanguagePair,
+  TRANSLATE_LANGUAGE_OPTIONS,
+} from '@/services/translateDocsApi';
+import {
+  runWorkspaceTranslatePipeline,
+  type TranslatePipelineProgress,
+} from '@/services/workspaceTranslatePipeline';
 
 export interface WorkspaceAIPanelProps {
   file: File | null;
@@ -60,6 +74,8 @@ export interface WorkspaceAIPanelProps {
   onClose: () => void;
   /** iframe pdf.js bên trái — dùng bôi vàng read-along khi đọc */
   pdfViewerIframeRef?: RefObject<HTMLIFrameElement | null>;
+  /** Áp PDF dịch vào workspace */
+  onTranslatedFile?: (file: File) => void;
 }
 
 type AiTab = 'chat' | 'summary' | 'translate' | 'voice';
@@ -96,6 +112,98 @@ function AiSectionTitle({ children }: { children: ReactNode }) {
     <h3 className="flex items-center gap-1.5 text-[12px] font-semibold text-[hsl(var(--color-primary))] shrink-0">
       {children}
     </h3>
+  );
+}
+
+const TRANSLATE_PIPELINE_TILES = [
+  { id: 'pdf', icon: FileText },
+  { id: 'ocr', icon: ScanLine },
+  { id: 'text', icon: AlignLeft },
+  { id: 'ai', icon: Languages },
+  { id: 'output', icon: FileOutput },
+] as const;
+
+function activeTranslateTileIndex(
+  progress: TranslatePipelineProgress | null,
+  isTranslating: boolean,
+): number {
+  if (!isTranslating || !progress) return -1;
+  switch (progress.stage) {
+    case 'check':
+      return 1;
+    case 'ocr':
+      return 1;
+    case 'translate':
+      return 3;
+    case 'pdf':
+      return 4;
+    case 'done':
+      return 5;
+    default:
+      return -1;
+  }
+}
+
+function TranslatePipelineTiles({
+  progress,
+  isTranslating,
+  hasResult,
+  isDarkTheme,
+  t,
+}: {
+  progress: TranslatePipelineProgress | null;
+  isTranslating: boolean;
+  hasResult: boolean;
+  isDarkTheme: boolean;
+  t: ReturnType<typeof useTranslations<'workspace'>>;
+}) {
+  const activeIdx = activeTranslateTileIndex(progress, isTranslating);
+
+  return (
+    <div className="flex items-center gap-0.5 min-w-0" aria-label={t('aiPanel.translate.run')}>
+      {TRANSLATE_PIPELINE_TILES.map((tile, index) => {
+        const Icon = tile.icon;
+        const isDone = hasResult || (activeIdx >= 0 && index < activeIdx);
+        const isActive = isTranslating && index === activeIdx;
+        const isIdle = !isDone && !isActive;
+
+        return (
+          <div key={tile.id} className="flex items-center gap-0.5 min-w-0 flex-1">
+            <div
+              className={`flex flex-col items-center justify-center gap-1 rounded-lg border px-1 py-2 min-w-0 flex-1 transition-all ${
+                isActive
+                  ? isDarkTheme
+                    ? 'border-[#EF4444] bg-[rgba(239,68,68,0.15)] text-white'
+                    : 'border-[hsl(var(--color-primary))] bg-[hsl(var(--color-primary)/0.12)] text-[hsl(var(--color-primary))]'
+                  : isDone
+                    ? isDarkTheme
+                      ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
+                      : 'border-emerald-500/35 bg-emerald-50 text-emerald-700'
+                    : isDarkTheme
+                      ? 'border-[#2F3A4A] bg-[#0F141B] text-[#64748B]'
+                      : 'border-[#E2E8F0] bg-white text-[#94A3B8]'
+              }`}
+            >
+              <div className="relative">
+                <Icon className={`h-3.5 w-3.5 shrink-0 ${isIdle ? 'opacity-60' : ''}`} aria-hidden />
+                {isDone && !isActive && (
+                  <Check className="absolute -bottom-1 -right-1.5 h-2.5 w-2.5 text-emerald-500" aria-hidden />
+                )}
+              </div>
+              <span className="text-[8px] font-medium leading-tight text-center truncate w-full px-0.5">
+                {t(`aiPanel.translate.tiles.${tile.id}`)}
+              </span>
+            </div>
+            {index < TRANSLATE_PIPELINE_TILES.length - 1 && (
+              <ChevronRight
+                className={`h-3 w-3 shrink-0 ${isDarkTheme ? 'text-[#475569]' : 'text-[#CBD5E1]'}`}
+                aria-hidden
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -147,9 +255,10 @@ function TierRadioGroup({
   );
 }
 
-export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef }: WorkspaceAIPanelProps) {
+export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef, onTranslatedFile }: WorkspaceAIPanelProps) {
   const locale = useLocale();
   const t = useTranslations('workspace');
+  const defaultLangPair = useMemo(() => getDefaultTranslateLanguagePair(locale), [locale]);
   const [aiTab, setAiTab] = useState<AiTab>('summary');
   const [chatInput, setChatInput] = useState('');
   const [messages, setMessages] = useState<WorkspaceAiChatMessage[]>([]);
@@ -167,6 +276,14 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
   const [answerLanguage, setAnswerLanguage] = useState(() => loadWorkspaceAiAnswerLanguage(locale));
   const [copyDone, setCopyDone] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [sourceLang, setSourceLang] = useState(defaultLangPair.source);
+  const [targetLang, setTargetLang] = useState(defaultLangPair.target);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translateProgress, setTranslateProgress] = useState<TranslatePipelineProgress | null>(null);
+  const [translatedText, setTranslatedText] = useState<string | null>(null);
+  const [translatedPdfBlob, setTranslatedPdfBlob] = useState<Blob | null>(null);
+  const [translatedPdfName, setTranslatedPdfName] = useState<string | null>(null);
+  const [translateCopyDone, setTranslateCopyDone] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(() => {
     if (typeof document === 'undefined' || typeof window === 'undefined') return true;
     try {
@@ -250,6 +367,12 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
     }
 
     setVoiceText(null);
+    setTranslatedText(null);
+    setTranslatedPdfBlob(null);
+    setTranslatedPdfName(null);
+    setTranslateProgress(null);
+    setSourceLang(defaultLangPair.source);
+    setTargetLang(defaultLangPair.target);
 
     const persisted = loadPersistedWorkspaceAi(file);
     if (persisted) {
@@ -267,7 +390,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
       setSummaryTierId(WORKSPACE_DEFAULT_PRESET_TIER);
       setChatTierId(WORKSPACE_DEFAULT_PRESET_TIER);
     }
-  }, [file, pdfViewerIframeRef]);
+  }, [file, pdfViewerIframeRef, defaultLangPair.source, defaultLangPair.target]);
 
   useEffect(() => {
     if (!file || documentId == null || !summaryText?.trim()) return;
@@ -570,6 +693,81 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
     [speech, speechLang, voiceText],
   );
 
+  const runTranslate = useCallback(async () => {
+    if (!file) {
+      setAiError(t('aiPanel.noFile'));
+      return;
+    }
+    setIsTranslating(true);
+    setAiError(null);
+    setAiHint(null);
+    setTranslateProgress(null);
+    setTranslatedText(null);
+    setTranslatedPdfBlob(null);
+    setTranslatedPdfName(null);
+    try {
+      const result = await runWorkspaceTranslatePipeline({
+        file,
+        sourceLang,
+        targetLang,
+        onProgress: setTranslateProgress,
+      });
+      setTranslatedText(result.translatedText);
+      setTranslatedPdfBlob(result.pdfBlob);
+      setTranslatedPdfName(result.pdfFileName);
+      if (result.ocrApplied) {
+        setAiHint(t('aiPanel.translate.ocrApplied'));
+      }
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : t('aiPanel.translate.error'));
+    } finally {
+      setIsTranslating(false);
+      setTranslateProgress(null);
+    }
+  }, [file, sourceLang, targetLang, t]);
+
+  const handleCopyTranslated = useCallback(async () => {
+    if (!translatedText?.trim()) return;
+    try {
+      await navigator.clipboard.writeText(translatedText);
+      setTranslateCopyDone(true);
+      window.setTimeout(() => setTranslateCopyDone(false), 2000);
+    } catch {
+      setAiError(t('aiPanel.copyFailed'));
+    }
+  }, [translatedText, t]);
+
+  const handleDownloadTranslatedPdf = useCallback(() => {
+    if (!translatedPdfBlob) return;
+    const url = URL.createObjectURL(translatedPdfBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = translatedPdfName || 'translated.pdf';
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [translatedPdfBlob, translatedPdfName]);
+
+  const handleApplyTranslatedToWorkspace = useCallback(() => {
+    if (!translatedPdfBlob || !onTranslatedFile) return;
+    const next = new File(
+      [translatedPdfBlob],
+      translatedPdfName || 'translated.pdf',
+      { type: 'application/pdf' },
+    );
+    onTranslatedFile(next);
+    setAiHint(t('aiPanel.translate.applied'));
+  }, [translatedPdfBlob, translatedPdfName, onTranslatedFile, t]);
+
+  const translateProgressLabel = useMemo(() => {
+    if (!translateProgress) return null;
+    const { stage } = translateProgress;
+    if (stage === 'check') return t('aiPanel.translate.stageCheck');
+    if (stage === 'ocr') return t('aiPanel.translate.stageOcr');
+    if (stage === 'translate') return t('aiPanel.translate.stageTranslate');
+    if (stage === 'pdf') return t('aiPanel.translate.stagePdf');
+    return t('aiPanel.translate.stageDone');
+  }, [translateProgress, t]);
+
   const tabs: AiTab[] = ['summary', 'chat', 'translate', 'voice'];
   const panelRootTone = isDarkTheme
     ? 'bg-[#0B1118] border-[#263241] shadow-[-8px_0_32px_rgba(0,0,0,0.35)]'
@@ -639,13 +837,10 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
                 clearReadAlongHighlight(pdfViewerIframeRef?.current ?? null);
                 setAiTab(tab);
               }}
-              disabled={tab === 'translate'}
               className={`px-2.5 py-1 rounded-md font-medium transition-all ${
                 aiTab === tab
                   ? `${isDarkTheme ? 'text-white bg-[rgba(239,68,68,0.18)] border-[#EF4444]' : 'text-[hsl(var(--color-foreground))] bg-[hsl(var(--color-primary)/0.16)] border-[hsl(var(--color-primary)/0.3)]'} border`
-                  : tab === 'translate'
-                    ? 'text-[#6b7280] cursor-not-allowed'
-                    : tab === 'chat' && !chatReady
+                  : tab === 'chat' && !chatReady
                       ? 'text-[#6b7280] hover:text-[#9CA3AF]'
                       : `${isDarkTheme ? 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#111820]' : 'text-[#6B7280] hover:text-[hsl(var(--color-foreground))] hover:bg-[#EEF2F6]'}`
               }`}
@@ -1014,7 +1209,163 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef 
         )}
 
         {aiTab === 'translate' && (
-          <p className={`text-[12px] text-center py-8 ${panelTextMuted}`}>{t('aiPanel.translateComingSoon')}</p>
+          <div className="flex-1 min-h-0 flex flex-col gap-2.5">
+            <div className={`shrink-0 rounded-2xl border px-4 py-4 space-y-3 ${panelCardTone}`}>
+              <div className="flex items-end gap-2">
+                <div className="flex-1 min-w-0">
+                  <label className={`text-[11px] font-medium ${panelTextMain}`}>
+                    {t('aiTranslatePage.fromLabel')}
+                  </label>
+                  <select
+                    value={sourceLang}
+                    disabled={isTranslating}
+                    onChange={(e) => setSourceLang(e.target.value)}
+                    className={`mt-1 w-full rounded-lg border px-2.5 py-2 text-[12px] ${inputTone}`}
+                  >
+                    {TRANSLATE_LANGUAGE_OPTIONS.map((lang) => (
+                      <option key={`from-${lang.code}`} value={lang.code}>
+                        {lang.nativeName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  disabled={isTranslating}
+                  onClick={() => {
+                    setSourceLang(targetLang);
+                    setTargetLang(sourceLang);
+                  }}
+                  className={`mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-colors disabled:opacity-40 ${inputTone}`}
+                  aria-label={t('aiTranslatePage.swapLanguages')}
+                >
+                  <ArrowLeftRight className="h-4 w-4" />
+                </button>
+                <div className="flex-1 min-w-0">
+                  <label className={`text-[11px] font-medium ${panelTextMain}`}>
+                    {t('aiTranslatePage.toLabel')}
+                  </label>
+                  <select
+                    value={targetLang}
+                    disabled={isTranslating}
+                    onChange={(e) => setTargetLang(e.target.value)}
+                    className={`mt-1 w-full rounded-lg border px-2.5 py-2 text-[12px] ${inputTone}`}
+                  >
+                    {TRANSLATE_LANGUAGE_OPTIONS.map((lang) => (
+                      <option key={`to-${lang.code}`} value={lang.code}>
+                        {lang.nativeName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <TranslatePipelineTiles
+                progress={translateProgress}
+                isTranslating={isTranslating}
+                hasResult={Boolean(translatedText || translatedPdfBlob)}
+                isDarkTheme={isDarkTheme}
+                t={t}
+              />
+              <Button
+                size="sm"
+                onClick={() => void runTranslate()}
+                disabled={!file || isTranslating}
+                className="w-full h-10 text-[11px] font-semibold bg-gradient-to-br from-[#EF4444] to-[#DC2626] text-white border border-transparent rounded-xl"
+              >
+                {isTranslating ? (
+                  <Loader2 className={`h-4 w-4 animate-spin ${AI_UI.spinner}`} aria-hidden />
+                ) : (
+                  <span className="inline-flex items-center gap-1">
+                    <Languages className="h-3.5 w-3.5" />
+                    {t('aiPanel.translate.run')}
+                  </span>
+                )}
+              </Button>
+              {isTranslating && translateProgressLabel && (
+                <div className="space-y-1">
+                  <p className={`text-[10px] ${panelTextMuted}`}>{translateProgressLabel}</p>
+                  <div className={`h-1.5 rounded-full overflow-hidden ${isDarkTheme ? 'bg-[#1E293B]' : 'bg-[#E2E8F0]'}`}>
+                    <div
+                      className="h-full bg-[#EF4444] transition-all duration-300"
+                      style={{ width: `${translateProgress?.percent ?? 0}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex-1 min-h-0 flex flex-col gap-1.5">
+              <AiSectionTitle>
+                <span className={isDarkTheme ? 'text-[#FF5A5F]' : 'text-[hsl(var(--color-primary))]'}>
+                  {t('aiTranslatePage.translatedText')}
+                </span>
+              </AiSectionTitle>
+              <div
+                className={`flex-1 min-h-0 flex flex-col rounded-xl border overflow-hidden ${
+                  translatedText ? panelCardTone : panelSoftTone
+                }`}
+              >
+                {isTranslating ? (
+                  <AiCenteredSpinner className="min-h-[140px]" size="h-9 w-9" />
+                ) : translatedText || translatedPdfBlob ? (
+                  <>
+                    {translatedText ? (
+                      <div className="flex-1 overflow-auto p-3.5 scrollbar-thin">
+                        <pre className={`text-[11px] whitespace-pre-wrap font-sans leading-relaxed ${panelTextMain}`}>
+                          {translatedText}
+                        </pre>
+                      </div>
+                    ) : (
+                      <div className={`flex-1 flex items-center justify-center p-4 text-center text-[11px] ${panelTextMuted}`}>
+                        {t('aiPanel.translate.pdfReady')}
+                      </div>
+                    )}
+                    <div className={`flex flex-wrap gap-2 border-t p-2 shrink-0 ${panelSoftTone}`}>
+                      <button
+                        type="button"
+                        onClick={() => void handleCopyTranslated()}
+                        className={`flex-1 min-w-[88px] inline-flex items-center justify-center gap-1.5 rounded-lg border py-2 text-[11px] font-medium hover:border-[hsl(var(--color-primary)/0.35)] transition-all ${inputTone}`}
+                      >
+                        {translateCopyDone ? (
+                          <Check className="h-3.5 w-3.5 text-emerald-400" />
+                        ) : (
+                          <Copy className="h-3.5 w-3.5" />
+                        )}
+                        {translateCopyDone ? t('aiPanel.copied') : t('aiPanel.copy')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDownloadTranslatedPdf}
+                        disabled={!translatedPdfBlob}
+                        className={`flex-1 min-w-[88px] inline-flex items-center justify-center gap-1.5 rounded-lg border py-2 text-[11px] font-medium hover:border-[hsl(var(--color-primary)/0.35)] transition-all disabled:opacity-50 ${inputTone}`}
+                      >
+                        <FileDown className="h-3.5 w-3.5" />
+                        {t('aiTranslatePage.exportPdf')}
+                      </button>
+                      {onTranslatedFile && (
+                        <button
+                          type="button"
+                          onClick={handleApplyTranslatedToWorkspace}
+                          disabled={!translatedPdfBlob}
+                          className={`w-full inline-flex items-center justify-center gap-1.5 rounded-lg border py-2 text-[11px] font-medium hover:border-[hsl(var(--color-primary)/0.35)] transition-all disabled:opacity-50 ${inputTone}`}
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                          {t('aiPanel.translate.applyToWorkspace')}
+                        </button>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center p-6 min-h-[120px] text-center gap-2">
+                    <Languages className={`h-8 w-8 ${AI_UI.iconMuted}`} aria-hidden />
+                    <p className={`text-[11px] max-w-[260px] leading-relaxed ${panelTextMuted}`}>
+                      {t('aiTranslatePage.placeholder')}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </aside>

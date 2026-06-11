@@ -2771,7 +2771,6 @@
       "insert": "Insert",
       "save": "Save",
       "file": "File",
-      "content": "Content",
       "document": "Document",
       "pages": "Pages",
       "transform": "Transform",
@@ -2880,29 +2879,7 @@
       "editText": "Edit Text",
       "editImages": "Edit Images",
       "addLink": "Add Link",
-      "smartOcr": "Smart OCR",
-      "ocrPdf": {
-        "language": "Language",
-        "outputFormat": "Output Format",
-        "options": "Options",
-        "result": "OCR Result",
-        "readyToOcr": "Ready to OCR",
-        "noFileSelected": "No PDF selected",
-        "readyDesc": "Click the button to convert your scanned PDF into a searchable document or extract text.",
-        "noFileDesc": "Upload a scanned PDF to get started.",
-        "deskew": "Deskew (straighten pages)",
-        "clean": "Clean pages before OCR",
-        "removeBackground": "Remove background",
-        "forceOcr": "Force OCR (re-OCR even if text exists)",
-        "progressAnalyzing": "Analyzing document structure...",
-        "progressRecognizing": "Recognizing text in images...",
-        "progressStillWorking": "Server is still running OCR — this may take a few minutes...",
-        "progressFinalizing": "Downloading result...",
-        "progressDone": "Complete!",
-        "downloadPdf": "Download PDF",
-        "searchablePdf": "Searchable PDF",
-        "extractedText": "Extracted text"
-      }
+      "smartOcr": "Smart OCR"
     },
     "textStyle": {
       "label": "Text style",
@@ -2988,6 +2965,26 @@
         "voice": "Read file"
       },
       "translateComingSoon": "Document translation — coming soon.",
+      "translate": {
+        "run": "Translate document",
+        "tiles": {
+          "pdf": "PDF",
+          "ocr": "OCR",
+          "text": "Text",
+          "ai": "AI translate",
+          "output": "New PDF"
+        },
+        "stageCheck": "Checking text layer…",
+        "stageOcr": "Running OCR…",
+        "stageTranslate": "Translating with AI…",
+        "stagePdf": "Building PDF…",
+        "stageDone": "Done.",
+        "error": "Translation failed.",
+        "ocrApplied": "OCR was applied before translation (scanned or no text layer).",
+        "applyToWorkspace": "Apply to workspace",
+        "applied": "Workspace PDF replaced with the translation.",
+        "pdfReady": "Translated PDF is ready (layout preserved). Download or apply to workspace."
+      },
       "voice": {
         "subtitle": "Listen to your document with built-in browser speech",
         "play": "Start reading",

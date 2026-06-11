@@ -213,6 +213,26 @@
       "voice": "Read file"
     },
     "translateComingSoon": "Document translation — coming soon.",
+    "translate": {
+      "run": "Translate document",
+      "tiles": {
+        "pdf": "PDF",
+        "ocr": "OCR",
+        "text": "Text",
+        "ai": "AI translate",
+        "output": "New PDF"
+      },
+      "stageCheck": "Checking text layer…",
+      "stageOcr": "Running OCR…",
+      "stageTranslate": "Translating with AI…",
+      "stagePdf": "Building PDF…",
+      "stageDone": "Done.",
+      "error": "Translation failed.",
+      "ocrApplied": "OCR was applied before translation (scanned or no text layer).",
+      "applyToWorkspace": "Apply to workspace",
+      "applied": "Workspace PDF replaced with the translation.",
+      "pdfReady": "Translated PDF is ready (layout preserved). Download or apply to workspace."
+    },
     "voice": {
       "subtitle": "Listen to your document with built-in browser speech",
       "play": "Start reading",

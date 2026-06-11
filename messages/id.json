@@ -2918,25 +2918,7 @@
       "editText": "Sunting Teks",
       "editImages": "Sunting Gambar",
       "addLink": "Tambahkan Tautan",
-      "smartOcr": "OCR Cerdas",
-      "ocrPdf": {
-        "language": "Bahasa",
-        "outputFormat": "Format Keluaran",
-        "options": "Pilihan",
-        "result": "Hasil OCR",
-        "readyToOcr": "Siap untuk OCR",
-        "noFileSelected": "Tidak ada PDF yang dipilih",
-        "readyDesc": "Klik tombol untuk mengonversi PDF pindaian Anda menjadi dokumen yang dapat dicari atau mengekstrak teks.",
-        "noFileDesc": "Unggah PDF yang dipindai untuk memulai.",
-        "deskew": "Deskew (meluruskan halaman)",
-        "clean": "Bersihkan halaman sebelum OCR",
-        "removeBackground": "Hapus latar belakang",
-        "forceOcr": "Paksa OCR (OCR ulang meskipun ada teks)",
-        "progressAnalyzing": "Menganalisis struktur dokumen...",
-        "progressRecognizing": "Mengenali teks dalam gambar...",
-        "progressFinalizing": "Menyelesaikan keluaran...",
-        "progressDone": "Menyelesaikan!"
-      }
+      "smartOcr": "OCR Cerdas"
     },
     "textStyle": {
       "label": "Gaya teks",
@@ -2953,7 +2935,7 @@
     },
     "aiPanel": {
       "newBadge": "Baru",
-      "indexing": "Mengindeks dokumen untuk obrolan AI...",
+      "indexing": "Indexing document for AI chat...",
       "summarizing": "Meringkas (mungkin memerlukan waktu 1–2 menit, biarkan tab ini tetap terbuka)...",
       "indexError": "Tidak dapat menyiapkan dokumen untuk obrolan.",
       "runSummaryForChat": "Chat memerlukan Ringkasan terlebih dahulu (1–2 menit). Buka tab Ringkasan, buat ringkasan, lalu kembali ke Chat.",
@@ -3022,6 +3004,25 @@
         "voice": "Wawasan"
       },
       "translateComingSoon": "Terjemahan dokumen — segera hadir.",
+      "translate": {
+        "run": "Translate document",
+        "tiles": {
+          "pdf": "PDF",
+          "ocr": "OCR",
+          "text": "Text",
+          "ai": "AI translate",
+          "output": "New PDF"
+        },
+        "stageCheck": "Checking text layer…",
+        "stageOcr": "Running OCR…",
+        "stageTranslate": "Translating with AI…",
+        "stagePdf": "Building PDF…",
+        "stageDone": "Done.",
+        "error": "Translation failed.",
+        "ocrApplied": "OCR was applied before translation (scanned or no text layer).",
+        "applyToWorkspace": "Apply to workspace",
+        "applied": "Workspace PDF replaced with the translation."
+      },
       "voice": {
         "subtitle": "Dengarkan dokumen Anda dengan ucapan browser bawaan",
         "play": "Mulai baca",

@@ -3104,25 +3104,7 @@
       "editText": "Editar texto",
       "editImages": "Editar imagens",
       "addLink": "Adicionar link",
-      "smartOcr": "OCR inteligente",
-      "ocrPdf": {
-        "language": "Linguagem",
-        "outputFormat": "Formato de saída",
-        "options": "Opções",
-        "result": "Resultado de OCR",
-        "readyToOcr": "Pronto para OCR",
-        "noFileSelected": "Nenhum PDF selecionado",
-        "readyDesc": "Clique no botão para converter seu PDF digitalizado em um documento pesquisável ou extrair texto.",
-        "noFileDesc": "Carregue um PDF digitalizado para começar.",
-        "deskew": "Deskew (endireitar páginas)",
-        "clean": "Limpe as páginas antes do OCR",
-        "removeBackground": "Remover fundo",
-        "forceOcr": "Forçar OCR (re-OCR mesmo se existir texto)",
-        "progressAnalyzing": "Analisando a estrutura do documento...",
-        "progressRecognizing": "Reconhecendo texto em imagens...",
-        "progressFinalizing": "Finalizando a saída...",
-        "progressDone": "Completo!"
-      }
+      "smartOcr": "OCR inteligente"
     },
     "textStyle": {
       "label": "Estilo de texto",
@@ -3208,6 +3190,25 @@
         "voice": "Insights"
       },
       "translateComingSoon": "Tradução de documentos — em breve.",
+      "translate": {
+        "run": "Translate document",
+        "tiles": {
+          "pdf": "PDF",
+          "ocr": "OCR",
+          "text": "Text",
+          "ai": "AI translate",
+          "output": "New PDF"
+        },
+        "stageCheck": "Checking text layer…",
+        "stageOcr": "Running OCR…",
+        "stageTranslate": "Translating with AI…",
+        "stagePdf": "Building PDF…",
+        "stageDone": "Done.",
+        "error": "Translation failed.",
+        "ocrApplied": "OCR was applied before translation (scanned or no text layer).",
+        "applyToWorkspace": "Apply to workspace",
+        "applied": "Workspace PDF replaced with the translation."
+      },
       "voice": {
         "subtitle": "Ouça seu documento com a fala integrada do navegador",
         "play": "Iniciar leitura",

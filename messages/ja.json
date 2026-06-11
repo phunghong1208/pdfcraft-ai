@@ -3104,25 +3104,7 @@
       "editText": "テキストの編集",
       "editImages": "画像の編集",
       "addLink": "リンクを追加",
-      "smartOcr": "スマートOCR",
-      "ocrPdf": {
-        "language": "言語",
-        "outputFormat": "出力フォーマット",
-        "options": "オプション",
-        "result": "OCR結果",
-        "readyToOcr": "OCRの準備ができました",
-        "noFileSelected": "PDF が選択されていません",
-        "readyDesc": "ボタンをクリックして、スキャンした PDF を検索可能なドキュメントに変換するか、テキストを抽出します。",
-        "noFileDesc": "スキャンした PDF をアップロードして開始します。",
-        "deskew": "デスキュー (ページをまっすぐにする)",
-        "clean": "OCR前にページをクリーンアップする",
-        "removeBackground": "背景を削除する",
-        "forceOcr": "強制 OCR (テキストが存在する場合でも再 OCR)",
-        "progressAnalyzing": "ドキュメント構造を分析中...",
-        "progressRecognizing": "画像内のテキストを認識しています...",
-        "progressFinalizing": "出力を終了しています...",
-        "progressDone": "完了！"
-      }
+      "smartOcr": "スマートOCR"
     },
     "textStyle": {
       "label": "テキストスタイル",
@@ -3208,6 +3190,25 @@
         "voice": "インサイト"
       },
       "translateComingSoon": "ドキュメント翻訳 — 近日公開予定。",
+      "translate": {
+        "run": "Translate document",
+        "tiles": {
+          "pdf": "PDF",
+          "ocr": "OCR",
+          "text": "Text",
+          "ai": "AI translate",
+          "output": "New PDF"
+        },
+        "stageCheck": "Checking text layer…",
+        "stageOcr": "Running OCR…",
+        "stageTranslate": "Translating with AI…",
+        "stagePdf": "Building PDF…",
+        "stageDone": "Done.",
+        "error": "Translation failed.",
+        "ocrApplied": "OCR was applied before translation (scanned or no text layer).",
+        "applyToWorkspace": "Apply to workspace",
+        "applied": "Workspace PDF replaced with the translation."
+      },
       "voice": {
         "subtitle": "内蔵のブラウザ音声でドキュメントを聞く",
         "play": "読み上げ開始",

@@ -2895,25 +2895,7 @@
       "editText": "Modifica testo",
       "editImages": "Modifica immagini",
       "addLink": "Aggiungi collegamento",
-      "smartOcr": "OCR intelligente",
-      "ocrPdf": {
-        "language": "Lingua",
-        "outputFormat": "Formato di uscita",
-        "options": "Opzioni",
-        "result": "Risultato dell'OCR",
-        "readyToOcr": "Pronto per l'OCR",
-        "noFileSelected": "Nessun PDF selezionato",
-        "readyDesc": "Fare clic sul pulsante per convertire il PDF scansionato in un documento ricercabile o estrarre testo.",
-        "noFileDesc": "Carica un PDF scansionato per iniziare.",
-        "deskew": "Raddrizzamento (raddrizzare le pagine)",
-        "clean": "Pulisci le pagine prima dell'OCR",
-        "removeBackground": "Rimuovi lo sfondo",
-        "forceOcr": "Forza l'OCR (riesegui l'OCR anche se il testo esiste)",
-        "progressAnalyzing": "Analisi della struttura del documento...",
-        "progressRecognizing": "Riconoscimento del testo nelle immagini...",
-        "progressFinalizing": "Finalizzazione dell'output...",
-        "progressDone": "Completare!"
-      }
+      "smartOcr": "OCR intelligente"
     },
     "textStyle": {
       "label": "Stile del testo",
@@ -2999,6 +2981,25 @@
         "voice": "Approfondimenti"
       },
       "translateComingSoon": "Traduzione di documenti: disponibile a breve.",
+      "translate": {
+        "run": "Translate document",
+        "tiles": {
+          "pdf": "PDF",
+          "ocr": "OCR",
+          "text": "Text",
+          "ai": "AI translate",
+          "output": "New PDF"
+        },
+        "stageCheck": "Checking text layer…",
+        "stageOcr": "Running OCR…",
+        "stageTranslate": "Translating with AI…",
+        "stagePdf": "Building PDF…",
+        "stageDone": "Done.",
+        "error": "Translation failed.",
+        "ocrApplied": "OCR was applied before translation (scanned or no text layer).",
+        "applyToWorkspace": "Apply to workspace",
+        "applied": "Workspace PDF replaced with the translation."
+      },
       "voice": {
         "subtitle": "Ascolta il tuo documento con la voce del browser integrata",
         "play": "Avvia lettura",

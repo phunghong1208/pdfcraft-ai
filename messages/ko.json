@@ -3104,25 +3104,7 @@
       "editText": "텍스트 편집",
       "editImages": "이미지 편집",
       "addLink": "링크 추가",
-      "smartOcr": "스마트 OCR",
-      "ocrPdf": {
-        "language": "언어",
-        "outputFormat": "출력 형식",
-        "options": "옵션",
-        "result": "OCR 결과",
-        "readyToOcr": "OCR 준비 완료",
-        "noFileSelected": "선택한 PDF가 없습니다.",
-        "readyDesc": "스캔한 PDF를 검색 가능한 문서로 변환하거나 텍스트를 추출하려면 버튼을 클릭하세요.",
-        "noFileDesc": "시작하려면 스캔한 PDF를 업로드하세요.",
-        "deskew": "기울기 보정(페이지 직선화)",
-        "clean": "OCR 전 페이지 정리",
-        "removeBackground": "배경 제거",
-        "forceOcr": "강제 OCR(텍스트가 있어도 다시 OCR)",
-        "progressAnalyzing": "문서 구조 분석 중...",
-        "progressRecognizing": "이미지 속 텍스트를 인식하는 중...",
-        "progressFinalizing": "출력을 마무리하는 중...",
-        "progressDone": "완벽한!"
-      }
+      "smartOcr": "스마트 OCR"
     },
     "textStyle": {
       "label": "텍스트 스타일",
@@ -3208,6 +3190,25 @@
         "voice": "인사이트"
       },
       "translateComingSoon": "문서 번역 — 곧 제공될 예정입니다.",
+      "translate": {
+        "run": "Translate document",
+        "tiles": {
+          "pdf": "PDF",
+          "ocr": "OCR",
+          "text": "Text",
+          "ai": "AI translate",
+          "output": "New PDF"
+        },
+        "stageCheck": "Checking text layer…",
+        "stageOcr": "Running OCR…",
+        "stageTranslate": "Translating with AI…",
+        "stagePdf": "Building PDF…",
+        "stageDone": "Done.",
+        "error": "Translation failed.",
+        "ocrApplied": "OCR was applied before translation (scanned or no text layer).",
+        "applyToWorkspace": "Apply to workspace",
+        "applied": "Workspace PDF replaced with the translation."
+      },
       "voice": {
         "subtitle": "내장된 브라우저 음성으로 문서 듣기",
         "play": "읽기 시작",

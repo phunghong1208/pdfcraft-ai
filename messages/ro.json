@@ -2885,25 +2885,7 @@
       "editText": "Editați textul",
       "editImages": "Editați imagini",
       "addLink": "Adăugați link",
-      "smartOcr": "OCR inteligent",
-      "ocrPdf": {
-        "language": "Limbă",
-        "outputFormat": "Format de ieșire",
-        "options": "Opțiuni",
-        "result": "Rezultat OCR",
-        "readyToOcr": "Gata pentru OCR",
-        "noFileSelected": "Niciun PDF selectat",
-        "readyDesc": "Faceți clic pe butonul pentru a converti PDF-ul scanat într-un document care poate fi căutat sau pentru a extrage text.",
-        "noFileDesc": "Încărcați un PDF scanat pentru a începe.",
-        "deskew": "Îndreptați (îndreptați paginile)",
-        "clean": "Curățați paginile înainte de OCR",
-        "removeBackground": "Eliminați fundalul",
-        "forceOcr": "Forțați OCR (re-OCR chiar dacă există text)",
-        "progressAnalyzing": "Se analizează structura documentului...",
-        "progressRecognizing": "Se recunoaște textul din imagini...",
-        "progressFinalizing": "Se finalizează rezultatul...",
-        "progressDone": "Complet!"
-      }
+      "smartOcr": "OCR inteligent"
     },
     "textStyle": {
       "label": "Stilul textului",
@@ -2989,6 +2971,25 @@
         "voice": "Perspective"
       },
       "translateComingSoon": "Traducerea documentelor — în curând.",
+      "translate": {
+        "run": "Translate document",
+        "tiles": {
+          "pdf": "PDF",
+          "ocr": "OCR",
+          "text": "Text",
+          "ai": "AI translate",
+          "output": "New PDF"
+        },
+        "stageCheck": "Checking text layer…",
+        "stageOcr": "Running OCR…",
+        "stageTranslate": "Translating with AI…",
+        "stagePdf": "Building PDF…",
+        "stageDone": "Done.",
+        "error": "Translation failed.",
+        "ocrApplied": "OCR was applied before translation (scanned or no text layer).",
+        "applyToWorkspace": "Apply to workspace",
+        "applied": "Workspace PDF replaced with the translation."
+      },
       "voice": {
         "subtitle": "Ascultați documentul dvs. cu vorbirea în browser încorporată",
         "play": "Începe citirea",

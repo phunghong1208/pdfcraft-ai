@@ -3112,25 +3112,7 @@
       "editText": "تحرير النص",
       "editImages": "تحرير الصور",
       "addLink": "إضافة رابط",
-      "smartOcr": "OCR ذكي",
-      "ocrPdf": {
-        "language": "لغة",
-        "outputFormat": "تنسيق الإخراج",
-        "options": "خيارات",
-        "result": "نتيجة التعرف الضوئي على الحروف",
-        "readyToOcr": "جاهز للتعرف الضوئي على الحروف",
-        "noFileSelected": "لم يتم تحديد ملف PDF",
-        "readyDesc": "انقر فوق الزر لتحويل ملف PDF الممسوح ضوئيًا إلى مستند قابل للبحث أو لاستخراج النص.",
-        "noFileDesc": "قم بتحميل ملف PDF ممسوح ضوئيًا للبدء.",
-        "deskew": "منحرف (تسوية الصفحات)",
-        "clean": "تنظيف الصفحات قبل التعرف الضوئي على الحروف",
-        "removeBackground": "إزالة الخلفية",
-        "forceOcr": "فرض التعرف الضوئي على الحروف (إعادة التعرف الضوئي على الحروف حتى لو كان النص موجودًا)",
-        "progressAnalyzing": "جارٍ تحليل بنية المستند...",
-        "progressRecognizing": "التعرف على النص في الصور...",
-        "progressFinalizing": "الانتهاء من الإخراج...",
-        "progressDone": "مكتمل!"
-      }
+      "smartOcr": "OCR ذكي"
     },
     "textStyle": {
       "label": "نمط النص",
@@ -3216,6 +3198,25 @@
         "voice": "رؤى"
       },
       "translateComingSoon": "ترجمة المستندات – قريباً.",
+      "translate": {
+        "run": "Translate document",
+        "tiles": {
+          "pdf": "PDF",
+          "ocr": "OCR",
+          "text": "Text",
+          "ai": "AI translate",
+          "output": "New PDF"
+        },
+        "stageCheck": "Checking text layer…",
+        "stageOcr": "Running OCR…",
+        "stageTranslate": "Translating with AI…",
+        "stagePdf": "Building PDF…",
+        "stageDone": "Done.",
+        "error": "Translation failed.",
+        "ocrApplied": "OCR was applied before translation (scanned or no text layer).",
+        "applyToWorkspace": "Apply to workspace",
+        "applied": "Workspace PDF replaced with the translation."
+      },
       "voice": {
         "subtitle": "استمع إلى المستند الخاص بك باستخدام كلام المتصفح المدمج",
         "play": "بدء القراءة",

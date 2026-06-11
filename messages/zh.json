@@ -2886,25 +2886,7 @@
       "editText": "编辑文本",
       "editImages": "编辑图像",
       "addLink": "添加链接",
-      "smartOcr": "智能 OCR",
-      "ocrPdf": {
-        "language": "语言",
-        "outputFormat": "输出格式",
-        "options": "选项",
-        "result": "光学字符识别结果",
-        "readyToOcr": "准备好 OCR",
-        "noFileSelected": "未选择 PDF",
-        "readyDesc": "单击按钮将扫描的 PDF 转换为可搜索文档或提取文本。",
-        "noFileDesc": "上传扫描的 PDF 以开始使用。",
-        "deskew": "纠偏（校直页面）",
-        "clean": "OCR 之前清理页面",
-        "removeBackground": "删除背景",
-        "forceOcr": "强制 OCR（即使文本存在也重新 OCR）",
-        "progressAnalyzing": "正在分析文档结构...",
-        "progressRecognizing": "识别图像中的文本...",
-        "progressFinalizing": "正在完成输出...",
-        "progressDone": "完全的！"
-      }
+      "smartOcr": "智能 OCR"
     },
     "textStyle": {
       "label": "文字样式",
@@ -2990,6 +2972,25 @@
         "voice": "洞察"
       },
       "translateComingSoon": "文档翻译 — 即将推出。",
+      "translate": {
+        "run": "Translate document",
+        "tiles": {
+          "pdf": "PDF",
+          "ocr": "OCR",
+          "text": "Text",
+          "ai": "AI translate",
+          "output": "New PDF"
+        },
+        "stageCheck": "Checking text layer…",
+        "stageOcr": "Running OCR…",
+        "stageTranslate": "Translating with AI…",
+        "stagePdf": "Building PDF…",
+        "stageDone": "Done.",
+        "error": "Translation failed.",
+        "ocrApplied": "OCR was applied before translation (scanned or no text layer).",
+        "applyToWorkspace": "Apply to workspace",
+        "applied": "Workspace PDF replaced with the translation."
+      },
       "voice": {
         "subtitle": "使用浏览器语音朗读文档内容",
         "play": "开始朗读",

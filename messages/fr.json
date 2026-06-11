@@ -3104,25 +3104,7 @@
       "editText": "Modifier le texte",
       "editImages": "Modifier les images",
       "addLink": "Ajouter un lien",
-      "smartOcr": "OCR intelligent",
-      "ocrPdf": {
-        "language": "Langue",
-        "outputFormat": "Format de sortie",
-        "options": "Possibilités",
-        "result": "Résultat ROC",
-        "readyToOcr": "Prêt pour l'OCR",
-        "noFileSelected": "Aucun PDF sélectionné",
-        "readyDesc": "Cliquez sur le bouton pour convertir votre PDF numérisé en un document consultable ou extraire du texte.",
-        "noFileDesc": "Téléchargez un PDF numérisé pour commencer.",
-        "deskew": "Redresser (redresser les pages)",
-        "clean": "Nettoyer les pages avant l'OCR",
-        "removeBackground": "Supprimer l'arrière-plan",
-        "forceOcr": "Forcer l'OCR (re-OCR même si du texte existe)",
-        "progressAnalyzing": "Analyse de la structure du document...",
-        "progressRecognizing": "Reconnaître du texte dans des images...",
-        "progressFinalizing": "Finalisation de la sortie...",
-        "progressDone": "Complet!"
-      }
+      "smartOcr": "OCR intelligent"
     },
     "textStyle": {
       "label": "Style de texte",
@@ -3208,6 +3190,25 @@
         "voice": "Analyses"
       },
       "translateComingSoon": "Traduction de documents — à venir.",
+      "translate": {
+        "run": "Translate document",
+        "tiles": {
+          "pdf": "PDF",
+          "ocr": "OCR",
+          "text": "Text",
+          "ai": "AI translate",
+          "output": "New PDF"
+        },
+        "stageCheck": "Checking text layer…",
+        "stageOcr": "Running OCR…",
+        "stageTranslate": "Translating with AI…",
+        "stagePdf": "Building PDF…",
+        "stageDone": "Done.",
+        "error": "Translation failed.",
+        "ocrApplied": "OCR was applied before translation (scanned or no text layer).",
+        "applyToWorkspace": "Apply to workspace",
+        "applied": "Workspace PDF replaced with the translation."
+      },
       "voice": {
         "subtitle": "Écoutez votre document avec la parole du navigateur intégrée",
         "play": "Commencer la lecture",

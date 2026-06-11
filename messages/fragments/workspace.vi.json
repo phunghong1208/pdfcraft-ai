@@ -225,6 +225,26 @@
       "voice": "Đọc file"
     },
     "translateComingSoon": "Dịch tài liệu — sắp ra mắt.",
+    "translate": {
+      "run": "Dịch tài liệu",
+      "tiles": {
+        "pdf": "PDF",
+        "ocr": "OCR",
+        "text": "Văn bản",
+        "ai": "Dịch AI",
+        "output": "PDF mới"
+      },
+      "stageCheck": "Đang kiểm tra lớp văn bản…",
+      "stageOcr": "Đang OCR…",
+      "stageTranslate": "Đang dịch bằng AI…",
+      "stagePdf": "Đang tạo PDF…",
+      "stageDone": "Hoàn tất.",
+      "error": "Dịch thất bại.",
+      "ocrApplied": "Đã OCR trước khi dịch (PDF scan hoặc không có text).",
+      "applyToWorkspace": "Áp vào workspace",
+      "applied": "Đã thay PDF trong workspace bằng bản dịch.",
+      "pdfReady": "PDF dịch đã sẵn sàng (giữ nguyên bố cục). Tải xuống hoặc áp vào workspace."
+    },
     "voice": {
       "subtitle": "Nghe nội dung tài liệu bằng giọng nói trên trình duyệt",
       "play": "Bắt đầu đọc",

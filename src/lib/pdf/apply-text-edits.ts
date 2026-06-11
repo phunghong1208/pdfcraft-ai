@@ -1,5 +1,16 @@
 import { PDFDocument, rgb, StandardFonts, type PDFFont, type RGB } from 'pdf-lib';
 
+export interface TextRun {
+  text: string;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  color?: string;
+  fontSizeRatio?: number;
+  fontFamily?: string;
+  lineBreak?: boolean;
+}
+
 export interface TextEdit {
   pageNumber: number;
   pdfX: number;
@@ -12,6 +23,10 @@ export interface TextEdit {
   fontStyle?: string;
   color?: string;
   textDecoration?: string;
+  scaleX?: number;
+  textAlign?: string;
+  richHtml?: string;
+  richRuns?: TextRun[];
   originalText: string;
   newText: string;
 }
@@ -27,7 +42,8 @@ function parseFontNameFlags(name: string): { bold: boolean; italic: boolean } {
   return { bold, italic };
 }
 
-function isBold(weight?: string, family?: string): boolean {
+function isBold(weight?: string, family?: string, runBold?: boolean): boolean {
+  if (runBold) return true;
   if (family) {
     const flags = parseFontNameFlags(family);
     if (flags.bold) return true;
@@ -37,7 +53,8 @@ function isBold(weight?: string, family?: string): boolean {
   return w === 'bold' || w === 'bolder' || (Number.parseInt(w, 10) || 0) >= 600;
 }
 
-function isItalic(style?: string, family?: string): boolean {
+function isItalic(style?: string, family?: string, runItalic?: boolean): boolean {
+  if (runItalic) return true;
   if (family) {
     const flags = parseFontNameFlags(family);
     if (flags.italic) return true;
@@ -47,9 +64,15 @@ function isItalic(style?: string, family?: string): boolean {
   return s === 'italic' || s === 'oblique';
 }
 
-function resolveStandardFont(family: string, weight?: string, style?: string): StandardFonts {
-  const bold = isBold(weight, family);
-  const italic = isItalic(style, family);
+function resolveStandardFont(
+  family: string,
+  weight?: string,
+  style?: string,
+  runBold?: boolean,
+  runItalic?: boolean,
+): StandardFonts {
+  const bold = isBold(weight, family, runBold);
+  const italic = isItalic(style, family, runItalic);
   const serif = /times|serif|minion|utopia|georgia|roman/i.test(family);
 
   if (serif) {
@@ -74,6 +97,12 @@ function parseTextColor(color?: string): RGB {
   return rgb(0, 0, 0);
 }
 
+function isTextRun(value: unknown): value is TextRun {
+  if (!value || typeof value !== 'object') return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.text === 'string';
+}
+
 function isTextEdit(value: unknown): value is TextEdit {
   if (!value || typeof value !== 'object') return false;
   const v = value as Record<string, unknown>;
@@ -96,6 +125,93 @@ export function parseTextEdits(edits: unknown): TextEdit[] {
   return edits.filter(isTextEdit);
 }
 
+function runsToLines(runs: TextRun[]): TextRun[][] {
+  const lines: TextRun[][] = [[]];
+  for (const run of runs) {
+    if (run.lineBreak || run.text === '\n') {
+      lines.push([]);
+      continue;
+    }
+    if (!run.text) continue;
+    const parts = run.text.split('\n');
+    for (let i = 0; i < parts.length; i++) {
+      if (i > 0) lines.push([]);
+      if (parts[i]) lines[lines.length - 1].push({ ...run, text: parts[i] });
+    }
+  }
+  return lines.filter((line) => line.length > 0);
+}
+
+async function drawRichTextEdit(
+  page: ReturnType<PDFDocument['getPage']>,
+  edit: TextEdit,
+  fontCache: Map<string, PDFFont>,
+  pdfDoc: PDFDocument,
+): Promise<void> {
+  const runs = (edit.richRuns ?? []).filter(isTextRun);
+  if (!runs.length) return;
+
+  const baseSize = Math.max(6, Math.min(edit.fontSize, 72));
+  const scaleX = edit.scaleX && edit.scaleX > 0 ? edit.scaleX : 1;
+  const lineHeight = baseSize * 1.25;
+  const lines = runsToLines(runs);
+  const blockHeight = Math.max(edit.pdfHeight, lineHeight * lines.length);
+
+  const getFont = async (run: TextRun): Promise<PDFFont> => {
+    const family = run.fontFamily || edit.fontFamily;
+    const key = resolveStandardFont(family, edit.fontWeight, edit.fontStyle, run.bold, run.italic);
+    const cacheKey = String(key);
+    let font = fontCache.get(cacheKey);
+    if (!font) {
+      font = await pdfDoc.embedFont(key);
+      fontCache.set(cacheKey, font);
+    }
+    return font;
+  };
+
+  let lineY = edit.pdfY + blockHeight - baseSize;
+
+  for (const line of lines) {
+    let lineWidth = 0;
+    const segments: { run: TextRun; font: PDFFont; size: number; width: number }[] = [];
+    for (const run of line) {
+      const ratio = run.fontSizeRatio && run.fontSizeRatio > 0 ? run.fontSizeRatio : 1;
+      const size = Math.max(6, Math.min(baseSize * ratio, 72));
+      const font = await getFont(run);
+      const width = font.widthOfTextAtSize(run.text, size) * scaleX;
+      segments.push({ run, font, size, width });
+      lineWidth += width;
+    }
+
+    const align = edit.textAlign || 'left';
+    let cursorX = edit.pdfX;
+    if (align === 'center') cursorX = edit.pdfX + Math.max(0, (edit.pdfWidth - lineWidth) / 2);
+    else if (align === 'right') cursorX = edit.pdfX + Math.max(0, edit.pdfWidth - lineWidth);
+
+    for (const seg of segments) {
+      const color = parseTextColor(seg.run.color || edit.color);
+      page.drawText(seg.run.text, {
+        x: cursorX,
+        y: lineY,
+        size: seg.size,
+        font: seg.font,
+        color,
+      });
+      if (seg.run.underline) {
+        const underlineY = lineY - seg.size * 0.12;
+        page.drawLine({
+          start: { x: cursorX, y: underlineY },
+          end: { x: cursorX + seg.width, y: underlineY },
+          thickness: Math.max(0.5, seg.size * 0.06),
+          color,
+        });
+      }
+      cursorX += seg.width;
+    }
+    lineY -= lineHeight;
+  }
+}
+
 export async function applyTextEdits(
   pdfBytes: ArrayBuffer | Uint8Array,
   edits: TextEdit[],
@@ -103,7 +219,7 @@ export async function applyTextEdits(
   if (!edits.length) return new Uint8Array(pdfBytes);
 
   const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
-  const fontCache = new Map<StandardFonts, PDFFont>();
+  const fontCache = new Map<string, PDFFont>();
 
   for (const edit of edits) {
     const pageIndex = edit.pageNumber - 1;
@@ -121,13 +237,22 @@ export async function applyTextEdits(
       color: rgb(1, 1, 1),
       borderWidth: 0,
     });
+
+    const hasRichRuns = Array.isArray(edit.richRuns) && edit.richRuns.some((r) => isTextRun(r) && r.text);
+    if (hasRichRuns) {
+      await drawRichTextEdit(page, edit, fontCache, pdfDoc);
+      continue;
+    }
+
     const fontKey = resolveStandardFont(edit.fontFamily, edit.fontWeight, edit.fontStyle);
-    let font = fontCache.get(fontKey);
+    const cacheKey = String(fontKey);
+    let font = fontCache.get(cacheKey);
     if (!font) {
       font = await pdfDoc.embedFont(fontKey);
-      fontCache.set(fontKey, font);
+      fontCache.set(cacheKey, font);
     }
     const textColor = parseTextColor(edit.color);
+    const scaleX = edit.scaleX && edit.scaleX > 0 ? edit.scaleX : 1;
 
     const lineHeight = clampedSize * 1.25;
     const lines = edit.newText.split('\n');
@@ -137,9 +262,14 @@ export async function applyTextEdits(
     const underline = (edit.textDecoration ?? '').includes('underline');
 
     for (const line of lines) {
-      const lineWidth = font.widthOfTextAtSize(line, clampedSize);
+      const lineWidth = font.widthOfTextAtSize(line, clampedSize) * scaleX;
+      const align = edit.textAlign || 'left';
+      let lineX = edit.pdfX;
+      if (align === 'center') lineX = edit.pdfX + Math.max(0, (edit.pdfWidth - lineWidth) / 2);
+      else if (align === 'right') lineX = edit.pdfX + Math.max(0, edit.pdfWidth - lineWidth);
+
       page.drawText(line, {
-        x: edit.pdfX,
+        x: lineX,
         y: lineY,
         size: clampedSize,
         font,
@@ -148,8 +278,8 @@ export async function applyTextEdits(
       if (underline && line.length > 0) {
         const underlineY = lineY - clampedSize * 0.12;
         page.drawLine({
-          start: { x: edit.pdfX, y: underlineY },
-          end: { x: edit.pdfX + lineWidth, y: underlineY },
+          start: { x: lineX, y: underlineY },
+          end: { x: lineX + lineWidth, y: underlineY },
           thickness: Math.max(0.5, clampedSize * 0.06),
           color: textColor,
         });

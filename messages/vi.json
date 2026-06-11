@@ -2775,7 +2775,6 @@
       "insert": "Chèn",
       "save": "Lưu",
       "file": "Tài liệu",
-      "content": "Nội dung",
       "document": "Tài liệu",
       "pages": "Trang",
       "transform": "Biến đổi",
@@ -2884,29 +2883,7 @@
       "editText": "Chỉnh sửa văn bản",
       "editImages": "Chỉnh sửa hình ảnh",
       "addLink": "Thêm liên kết",
-      "smartOcr": "OCR thông minh",
-      "ocrPdf": {
-        "language": "Ngôn ngữ",
-        "outputFormat": "Định dạng đầu ra",
-        "options": "Tùy chọn",
-        "result": "Kết quả OCR",
-        "readyToOcr": "Sẵn sàng OCR",
-        "noFileSelected": "Không có bản PDF nào được chọn",
-        "readyDesc": "Nhấp vào nút để chuyển đổi tệp PDF đã quét của bạn thành tài liệu có thể tìm kiếm hoặc trích xuất văn bản.",
-        "noFileDesc": "Tải lên bản PDF đã quét để bắt đầu.",
-        "deskew": "Deskew (làm thẳng trang)",
-        "clean": "Làm sạch các trang trước OCR",
-        "removeBackground": "Xóa nền",
-        "forceOcr": "Buộc OCR (OCR lại ngay cả khi văn bản tồn tại)",
-        "progressAnalyzing": "Phân tích cấu trúc tài liệu...",
-        "progressRecognizing": "Nhận dạng văn bản trong hình ảnh...",
-        "progressStillWorking": "Server vẫn đang OCR — có thể mất vài phút, vui lòng đợi...",
-        "progressFinalizing": "Đang tải kết quả...",
-        "progressDone": "Hoàn thành!",
-        "downloadPdf": "Tải PDF",
-        "searchablePdf": "PDF có thể tìm kiếm",
-        "extractedText": "Văn bản trích xuất"
-      }
+      "smartOcr": "OCR thông minh"
     },
     "textStyle": {
       "label": "Kiểu chữ",
@@ -2992,6 +2969,26 @@
         "voice": "Đọc file"
       },
       "translateComingSoon": "Dịch tài liệu — sắp ra mắt.",
+      "translate": {
+        "run": "Dịch tài liệu",
+        "tiles": {
+          "pdf": "PDF",
+          "ocr": "OCR",
+          "text": "Văn bản",
+          "ai": "Dịch AI",
+          "output": "PDF mới"
+        },
+        "stageCheck": "Đang kiểm tra lớp văn bản…",
+        "stageOcr": "Đang OCR…",
+        "stageTranslate": "Đang dịch bằng AI…",
+        "stagePdf": "Đang tạo PDF…",
+        "stageDone": "Hoàn tất.",
+        "error": "Dịch thất bại.",
+        "ocrApplied": "Đã OCR trước khi dịch (PDF scan hoặc không có text).",
+        "applyToWorkspace": "Áp vào workspace",
+        "applied": "Đã thay PDF trong workspace bằng bản dịch.",
+        "pdfReady": "PDF dịch đã sẵn sàng (giữ nguyên bố cục). Tải xuống hoặc áp vào workspace."
+      },
       "voice": {
         "subtitle": "Nghe nội dung tài liệu bằng giọng nói trên trình duyệt",
         "play": "Bắt đầu đọc",

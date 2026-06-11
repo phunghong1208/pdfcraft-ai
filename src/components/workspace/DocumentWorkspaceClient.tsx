@@ -2011,6 +2011,7 @@ const [canRedoText, setCanRedoText] = useState(false);
             pageCount={pageCount}
             onClose={() => setIsRightPanelOpen(false)}
             pdfViewerIframeRef={editorIframeRef}
+            onTranslatedFile={(next) => handleFileChange(next, { markDirty: true })}
           />
         )}
       </div>
