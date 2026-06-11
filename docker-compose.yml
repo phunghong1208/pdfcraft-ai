@@ -47,6 +47,12 @@ services:
       - "8100:8100"
     restart: unless-stopped
 
+  layout:
+    build: ./services/layout
+    ports:
+      - "8101:8101"
+    restart: unless-stopped
+
 volumes:
   node_modules:
   static_out:

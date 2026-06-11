@@ -27,6 +27,7 @@
     "organize": "Organize",
     "output": "Output",
     "history": "History",
+    "content": "Content",
     "page": "Page",
     "insert": "Insert",
     "save": "Save",
@@ -218,14 +219,15 @@
       "tiles": {
         "pdf": "PDF",
         "ocr": "OCR",
-        "text": "Text",
+        "blocks": "Blocks",
         "ai": "AI translate",
-        "output": "New PDF"
+        "output": "Render"
       },
       "stageCheck": "Checking text layer…",
       "stageOcr": "Running OCR…",
-      "stageTranslate": "Translating with AI…",
-      "stagePdf": "Building PDF…",
+      "stageBlocks": "Extracting layout blocks…",
+      "stageTranslate": "Translating each block…",
+      "stagePdf": "Rendering PDF…",
       "stageDone": "Done.",
       "error": "Translation failed.",
       "ocrApplied": "OCR was applied before translation (scanned or no text layer).",

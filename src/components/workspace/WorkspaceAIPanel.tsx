@@ -118,7 +118,7 @@ function AiSectionTitle({ children }: { children: ReactNode }) {
 const TRANSLATE_PIPELINE_TILES = [
   { id: 'pdf', icon: FileText },
   { id: 'ocr', icon: ScanLine },
-  { id: 'text', icon: AlignLeft },
+  { id: 'blocks', icon: AlignLeft },
   { id: 'ai', icon: Languages },
   { id: 'output', icon: FileOutput },
 ] as const;
@@ -133,6 +133,8 @@ function activeTranslateTileIndex(
       return 1;
     case 'ocr':
       return 1;
+    case 'blocks':
+      return 2;
     case 'translate':
       return 3;
     case 'pdf':
@@ -763,6 +765,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef,
     const { stage } = translateProgress;
     if (stage === 'check') return t('aiPanel.translate.stageCheck');
     if (stage === 'ocr') return t('aiPanel.translate.stageOcr');
+    if (stage === 'blocks') return t('aiPanel.translate.stageBlocks');
     if (stage === 'translate') return t('aiPanel.translate.stageTranslate');
     if (stage === 'pdf') return t('aiPanel.translate.stagePdf');
     return t('aiPanel.translate.stageDone');

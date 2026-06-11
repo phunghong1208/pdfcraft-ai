@@ -27,6 +27,7 @@
     "organize": "Sắp xếp",
     "output": "Đầu ra",
     "history": "Lịch sử",
+    "content": "Nội dung",
     "page": "Trang",
     "insert": "Chèn",
     "save": "Lưu",
@@ -230,14 +231,15 @@
       "tiles": {
         "pdf": "PDF",
         "ocr": "OCR",
-        "text": "Văn bản",
+        "blocks": "Block",
         "ai": "Dịch AI",
-        "output": "PDF mới"
+        "output": "Render"
       },
       "stageCheck": "Đang kiểm tra lớp văn bản…",
       "stageOcr": "Đang OCR…",
-      "stageTranslate": "Đang dịch bằng AI…",
-      "stagePdf": "Đang tạo PDF…",
+      "stageBlocks": "Docling — trích block + bbox…",
+      "stageTranslate": "Đang dịch từng block…",
+      "stagePdf": "Đang render lại PDF…",
       "stageDone": "Hoàn tất.",
       "error": "Dịch thất bại.",
       "ocrApplied": "Đã OCR trước khi dịch (PDF scan hoặc không có text).",

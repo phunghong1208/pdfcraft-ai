@@ -140,6 +140,69 @@ def health():
     return {"status": "ok"}
 
 
+@app.post("/pdf-to-docx")
+async def convert_pdf_to_docx(file: UploadFile = File(...)):
+    """pdf2docx native Python — giữ layout tốt hơn WASM trên browser."""
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files accepted.")
+
+    tmpdir = Path(tempfile.mkdtemp())
+    input_path = tmpdir / "input.pdf"
+    output_path = tmpdir / "output.docx"
+    safe_name = (file.filename or "document.pdf").rsplit(".", 1)[0] + ".docx"
+
+    try:
+        with open(input_path, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+
+        input_size = input_path.stat().st_size
+        if input_size < 32:
+            raise HTTPException(status_code=400, detail="PDF file is empty.")
+
+        from pdf2docx import Converter
+
+        logger.info("pdf2docx server: %s (%s bytes)", file.filename, input_size)
+        cv = Converter(str(input_path))
+        cv.convert(
+            str(output_path),
+            start=0,
+            end=None,
+            clip_image_res_ratio=1.0,
+            min_svg_gap_dx=5.0,
+            min_svg_gap_dy=5.0,
+            min_svg_w=2.0,
+            min_svg_h=2.0,
+            parse_stream_table=True,
+            parse_lattice_table=True,
+            line_separate_threshold=20.0,
+            line_break_width_ratio=0.85,
+        )
+        cv.close()
+
+        if not output_path.exists() or output_path.stat().st_size < 4096:
+            raise HTTPException(
+                status_code=422,
+                detail="DOCX output too small — conversion likely lost content.",
+            )
+
+        out_size = output_path.stat().st_size
+        return FileResponse(
+            output_path,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            filename=safe_name,
+            headers={
+                "X-Engine": "pdf2docx-server",
+                "X-Input-Size": str(input_size),
+                "X-Output-Size": str(out_size),
+            },
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("PDF to DOCX failed")
+        raise HTTPException(status_code=500, detail=f"PDF to DOCX failed: {exc}") from exc
+
+
 @app.post("/ocr")
 async def ocr_pdf(
     file: UploadFile = File(...),

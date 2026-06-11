@@ -110,6 +110,34 @@ def _rect_overlap(r1, r2):
     area1 = max(1, (r1[2]-r1[0]) * (r1[3]-r1[1]))
     return (ox * oy) / area1 > 0.5
 
+def _line_text_from_spans(spans):
+    """Ghép span có khoảng cách — tránh 'Giữađêmrằm' khi PDF tách từng từ."""
+    if not spans:
+        return ""
+    out = ""
+    for i, s in enumerate(spans):
+        text = s.get("text", "")
+        if not text:
+            continue
+        if i > 0 and out:
+            prev = spans[i - 1]
+            pb = prev.get("bbox")
+            cb = s.get("bbox")
+            if pb and cb and len(pb) >= 4 and len(cb) >= 4:
+                gap = float(cb[0]) - float(pb[2])
+                size = max(float(prev.get("size", 11)), float(s.get("size", 11)))
+                if gap > size * 0.3:
+                    out += " "
+        out += text
+    return out.strip()
+
+def _find_page_tables(page):
+  for strategy in ("lines_strict", "lines", "text"):
+    tables = page.find_tables(strategy=strategy).tables
+    if tables:
+      return tables
+  return []
+
 def pdf_has_lattice_tables(pdf_path="input.pdf"):
     doc = fitz.open(pdf_path)
     try:
@@ -131,8 +159,7 @@ def _convert_pymupdf_tables(pdf_path, docx_path):
         if page_num > 0:
             doc_word.add_page_break()
 
-        finder = page.find_tables(strategy="lines_strict")
-        tables = finder.tables
+        tables = _find_page_tables(page)
         table_bboxes = [t.bbox for t in tables]
 
         blocks = page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE)["blocks"]
@@ -145,7 +172,7 @@ def _convert_pymupdf_tables(pdf_path, docx_path):
                 lines_text = []
                 for line in blk["lines"]:
                     spans = line.get("spans", [])
-                    line_text = "".join(s["text"] for s in spans).strip()
+                    line_text = _line_text_from_spans(spans)
                     if line_text:
                         lines_text.append((line_text, spans))
                 if lines_text:
@@ -186,39 +213,59 @@ def _convert_pymupdf_tables(pdf_path, docx_path):
     return page_count
 
 def _convert_pdf2docx(pdf_path, docx_path):
-    cv = Converter(pdf_path)
-    page_count = len(cv.fitz_doc)
-    cv.convert(
-        docx_path,
-        start=0,
-        end=None,
-        clip_image_res_ratio=1.0,
-        min_svg_gap_dx=5.0,
-        min_svg_gap_dy=5.0,
-        min_svg_w=2.0,
-        min_svg_h=2.0,
-        parse_stream_table=True,
-    )
-    cv.close()
-    return page_count
+    from pdf2docx.image.ImagesExtractor import ImagesExtractor
 
-def pdf_convert(engine="auto"):
-    """
-    engine: auto | pymupdf | pdf2docx
-    - pdf2docx: layout/images (default)
-    - pymupdf: text + bordered tables only (fallback)
-    - auto: pdf2docx first, pymupdf on failure
-    """
+    _orig_to_raw_dict = ImagesExtractor._to_raw_dict
+
+    def _patched_to_raw_dict(image, bbox):
+        pix = image
+        needs_conversion = False
+        if hasattr(pix, "colorspace") and pix.colorspace:
+            cs_name = (pix.colorspace.name or "").upper()
+            if "CMYK" in cs_name or "DEVICECMYK" in cs_name:
+                needs_conversion = True
+            elif cs_name not in ("DEVICEGRAY", "GRAY", "DEVICERGB", "RGB", "SRGB", ""):
+                needs_conversion = True
+        if not needs_conversion and hasattr(pix, "n") and hasattr(pix, "alpha"):
+            if pix.n == 4 and not pix.alpha:
+                needs_conversion = True
+        if needs_conversion:
+            try:
+                pix = fitz.Pixmap(fitz.csRGB, pix)
+            except Exception:
+                pass
+        return _orig_to_raw_dict(pix, bbox)
+
+    ImagesExtractor._to_raw_dict = staticmethod(_patched_to_raw_dict)
+    try:
+        cv = Converter(pdf_path)
+        page_count = len(cv.fitz_doc)
+        cv.convert(
+            docx_path,
+            start=0,
+            end=None,
+            clip_image_res_ratio=1.0,
+            min_svg_gap_dx=5.0,
+            min_svg_gap_dy=5.0,
+            min_svg_w=2.0,
+            min_svg_h=2.0,
+            parse_stream_table=True,
+            parse_lattice_table=True,
+            # PDF tiếng Việt hay tách từng ký tự — tăng ngưỡng gộp dòng
+            line_separate_threshold=20.0,
+            line_break_width_ratio=0.85,
+            line_align_threshold=0.85,
+        )
+        cv.close()
+        return page_count
+    finally:
+        ImagesExtractor._to_raw_dict = _orig_to_raw_dict
+
+def pdf_convert(engine="pdf2docx"):
+    """Chỉ pdf2docx — không fallback text thô (mất format)."""
     if engine == "pymupdf":
         return _convert_pymupdf_tables("input.pdf", "output.docx")
-
-    if engine == "pdf2docx":
-        return _convert_pdf2docx("input.pdf", "output.docx")
-
-    try:
-        return _convert_pdf2docx("input.pdf", "output.docx")
-    except Exception:
-        return _convert_pymupdf_tables("input.pdf", "output.docx")
+    return _convert_pdf2docx("input.pdf", "output.docx")
 
 def pdf_read_result():
     with open("output.docx", "rb") as f:
@@ -275,16 +322,9 @@ self.onmessage = async (event) => {
       const writeInput = pyodide.globals.get('pdf_write_input');
       writeInput(inputBytes);
 
-      const progressMsg =
-        engine === 'pymupdf'
-          ? 'Extracting tables with PyMuPDF...'
-          : engine === 'pdf2docx'
-            ? 'Converting with pdf2docx...'
-            : 'Analyzing layout & converting...';
+      self.postMessage({ type: 'progress', message: 'Converting with pdf2docx...', percent: 10 });
 
-      self.postMessage({ type: 'progress', message: progressMsg, percent: 10 });
-
-      const safeEngine = ['auto', 'pymupdf', 'pdf2docx'].includes(engine) ? engine : 'auto';
+      const safeEngine = engine === 'pymupdf' ? 'pymupdf' : 'pdf2docx';
       const totalPages = await pyodide.runPythonAsync(`pdf_convert("${safeEngine}")`);
 
       self.postMessage({

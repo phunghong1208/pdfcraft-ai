@@ -1,0 +1,51 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+const UPSTREAM = (process.env.LAYOUT_SERVER_UPSTREAM || 'http://localhost:8101').replace(/\/$/, '');
+const PROXY_TIMEOUT_MS = Number(process.env.LAYOUT_PROXY_TIMEOUT_MS || '600000');
+
+export async function POST(req: NextRequest): Promise<NextResponse> {
+  let incoming: FormData;
+  try {
+    incoming = await req.formData();
+  } catch {
+    return NextResponse.json({ detail: 'Invalid multipart body.' }, { status: 400 });
+  }
+
+  const outgoing = new FormData();
+  for (const [key, value] of incoming.entries()) {
+    outgoing.append(key, value);
+  }
+
+  try {
+    const upstream = await fetch(`${UPSTREAM}/extract`, {
+      method: 'POST',
+      body: outgoing,
+      signal: AbortSignal.timeout(PROXY_TIMEOUT_MS),
+    });
+
+    if (!upstream.ok) {
+      const text = await upstream.text();
+      let detail: string;
+      try {
+        detail = JSON.parse(text).detail;
+      } catch {
+        detail = text;
+      }
+      return NextResponse.json({ detail }, { status: upstream.status });
+    }
+
+    const json = await upstream.json();
+    return NextResponse.json(json);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    const isTimeout = /timeout|aborted/i.test(message);
+    return NextResponse.json(
+      {
+        detail: isTimeout
+          ? `Layout server không phản hồi trong ${PROXY_TIMEOUT_MS / 1000}s.`
+          : `Layout proxy lỗi: ${message}`,
+      },
+      { status: isTimeout ? 504 : 502 },
+    );
+  }
+}

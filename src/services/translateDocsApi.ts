@@ -63,13 +63,40 @@ export function getDefaultTranslateLanguagePair(pageLocale: string): { source: s
   return { source: 'en', target: loc in localeConfig ? loc : 'vi' };
 }
 
-async function parseJsonTranslatedText(res: Response): Promise<string | null> {
-  try {
-    const json = await res.json();
-    return extractTranslatedText(json);
-  } catch {
-    return null;
+function isPdfBytes(buf: ArrayBuffer): boolean {
+  const head = new Uint8Array(buf, 0, Math.min(5, buf.byteLength));
+  return head[0] === 0x25 && head[1] === 0x50 && head[2] === 0x44 && head[3] === 0x46;
+}
+
+function parseErrorDetail(body: string, contentType: string, fallback: string): string {
+  if (!body.trim()) return fallback;
+  if (contentType.includes('application/json')) {
+    try {
+      const json = JSON.parse(body) as { detail?: string; message?: string; error?: string };
+      return json.detail || json.message || json.error || body.slice(0, 400);
+    } catch {
+      // fall through
+    }
   }
+  return body.slice(0, 400);
+}
+
+function parseJsonBody(body: ArrayBuffer): unknown {
+  return JSON.parse(new TextDecoder().decode(body));
+}
+
+function toPdfResult(
+  body: ArrayBuffer,
+  res: Response,
+  file: File,
+  targetLang: string,
+): TranslateDocumentResult {
+  const blob = new Blob([body], { type: 'application/pdf' });
+  const fileName = parseFileNameFromDisposition(
+    res.headers.get('content-disposition'),
+    buildTranslatedFileName(file.name, targetLang),
+  );
+  return { kind: 'pdf', blob, fileName, contentType: blob.type || 'application/pdf' };
 }
 
 export async function translateDocument(
@@ -89,41 +116,47 @@ export async function translateDocument(
   });
 
   const contentType = res.headers.get('content-type') || '';
+  const body = await res.arrayBuffer();
 
   if (!res.ok) {
-    let detail = `Dịch thất bại (${res.status})`;
-    try {
-      if (contentType.includes('application/json')) {
-        const json = (await res.json()) as { detail?: string; message?: string; error?: string };
-        detail = json.detail || json.message || json.error || detail;
-      } else {
-        const text = await res.text();
-        if (text.trim()) detail = text.slice(0, 400);
-      }
-    } catch {
-      // keep default
-    }
+    const detail = parseErrorDetail(
+      new TextDecoder().decode(body),
+      contentType,
+      `Dịch thất bại (${res.status})`,
+    );
     throw new Error(detail);
   }
 
-  if (opts.outputType === 'text_only' || contentType.includes('application/json')) {
-    const text = await parseJsonTranslatedText(res);
-    if (text) return { kind: 'text', text };
-    if (opts.outputType === 'text_only') {
-      throw new Error('Server không trả translated_text.');
+  const looksLikePdf =
+    contentType.includes('application/pdf') ||
+    contentType.includes('application/octet-stream') ||
+    isPdfBytes(body);
+
+  if (opts.outputType === 'keep_layout') {
+    if (looksLikePdf) {
+      return toPdfResult(body, res, file, opts.targetLang);
     }
+
+    if (contentType.includes('application/json')) {
+      const json = parseJsonBody(body);
+      const text = extractTranslatedText(json);
+      if (text) return { kind: 'text', text };
+      const record = json as { detail?: string; message?: string; error?: string };
+      throw new Error(
+        record.detail || record.message || record.error || 'Server không trả PDF giữ bố cục.',
+      );
+    }
+
+    throw new Error('Server không trả PDF giữ bố cục.');
   }
 
-  if (contentType.includes('application/pdf') || contentType.includes('application/octet-stream')) {
-    const blob = await res.blob();
-    const fileName = parseFileNameFromDisposition(
-      res.headers.get('content-disposition'),
-      buildTranslatedFileName(file.name, opts.targetLang),
-    );
-    return { kind: 'pdf', blob, fileName, contentType: blob.type || 'application/pdf' };
+  if (contentType.includes('application/json')) {
+    const text = extractTranslatedText(parseJsonBody(body));
+    if (text) return { kind: 'text', text };
+    throw new Error('Server không trả translated_text.');
   }
 
-  const rawText = await res.text();
+  const rawText = new TextDecoder().decode(body);
   if (!rawText.trim()) throw new Error('Server không trả dữ liệu dịch.');
 
   try {
@@ -131,6 +164,10 @@ export async function translateDocument(
     if (parsed) return { kind: 'text', text: parsed };
   } catch {
     // not JSON — fall through
+  }
+
+  if (looksLikePdf) {
+    return toPdfResult(body, res, file, opts.targetLang);
   }
 
   throw new Error('Định dạng phản hồi dịch không được hỗ trợ.');

@@ -1,8 +1,6 @@
 /**
- * PDF to DOCX Processor
- *
- * Primary: pdf2docx (giữ layout, ảnh, font).
- * Fallback: PyMuPDF table extractor chỉ khi pdf2docx lỗi.
+ * PDF to DOCX — pdf2docx giữ layout.
+ * Ưu tiên server Python (chất lượng cao), fallback WASM browser + kiểm tra kích thước.
  */
 
 import type {
@@ -17,7 +15,34 @@ export interface PDFToDocxOptions {
   /** Reserved for future options */
 }
 
-type WorkerEngine = 'auto' | 'pymupdf' | 'pdf2docx';
+const PDF_TO_DOCX_API = '/api/pdf-to-docx';
+const MIN_OUTPUT_RATIO = 0.15;
+
+function assertDocxSize(pdfSize: number, docxBlob: Blob): void {
+  if (pdfSize < 80_000) return;
+  if (docxBlob.size >= pdfSize * MIN_OUTPUT_RATIO) return;
+  throw new Error(
+    `DOCX quá nhỏ (${Math.round(docxBlob.size / 1024)} KB từ PDF ${Math.round(pdfSize / 1024)} KB) — có thể mất nội dung. ` +
+      'Chạy: docker compose up ocr -d --build',
+  );
+}
+
+async function convertViaServer(file: File): Promise<Blob> {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch(PDF_TO_DOCX_API, { method: 'POST', body: form });
+  if (!res.ok) {
+    let detail = `Server convert lỗi (${res.status})`;
+    try {
+      const json = (await res.json()) as { detail?: string };
+      if (json.detail) detail = json.detail;
+    } catch {
+      // keep default
+    }
+    throw new Error(detail);
+  }
+  return res.blob();
+}
 
 let sharedWorker: Worker | null = null;
 let sharedWorkerReady: Promise<void> | null = null;
@@ -28,7 +53,7 @@ async function ensureWorker(onStatus?: (message: string) => void): Promise<Worke
     return sharedWorker;
   }
 
-  sharedWorker = new Worker('/workers/pdf-to-docx.worker.js', { type: 'module' });
+  sharedWorker = new Worker('/workers/pdf-to-docx.worker.js?v=4', { type: 'module' });
 
   sharedWorkerReady = new Promise<void>((resolve, reject) => {
     const handleMessage = (event: MessageEvent) => {
@@ -120,27 +145,15 @@ function workerRequest<T>(
 }
 
 export class PDFToDocxProcessor extends BasePDFProcessor {
-  private activeMsgId: string | null = null;
-
   cancel(): void {
     super.cancel();
-    this.activeMsgId = null;
   }
 
-  protected reset(): void {
-    super.reset();
-    this.activeMsgId = null;
-  }
-
-  private async convertWithWorker(
-    worker: Worker,
-    file: File,
-    engine: WorkerEngine,
-  ): Promise<Blob> {
+  private async convertWithWorker(worker: Worker, file: File): Promise<Blob> {
     const result = await workerRequest<{ result: Blob }>(
       worker,
       'convert',
-      { file, engine },
+      { file, engine: 'pdf2docx' },
       (message, percent) => {
         if (this.checkCancelled()) return;
         const value = typeof percent === 'number' ? percent : this.progress;
@@ -179,42 +192,34 @@ export class PDFToDocxProcessor extends BasePDFProcessor {
     }
 
     try {
-      this.updateProgress(8, 'Initializing converter...');
+      let docxBlob: Blob;
+      let engineUsed = 'pdf2docx-server';
 
-      let worker: Worker;
+      this.updateProgress(10, 'Converting with pdf2docx (server)...');
       try {
-        worker = await ensureWorker((message) => {
+        docxBlob = await convertViaServer(file);
+        assertDocxSize(file.size, docxBlob);
+      } catch (serverErr) {
+        console.warn('[PDF→DOCX] Server failed, trying browser WASM:', serverErr);
+        this.updateProgress(12, 'Server offline — loading browser pdf2docx...');
+
+        const worker = await ensureWorker((message) => {
           if (!this.checkCancelled()) {
             this.updateProgress(this.progress, message);
           }
         });
-      } catch (err) {
-        console.error('Failed to initialize worker:', err);
-        return this.createErrorOutput(
-          PDFErrorCode.WORKER_FAILED,
-          'Failed to initialize conversion worker.',
-          err instanceof Error ? err.message : String(err),
-        );
-      }
 
-      if (this.checkCancelled()) {
-        return this.createErrorOutput(
-          PDFErrorCode.PROCESSING_CANCELLED,
-          'Processing was cancelled.',
-        );
-      }
+        if (this.checkCancelled()) {
+          return this.createErrorOutput(
+            PDFErrorCode.PROCESSING_CANCELLED,
+            'Processing was cancelled.',
+          );
+        }
 
-      let docxBlob: Blob;
-      let engineUsed = 'pdf2docx';
-
-      this.updateProgress(20, 'Converting with pdf2docx...');
-      try {
-        docxBlob = await this.convertWithWorker(worker, file, 'pdf2docx');
-      } catch (pdf2docxError) {
-        console.warn('[PDF→DOCX] pdf2docx failed, falling back to PyMuPDF tables:', pdf2docxError);
-        this.updateProgress(25, 'pdf2docx failed — extracting tables with PyMuPDF...');
-        docxBlob = await this.convertWithWorker(worker, file, 'pymupdf');
-        engineUsed = 'pymupdf-tables';
+        this.updateProgress(25, 'Converting with pdf2docx (browser)...');
+        docxBlob = await this.convertWithWorker(worker, file);
+        engineUsed = 'pdf2docx-wasm';
+        assertDocxSize(file.size, docxBlob);
       }
 
       if (this.checkCancelled()) {
@@ -250,10 +255,13 @@ export class PDFToDocxProcessor extends BasePDFProcessor {
         );
       }
 
+      const msg = error instanceof Error ? error.message : 'Unknown error';
       return this.createErrorOutput(
         PDFErrorCode.PROCESSING_FAILED,
-        'Failed to convert PDF to DOCX.',
-        error instanceof Error ? error.message : 'Unknown error',
+        msg.includes('DOCX quá nhỏ')
+          ? msg
+          : 'pdf2docx không chuyển được file này. Chạy docker compose up ocr -d --build rồi thử lại.',
+        msg,
       );
     }
   }

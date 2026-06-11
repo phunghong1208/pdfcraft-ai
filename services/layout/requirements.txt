@@ -1,0 +1,8 @@
+fastapi>=0.115,<1
+uvicorn[standard]>=0.34,<1
+python-multipart>=0.0.18,<1
+# CPU-only torch trước — tránh pip kéo nvidia-cudnn/cublas (~2GB, build 5–10 phút)
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch>=2.2,<3
+torchvision>=0.17,<1
+docling>=2.15,<3

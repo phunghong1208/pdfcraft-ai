@@ -1,12 +1,14 @@
+import { applyBlockTranslations } from '@/lib/pdf/apply-block-translations';
 import { extractTextFromPdfFile } from '@/lib/pdf/extract-pdf-text';
 import {
   parseOcrLanguageCodes,
   runSmartOcr,
   type OCRLanguage,
 } from '@/lib/pdf/processors/ocr';
-import { translateDocument } from '@/services/translateDocsApi';
+import { extractDocumentLayoutBlocks } from '@/services/layoutExtractApi';
+import { translateBlockTexts } from '@/services/translateBlocksApi';
 
-export type TranslatePipelineStage = 'check' | 'ocr' | 'translate' | 'pdf' | 'done';
+export type TranslatePipelineStage = 'check' | 'ocr' | 'blocks' | 'translate' | 'pdf' | 'done';
 
 export type TranslatePipelineProgress = {
   stage: TranslatePipelineStage;
@@ -27,6 +29,8 @@ export type WorkspaceTranslateResult = {
   pdfFileName: string;
   ocrApplied: boolean;
   ocrMethod?: string;
+  blockCount?: number;
+  layoutEngine?: 'docling' | 'pdfjs';
 };
 
 const MIN_EXTRACTABLE_CHARS = 64;
@@ -86,7 +90,7 @@ async function ensureTextLayerPdf(
     return { file, ocrApplied: false };
   }
 
-  emit(onProgress, 'ocr', 22, 'Đang OCR (trích văn bản từ PDF scan)…');
+  emit(onProgress, 'ocr', 22, 'Đang OCR (OCRmyPDF)…');
   const ocrOut = await runSmartOcr(
     file,
     {
@@ -124,29 +128,37 @@ export async function runWorkspaceTranslatePipeline(
 
   const prepared = await ensureTextLayerPdf(file, sourceLang, onProgress);
 
-  emit(onProgress, 'translate', 68, 'Đang dịch bằng AI (giữ bố cục)…');
-  const translated = await translateDocument(prepared.file, {
+  emit(onProgress, 'blocks', 64, 'Docling — đang trích block + bbox…');
+  const layout = await extractDocumentLayoutBlocks(prepared.file);
+  const { blocks, engine: layoutEngine } = layout;
+
+  if (!blocks.length) {
+    throw new Error('Không trích được block văn bản từ PDF.');
+  }
+
+  emit(
+    onProgress,
+    'translate',
+    70,
+    `GPT dịch ${blocks.length} block (${layoutEngine})…`,
+  );
+  const translatedTexts = await translateBlockTexts(
+    blocks.map((b) => b.text),
     sourceLang,
     targetLang,
-    outputType: 'keep_layout',
-  });
+    (done, total) => {
+      const pct = 70 + Math.round((done / total) * 18);
+      emit(onProgress, 'translate', pct, `Đang dịch block ${done}/${total}…`);
+    },
+  );
 
-  if (translated.kind !== 'pdf') {
-    throw new Error('Server dịch không trả PDF giữ bố cục.');
-  }
+  emit(onProgress, 'pdf', 90, 'pdf-lib — render lại đúng tọa độ…');
+  const pdfBytes = await prepared.file.arrayBuffer();
+  const outputBytes = await applyBlockTranslations(pdfBytes, blocks, translatedTexts, targetLang);
+  const pdfBlob = new Blob([new Uint8Array(outputBytes)], { type: 'application/pdf' });
+  const pdfFileName = buildTranslatedPdfName(file.name, targetLang);
 
-  const pdfBlob = translated.blob;
-  const pdfFileName = translated.fileName || buildTranslatedPdfName(file.name, targetLang);
-
-  emit(onProgress, 'pdf', 88, 'Đang trích văn bản xem trước…');
-
-  let translatedText = '';
-  try {
-    const previewFile = new File([pdfBlob], pdfFileName, { type: 'application/pdf' });
-    translatedText = (await extractTextFromPdfFile(previewFile)).trim();
-  } catch {
-    translatedText = '';
-  }
+  const translatedText = translatedTexts.filter(Boolean).join('\n\n').trim();
 
   emit(onProgress, 'done', 100, 'Hoàn tất.');
 
@@ -156,5 +168,7 @@ export async function runWorkspaceTranslatePipeline(
     pdfFileName,
     ocrApplied: prepared.ocrApplied,
     ocrMethod: prepared.ocrMethod,
+    blockCount: blocks.length,
+    layoutEngine,
   };
 }
