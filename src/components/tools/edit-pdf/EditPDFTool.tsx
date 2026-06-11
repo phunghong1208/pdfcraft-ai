@@ -1338,6 +1338,9 @@ export function EditPDFTool({
         var editTextActive = false;
         var textEditHistory = [];
         var textEditRedoStack = [];
+        function notifyUndoRedoState(){
+          try{ window.parent.postMessage({ type:'pdfcraft-undo-redo-state', canUndo: textEditHistory.length > 0, canRedo: textEditRedoStack.length > 0 }, '*'); }catch(e){}
+        }
 
         function injectEditTextStyles(){
           if(document.getElementById('pdfcraft-edit-text-style')) return;
@@ -1366,6 +1369,7 @@ export function EditPDFTool({
             injectEditTextStyles();
             try{ closePopbar(); }catch(e){}
           }
+          notifyUndoRedoState();
         }
 
         function getPageNumberFromEl(el){
@@ -1530,6 +1534,7 @@ export function EditPDFTool({
               var editData = window.__pdfcraftTextEdits[window.__pdfcraftTextEdits.length - 1];
               textEditHistory.push({ editor: editor, cover: cover, spans: lineSpans, originalText: originalText, newText: newText, editData: editData });
               textEditRedoStack.length = 0;
+              notifyUndoRedoState();
               notifyDirty();
             } else {
               cover.remove();
@@ -1801,6 +1806,7 @@ export function EditPDFTool({
             if(edits[j].originalText === entry.originalText && edits[j].newText === entry.newText){ edits.splice(j, 1); break; }
           }
           textEditRedoStack.push(entry);
+          notifyUndoRedoState();
           return true;
         }
 
@@ -1814,6 +1820,7 @@ export function EditPDFTool({
           page.appendChild(entry.editor);
           if(entry.editData) window.__pdfcraftTextEdits.push(entry.editData);
           textEditHistory.push(entry);
+          notifyUndoRedoState();
           return true;
         }
 

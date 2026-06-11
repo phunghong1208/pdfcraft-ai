@@ -253,6 +253,7 @@ type RibbonToolDef = {
   label: string;
   href?: string;
   action?: string;
+  disabled?: boolean;
 };
 
 type RibbonGroupDef = {
@@ -717,6 +718,8 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
   const [documentRevision, setDocumentRevision] = useState(0);
   const [isDirty, setIsDirty] = useState(false);
   const [activeAnnotTool, setActiveAnnotTool] = useState<string | null>(null);
+const [canUndoText, setCanUndoText] = useState(false);
+const [canRedoText, setCanRedoText] = useState(false);
   const [isWorkspaceDark, setIsWorkspaceDark] = useState(false);
   const inlineToolThemeVars = useMemo(
     () =>
@@ -1210,6 +1213,10 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
       }
       if (e.data?.type === 'pdfcraft-tool-changed' && typeof e.data.tool === 'string') {
         setActiveAnnotTool(e.data.tool === 'select' ? null : e.data.tool);
+      }
+      if (e.data?.type === 'pdfcraft-undo-redo-state') {
+        setCanUndoText(!!e.data.canUndo);
+        setCanRedoText(!!e.data.canRedo);
       }
     }
     window.addEventListener('message', onMessage);
@@ -1818,19 +1825,26 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
                     (tool.action.startsWith('annot:') && activeAnnotTool === tool.action.replace('annot:', '')) ||
                     (tool.action === 'editText' && activeAnnotTool === 'editText')
                   );
+                const isDisabled = activeAnnotTool === 'editText' && (
+                  (tool.action === 'undo' && !canUndoText) ||
+                  (tool.action === 'redo' && !canRedoText)
+                );
                 return (
                   <button
                     key={ti}
                     type="button"
+                    disabled={isDisabled}
                     onClick={() => handleToolClick(tool)}
-                    className={`flex flex-col items-center justify-center gap-0.5 px-1.5 py-1 rounded-md active:scale-95 transition-all min-w-[42px] cursor-pointer group ${
-                      isActive
-                        ? isWorkspaceDark
-                          ? 'bg-white/[0.06]'
-                          : 'bg-[#F3F4F6]'
-                        : isWorkspaceDark
-                          ? 'hover:bg-white/[0.08] active:bg-white/[0.14]'
-                          : 'hover:bg-[#F3F4F6] active:bg-[#E5E7EB]'
+                    className={`flex flex-col items-center justify-center gap-0.5 px-1.5 py-1 rounded-md active:scale-95 transition-all min-w-[42px] group ${
+                      isDisabled
+                        ? 'opacity-30 cursor-not-allowed'
+                        : isActive
+                          ? isWorkspaceDark
+                            ? 'bg-white/[0.06] cursor-pointer'
+                            : 'bg-[#F3F4F6] cursor-pointer'
+                          : isWorkspaceDark
+                            ? 'hover:bg-white/[0.08] active:bg-white/[0.14] cursor-pointer'
+                            : 'hover:bg-[#F3F4F6] active:bg-[#E5E7EB] cursor-pointer'
                     }`}
                     title={`${group.label}: ${tool.label}`}
                   >
