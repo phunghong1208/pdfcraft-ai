@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+import os
 import shutil
 import subprocess
 import tempfile
@@ -12,6 +14,8 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 
 app = FastAPI(title="PDFCraft OCR Service")
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("pdfcraft.ocr")
 
 LANG_ALLOWLIST = frozenset(
     [
@@ -33,21 +37,86 @@ LANG_ALLOWLIST = frozenset(
 )
 
 
-def extract_text_from_pdf(pdf_path: Path) -> str:
-    """Extract text from a searchable PDF using pdftotext (poppler)."""
-    try:
-        result = subprocess.run(
-            ["pdftotext", "-layout", str(pdf_path), "-"],
-            capture_output=True,
-            text=True,
-            timeout=60,
-        )
-        if result.returncode == 0:
-            return result.stdout
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        pass
+def is_tagged_pdf(pdf_path: Path) -> bool:
+    """PDF xuất từ Word/Office — thường đã có text layer đầy đủ."""
+    import pikepdf
 
-    # Fallback: use pikepdf to extract text
+    with pikepdf.open(pdf_path) as pdf:
+        root = pdf.Root
+        mark_info = root.get("/MarkInfo")
+        if mark_info is not None:
+            try:
+                if mark_info.get("/Marked"):
+                    return True
+            except Exception:
+                pass
+        if root.get("/StructTreeRoot") is not None:
+            return True
+    return False
+
+
+def page_count(pdf_path: Path) -> int:
+    import pikepdf
+
+    with pikepdf.open(pdf_path) as pdf:
+        return len(pdf.pages)
+
+
+def pdf_has_extractable_text(pdf_path: Path) -> tuple[bool, str]:
+    """Dùng pdftotext — đáng tin hơn pikepdf với Tagged PDF."""
+    text = extract_text_from_pdf(pdf_path)
+    chars = len("".join(text.split()))
+    pages = max(1, page_count(pdf_path))
+    return chars >= max(40, pages * 15), text
+
+
+def should_fast_extract(pdf_path: Path, force_ocr: bool) -> tuple[bool, str]:
+    if force_ocr:
+        return False, ""
+    if is_tagged_pdf(pdf_path):
+        return True, extract_text_from_pdf(pdf_path)
+    return pdf_has_extractable_text(pdf_path)
+
+
+def best_text_from_sources(
+    input_path: Path,
+    output_path: Path,
+    sidecar_path: Path,
+) -> str:
+    """Chọn bản text dài nhất — tránh mất chữ khi Tesseract skip/timeout."""
+    candidates: list[str] = []
+    if sidecar_path.exists() and sidecar_path.stat().st_size > 0:
+        candidates.append(
+            sidecar_path.read_text(encoding="utf-8", errors="replace")
+        )
+    candidates.append(extract_text_from_pdf(output_path))
+    candidates.append(extract_text_from_pdf(input_path))
+    return max(candidates, key=lambda t: len("".join(t.split())))
+
+
+def extract_text_from_pdf(pdf_path: Path) -> str:
+    """Extract text from a searchable PDF — try layout then raw for best coverage."""
+    best = ""
+
+    for args in (
+        ["pdftotext", "-layout", "-enc", "UTF-8", str(pdf_path), "-"],
+        ["pdftotext", "-enc", "UTF-8", str(pdf_path), "-"],
+    ):
+        try:
+            result = subprocess.run(
+                args,
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            if result.returncode == 0 and len(result.stdout.strip()) > len(best.strip()):
+                best = result.stdout
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            continue
+
+    if best.strip():
+        return best
+
     import pikepdf
 
     text_parts = []
@@ -59,6 +128,11 @@ def extract_text_from_pdf(pdf_path: Path) -> str:
             except Exception:
                 text_parts.append(f"--- Page {i} ---\n[Could not extract text]")
     return "\n\n".join(text_parts)
+
+
+def _ocr_jobs() -> int:
+    """OCR song song theo trang — tận dụng CPU container (tối đa 8 worker)."""
+    return max(1, min(os.cpu_count() or 2, 8))
 
 
 @app.get("/health")
@@ -73,10 +147,15 @@ async def ocr_pdf(
     deskew: bool = Form(True),
     rotate_pages: bool = Form(True),
     remove_background: bool = Form(False),
-    clean: bool = Form(True),
+    clean: bool = Form(False),
     force_ocr: bool = Form(False),
-    optimize: int = Form(1),
+    redo_ocr: bool = Form(False),
+    optimize: int = Form(0),
     output_format: str = Form("pdf"),
+    oversample: int = Form(300),
+    tesseract_oem: int = Form(1),
+    # 3 = khối văn bản thường (Word, scan A4); 11 chỉ cho poster/ảnh rải rác
+    tesseract_pagesegmode: int = Form(3),
 ):
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files accepted.")
@@ -86,56 +165,99 @@ async def ocr_pdf(
         if lang not in LANG_ALLOWLIST:
             raise HTTPException(status_code=400, detail=f"Unsupported language: {lang}")
 
+    oversample = max(200, min(oversample, 600))
+    tesseract_oem = max(0, min(tesseract_oem, 3))
+    tesseract_pagesegmode = max(0, min(tesseract_pagesegmode, 13))
+
     tmpdir = Path(tempfile.mkdtemp())
     input_path = tmpdir / "input.pdf"
     output_path = tmpdir / "output.pdf"
+    sidecar_path = tmpdir / "output.txt"
+    safe_name = file.filename.rsplit(".", 1)[0] + "_ocr.pdf"
+
+    def run_ocr(*, force: bool, redo: bool) -> None:
+        jobs = _ocr_jobs()
+        # jobs>1 = đa process; use_threads=True gây oversubscribe CPU → treo/chậm trên Docker
+        ocrmypdf.ocr(
+            input_path,
+            output_path,
+            language="+".join(langs),
+            deskew=deskew,
+            rotate_pages=rotate_pages,
+            remove_background=remove_background,
+            clean=clean,
+            force_ocr=force,
+            redo_ocr=redo,
+            optimize=optimize,
+            oversample=oversample,
+            tesseract_oem=tesseract_oem,
+            tesseract_pagesegmode=tesseract_pagesegmode,
+            tesseract_timeout=0,
+            skip_big=0,
+            sidecar=sidecar_path if output_format == "text" else None,
+            jobs=jobs,
+            use_threads=jobs <= 1,
+            progress_bar=False,
+        )
 
     try:
         with open(input_path, "wb") as f:
             shutil.copyfileobj(file.file, f)
 
-        use_redo = not force_ocr
-        ocrmypdf.ocr(
-            input_path,
-            output_path,
-            language="+".join(langs),
-            deskew=False if use_redo else deskew,
-            rotate_pages=rotate_pages,
-            remove_background=False if use_redo else remove_background,
-            clean=False if use_redo else clean,
-            force_ocr=force_ocr,
-            redo_ocr=use_redo,
-            optimize=optimize,
-            progress_bar=False,
-        )
+        fast_extract, cached_text = should_fast_extract(input_path, force_ocr)
+
+        # PDF Word/Tagged hoặc đã có text layer → pdftotext ngay, không Tesseract
+        if fast_extract:
+            logger.info(
+                "Fast text extract: %s (tagged=%s)",
+                file.filename,
+                is_tagged_pdf(input_path),
+            )
+            if output_format == "text":
+                return JSONResponse({
+                    "text": cached_text,
+                    "fileName": safe_name,
+                    "pdfSize": input_path.stat().st_size,
+                    "method": "extract",
+                })
+
+            shutil.copy2(input_path, output_path)
+            return FileResponse(
+                output_path,
+                media_type="application/pdf",
+                filename=safe_name,
+                headers={
+                    "X-OCR-Languages": "+".join(langs),
+                    "X-OCR-Method": "extract",
+                },
+            )
+
+        try:
+            run_ocr(force=force_ocr, redo=redo_ocr)
+        except ocrmypdf.exceptions.PriorOcrFoundError:
+            if force_ocr:
+                run_ocr(force=True, redo=False)
+            else:
+                run_ocr(force=False, redo=False)
 
         if output_format == "text":
-            text = extract_text_from_pdf(output_path)
+            text = best_text_from_sources(input_path, output_path, sidecar_path)
             pdf_size = output_path.stat().st_size
-            safe_name = file.filename.rsplit(".", 1)[0] + "_ocr.pdf"
             return JSONResponse({
                 "text": text,
                 "fileName": safe_name,
                 "pdfSize": pdf_size,
+                "method": "ocr",
             })
 
-        safe_name = file.filename.rsplit(".", 1)[0] + "_ocr.pdf"
         return FileResponse(
             output_path,
             media_type="application/pdf",
             filename=safe_name,
-            headers={"X-OCR-Languages": "+".join(langs)},
-        )
-    except ocrmypdf.exceptions.PriorOcrFoundError:
-        if output_format == "text":
-            text = extract_text_from_pdf(input_path)
-            return JSONResponse({"text": text, "fileName": file.filename, "pdfSize": 0})
-        safe_name = file.filename.rsplit(".", 1)[0] + "_ocr.pdf"
-        return FileResponse(
-            input_path,
-            media_type="application/pdf",
-            filename=safe_name,
-            headers={"X-OCR-Skipped": "prior-ocr-found"},
+            headers={
+                "X-OCR-Languages": "+".join(langs),
+                "X-OCR-Method": "ocr",
+            },
         )
     except ocrmypdf.exceptions.InputFileError as exc:
         raise HTTPException(status_code=400, detail=str(exc))

@@ -12,7 +12,7 @@ import type {
   ProgressCallback,
 } from '@/types/pdf';
 import { PDFErrorCode } from '@/types/pdf';
-import { BasePDFProcessor } from '../processor';
+import { BasePDFProcessor, createPDFError } from '../processor';
 import { loadPdfjs, loadPdfLib } from '../loader';
 
 /**
@@ -340,6 +340,13 @@ export async function ocrPDF(
 
 export type SmartOcrOutputFormat = 'pdf' | 'text';
 
+export function parseOcrLanguageCodes(languages: string): OCRLanguage[] {
+  return languages
+    .split('+')
+    .map((code) => code.trim())
+    .filter(Boolean) as OCRLanguage[];
+}
+
 export interface ServerOCROptions {
   languages: OCRLanguage[];
   deskew: boolean;
@@ -349,6 +356,9 @@ export interface ServerOCROptions {
   forceOcr: boolean;
   optimize: number;
   outputFormat: SmartOcrOutputFormat;
+  oversample: number;
+  tesseractOem: number;
+  tesseractPagesegmode: number;
 }
 
 const DEFAULT_SERVER_OPTIONS: ServerOCROptions = {
@@ -356,11 +366,29 @@ const DEFAULT_SERVER_OPTIONS: ServerOCROptions = {
   deskew: true,
   rotatePages: true,
   removeBackground: false,
-  clean: true,
+  /** unpaper clean hurts colorful posters/photos — enable for B&W scans only */
+  clean: false,
+  /** Chỉ ép Tesseract khi scan/ảnh; PDF Word giữ false để trích text nhanh */
   forceOcr: false,
-  optimize: 1,
+  /** 0 = nhanh hơn (bỏ nén lại); 1–2 = file nhỏ hơn nhưng chậm hơn */
+  optimize: 0,
   outputFormat: 'pdf',
+  /** 300 DPI cân bằng tốc độ/chất lượng; tăng lên 400–450 nếu chữ nhỏ */
+  oversample: 300,
+  /** 1 = LSTM neural net (tessdata_best) */
+  tesseractOem: 1,
+  /** 3 = văn bản thường; 11 = poster/ảnh rải rác (chậm, dễ timeout) */
+  tesseractPagesegmode: 3,
 };
+
+function cleanOcrText(raw: string): string {
+  return raw
+    .split('\n')
+    .map(line => line.trimStart().replace(/ {2,}/g, ' '))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
 
 /**
  * Smart OCR via OCRmyPDF server (`/api/ocr`) — same pipeline as AI Smart OCR page.
@@ -385,19 +413,32 @@ export async function runSmartOcr(
   form.append('force_ocr', String(opts.forceOcr));
   form.append('optimize', String(opts.optimize));
   form.append('output_format', opts.outputFormat === 'text' ? 'text' : 'pdf');
+  form.append('oversample', String(opts.oversample));
+  form.append('tesseract_oem', String(opts.tesseractOem));
+  form.append('redo_ocr', 'false');
+  form.append('tesseract_pagesegmode', String(opts.tesseractPagesegmode));
 
   onProgress?.(20, 'Processing OCR...');
 
+  const OCR_FETCH_TIMEOUT_MS = 600_000;
+
   let res: Response;
   try {
-    res = await fetch('/api/ocr', { method: 'POST', body: form });
-  } catch {
+    res = await fetch('/api/ocr', {
+      method: 'POST',
+      body: form,
+      signal: AbortSignal.timeout(OCR_FETCH_TIMEOUT_MS),
+    });
+  } catch (err) {
+    const timedOut = err instanceof Error && /timeout|aborted/i.test(err.message);
     return {
       success: false,
-      error: {
-        code: PDFErrorCode.PROCESSING_FAILED,
-        message: 'Cannot reach OCR server. Make sure the OCR service is running.',
-      },
+      error: createPDFError(
+        PDFErrorCode.PROCESSING_FAILED,
+        timedOut
+          ? `OCR timed out after ${OCR_FETCH_TIMEOUT_MS / 60_000} minutes. Try fewer pages or one language.`
+          : 'Cannot reach OCR server. Make sure the OCR service is running.',
+      ),
     };
   }
 
@@ -409,15 +450,16 @@ export async function runSmartOcr(
     } catch { /* ignore */ }
     return {
       success: false,
-      error: { code: PDFErrorCode.PROCESSING_FAILED, message: detail },
+      error: createPDFError(PDFErrorCode.PROCESSING_FAILED, detail),
     };
   }
 
   onProgress?.(90, 'Downloading result...');
 
   if (opts.outputFormat === 'text') {
-    const data = (await res.json()) as { text?: string; fileName?: string };
-    const text = data.text ?? '';
+    const data = (await res.json()) as { text?: string; fileName?: string; method?: string };
+    const raw = data.text ?? '';
+    const text = cleanOcrText(raw);
     const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
 
     onProgress?.(100, 'Complete!');
@@ -430,11 +472,14 @@ export async function runSmartOcr(
         languages: opts.languages,
         outputFormat: 'text',
         textPreview: text,
+        ocrMethod: data.method === 'extract' ? 'extract' : 'ocr',
       },
     };
   }
 
   const blob = await res.blob();
+
+  const ocrMethod = res.headers.get('X-OCR-Method') === 'extract' ? 'extract' : 'ocr';
 
   onProgress?.(100, 'Complete!');
 
@@ -445,6 +490,7 @@ export async function runSmartOcr(
     metadata: {
       languages: opts.languages,
       outputFormat: 'searchable-pdf',
+      ocrMethod,
     },
   };
 }

@@ -1408,17 +1408,78 @@ export function EditPDFTool({
           return lineSpans;
         }
 
-        function getSpanFontInfo(span){
+        function sampleCanvasColor(span){
+          try{
+            var pg = span.closest('.page');
+            if(!pg) return null;
+            var canvas = pg.querySelector('canvas');
+            if(!canvas) return null;
+            var ctx = canvas.getContext('2d');
+            var cr = canvas.getBoundingClientRect();
+            var sr = span.getBoundingClientRect();
+            var scX = canvas.width / cr.width;
+            var scY = canvas.height / cr.height;
+            var best = null;
+            var bestLum = 999;
+            for(var dx = 5; dx < sr.width && dx < 80; dx += 4){
+              for(var dy = 1; dy < sr.height; dy += 1){
+                var px = Math.round((sr.left - cr.left + dx) * scX);
+                var py = Math.round((sr.top - cr.top + dy) * scY);
+                var p = ctx.getImageData(px, py, 1, 1).data;
+                var lum = p[0] * 0.299 + p[1] * 0.587 + p[2] * 0.114;
+                if(lum < bestLum && lum < 240){
+                  bestLum = lum;
+                  best = [p[0], p[1], p[2]];
+                }
+              }
+            }
+            if(best) return 'rgb(' + best[0] + ',' + best[1] + ',' + best[2] + ')';
+          }catch(e){}
+          return null;
+        }
+
+        function detectPdfFontStyle(span, pageNum){
+          var result = { bold: false, italic: false };
+          try{
+            var app = window.PDFViewerApplication;
+            var pv = app && app.pdfViewer && app.pdfViewer.getPageView(pageNum - 1);
+            if(!pv || !pv.textLayer) return result;
+            var divs = pv.textLayer.textDivs;
+            var items = pv.textLayer.textContentItemsStr;
+            if(!divs || !items) return result;
+            var idx = -1;
+            for(var i = 0; i < divs.length; i++){
+              if(divs[i] === span || divs[i] === span.parentElement){ idx = i; break; }
+            }
+            if(idx < 0) return result;
+            var textContent = pv.textLayer.textContent || pv.textLayer.textContentSource;
+            if(!textContent || !textContent.items || !textContent.items[idx]) return result;
+            var fontName = textContent.items[idx].fontName;
+            if(!fontName) return result;
+            var pg2 = pv.pdfPage || (app.pdfViewer.pdfDocument && app.pdfViewer.pdfDocument);
+            if(pg2 && pg2.commonObjs){
+              var fObj = pg2.commonObjs.get(fontName);
+              if(fObj){
+                result.bold = !!fObj.bold || /bold/i.test(fObj.name || '');
+                result.italic = !!fObj.italic || /italic|oblique/i.test(fObj.name || '');
+              }
+            }
+          }catch(e){}
+          return result;
+        }
+
+        function getSpanFontInfo(span, pageNum){
           var cs = window.getComputedStyle(span);
           var fontSize = parseFloat(cs.fontSize) || 14;
           var fontFamily = cs.fontFamily || 'sans-serif';
           var transform = span.style.transform || cs.transform || '';
           var scaleMatch = transform.match(/scaleX\\(([\\d.]+)\\)/);
           var scaleX = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
-          var rawColor = cs.color || '';
-          var color = (rawColor === 'transparent' || rawColor === 'rgba(0, 0, 0, 0)') ? '#000' : (rawColor || '#000');
-          var fontWeight = cs.fontWeight || 'normal';
-          var fontStyle = cs.fontStyle || 'normal';
+          var canvasColor = sampleCanvasColor(span);
+          var color = canvasColor || '#000';
+          var pdfFont = detectPdfFontStyle(span, pageNum || 1);
+          var fontWeight = pdfFont.bold ? 'bold' : (parseInt(cs.fontWeight) >= 600 ? 'bold' : 'normal');
+          var fontStyle = pdfFont.italic ? 'italic' : cs.fontStyle || 'normal';
           return { fontSize: fontSize, fontFamily: fontFamily, scaleX: scaleX, color: color, fontWeight: fontWeight, fontStyle: fontStyle };
         }
 
@@ -1450,7 +1511,7 @@ export function EditPDFTool({
           var originalText = parts.join('');
           if(!originalText.trim()) return;
 
-          var fi = getSpanFontInfo(lineSpans[0]);
+          var fi = getSpanFontInfo(lineSpans[0], pageNum);
           var fontSize = fi.fontSize;
           var fontFamily = fi.fontFamily;
           var h = Math.max(maxH, fontSize * 1.3);

@@ -69,30 +69,16 @@ export async function chatWithPdf(file: File) {
 }
 
 export async function smartOcrPdf(file: File): Promise<{ blob: Blob; fileName: string }> {
-  const form = new FormData();
-  form.append('file', file);
-  form.append('languages', 'vie+eng');
-  form.append('deskew', 'true');
-  form.append('rotate_pages', 'true');
-  form.append('remove_background', 'false');
-  form.append('clean', 'true');
-  form.append('force_ocr', 'false');
-  form.append('optimize', '1');
-
-  const res = await fetch('/api/ocr', { method: 'POST', body: form });
-
-  if (!res.ok) {
-    let detail = 'OCR processing failed.';
-    try {
-      const json = await res.json();
-      detail = json.detail || detail;
-    } catch { /* ignore */ }
-    throw new Error(detail);
+  const { runSmartOcr } = await import('@/lib/pdf/processors/ocr');
+  const output = await runSmartOcr(file, { outputFormat: 'pdf' });
+  if (!output.success || !output.result) {
+    throw new Error(output.error?.message || 'OCR processing failed.');
   }
-
-  const blob = await res.blob();
   const baseName = file.name.replace(/\.pdf$/i, '');
-  return { blob, fileName: `${baseName}_ocr.pdf` };
+  return {
+    blob: output.result as Blob,
+    fileName: output.filename ?? `${baseName}_ocr.pdf`,
+  };
 }
 
 export async function voiceReaderPdf(file: File) {

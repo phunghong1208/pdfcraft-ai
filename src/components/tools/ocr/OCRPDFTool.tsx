@@ -65,7 +65,7 @@ export function OCRPDFTool({
   const [deskew, setDeskew] = useState(true);
   const [rotatePages, setRotatePages] = useState(true);
   const [removeBackground, setRemoveBackground] = useState(false);
-  const [clean, setClean] = useState(true);
+  const [clean, setClean] = useState(false);
   const [forceOcr, setForceOcr] = useState(false);
   const [optimize, setOptimize] = useState(1);
   

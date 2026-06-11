@@ -57,6 +57,7 @@ import {
   type TranslateOutputType,
 } from '@/services/translateDocsApi';
 import { textToPDF, type FontId } from '@/lib/pdf/processors/text-to-pdf';
+import { runSmartOcr, parseOcrLanguageCodes } from '@/lib/pdf/processors/ocr';
 import {
   getWorkspaceFileKey,
   loadPersistedWorkspaceAi,
@@ -299,7 +300,7 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
   const [ocrLanguages, setOcrLanguages] = useState('vie+eng');
   const [ocrOutputType, setOcrOutputType] = useState<'pdf' | 'text'>('pdf');
   const [ocrDeskew, setOcrDeskew] = useState(true);
-  const [ocrClean, setOcrClean] = useState(true);
+  const [ocrClean, setOcrClean] = useState(false);
   const [ocrRemoveBg, setOcrRemoveBg] = useState(false);
   const [ocrForceOcr, setOcrForceOcr] = useState(false);
   const [ocrProgress, setOcrProgress] = useState(0);
@@ -810,51 +811,65 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
         }
       } else if (actionType === 'smartOcr') {
         setOcrProgress(0);
-        const estimatedMs = Math.max(8000, (file.size / 1024 / 1024) * 6000);
+        const estimatedMs = Math.max(45000, (file.size / 1024 / 1024) * 45000);
         let raf = 0;
+        let ocrDone = false;
         const start = Date.now();
         const tick = () => {
+          if (ocrDone) return;
           const elapsed = Date.now() - start;
-          const pct = Math.min(92, (elapsed / estimatedMs) * 90);
-          setOcrProgress(Math.round(pct));
-          if (pct < 92) raf = requestAnimationFrame(tick);
+          setOcrProgress((prev) => {
+            let next: number;
+            if (elapsed < estimatedMs) {
+              next = Math.round((elapsed / estimatedMs) * 82);
+            } else {
+              const overMs = elapsed - estimatedMs;
+              next = 82 + Math.min(15, Math.floor(overMs / 10000));
+            }
+            return Math.max(prev, Math.min(97, next));
+          });
+          raf = requestAnimationFrame(tick);
         };
         raf = requestAnimationFrame(tick);
 
         try {
-          const form = new FormData();
-          form.append('file', file);
-          form.append('languages', ocrLanguages);
-          form.append('deskew', String(ocrDeskew));
-          form.append('rotate_pages', 'true');
-          form.append('remove_background', String(ocrRemoveBg));
-          form.append('clean', String(ocrClean));
-          form.append('force_ocr', String(ocrForceOcr));
-          form.append('optimize', '1');
-          form.append('output_format', ocrOutputType === 'text' ? 'text' : 'pdf');
-          const res = await fetch('/api/ocr', { method: 'POST', body: form });
-          if (!res.ok) {
-            let detail = 'OCR failed.';
-            try { const j = await res.json(); detail = j.detail || detail; } catch { /* */ }
-            throw new Error(detail);
+          const output = await runSmartOcr(
+            file,
+            {
+              languages: parseOcrLanguageCodes(ocrLanguages),
+              deskew: ocrDeskew,
+              rotatePages: true,
+              removeBackground: ocrRemoveBg,
+              clean: ocrClean,
+              forceOcr: ocrForceOcr,
+              outputFormat: ocrOutputType === 'text' ? 'text' : 'pdf',
+            },
+            (pct) => {
+              setOcrProgress((prev) => Math.max(prev, Math.min(99, pct)));
+            },
+          );
+          if (!output.success || !output.result) {
+            throw new Error(output.error?.message || 'OCR failed.');
           }
 
           const baseName = file.name.replace(/\.pdf$/i, '');
+          const blob = output.result as Blob;
           if (ocrOutputType === 'text') {
-            const data = await res.json();
-            const textBlob = new Blob([data.text], { type: 'text/plain' });
-            setOcrResultBlob(textBlob);
-            setOcrResultFileName(`${baseName}_ocr.txt`);
-            setResult({ text: data.text, fileName: data.fileName, outputType: 'text' });
-          } else {
-            const blob = await res.blob();
-            const fileName = `${baseName}_ocr.pdf`;
+            const text =
+              typeof output.metadata?.textPreview === 'string'
+                ? output.metadata.textPreview
+                : await blob.text();
             setOcrResultBlob(blob);
-            setOcrResultFileName(fileName);
-            setResult({ fileName, size: blob.size, outputType: 'pdf' });
+            setOcrResultFileName(`${baseName}_ocr.txt`);
+            setResult({ text, fileName: output.filename ?? `${baseName}_ocr.txt`, outputType: 'text' });
+          } else {
+            setOcrResultBlob(blob);
+            setOcrResultFileName(output.filename ?? `${baseName}_ocr.pdf`);
+            setResult({ fileName: output.filename ?? `${baseName}_ocr.pdf`, size: blob.size, outputType: 'pdf' });
           }
           setOcrProgress(100);
         } finally {
+          ocrDone = true;
           cancelAnimationFrame(raf);
         }
       }
@@ -904,30 +919,20 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
         return;
       }
       if (result.outputType === 'text' && file) {
-        const form = new FormData();
-        form.append('file', file);
-        form.append('languages', ocrLanguages);
-        form.append('deskew', String(ocrDeskew));
-        form.append('rotate_pages', 'true');
-        form.append('remove_background', String(ocrRemoveBg));
-        form.append('clean', String(ocrClean));
-        form.append('force_ocr', String(ocrForceOcr));
-        form.append('optimize', '1');
-        form.append('output_format', 'pdf');
-        const res = await fetch('/api/ocr', { method: 'POST', body: form });
-        if (!res.ok) {
-          let detail = 'OCR failed.';
-          try {
-            const j = await res.json();
-            detail = j.detail || detail;
-          } catch {
-            // ignore
-          }
-          throw new Error(detail);
+        const output = await runSmartOcr(file, {
+          languages: parseOcrLanguageCodes(ocrLanguages),
+          deskew: ocrDeskew,
+          rotatePages: true,
+          removeBackground: ocrRemoveBg,
+          clean: ocrClean,
+          forceOcr: ocrForceOcr,
+          outputFormat: 'pdf',
+        });
+        if (!output.success || !output.result) {
+          throw new Error(output.error?.message || 'OCR failed.');
         }
-        const blob = await res.blob();
         const baseName = file.name.replace(/\.pdf$/i, '');
-        downloadBlob(blob, `${baseName}_ocr.pdf`);
+        downloadBlob(output.result as Blob, output.filename ?? `${baseName}_ocr.pdf`);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Download failed');
@@ -2166,7 +2171,8 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                       </div>
                       <p className="mt-2 text-[11px] text-[hsl(var(--color-muted-foreground))] text-center">
                         {ocrProgress < 30 ? t('tools.ocrPdf.progressAnalyzing') :
-                         ocrProgress < 70 ? t('tools.ocrPdf.progressRecognizing') :
+                         ocrProgress < 90 ? t('tools.ocrPdf.progressRecognizing') :
+                         ocrProgress < 97 ? t('tools.ocrPdf.progressStillWorking') :
                          ocrProgress < 100 ? t('tools.ocrPdf.progressFinalizing') :
                          t('tools.ocrPdf.progressDone')}
                       </p>
