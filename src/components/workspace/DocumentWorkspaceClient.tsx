@@ -12,7 +12,7 @@ import {
   ArrowLeftRight, Lock, Unlock, EyeOff, Pen, ShieldCheck,
   Languages, Layers, Scissors, Wrench,
   ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight,
-  X,
+  X, TextCursorInput,
   Underline, Strikethrough, Square, Circle,
   PenTool, Stamp, Table, FileImage,
   Undo2, Redo2, Printer, Settings,
@@ -299,6 +299,13 @@ function getRibbonGroups(
           tools: [
             { icon: Undo2, label: tr('tools.undo'), action: 'undo' },
             { icon: Redo2, label: tr('tools.redo'), action: 'redo' },
+          ],
+        },
+        {
+          label: tr('groups.content'),
+          tools: [
+            { icon: TextCursorInput, label: tr('tools.editText'), action: 'editText' },
+            { icon: Type, label: tr('tools.textComment'), action: 'annot:freeText' },
           ],
         },
         {
@@ -1313,6 +1320,7 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
             const win = iframeWin() as (Window & {
               pdfcraftExportEditedPdf?: () => Promise<Uint8Array | ArrayBuffer | null>;
               PDFViewerApplication?: { pdfDocument?: { saveDocument?: () => Promise<Uint8Array>; getData?: () => Promise<Uint8Array> } };
+              __pdfcraftTextEdits?: Array<Record<string, unknown>>;
             }) | null;
 
             // Priority 1: EditPDFTool export (has annotation edits)
@@ -1329,6 +1337,20 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
                 } catch {
                   bytes = null;
                 }
+              }
+            }
+
+            // Apply inline text edits (editText mode)
+            const textEdits = win?.__pdfcraftTextEdits;
+            if (bytes && textEdits && textEdits.length > 0) {
+              try {
+                const { applyTextEdits } = await import('@/lib/pdf/apply-text-edits');
+                const buf = bytes instanceof ArrayBuffer
+                  ? bytes
+                  : bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+                bytes = await applyTextEdits(buf, textEdits as Parameters<typeof applyTextEdits>[1]);
+              } catch (editErr) {
+                console.warn('applyTextEdits failed, saving without text edits', editErr);
               }
             }
 
@@ -1463,6 +1485,17 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
           }
         })();
         break;
+      case 'editText': {
+        if (!file) {
+          void openFilePicker();
+          break;
+        }
+        const editTextDeselecting = activeAnnotTool === 'editText';
+        sendAnnotationToolToViewer(editTextDeselecting ? 'select' : 'editText');
+        setActiveAnnotTool(editTextDeselecting ? null : 'editText');
+        setActiveTab('edit');
+        break;
+      }
       case 'switchToEdit':
         if (file) setUploadedPdf(file);
         setActiveTab('edit');
@@ -1778,9 +1811,10 @@ export function DocumentWorkspaceClient({ locale }: DocumentWorkspaceClientProps
               {group.tools.map((tool, ti) => {
                 const Icon = tool.icon;
                 const isActive =
-                  !!tool.action &&
-                  tool.action.startsWith('annot:') &&
-                  activeAnnotTool === tool.action.replace('annot:', '');
+                  !!tool.action && (
+                    (tool.action.startsWith('annot:') && activeAnnotTool === tool.action.replace('annot:', '')) ||
+                    (tool.action === 'editText' && activeAnnotTool === 'editText')
+                  );
                 return (
                   <button
                     key={ti}

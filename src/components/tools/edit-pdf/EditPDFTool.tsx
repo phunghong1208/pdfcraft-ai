@@ -1333,8 +1333,188 @@ export function EditPDFTool({
           }catch(e){}
         }
 
+        /* ── Edit Text Mode ── */
+        if(!window.__pdfcraftTextEdits) window.__pdfcraftTextEdits = [];
+        var editTextActive = false;
+
+        function injectEditTextStyles(){
+          if(document.getElementById('pdfcraft-edit-text-style')) return;
+          var s = document.createElement('style');
+          s.id = 'pdfcraft-edit-text-style';
+          s.textContent = [
+            '.pdfcraft-edit-text .textLayer { pointer-events: auto !important; z-index: 5 !important; }',
+            '.pdfcraft-edit-text .textLayer > span { pointer-events: auto !important; cursor: text !important; border-radius: 2px; transition: background 0.1s; }',
+            '.pdfcraft-edit-text .textLayer > span:hover { background: rgba(22,119,255,0.12) !important; }',
+            '.pdfcraft-text-editor { position: absolute; z-index: 10; outline: none; padding: 1px 2px; box-sizing: border-box; overflow: hidden; white-space: pre; border: 2px solid #1677ff; background: #fff; }',
+            '.pdfcraft-text-editor:focus { box-shadow: 0 0 0 2px rgba(22,119,255,0.18); }',
+            '.pdfcraft-text-editor.finalized { border: 1px dashed rgba(22,119,255,0.4); cursor: pointer; }',
+            '.pdfcraft-text-cover { position: absolute; background: #fff; z-index: 4; pointer-events: none; }',
+          ].join('\\n');
+          document.head.appendChild(s);
+        }
+
+        function setEditTextMode(on){
+          editTextActive = !!on;
+          document.documentElement.classList.toggle('pdfcraft-edit-text', editTextActive);
+          if(editTextActive) injectEditTextStyles();
+        }
+
+        function getPageNumberFromEl(el){
+          var page = el.closest('.page');
+          if(!page) return -1;
+          return parseInt(page.getAttribute('data-page-number') || '0', 10);
+        }
+
+        function getViewportScale(){
+          try{
+            var app = window.PDFViewerApplication;
+            if(app && app.pdfViewer){
+              var v = app.pdfViewer.getPageView(0);
+              if(v && v.viewport) return v.viewport.scale;
+            }
+          }catch(e){}
+          return 1;
+        }
+
+        function createTextEditor(span){
+          if(!editTextActive) return;
+          if(span.__pdfcraftEditing) return;
+          var page = span.closest('.page');
+          if(!page) return;
+          var pageNum = getPageNumberFromEl(span);
+          if(pageNum < 1) return;
+          var originalText = span.textContent || '';
+          if(!originalText.trim()) return;
+
+          span.__pdfcraftEditing = true;
+          var pageRect = page.getBoundingClientRect();
+          var spanRect = span.getBoundingClientRect();
+          var x = spanRect.left - pageRect.left;
+          var y = spanRect.top - pageRect.top;
+          var w = spanRect.width;
+          var h = spanRect.height;
+          var cs = window.getComputedStyle(span);
+          var fontSize = parseFloat(cs.fontSize) || 14;
+          var fontFamily = cs.fontFamily || 'sans-serif';
+
+          var cover = document.createElement('div');
+          cover.className = 'pdfcraft-text-cover';
+          cover.style.left = x + 'px';
+          cover.style.top = y + 'px';
+          cover.style.width = w + 'px';
+          cover.style.height = h + 'px';
+          page.appendChild(cover);
+
+          var editor = document.createElement('div');
+          editor.contentEditable = 'true';
+          editor.className = 'pdfcraft-text-editor';
+          editor.textContent = originalText;
+          editor.style.left = x + 'px';
+          editor.style.top = y + 'px';
+          editor.style.minWidth = w + 'px';
+          editor.style.height = h + 'px';
+          editor.style.fontSize = fontSize + 'px';
+          editor.style.fontFamily = fontFamily;
+          editor.style.lineHeight = h + 'px';
+          editor.style.color = '#000';
+          page.appendChild(editor);
+          editor.focus();
+          try{
+            var rng = document.createRange();
+            rng.selectNodeContents(editor);
+            var sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(rng);
+          }catch(e){}
+
+          var finalized = false;
+          var editRecord = null;
+          function finalize(){
+            if(finalized) return;
+            finalized = true;
+            var newText = (editor.textContent || '').replace(/\\n/g, ' ');
+            if(newText !== originalText && newText.trim()){
+              editor.contentEditable = 'false';
+              editor.classList.add('finalized');
+              editor.textContent = newText;
+              cover.style.width = Math.max(w, editor.scrollWidth + 4) + 'px';
+
+              var pw = page.clientWidth;
+              var ph = page.clientHeight;
+              var pdfW = 595, pdfH = 842;
+              try{
+                var app = window.PDFViewerApplication;
+                var pv = app && app.pdfViewer && app.pdfViewer.getPageView(pageNum - 1);
+                if(pv && pv.viewport && pv.viewport.viewBox){
+                  pdfW = pv.viewport.viewBox[2] || pdfW;
+                  pdfH = pv.viewport.viewBox[3] || pdfH;
+                }
+              }catch(e){}
+
+              editRecord = {
+                pageNumber: pageNum,
+                pdfX: (x / pw) * pdfW,
+                pdfY: pdfH - ((y + h) / ph) * pdfH,
+                pdfWidth: (Math.max(w, editor.scrollWidth + 4) / pw) * pdfW,
+                pdfHeight: (h / ph) * pdfH,
+                fontSize: (fontSize / ph) * pdfH,
+                fontFamily: fontFamily,
+                originalText: originalText,
+                newText: newText
+              };
+              window.__pdfcraftTextEdits.push(editRecord);
+
+              editor.addEventListener('dblclick', function(){
+                finalized = false;
+                editRecord = null;
+                editor.contentEditable = 'true';
+                editor.classList.remove('finalized');
+                editor.focus();
+              });
+              notifyDirty();
+            } else {
+              cover.remove();
+              editor.remove();
+              span.__pdfcraftEditing = false;
+            }
+          }
+
+          editor.addEventListener('blur', function(){ setTimeout(finalize, 80); });
+          editor.addEventListener('keydown', function(ev){
+            if(ev.key === 'Escape'){
+              cover.remove();
+              editor.remove();
+              span.__pdfcraftEditing = false;
+              return;
+            }
+            if(ev.key === 'Enter' && !ev.shiftKey){
+              ev.preventDefault();
+              editor.blur();
+            }
+          });
+        }
+
+        document.addEventListener('click', function(evt){
+          if(!editTextActive) return;
+          var span = evt.target && evt.target.closest && evt.target.closest('.textLayer > span');
+          if(!span) return;
+          if(span.closest('.pdfcraft-text-editor')) return;
+          evt.preventDefault();
+          evt.stopPropagation();
+          createTextEditor(span);
+        }, true);
+
         function setTool(toolName){
           try{
+            if(toolName === 'editText'){
+              setTextMarkupMode(false);
+              setAnnotating(false);
+              setEditTextMode(true);
+              window.__pdfcraftActiveTool = 'editText';
+              try{ window.parent.postMessage({ type:'pdfcraft-tool-changed', tool:'editText' }, '*'); }catch(e){}
+              return true;
+            }
+            if(editTextActive) setEditTextMode(false);
             if(!toolName || !TOOL_SET[toolName]) return false;
             var isSelect = toolName === 'select';
             var isMarkup = !!TEXT_MARKUP[toolName];
@@ -1359,6 +1539,7 @@ export function EditPDFTool({
 
         function setToolWithRetry(toolName){
           if(toolName === 'stamp' && isPdfcraftStampPickerOpen() && window.__pdfcraftActiveTool === 'stamp') return;
+          if(toolName === 'editText'){ setTool('editText'); return; }
           if(setTool(toolName)) return;
           var tries = 0;
           var timer = setInterval(function(){

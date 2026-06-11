@@ -1,0 +1,50 @@
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+
+export interface TextEdit {
+  pageNumber: number;
+  pdfX: number;
+  pdfY: number;
+  pdfWidth: number;
+  pdfHeight: number;
+  fontSize: number;
+  fontFamily: string;
+  originalText: string;
+  newText: string;
+}
+
+export async function applyTextEdits(
+  pdfBytes: ArrayBuffer | Uint8Array,
+  edits: TextEdit[],
+): Promise<Uint8Array> {
+  if (!edits.length) return new Uint8Array(pdfBytes);
+
+  const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+  for (const edit of edits) {
+    const pageIndex = edit.pageNumber - 1;
+    if (pageIndex < 0 || pageIndex >= pdfDoc.getPageCount()) continue;
+    const page = pdfDoc.getPage(pageIndex);
+
+    const padding = 2;
+    page.drawRectangle({
+      x: edit.pdfX - padding,
+      y: edit.pdfY - padding,
+      width: edit.pdfWidth + padding * 2,
+      height: edit.pdfHeight + padding * 2,
+      color: rgb(1, 1, 1),
+      borderWidth: 0,
+    });
+
+    const clampedSize = Math.max(6, Math.min(edit.fontSize, 72));
+    page.drawText(edit.newText, {
+      x: edit.pdfX,
+      y: edit.pdfY + (edit.pdfHeight - clampedSize) * 0.3,
+      size: clampedSize,
+      font,
+      color: rgb(0, 0, 0),
+    });
+  }
+
+  return pdfDoc.save();
+}
