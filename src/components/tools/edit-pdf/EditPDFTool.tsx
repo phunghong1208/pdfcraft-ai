@@ -1354,9 +1354,10 @@ export function EditPDFTool({
             '.pdfcraft-edit-text .textLayer span { user-select: none !important; -webkit-user-select: none !important; }',
             '.pdfcraft-edit-text .CustomToolbar { display: none !important; visibility: hidden !important; pointer-events: none !important; }',
             '.pdfcraft-edit-text .popbar, .pdfcraft-edit-text .annotation-popbar, .pdfcraft-edit-text [class*="popbar"], .pdfcraft-edit-text [class*="Popbar"] { display: none !important; visibility: hidden !important; }',
-            '.pdfcraft-text-editor { position: absolute; z-index: 10; outline: none; padding: 1px 2px; box-sizing: border-box; overflow: hidden; white-space: pre; border: 2px solid #1677ff; background: #fff; user-select: text !important; -webkit-user-select: text !important; }',
+            '.pdfcraft-text-editor { position: absolute; z-index: 10; outline: none; padding: 1px 2px; box-sizing: border-box; overflow: visible; white-space: pre-wrap; word-break: break-word; border: 2px solid #1677ff; background: #fff; user-select: text !important; -webkit-user-select: text !important; }',
             '.pdfcraft-text-editor:focus { box-shadow: 0 0 0 2px rgba(22,119,255,0.18); }',
-            '.pdfcraft-text-editor.finalized { border: 1px dashed rgba(22,119,255,0.4); cursor: pointer; }',
+            '.pdfcraft-edit-text .pdfcraft-text-editor.finalized { border: 1px dashed rgba(22,119,255,0.35); cursor: text; }',
+            '.pdfcraft-text-editor.finalized { border: none; box-shadow: none; background: transparent; cursor: default; }',
             '.pdfcraft-text-cover { position: absolute; background: #fff; z-index: 4; pointer-events: none; }',
           ].join('\\n');
           document.head.appendChild(s);
@@ -1532,10 +1533,11 @@ export function EditPDFTool({
           editor.style.left = x + 'px';
           editor.style.top = y + 'px';
           editor.style.minWidth = w + 'px';
-          editor.style.height = h + 'px';
+          editor.style.minHeight = h + 'px';
+          editor.style.height = 'auto';
           editor.style.fontSize = fontSize + 'px';
           editor.style.fontFamily = fontFamily;
-          editor.style.lineHeight = h + 'px';
+          editor.style.lineHeight = '1.3';
           editor.style.color = fi.color;
           editor.style.fontWeight = fi.fontWeight;
           editor.style.fontStyle = fi.fontStyle;
@@ -1550,17 +1552,29 @@ export function EditPDFTool({
             sel.addRange(rng);
           }catch(e){}
 
+          function syncEditorSize(){
+            var edW = Math.max(w, editor.scrollWidth + 4);
+            var edH = Math.max(h, editor.scrollHeight + 2);
+            editor.style.minWidth = edW + 'px';
+            editor.style.minHeight = edH + 'px';
+            cover.style.width = (edW + pad * 2) + 'px';
+            cover.style.height = (edH + pad * 2) + 'px';
+            return { edW: edW, edH: edH };
+          }
+
+          editor.addEventListener('input', function(){ syncEditorSize(); });
+
           var finalized = false;
           function finalize(){
             if(finalized) return;
             finalized = true;
-            var newText = (editor.textContent || '').replace(/\\n/g, ' ');
+            var newText = (editor.innerText || '').replace(/\\r\\n/g, '\\n').replace(/\\r/g, '\\n');
             if(newText !== originalText && newText.trim()){
               editor.contentEditable = 'false';
               editor.classList.add('finalized');
-              editor.textContent = newText;
-              var edW = Math.max(w, editor.scrollWidth + 4);
-              cover.style.width = (edW + pad * 2) + 'px';
+              var size = syncEditorSize();
+              var edW = size.edW;
+              var edH = size.edH;
 
               var pw = page.clientWidth;
               var ph = page.clientHeight;
@@ -1577,9 +1591,9 @@ export function EditPDFTool({
               window.__pdfcraftTextEdits.push({
                 pageNumber: pageNum,
                 pdfX: (x / pw) * pdfW,
-                pdfY: pdfH - ((y + h) / ph) * pdfH,
+                pdfY: pdfH - ((y + edH) / ph) * pdfH,
                 pdfWidth: (edW / pw) * pdfW,
-                pdfHeight: (h / ph) * pdfH,
+                pdfHeight: (edH / ph) * pdfH,
                 fontSize: (fontSize / ph) * pdfH,
                 fontFamily: fontFamily,
                 originalText: originalText,
@@ -1612,7 +1626,7 @@ export function EditPDFTool({
               for(var j = 0; j < lineSpans.length; j++) lineSpans[j].__pdfcraftEditing = false;
               return;
             }
-            if(ev.key === 'Enter' && !ev.shiftKey){
+            if(ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)){
               ev.preventDefault();
               editor.blur();
             }

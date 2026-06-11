@@ -59,13 +59,21 @@ export async function applyTextEdits(
     });
 
     const clampedSize = Math.max(6, Math.min(edit.fontSize, 72));
-    page.drawText(edit.newText, {
-      x: edit.pdfX,
-      y: edit.pdfY + (edit.pdfHeight - clampedSize) * 0.3,
-      size: clampedSize,
-      font,
-      color: rgb(0, 0, 0),
-    });
+    const lineHeight = clampedSize * 1.25;
+    const lines = edit.newText.split('\n');
+    const blockHeight = Math.max(edit.pdfHeight, lineHeight * lines.length);
+    let lineY = edit.pdfY + blockHeight - clampedSize;
+
+    for (const line of lines) {
+      page.drawText(line, {
+        x: edit.pdfX,
+        y: lineY,
+        size: clampedSize,
+        font,
+        color: rgb(0, 0, 0),
+      });
+      lineY -= lineHeight;
+    }
   }
 
   return pdfDoc.save();
