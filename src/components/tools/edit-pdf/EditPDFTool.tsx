@@ -1336,6 +1336,8 @@ export function EditPDFTool({
         /* ── Edit Text Mode ── */
         if(!window.__pdfcraftTextEdits) window.__pdfcraftTextEdits = [];
         var editTextActive = false;
+        var textEditHistory = [];
+        var textEditRedoStack = [];
 
         function injectEditTextStyles(){
           if(document.getElementById('pdfcraft-edit-text-style')) return;
@@ -1343,11 +1345,13 @@ export function EditPDFTool({
           s.id = 'pdfcraft-edit-text-style';
           s.textContent = [
             '.pdfcraft-edit-text .textLayer { pointer-events: auto !important; z-index: 5 !important; }',
-            '.pdfcraft-edit-text .textLayer > span { pointer-events: auto !important; cursor: text !important; border-radius: 2px; transition: background 0.1s; }',
-            '.pdfcraft-edit-text .textLayer > span:hover { background: rgba(22,119,255,0.12) !important; }',
-            '.pdfcraft-edit-text .CustomToolbar { display: none !important; }',
-            '.pdfcraft-edit-text .popbar, .pdfcraft-edit-text .annotation-popbar { display: none !important; }',
-            '.pdfcraft-text-editor { position: absolute; z-index: 10; outline: none; padding: 1px 2px; box-sizing: border-box; overflow: hidden; white-space: pre; border: 2px solid #1677ff; background: #fff; }',
+            '.pdfcraft-edit-text .textLayer span { pointer-events: auto !important; cursor: text !important; }',
+            '.pdfcraft-edit-text .textLayer span[role="presentation"] { border-radius: 2px; transition: background 0.1s; }',
+            '.pdfcraft-edit-text .textLayer span[role="presentation"]:hover { background: rgba(22,119,255,0.12) !important; }',
+            '.pdfcraft-edit-text .textLayer span { user-select: none !important; -webkit-user-select: none !important; }',
+            '.pdfcraft-edit-text .CustomToolbar { display: none !important; visibility: hidden !important; pointer-events: none !important; }',
+            '.pdfcraft-edit-text .popbar, .pdfcraft-edit-text .annotation-popbar, .pdfcraft-edit-text [class*="popbar"], .pdfcraft-edit-text [class*="Popbar"] { display: none !important; visibility: hidden !important; }',
+            '.pdfcraft-text-editor { position: absolute; z-index: 10; outline: none; padding: 1px 2px; box-sizing: border-box; overflow: hidden; white-space: pre; border: 2px solid #1677ff; background: #fff; user-select: text !important; -webkit-user-select: text !important; }',
             '.pdfcraft-text-editor:focus { box-shadow: 0 0 0 2px rgba(22,119,255,0.18); }',
             '.pdfcraft-text-editor.finalized { border: 1px dashed rgba(22,119,255,0.4); cursor: pointer; }',
             '.pdfcraft-text-cover { position: absolute; background: #fff; z-index: 4; pointer-events: none; }',
@@ -1407,7 +1411,11 @@ export function EditPDFTool({
           var transform = span.style.transform || cs.transform || '';
           var scaleMatch = transform.match(/scaleX\\(([\\d.]+)\\)/);
           var scaleX = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
-          return { fontSize: fontSize, fontFamily: fontFamily, scaleX: scaleX };
+          var rawColor = cs.color || '';
+          var color = (rawColor === 'transparent' || rawColor === 'rgba(0, 0, 0, 0)') ? '#000' : (rawColor || '#000');
+          var fontWeight = cs.fontWeight || 'normal';
+          var fontStyle = cs.fontStyle || 'normal';
+          return { fontSize: fontSize, fontFamily: fontFamily, scaleX: scaleX, color: color, fontWeight: fontWeight, fontStyle: fontStyle };
         }
 
         function createLineEditor(lineSpans, clickedSpan){
@@ -1463,7 +1471,9 @@ export function EditPDFTool({
           editor.style.fontSize = fontSize + 'px';
           editor.style.fontFamily = fontFamily;
           editor.style.lineHeight = h + 'px';
-          editor.style.color = '#000';
+          editor.style.color = fi.color;
+          editor.style.fontWeight = fi.fontWeight;
+          editor.style.fontStyle = fi.fontStyle;
           editor.style.letterSpacing = '0px';
           page.appendChild(editor);
           editor.focus();
@@ -1517,6 +1527,9 @@ export function EditPDFTool({
                 editor.classList.remove('finalized');
                 editor.focus();
               });
+              var editData = window.__pdfcraftTextEdits[window.__pdfcraftTextEdits.length - 1];
+              textEditHistory.push({ editor: editor, cover: cover, spans: lineSpans, originalText: originalText, newText: newText, editData: editData });
+              textEditRedoStack.length = 0;
               notifyDirty();
             } else {
               cover.remove();
@@ -1553,14 +1566,26 @@ export function EditPDFTool({
           evt.stopPropagation();
           var lineSpans = collectLineSpans(span);
           createLineEditor(lineSpans, span);
+          try{ closePopbar(); }catch(e){}
+        }, true);
+
+        document.addEventListener('dblclick', function(evt){
+          if(!editTextActive) return;
+          if(evt.target && evt.target.closest && evt.target.closest('.pdfcraft-text-editor')) return;
+          evt.preventDefault();
+          evt.stopPropagation();
+          try{ closePopbar(); }catch(e){}
         }, true);
 
         document.addEventListener('mouseup', function(evt){
           if(!editTextActive) return;
           try{
             var sel = window.getSelection();
-            if(sel && !sel.isCollapsed) sel.removeAllRanges();
+            if(sel && !sel.isCollapsed && !(evt.target && evt.target.closest && evt.target.closest('.pdfcraft-text-editor'))){
+              sel.removeAllRanges();
+            }
           }catch(e){}
+          try{ closePopbar(); }catch(e){}
         }, true);
 
         function setTool(toolName){
@@ -1765,11 +1790,40 @@ export function EditPDFTool({
           return false;
         }
 
+        function undoTextEdit(){
+          if(!textEditHistory.length) return false;
+          var entry = textEditHistory.pop();
+          entry.editor.remove();
+          entry.cover.remove();
+          for(var i = 0; i < entry.spans.length; i++) entry.spans[i].__pdfcraftEditing = false;
+          var edits = window.__pdfcraftTextEdits;
+          for(var j = edits.length - 1; j >= 0; j--){
+            if(edits[j].originalText === entry.originalText && edits[j].newText === entry.newText){ edits.splice(j, 1); break; }
+          }
+          textEditRedoStack.push(entry);
+          return true;
+        }
+
+        function redoTextEdit(){
+          if(!textEditRedoStack.length) return false;
+          var entry = textEditRedoStack.pop();
+          var page = entry.spans[0] && entry.spans[0].closest('.page');
+          if(!page) return false;
+          for(var i = 0; i < entry.spans.length; i++) entry.spans[i].__pdfcraftEditing = true;
+          page.appendChild(entry.cover);
+          page.appendChild(entry.editor);
+          if(entry.editData) window.__pdfcraftTextEdits.push(entry.editData);
+          textEditHistory.push(entry);
+          return true;
+        }
+
         window.pdfcraftUndo = function(){
+          if(editTextActive && undoTextEdit()) return;
           if(performUndo()) return;
           dispatchEditorUndoRedo(false);
         };
         window.pdfcraftRedo = function(){
+          if(editTextActive && redoTextEdit()) return;
           if(performRedo()) return;
           dispatchEditorUndoRedo(true);
         };

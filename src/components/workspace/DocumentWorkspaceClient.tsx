@@ -305,7 +305,6 @@ function getRibbonGroups(
           label: tr('groups.content'),
           tools: [
             { icon: TextCursorInput, label: tr('tools.editText'), action: 'editText' },
-            { icon: Type, label: tr('tools.textComment'), action: 'annot:freeText' },
           ],
         },
         {
