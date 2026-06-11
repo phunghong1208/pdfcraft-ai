@@ -1,8 +1,8 @@
 import { chatCompletion, getDefaultTranslateModel } from '@/lib/translate/openai-client';
 import { languageDisplayName } from '@/lib/translate/language';
 import type { TokenUsage } from '@/lib/translate/types';
+import { buildSegmentBatches, runSegmentBatches } from '@/lib/translate/segment-batches';
 
-const BATCH_SIZE = Number(process.env.TRANSLATE_BATCH_SIZE || '12');
 const MAX_RETRIES = 2;
 
 function emptyUsage(): TokenUsage {
@@ -95,15 +95,21 @@ export async function translateSegmentsLightweight(options: {
 
   const results = new Array<string>(segments.length).fill('');
   let tokenUsage = emptyUsage();
+  let doneCount = 0;
+  const batches = buildSegmentBatches(segments);
 
-  for (let i = 0; i < segments.length; i += BATCH_SIZE) {
-    const batch = segments.slice(i, i + BATCH_SIZE);
+  const batchResults = await runSegmentBatches(batches, async ({ offset, segments: batch }) => {
     const { translations, usage } = await translateBatch(batch, sourceLang, targetLang, model);
     for (let j = 0; j < batch.length; j += 1) {
-      results[i + j] = translations[j]?.trim() || batch[j];
+      results[offset + j] = translations[j]?.trim() || batch[j];
     }
+    doneCount += batch.length;
+    onProgress?.(doneCount, segments.length);
+    return usage;
+  });
+
+  for (const usage of batchResults) {
     tokenUsage = mergeUsage(tokenUsage, usage);
-    onProgress?.(Math.min(i + BATCH_SIZE, segments.length), segments.length);
   }
 
   return { translations: results, tokenUsage };

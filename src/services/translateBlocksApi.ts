@@ -1,10 +1,42 @@
-const CHUNK_SIZE = 12;
+import {
+  buildSegmentBatches,
+  runSegmentBatches,
+} from '@/lib/translate/segment-batches';
+
 const TRANSLATE_TEXT_PATH = '/api/translate/text';
 
 type TranslateTextApiResponse = {
   translations?: string[];
   detail?: string;
 };
+
+async function translateChunk(
+  segments: string[],
+  sourceLang: string,
+  targetLang: string,
+): Promise<string[]> {
+  const res = await fetch(TRANSLATE_TEXT_PATH, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sourceLang,
+      targetLang,
+      segments,
+    }),
+  });
+
+  const body = (await res.json()) as TranslateTextApiResponse;
+  if (!res.ok) {
+    throw new Error(body.detail || `Dịch block thất bại (${res.status}).`);
+  }
+
+  const translations = body.translations;
+  if (!Array.isArray(translations) || translations.length !== segments.length) {
+    throw new Error('API dịch không trả đủ số segment.');
+  }
+
+  return translations.map((t, j) => t?.trim() || segments[j]);
+}
 
 export async function translateBlockTexts(
   texts: string[],
@@ -15,35 +47,17 @@ export async function translateBlockTexts(
   if (!texts.length) return [];
 
   const results = new Array<string>(texts.length).fill('');
+  const batches = buildSegmentBatches(texts);
+  let doneCount = 0;
 
-  for (let i = 0; i < texts.length; i += CHUNK_SIZE) {
-    const chunk = texts.slice(i, i + CHUNK_SIZE);
-    const res = await fetch(TRANSLATE_TEXT_PATH, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sourceLang,
-        targetLang,
-        segments: chunk,
-      }),
-    });
-
-    const body = (await res.json()) as TranslateTextApiResponse;
-    if (!res.ok) {
-      throw new Error(body.detail || `Dịch block thất bại (${res.status}).`);
+  await runSegmentBatches(batches, async ({ offset, segments }) => {
+    const translations = await translateChunk(segments, sourceLang, targetLang);
+    for (let j = 0; j < segments.length; j += 1) {
+      results[offset + j] = translations[j];
     }
-
-    const translations = body.translations;
-    if (!Array.isArray(translations) || translations.length !== chunk.length) {
-      throw new Error('API dịch không trả đủ số segment.');
-    }
-
-    for (let j = 0; j < chunk.length; j += 1) {
-      results[i + j] = translations[j]?.trim() || chunk[j];
-    }
-
-    onProgress?.(Math.min(i + CHUNK_SIZE, texts.length), texts.length);
-  }
+    doneCount += segments.length;
+    onProgress?.(doneCount, texts.length);
+  });
 
   return results;
 }

@@ -102,6 +102,16 @@ function lineBounds(items: TextItem[]) {
   };
 }
 
+function estimateFontSize(text: string, pdfWidth: number, pdfHeight: number): number {
+  const lines = text.split('\n').filter((l) => l.trim());
+  const lineCount = Math.max(1, lines.length);
+  const longest = Math.max(...lines.map((l) => l.length), text.length);
+  const sizeFromHeight = pdfHeight / (lineCount * 1.28);
+  const sizeFromWidth = pdfWidth / Math.max(1, longest) / 0.52;
+  const base = lineCount === 1 ? Math.min(sizeFromHeight, sizeFromWidth) : sizeFromHeight;
+  return Math.min(72, Math.max(6, base * 0.95));
+}
+
 function mergeLineBounds(a: ReturnType<typeof lineBounds>, b: ReturnType<typeof lineBounds>) {
   const minX = Math.min(a.pdfX, b.pdfX);
   const minY = Math.min(a.pdfY, b.pdfY);
@@ -158,6 +168,7 @@ export async function extractLayoutBlocks(file: File): Promise<LayoutTextBlock[]
         pageNumber: pageNum,
         text,
         ...currentBounds,
+        fontSize: estimateFontSize(text, currentBounds.pdfWidth, currentBounds.pdfHeight),
       });
       blockIndex += 1;
       currentLines = [];

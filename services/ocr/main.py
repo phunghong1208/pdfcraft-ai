@@ -159,25 +159,10 @@ async def convert_pdf_to_docx(file: UploadFile = File(...)):
         if input_size < 32:
             raise HTTPException(status_code=400, detail="PDF file is empty.")
 
-        from pdf2docx import Converter
+        from pdf_to_docx import convert_pdf_to_docx
 
-        logger.info("pdf2docx server: %s (%s bytes)", file.filename, input_size)
-        cv = Converter(str(input_path))
-        cv.convert(
-            str(output_path),
-            start=0,
-            end=None,
-            clip_image_res_ratio=1.0,
-            min_svg_gap_dx=5.0,
-            min_svg_gap_dy=5.0,
-            min_svg_w=2.0,
-            min_svg_h=2.0,
-            parse_stream_table=True,
-            parse_lattice_table=True,
-            line_separate_threshold=20.0,
-            line_break_width_ratio=0.85,
-        )
-        cv.close()
+        logger.info("pdf-to-docx server: %s (%s bytes)", file.filename, input_size)
+        engine = convert_pdf_to_docx(input_path, output_path)
 
         if not output_path.exists() or output_path.stat().st_size < 4096:
             raise HTTPException(
@@ -191,7 +176,7 @@ async def convert_pdf_to_docx(file: UploadFile = File(...)):
             media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             filename=safe_name,
             headers={
-                "X-Engine": "pdf2docx-server",
+                "X-Engine": engine,
                 "X-Input-Size": str(input_size),
                 "X-Output-Size": str(out_size),
             },

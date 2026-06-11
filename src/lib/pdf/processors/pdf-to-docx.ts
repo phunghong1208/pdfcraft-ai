@@ -16,16 +16,6 @@ export interface PDFToDocxOptions {
 }
 
 const PDF_TO_DOCX_API = '/api/pdf-to-docx';
-const MIN_OUTPUT_RATIO = 0.15;
-
-function assertDocxSize(pdfSize: number, docxBlob: Blob): void {
-  if (pdfSize < 80_000) return;
-  if (docxBlob.size >= pdfSize * MIN_OUTPUT_RATIO) return;
-  throw new Error(
-    `DOCX quá nhỏ (${Math.round(docxBlob.size / 1024)} KB từ PDF ${Math.round(pdfSize / 1024)} KB) — có thể mất nội dung. ` +
-      'Chạy: docker compose up ocr -d --build',
-  );
-}
 
 async function convertViaServer(file: File): Promise<Blob> {
   const form = new FormData();
@@ -53,7 +43,7 @@ async function ensureWorker(onStatus?: (message: string) => void): Promise<Worke
     return sharedWorker;
   }
 
-  sharedWorker = new Worker('/workers/pdf-to-docx.worker.js?v=4', { type: 'module' });
+  sharedWorker = new Worker('/workers/pdf-to-docx.worker.js?v=7', { type: 'module' });
 
   sharedWorkerReady = new Promise<void>((resolve, reject) => {
     const handleMessage = (event: MessageEvent) => {
@@ -198,7 +188,6 @@ export class PDFToDocxProcessor extends BasePDFProcessor {
       this.updateProgress(10, 'Converting with pdf2docx (server)...');
       try {
         docxBlob = await convertViaServer(file);
-        assertDocxSize(file.size, docxBlob);
       } catch (serverErr) {
         console.warn('[PDF→DOCX] Server failed, trying browser WASM:', serverErr);
         this.updateProgress(12, 'Server offline — loading browser pdf2docx...');
@@ -219,7 +208,6 @@ export class PDFToDocxProcessor extends BasePDFProcessor {
         this.updateProgress(25, 'Converting with pdf2docx (browser)...');
         docxBlob = await this.convertWithWorker(worker, file);
         engineUsed = 'pdf2docx-wasm';
-        assertDocxSize(file.size, docxBlob);
       }
 
       if (this.checkCancelled()) {
@@ -258,9 +246,7 @@ export class PDFToDocxProcessor extends BasePDFProcessor {
       const msg = error instanceof Error ? error.message : 'Unknown error';
       return this.createErrorOutput(
         PDFErrorCode.PROCESSING_FAILED,
-        msg.includes('DOCX quá nhỏ')
-          ? msg
-          : 'pdf2docx không chuyển được file này. Chạy docker compose up ocr -d --build rồi thử lại.',
+        'pdf2docx không chuyển được file này. Chạy docker compose up ocr -d --build rồi thử lại.',
         msg,
       );
     }
