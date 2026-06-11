@@ -151,7 +151,8 @@ export async function applyBlockTranslations(
     const layout = fitTextInBlock(newText, font, block, innerWidth);
     const topPad = layout.fontSize * 0.35;
 
-    const coverWidth = Math.max(block.pdfWidth, layout.renderWidth) + padding * 2;
+    // Giữ chiều ngang theo bbox gốc — tránh che số thứ tự (3., 4.) ở cột bên trái.
+    const coverWidth = block.pdfWidth + padding * 2;
     const coverHeight = Math.max(block.pdfHeight, layout.renderHeight) + padding * 2 + topPad;
 
     page.drawRectangle({

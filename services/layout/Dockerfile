@@ -19,9 +19,10 @@ RUN pip install --no-cache-dir \
     "fastapi>=0.115,<1" \
     "uvicorn[standard]>=0.34,<1" \
     "python-multipart>=0.0.18,<1" \
-    "docling>=2.15,<3"
+    "docling>=2.15,<3" \
+    "pymupdf>=1.24,<2"
 
-COPY main.py .
+COPY main.py fitz_layout.py .
 
 EXPOSE 8101
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8101"]

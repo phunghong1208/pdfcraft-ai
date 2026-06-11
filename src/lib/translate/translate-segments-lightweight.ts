@@ -23,7 +23,7 @@ function buildSystemPrompt(sourceLang: string, targetLang: string): string {
   return [
     `You are a professional translator (${source} → ${target}).`,
     'Translate each input segment independently.',
-    'Preserve numbers, punctuation, line breaks, and placeholders.',
+    'Preserve numbers, punctuation, line breaks, placeholders, and leading list markers (e.g. 3., 4.).',
     'Do not merge, split, or reorder segments.',
     'Return ONLY valid JSON: {"translations":["..."]}',
     'The translations array MUST have exactly the same length as the input segments array.',

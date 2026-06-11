@@ -1,4 +1,4 @@
-"""Layout extraction microservice — Docling text blocks + bbox for PDF translation."""
+"""Layout extraction microservice — Docling tables + PyMuPDF text lines for PDF translation."""
 
 from __future__ import annotations
 
@@ -16,12 +16,13 @@ from docling_core.types.doc import CoordOrigin
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 
+from fitz_layout import extract_fitz_line_blocks
+
 app = FastAPI(title="PDFCraft Layout Service")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("pdfcraft.layout")
 
 MAX_BLOCKS = 500
-MIN_LINE_HEIGHT_PT = 7.0
 
 
 def _page_height(doc: Any, page_no: int) -> float:
@@ -57,18 +58,13 @@ def _bbox_to_pdf_rect(bbox: Any, page_height: float) -> tuple[float, float, floa
 
 
 def _estimate_font_size(text: str, pdf_w: float, pdf_h: float) -> float:
-    """Ước lượng cỡ chữ theo số dòng — tránh pdf_h*0.82 phóng to block nhiều dòng."""
     lines = [ln.strip() for ln in re.split(r"[\n\r]+", text) if ln.strip()]
     line_count = max(1, len(lines))
     longest = max((len(ln) for ln in lines), default=len(text))
 
     size_from_height = pdf_h / (line_count * 1.28)
     size_from_width = (pdf_w / max(1, longest)) / 0.52 if longest else size_from_height
-    if line_count == 1:
-        base = min(size_from_height, size_from_width)
-    else:
-        base = size_from_height
-
+    base = min(size_from_height, size_from_width) if line_count == 1 else size_from_height
     return max(6.0, min(72.0, base * 0.95))
 
 
@@ -95,8 +91,10 @@ def _make_block(
     pdf_y: float,
     pdf_w: float,
     pdf_h: float,
+    font_size: float | None = None,
     label: str | None = None,
 ) -> dict[str, Any]:
+    fs = font_size if font_size is not None else _estimate_font_size(text, pdf_w, pdf_h)
     return {
         "id": f"p{page_no}-b{block_index}",
         "pageNumber": page_no,
@@ -105,41 +103,10 @@ def _make_block(
         "pdfY": round(pdf_y, 2),
         "pdfWidth": round(pdf_w, 2),
         "pdfHeight": round(pdf_h, 2),
-        "fontSize": round(_estimate_font_size(text, pdf_w, pdf_h), 1),
+        "fontSize": round(fs, 1),
         "fontFamily": "Helvetica",
         "label": label,
     }
-
-
-def _split_multiline_block(block: dict[str, Any]) -> list[dict[str, Any]]:
-    """Tách block nhiều dòng thành từng dòng — mỗi dòng một bbox/font riêng."""
-    text = block["text"]
-    if "\n" not in text and "\r" not in text:
-        return [block]
-
-    lines = [ln.strip() for ln in re.split(r"[\n\r]+", text) if ln.strip()]
-    if len(lines) <= 1:
-        return [block]
-
-    line_h = max(MIN_LINE_HEIGHT_PT, block["pdfHeight"] / len(lines))
-    base_y = block["pdfY"]
-    out: list[dict[str, Any]] = []
-
-    for i, line in enumerate(lines):
-        line_y = base_y + block["pdfHeight"] - line_h * (i + 1)
-        out.append(
-            _make_block(
-                block_index=0,
-                page_no=block["pageNumber"],
-                text=line,
-                pdf_x=block["pdfX"],
-                pdf_y=line_y,
-                pdf_w=block["pdfWidth"],
-                pdf_h=line_h,
-                label=block.get("label"),
-            )
-        )
-    return out
 
 
 def _extract_table_cell_blocks(doc: Any) -> list[dict[str, Any]]:
@@ -157,7 +124,7 @@ def _extract_table_cell_blocks(doc: Any) -> list[dict[str, Any]]:
         for row in grid:
             for cell in row:
                 text = (getattr(cell, "text", None) or "").strip()
-                if len(text) < 1:
+                if not text:
                     continue
 
                 bbox = getattr(cell, "bbox", None)
@@ -187,38 +154,45 @@ def _extract_table_cell_blocks(doc: Any) -> list[dict[str, Any]]:
     return blocks
 
 
-def _text_covered_by_table(text: str, table_blocks: list[dict[str, Any]]) -> bool:
-    norm = re.sub(r"\s+", "", text.lower())
+def _norm_text(text: str) -> str:
+    return re.sub(r"\s+", "", (text or "").strip().lower())
+
+
+def _duplicate_of_table(text: str, table_blocks: list[dict[str, Any]]) -> bool:
+    norm = _norm_text(text)
     if not norm:
         return False
     for cell in table_blocks:
-        cell_norm = re.sub(r"\s+", "", cell["text"].lower())
+        cell_norm = _norm_text(cell["text"])
         if not cell_norm:
             continue
-        if norm == cell_norm or (len(norm) >= 6 and norm in cell_norm):
+        if norm == cell_norm:
             return True
-        if len(cell_norm) >= 6 and cell_norm in norm:
+        if len(norm) >= 8 and norm in cell_norm:
+            return True
+        if len(cell_norm) >= 8 and cell_norm in norm:
             return True
     return False
 
 
-def _overlaps_table_region(
+def _inside_table_cell(
     pdf_x: float, pdf_y: float, pdf_w: float, pdf_h: float,
     table_blocks: list[dict[str, Any]],
     page_no: int,
 ) -> bool:
+    """Chỉ bỏ dòng fitz khi nằm gần như hoàn toàn trong một ô bảng."""
     for cell in table_blocks:
         if cell["pageNumber"] != page_no:
             continue
         if _rect_overlap_ratio(
             pdf_x, pdf_y, pdf_w, pdf_h,
             cell["pdfX"], cell["pdfY"], cell["pdfWidth"], cell["pdfHeight"],
-        ) >= 0.45:
+        ) >= 0.72:
             return True
     return False
 
 
-def extract_layout_blocks(pdf_path: Path) -> list[dict[str, Any]]:
+def _extract_docling_tables(pdf_path: Path) -> list[dict[str, Any]]:
     pipeline_options = PdfPipelineOptions()
     pipeline_options.do_ocr = False
     pipeline_options.do_table_structure = True
@@ -229,71 +203,77 @@ def extract_layout_blocks(pdf_path: Path) -> list[dict[str, Any]]:
         }
     )
     result = converter.convert(str(pdf_path))
-    doc = result.document
+    return _extract_table_cell_blocks(result.document)
 
-    table_blocks = _extract_table_cell_blocks(doc)
+
+def extract_layout_blocks(pdf_path: Path) -> list[dict[str, Any]]:
+    table_blocks: list[dict[str, Any]] = []
+    try:
+        table_blocks = _extract_docling_tables(pdf_path)
+    except Exception as exc:
+        logger.warning("Docling table extract failed, fitz-only: %s", exc)
+
+    line_blocks = extract_fitz_line_blocks(pdf_path)
     blocks: list[dict[str, Any]] = []
     block_index = 0
-
-    def push(raw: dict[str, Any]) -> None:
-        nonlocal block_index
-        for piece in _split_multiline_block(raw):
-            piece["id"] = f"p{piece['pageNumber']}-b{block_index}"
-            blocks.append(piece)
-            block_index += 1
 
     for cell in table_blocks:
         if block_index >= MAX_BLOCKS:
             break
-        push(cell)
+        blocks.append(
+            _make_block(
+                block_index=block_index,
+                page_no=cell["pageNumber"],
+                text=cell["text"],
+                pdf_x=cell["pdfX"],
+                pdf_y=cell["pdfY"],
+                pdf_w=cell["pdfWidth"],
+                pdf_h=cell["pdfHeight"],
+                font_size=cell["fontSize"],
+                label="table_cell",
+            )
+        )
+        block_index += 1
 
-    for text_item in doc.texts:
+    for line in line_blocks:
         if block_index >= MAX_BLOCKS:
             break
 
-        text = (getattr(text_item, "text", None) or "").strip()
-        if len(text) < 2:
+        text = (line.get("text") or "").strip()
+        if len(text) < 1:
             continue
 
-        prov_list = getattr(text_item, "prov", None) or []
-        if not prov_list:
-            continue
-
-        prov = prov_list[0]
-        bbox = getattr(prov, "bbox", None)
-        if bbox is None:
-            continue
-
-        page_no = int(getattr(prov, "page_no", 1) or 1)
-        page_height = _page_height(doc, page_no)
-        pdf_x, pdf_y, pdf_w, pdf_h = _bbox_to_pdf_rect(bbox, page_height)
-        label = str(getattr(text_item, "label", "") or "") or None
-
+        page_no = int(line["pageNumber"])
         if table_blocks and (
-            _text_covered_by_table(text, table_blocks)
-            or _overlaps_table_region(pdf_x, pdf_y, pdf_w, pdf_h, table_blocks, page_no)
+            _duplicate_of_table(text, table_blocks)
+            or _inside_table_cell(
+                line["pdfX"], line["pdfY"], line["pdfWidth"], line["pdfHeight"],
+                table_blocks, page_no,
+            )
         ):
             continue
 
-        push(
+        blocks.append(
             _make_block(
                 block_index=block_index,
                 page_no=page_no,
                 text=text,
-                pdf_x=pdf_x,
-                pdf_y=pdf_y,
-                pdf_w=pdf_w,
-                pdf_h=pdf_h,
-                label=label,
+                pdf_x=line["pdfX"],
+                pdf_y=line["pdfY"],
+                pdf_w=line["pdfWidth"],
+                pdf_h=line["pdfHeight"],
+                font_size=line.get("fontSize"),
+                label=line.get("label"),
             )
         )
+        block_index += 1
 
     return blocks
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "engine": "docling"}
+    return {"status": "ok", "engine": "docling+fitz"}
 
 
 @app.post("/extract")
@@ -308,13 +288,13 @@ async def extract_blocks(file: UploadFile = File(...)):
         with open(input_path, "wb") as f:
             shutil.copyfileobj(file.file, f)
 
-        logger.info("Docling extract: %s", file.filename)
+        logger.info("Layout extract: %s", file.filename)
         blocks = extract_layout_blocks(input_path)
 
         if not blocks:
             raise HTTPException(status_code=422, detail="No text blocks extracted from PDF.")
 
-        return JSONResponse({"blocks": blocks, "engine": "docling", "count": len(blocks)})
+        return JSONResponse({"blocks": blocks, "engine": "docling+fitz", "count": len(blocks)})
     except HTTPException:
         raise
     except Exception as exc:

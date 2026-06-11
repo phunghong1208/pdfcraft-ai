@@ -388,3 +388,10 @@ This project is licensed under the AGPL-3.0 License - see the [LICENSE](LICENSE)
 <div align="center">
   Built with ❤️ by the PDFCraft Team
 </div>
+
+
+docker system prune -a --volumes
+Hoặc nhẹ hơn:
+
+docker image prune -a
+docker builder prune -a

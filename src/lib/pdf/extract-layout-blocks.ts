@@ -61,7 +61,7 @@ function lineTextFromItems(items: TextItem[]): string {
       const prevEnd = prev.transform[4] + itemWidth(prev);
       const gap = item.transform[4] - prevEnd;
       const fontSize = Math.max(itemFontSize(prev), itemFontSize(item));
-      if (gap > fontSize * 0.35) {
+      if (gap > fontSize * 0.18) {
         result += ' ';
       }
     }
@@ -112,6 +112,42 @@ function estimateFontSize(text: string, pdfWidth: number, pdfHeight: number): nu
   return Math.min(72, Math.max(6, base * 0.95));
 }
 
+const LIST_MARKER_RE = /^\d{1,3}\.?$/;
+
+function mergeListMarkerBlocks(blocks: LayoutTextBlock[]): LayoutTextBlock[] {
+  const merged: LayoutTextBlock[] = [];
+  let i = 0;
+  while (i < blocks.length) {
+    const cur = blocks[i];
+    const text = cur.text.trim();
+    const next = blocks[i + 1];
+    const yClose =
+      next &&
+      Math.abs(cur.pdfY - next.pdfY) <= Math.max(cur.pdfHeight, next.pdfHeight) * 1.6;
+
+    if (next && cur.pageNumber === next.pageNumber && LIST_MARKER_RE.test(text) && yClose) {
+      const x0 = Math.min(cur.pdfX, next.pdfX);
+      const y0 = Math.min(cur.pdfY, next.pdfY);
+      const x1 = Math.max(cur.pdfX + cur.pdfWidth, next.pdfX + next.pdfWidth);
+      const y1 = Math.max(cur.pdfY + cur.pdfHeight, next.pdfY + next.pdfHeight);
+      merged.push({
+        ...next,
+        text: `${text} ${next.text.trim()}`.trim(),
+        pdfX: x0,
+        pdfY: y0,
+        pdfWidth: Math.max(8, x1 - x0),
+        pdfHeight: Math.max(6, y1 - y0),
+        fontSize: Math.max(cur.fontSize, next.fontSize),
+      });
+      i += 2;
+      continue;
+    }
+    merged.push(cur);
+    i += 1;
+  }
+  return merged;
+}
+
 function mergeLineBounds(a: ReturnType<typeof lineBounds>, b: ReturnType<typeof lineBounds>) {
   const minX = Math.min(a.pdfX, b.pdfX);
   const minY = Math.min(a.pdfY, b.pdfY);
@@ -158,7 +194,7 @@ export async function extractLayoutBlocks(file: File): Promise<LayoutTextBlock[]
     const flushBlock = () => {
       if (!currentLines.length || !currentBounds) return;
       const text = currentLines.map((l) => lineTextFromItems(l.items)).filter(Boolean).join('\n').trim();
-      if (!text || text.length < 2) {
+      if (!text) {
         currentLines = [];
         currentBounds = null;
         return;
@@ -207,5 +243,5 @@ export async function extractLayoutBlocks(file: File): Promise<LayoutTextBlock[]
     if (blocks.length >= MAX_BLOCKS) break;
   }
 
-  return blocks.filter((b) => b.text.trim().length >= 2);
+  return mergeListMarkerBlocks(blocks.filter((b) => b.text.trim().length >= 1));
 }
