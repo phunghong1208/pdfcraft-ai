@@ -1358,7 +1358,8 @@ export function EditPDFTool({
             '.pdfcraft-text-editor:focus { box-shadow: 0 0 0 2px rgba(22,119,255,0.18); }',
             '.pdfcraft-edit-text .pdfcraft-text-editor.finalized { border: 1px dashed rgba(22,119,255,0.35); cursor: text; }',
             '.pdfcraft-text-editor.finalized { border: none; box-shadow: none; background: transparent; cursor: default; }',
-            '.pdfcraft-text-cover { position: absolute; background: #fff; z-index: 4; pointer-events: none; }',
+            '.pdfcraft-text-cover { position: absolute; background: #fff; z-index: 6; pointer-events: none; }',
+            '.textLayer span.pdfcraft-span-hidden { visibility: hidden !important; opacity: 0 !important; }',
           ].join('\\n');
           document.head.appendChild(s);
         }
@@ -1407,6 +1408,43 @@ export function EditPDFTool({
           if(!lineSpans.length) return [clickedSpan];
           lineSpans.sort(function(a,b){ return a.getBoundingClientRect().left - b.getBoundingClientRect().left; });
           return lineSpans;
+        }
+
+        function hideTextSpans(spans){
+          for(var i = 0; i < spans.length; i++){
+            spans[i].__pdfcraftEditing = true;
+            spans[i].classList.add('pdfcraft-span-hidden');
+          }
+        }
+
+        function showTextSpans(spans){
+          for(var i = 0; i < spans.length; i++){
+            spans[i].__pdfcraftEditing = false;
+            spans[i].classList.remove('pdfcraft-span-hidden');
+          }
+        }
+
+        function collectAccentSpans(textLayer, lineSpans, pageRect, left, right, top, lineH, fontSize){
+          var related = lineSpans.slice();
+          var seen = {};
+          for(var i = 0; i < related.length; i++) seen[related[i]] = true;
+          var allSpans = getTextLayerSpans(textLayer);
+          var bandTop = top - Math.max(6, fontSize * 0.55);
+          var bandBottom = top + lineH + Math.max(2, fontSize * 0.15);
+          for(var j = 0; j < allSpans.length; j++){
+            var sp = allSpans[j];
+            if(seen[sp] || sp.__pdfcraftEditing) continue;
+            var r = sp.getBoundingClientRect();
+            var sx = r.left - pageRect.left;
+            var sy = r.top - pageRect.top;
+            var sr = sx + r.width;
+            var sb = sy + r.height;
+            if(sr < left - 2 || sx > right + 2) continue;
+            if(sb < bandTop || sy > bandBottom) continue;
+            related.push(sp);
+            seen[sp] = true;
+          }
+          return related;
         }
 
         function sampleCanvasColor(span){
@@ -1517,13 +1555,21 @@ export function EditPDFTool({
           var fontFamily = fi.fontFamily;
           var h = Math.max(maxH, fontSize * 1.3);
           var pad = 2;
+          var vPadTop = Math.max(4, Math.ceil(fontSize * 0.45));
+          var vPadBottom = Math.max(2, Math.ceil(fontSize * 0.12));
+
+          var textLayer = clickedSpan.closest('.textLayer');
+          if(textLayer){
+            lineSpans = collectAccentSpans(textLayer, lineSpans, pageRect, x, right, y, h, fontSize);
+          }
+          hideTextSpans(lineSpans);
 
           var cover = document.createElement('div');
           cover.className = 'pdfcraft-text-cover';
           cover.style.left = (x - pad) + 'px';
-          cover.style.top = (y - pad) + 'px';
+          cover.style.top = (y - vPadTop) + 'px';
           cover.style.width = (w + pad * 2) + 'px';
-          cover.style.height = (h + pad * 2) + 'px';
+          cover.style.height = (h + vPadTop + vPadBottom) + 'px';
           page.appendChild(cover);
 
           var editor = document.createElement('div');
@@ -1558,7 +1604,7 @@ export function EditPDFTool({
             editor.style.minWidth = edW + 'px';
             editor.style.minHeight = edH + 'px';
             cover.style.width = (edW + pad * 2) + 'px';
-            cover.style.height = (edH + pad * 2) + 'px';
+            cover.style.height = (edH + vPadTop + vPadBottom) + 'px';
             return { edW: edW, edH: edH };
           }
 
@@ -1614,7 +1660,7 @@ export function EditPDFTool({
             } else {
               cover.remove();
               editor.remove();
-              for(var j = 0; j < lineSpans.length; j++) lineSpans[j].__pdfcraftEditing = false;
+              showTextSpans(lineSpans);
             }
           }
 
@@ -1623,7 +1669,7 @@ export function EditPDFTool({
             if(ev.key === 'Escape'){
               cover.remove();
               editor.remove();
-              for(var j = 0; j < lineSpans.length; j++) lineSpans[j].__pdfcraftEditing = false;
+              showTextSpans(lineSpans);
               return;
             }
             if(ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)){
@@ -1875,7 +1921,7 @@ export function EditPDFTool({
           var entry = textEditHistory.pop();
           entry.editor.remove();
           entry.cover.remove();
-          for(var i = 0; i < entry.spans.length; i++) entry.spans[i].__pdfcraftEditing = false;
+          showTextSpans(entry.spans);
           var edits = window.__pdfcraftTextEdits;
           for(var j = edits.length - 1; j >= 0; j--){
             if(edits[j].originalText === entry.originalText && edits[j].newText === entry.newText){ edits.splice(j, 1); break; }
@@ -1890,7 +1936,7 @@ export function EditPDFTool({
           var entry = textEditRedoStack.pop();
           var page = entry.spans[0] && entry.spans[0].closest('.page');
           if(!page) return false;
-          for(var i = 0; i < entry.spans.length; i++) entry.spans[i].__pdfcraftEditing = true;
+          hideTextSpans(entry.spans);
           page.appendChild(entry.cover);
           page.appendChild(entry.editor);
           if(entry.editData) window.__pdfcraftTextEdits.push(entry.editData);

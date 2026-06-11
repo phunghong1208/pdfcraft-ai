@@ -48,17 +48,17 @@ export async function applyTextEdits(
     if (pageIndex < 0 || pageIndex >= pdfDoc.getPageCount()) continue;
     const page = pdfDoc.getPage(pageIndex);
 
+    const clampedSize = Math.max(6, Math.min(edit.fontSize, 72));
     const padding = 2;
+    const topPad = clampedSize * 0.35;
     page.drawRectangle({
       x: edit.pdfX - padding,
-      y: edit.pdfY - padding,
+      y: edit.pdfY - padding - topPad,
       width: edit.pdfWidth + padding * 2,
-      height: edit.pdfHeight + padding * 2,
+      height: edit.pdfHeight + padding * 2 + topPad,
       color: rgb(1, 1, 1),
       borderWidth: 0,
     });
-
-    const clampedSize = Math.max(6, Math.min(edit.fontSize, 72));
     const lineHeight = clampedSize * 1.25;
     const lines = edit.newText.split('\n');
     const blockHeight = Math.max(edit.pdfHeight, lineHeight * lines.length);
