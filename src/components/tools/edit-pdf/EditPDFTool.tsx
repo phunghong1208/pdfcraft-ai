@@ -1338,8 +1338,154 @@ export function EditPDFTool({
         var editTextActive = false;
         var textEditHistory = [];
         var textEditRedoStack = [];
+        var pendingTextFinalizers = [];
+        var pageTextCache = {};
+
+        function prefetchPageText(pageNum){
+          if(pageTextCache[pageNum] && pageTextCache[pageNum].promise) return pageTextCache[pageNum].promise;
+          var entry = { ready: false, items: null, styles: null, fontMeta: {}, spanMap: null, promise: null };
+          pageTextCache[pageNum] = entry;
+          entry.promise = new Promise(function(resolve){
+            try{
+              var app = window.PDFViewerApplication;
+              var doc = app && app.pdfDocument;
+              if(!doc){ resolve(); return; }
+              doc.getPage(pageNum).then(function(page){
+                page.getTextContent().then(function(tc){
+                  entry.items = tc.items || [];
+                  entry.styles = tc.styles || {};
+                  entry.ready = true;
+                  entry.spanMap = null;
+                  var names = {};
+                  for(var i = 0; i < entry.items.length; i++){
+                    var fn = entry.items[i] && entry.items[i].fontName;
+                    if(fn) names[fn] = true;
+                  }
+                  var keys = Object.keys(names);
+                  if(!keys.length){ resolve(); return; }
+                  function storeFontMeta(fontName, obj){
+                    if(!obj) return;
+                    var nameFlags = parseFontNameFlags(obj.name || obj.loadedName || fontName || '');
+                    var isBold = !!(obj.bold || obj.black || nameFlags.bold);
+                    var isItalic = !!(obj.italic || nameFlags.italic);
+                    if(obj.cssFontInfo && obj.cssFontInfo.fontWeight){
+                      var cssW = parseInt(obj.cssFontInfo.fontWeight, 10);
+                      if(cssW >= 600) isBold = true;
+                    }
+                    if(obj.cssFontInfo && obj.cssFontInfo.italicAngle && Math.abs(obj.cssFontInfo.italicAngle) > 0) isItalic = true;
+                    entry.fontMeta[fontName] = {
+                      bold: isBold,
+                      italic: isItalic,
+                      fontWeight: isBold ? 'bold' : 'normal',
+                      fontStyle: isItalic ? 'italic' : 'normal',
+                      fontFamily: obj.cssFontInfo ? obj.cssFontInfo.fontFamily : (obj.name || obj.loadedName || '')
+                    };
+                  }
+                  var pending = keys.length;
+                  for(var j = 0; j < keys.length; j++){
+                    (function(fontName){
+                      var handled = false;
+                      function done(obj){
+                        if(handled) return;
+                        handled = true;
+                        storeFontMeta(fontName, obj);
+                        pending--;
+                        if(pending <= 0) resolve();
+                      }
+                      function fail(){
+                        if(handled) return;
+                        handled = true;
+                        pending--;
+                        if(pending <= 0) resolve();
+                      }
+                      try{
+                        var result = page.commonObjs.get(fontName, done);
+                        if(result && typeof result.then === 'function'){
+                          result.then(done).catch(fail);
+                        } else if(result && typeof result === 'object' && !result.then){
+                          done(result);
+                        }
+                      }catch(e){
+                        fail();
+                      }
+                    })(keys[j]);
+                  }
+                  setTimeout(function(){ if(pending > 0){ pending = 0; resolve(); } }, 2000);
+                }).catch(function(){ resolve(); });
+              }).catch(function(){ resolve(); });
+            }catch(e){ resolve(); }
+          });
+          return entry.promise;
+        }
+
+        function prefetchAllPageText(){
+          try{
+            var app = window.PDFViewerApplication;
+            var doc = app && app.pdfDocument;
+            if(!doc) return;
+            for(var p = 1; p <= doc.numPages; p++) prefetchPageText(p);
+          }catch(e){}
+        }
+
+        function buildSpanItemMap(textLayer, items){
+          var map = new WeakMap();
+          if(!textLayer || !items) return map;
+          var allSpans = textLayer.querySelectorAll('span[role="presentation"]');
+          var itemIdx = 0;
+          for(var i = 0; i < allSpans.length && itemIdx < items.length; i++){
+            map.set(allSpans[i], itemIdx);
+            itemIdx++;
+          }
+          return map;
+        }
+
+        function getPdfFontInfoForSpan(span, pageNum){
+          var entry = pageTextCache[pageNum];
+          if(!entry || !entry.ready || !entry.items) return null;
+          var textLayer = span.closest('.textLayer');
+          if(!textLayer) return null;
+          if(!entry.spanMap) entry.spanMap = buildSpanItemMap(textLayer, entry.items);
+          var itemIdx = entry.spanMap.get(span);
+          if(itemIdx == null || itemIdx < 0 || itemIdx >= entry.items.length) return null;
+          var item = entry.items[itemIdx];
+          if(!item || !item.fontName) return null;
+          var meta = entry.fontMeta[item.fontName];
+          if(meta) return meta;
+          var st = entry.styles[item.fontName];
+          var ff = st && st.fontFamily || '';
+          var flags = parseFontNameFlags(ff);
+          var nameFlags = parseFontNameFlags(item.fontName || '');
+          var isBold = flags.bold || nameFlags.bold;
+          var isItalic = flags.italic || nameFlags.italic;
+          return {
+            bold: isBold,
+            italic: isItalic,
+            fontWeight: isBold ? 'bold' : 'normal',
+            fontStyle: isItalic ? 'italic' : 'normal',
+            fontFamily: ff
+          };
+        }
+
+        function mergePdfFontInfo(fi, pdfInfo){
+          if(!pdfInfo) return fi;
+          if(pdfInfo.bold) fi.fontWeight = 'bold';
+          if(pdfInfo.italic) fi.fontStyle = 'italic';
+          if(pdfInfo.fontWeight) fi.pdfFontWeight = pdfInfo.fontWeight;
+          if(pdfInfo.fontStyle) fi.pdfFontStyle = pdfInfo.fontStyle;
+          var flags = parseFontNameFlags(fi.fontFamily);
+          if(pdfInfo.bold && !flags.bold) fi.useSyntheticBold = true;
+          if(pdfInfo.italic && !flags.italic) fi.useSyntheticItalic = true;
+          return fi;
+        }
+
         function notifyUndoRedoState(){
           try{ window.parent.postMessage({ type:'pdfcraft-undo-redo-state', canUndo: textEditHistory.length > 0, canRedo: textEditRedoStack.length > 0 }, '*'); }catch(e){}
+        }
+        function commitPendingTextEdits(){
+          var pending = pendingTextFinalizers.slice();
+          for(var i = 0; i < pending.length; i++){
+            try{ pending[i](); }catch(e){}
+          }
         }
 
         function injectEditTextStyles(){
@@ -1347,19 +1493,35 @@ export function EditPDFTool({
           var s = document.createElement('style');
           s.id = 'pdfcraft-edit-text-style';
           s.textContent = [
-            '.pdfcraft-edit-text .textLayer { pointer-events: auto !important; z-index: 5 !important; }',
+            '.pdfcraft-edit-text .textLayer { pointer-events: auto !important; z-index: 5 !important; overflow: visible !important; }',
             '.pdfcraft-edit-text .textLayer span { pointer-events: auto !important; cursor: text !important; }',
             '.pdfcraft-edit-text .textLayer span[role="presentation"] { border-radius: 2px; transition: background 0.1s; }',
             '.pdfcraft-edit-text .textLayer span[role="presentation"]:hover { background: rgba(22,119,255,0.12) !important; }',
             '.pdfcraft-edit-text .textLayer span { user-select: none !important; -webkit-user-select: none !important; }',
             '.pdfcraft-edit-text .CustomToolbar { display: none !important; visibility: hidden !important; pointer-events: none !important; }',
             '.pdfcraft-edit-text .popbar, .pdfcraft-edit-text .annotation-popbar, .pdfcraft-edit-text [class*="popbar"], .pdfcraft-edit-text [class*="Popbar"] { display: none !important; visibility: hidden !important; }',
-            '.pdfcraft-text-editor { position: absolute; z-index: 10; outline: none; padding: 1px 2px; box-sizing: border-box; overflow: visible; white-space: pre-wrap; word-break: break-word; border: 2px solid #1677ff; background: #fff; user-select: text !important; -webkit-user-select: text !important; }',
+            '.pdfcraft-text-editor { position: absolute; z-index: 10; outline: none; padding: 1px 2px; box-sizing: border-box; overflow: visible; white-space: pre; border: 2px solid #1677ff; background: #fff; user-select: text !important; -webkit-user-select: text !important; }',
             '.pdfcraft-text-editor:focus { box-shadow: 0 0 0 2px rgba(22,119,255,0.18); }',
             '.pdfcraft-edit-text .pdfcraft-text-editor.finalized { border: 1px dashed rgba(22,119,255,0.35); cursor: text; }',
             '.pdfcraft-text-editor.finalized { border: none; box-shadow: none; background: transparent; cursor: default; }',
             '.pdfcraft-text-cover { position: absolute; background: #fff; z-index: 6; pointer-events: none; }',
             '.textLayer span.pdfcraft-span-hidden { visibility: hidden !important; opacity: 0 !important; }',
+            '.pdfcraft-text-toolbar { position: absolute; z-index: 14; display: flex; align-items: center; gap: 2px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 3px 5px; box-shadow: 0 4px 16px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.06); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; font-size: 12px; white-space: nowrap; }',
+            '.pdfcraft-text-toolbar .pdfcraft-tb-group { display: flex; align-items: center; gap: 1px; background: #f8fafc; border-radius: 5px; padding: 1px; }',
+            '.pdfcraft-text-toolbar button { width: 28px; height: 28px; border: none; border-radius: 4px; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #475569; padding: 0; line-height: 1; transition: all 0.1s; }',
+            '.pdfcraft-text-toolbar button:hover { background: #e2e8f0; color: #1e293b; }',
+            '.pdfcraft-text-toolbar button.active { background: #3b82f6; color: #fff; box-shadow: 0 1px 2px rgba(59,130,246,0.3); }',
+            '.pdfcraft-text-toolbar select { height: 28px; border: 1px solid #e2e8f0; border-radius: 5px; background: #f8fafc; font-size: 11px; padding: 0 4px; cursor: pointer; color: #334155; outline: none; transition: border-color 0.15s; -webkit-appearance: none; appearance: none; }',
+            '.pdfcraft-text-toolbar select:hover { border-color: #94a3b8; }',
+            '.pdfcraft-text-toolbar select:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }',
+            '.pdfcraft-text-toolbar .pdfcraft-tb-fontfamily { min-width: 80px; max-width: 110px; }',
+            '.pdfcraft-text-toolbar .pdfcraft-tb-fontsize { width: 48px; height: 28px; text-align: center; border: 1px solid #e2e8f0; border-radius: 5px; background: #f8fafc; font-size: 12px; color: #334155; outline: none; padding: 0 2px; -moz-appearance: textfield; }',
+            '.pdfcraft-text-toolbar .pdfcraft-tb-fontsize::-webkit-inner-spin-button, .pdfcraft-text-toolbar .pdfcraft-tb-fontsize::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }',
+            '.pdfcraft-text-toolbar .pdfcraft-tb-fontsize:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }',
+            '.pdfcraft-text-toolbar .pdfcraft-tb-sep { width: 1px; height: 20px; background: #e2e8f0; margin: 0 3px; flex-shrink: 0; }',
+            '.pdfcraft-text-toolbar .pdfcraft-tb-color { position: relative; width: 28px; height: 28px; border-radius: 4px; overflow: hidden; cursor: pointer; border: 1px solid #e2e8f0; }',
+            '.pdfcraft-text-toolbar .pdfcraft-tb-color input[type="color"] { position: absolute; inset: -4px; width: 36px; height: 36px; border: none; padding: 0; cursor: pointer; opacity: 0; }',
+            '.pdfcraft-text-toolbar .pdfcraft-tb-color-preview { width: 100%; height: 100%; border-radius: 3px; }',
           ].join('\\n');
           document.head.appendChild(s);
         }
@@ -1367,8 +1529,12 @@ export function EditPDFTool({
         function setEditTextMode(on){
           editTextActive = !!on;
           document.documentElement.classList.toggle('pdfcraft-edit-text', editTextActive);
+          if(!on){
+            commitPendingTextEdits();
+          }
           if(editTextActive){
             injectEditTextStyles();
+            prefetchAllPageText();
             try{ closePopbar(); }catch(e){}
           }
           notifyUndoRedoState();
@@ -1393,7 +1559,7 @@ export function EditPDFTool({
           if(!allSpans.length) return [clickedSpan];
           var clickedRect = clickedSpan.getBoundingClientRect();
           var cy = clickedRect.top + clickedRect.height / 2;
-          var threshold = clickedRect.height * 0.5;
+          var threshold = Math.max(3, clickedRect.height * 0.35);
           var lineSpans = [];
           for(var i = 0; i < allSpans.length; i++){
             var sp = allSpans[i];
@@ -1424,27 +1590,30 @@ export function EditPDFTool({
           }
         }
 
-        function collectAccentSpans(textLayer, lineSpans, pageRect, left, right, top, lineH, fontSize){
-          var related = lineSpans.slice();
-          var seen = {};
-          for(var i = 0; i < related.length; i++) seen[related[i]] = true;
-          var allSpans = getTextLayerSpans(textLayer);
-          var bandTop = top - Math.max(6, fontSize * 0.55);
-          var bandBottom = top + lineH + Math.max(2, fontSize * 0.15);
-          for(var j = 0; j < allSpans.length; j++){
-            var sp = allSpans[j];
-            if(seen[sp] || sp.__pdfcraftEditing) continue;
-            var r = sp.getBoundingClientRect();
-            var sx = r.left - pageRect.left;
-            var sy = r.top - pageRect.top;
-            var sr = sx + r.width;
-            var sb = sy + r.height;
-            if(sr < left - 2 || sx > right + 2) continue;
-            if(sb < bandTop || sy > bandBottom) continue;
-            related.push(sp);
-            seen[sp] = true;
-          }
-          return related;
+        function detectCanvasUnderline(span){
+          try{
+            var pg = span.closest('.page');
+            var canvas = pg && pg.querySelector('canvas');
+            if(!canvas) return false;
+            var ctx = canvas.getContext('2d');
+            var cr = canvas.getBoundingClientRect();
+            var sr = span.getBoundingClientRect();
+            var scX = canvas.width / cr.width;
+            var scY = canvas.height / cr.height;
+            var rowY = Math.round((sr.bottom - cr.top + 1) * scY);
+            if(rowY < 0 || rowY >= canvas.height) return false;
+            var dark = 0, total = 0;
+            for(var dx = 0; dx < sr.width; dx += Math.max(1, Math.floor(sr.width / 24))){
+              var px = Math.round((sr.left - cr.left + dx) * scX);
+              if(px < 0 || px >= canvas.width) continue;
+              total++;
+              var p = ctx.getImageData(px, rowY, 1, 1).data;
+              var lum = p[0] * 0.299 + p[1] * 0.587 + p[2] * 0.114;
+              if(lum < 80) dark++;
+            }
+            return total > 0 && dark / total > 0.35;
+          }catch(e){}
+          return false;
         }
 
         function sampleCanvasColor(span){
@@ -1460,16 +1629,24 @@ export function EditPDFTool({
             var scY = canvas.height / cr.height;
             var best = null;
             var bestLum = 999;
-            for(var dx = 5; dx < sr.width && dx < 80; dx += 4){
-              for(var dy = 1; dy < sr.height; dy += 1){
-                var px = Math.round((sr.left - cr.left + dx) * scX);
-                var py = Math.round((sr.top - cr.top + dy) * scY);
-                var p = ctx.getImageData(px, py, 1, 1).data;
-                var lum = p[0] * 0.299 + p[1] * 0.587 + p[2] * 0.114;
-                if(lum < bestLum && lum < 240){
-                  bestLum = lum;
-                  best = [p[0], p[1], p[2]];
-                }
+            var probes = [];
+            for(var pct = 0.15; pct <= 0.85; pct += 0.1){
+              probes.push([Math.max(2, sr.width * pct), Math.max(1, sr.height * 0.35)]);
+              probes.push([Math.max(2, sr.width * pct), Math.max(1, sr.height * 0.5)]);
+              probes.push([Math.max(2, sr.width * pct), Math.max(1, sr.height * 0.65)]);
+            }
+            probes.push([5, 1], [12, 2], [3, Math.max(1, sr.height * 0.5)]);
+            for(var pi = 0; pi < probes.length; pi++){
+              var dx = probes[pi][0];
+              var dy = probes[pi][1];
+              var px = Math.round((sr.left - cr.left + dx) * scX);
+              var py = Math.round((sr.top - cr.top + dy) * scY);
+              if(px < 0 || py < 0 || px >= canvas.width || py >= canvas.height) continue;
+              var p = ctx.getImageData(px, py, 1, 1).data;
+              var lum = p[0] * 0.299 + p[1] * 0.587 + p[2] * 0.114;
+              if(lum < bestLum && lum < 240){
+                bestLum = lum;
+                best = [p[0], p[1], p[2]];
               }
             }
             if(best) return 'rgb(' + best[0] + ',' + best[1] + ',' + best[2] + ')';
@@ -1477,118 +1654,366 @@ export function EditPDFTool({
           return null;
         }
 
-        function detectPdfFontStyle(span, pageNum){
-          var result = { bold: false, italic: false };
-          try{
-            var app = window.PDFViewerApplication;
-            var pv = app && app.pdfViewer && app.pdfViewer.getPageView(pageNum - 1);
-            if(!pv || !pv.textLayer) return result;
-            var divs = pv.textLayer.textDivs;
-            var items = pv.textLayer.textContentItemsStr;
-            if(!divs || !items) return result;
-            var idx = -1;
-            for(var i = 0; i < divs.length; i++){
-              if(divs[i] === span || divs[i] === span.parentElement){ idx = i; break; }
-            }
-            if(idx < 0) return result;
-            var textContent = pv.textLayer.textContent || pv.textLayer.textContentSource;
-            if(!textContent || !textContent.items || !textContent.items[idx]) return result;
-            var fontName = textContent.items[idx].fontName;
-            if(!fontName) return result;
-            var pg2 = pv.pdfPage || (app.pdfViewer.pdfDocument && app.pdfViewer.pdfDocument);
-            if(pg2 && pg2.commonObjs){
-              var fObj = pg2.commonObjs.get(fontName);
-              if(fObj){
-                result.bold = !!fObj.bold || /bold/i.test(fObj.name || '');
-                result.italic = !!fObj.italic || /italic|oblique/i.test(fObj.name || '');
-              }
-            }
-          }catch(e){}
-          return result;
+        function parseFontNameFlags(name){
+          var n = (name || '').toLowerCase();
+          var italic = /italic|oblique|ital|slanted|inclined|-itmt|-oblmt/.test(n);
+          var bold = /bold|black|heavy|semibold|demi|extrabold|ultrabold|-bdmt|-boldmt/.test(n);
+          if(/bolditalic|bold-italic|bold_oblique|boldoblique|bolditmt|bolditalicmt/.test(n)){
+            bold = true;
+            italic = true;
+          }
+          return { bold: bold, italic: italic };
         }
 
-        function getSpanFontInfo(span, pageNum){
+        function normalizeFontFamily(raw){
+          return (raw || '').replace(/^["']+|["']+$/g, '').trim();
+        }
+
+        function readSpanFontFamily(span){
+          var inline = normalizeFontFamily(span.style.fontFamily);
+          if(inline) return inline;
+          var cs = window.getComputedStyle(span);
+          return normalizeFontFamily(cs.fontFamily) || 'sans-serif';
+        }
+
+        function applyEditorStyles(editor, refSpan, fi){
+          if(refSpan.style.fontFamily) editor.style.fontFamily = refSpan.style.fontFamily;
+          else editor.style.fontFamily = fi.fontFamily;
+          if(refSpan.style.fontSize) editor.style.fontSize = refSpan.style.fontSize;
+          else editor.style.fontSize = fi.fontSize + 'px';
+          editor.style.color = fi.color;
+          editor.style.lineHeight = '1.15';
+          editor.style.letterSpacing = refSpan.style.letterSpacing || '0px';
+          editor.style.transform = '';
+          editor.style.fontWeight = (fi.fontWeight === 'bold') ? (fi.pdfFontWeight || 'bold') : 'normal';
+          editor.style.fontStyle = (fi.fontStyle === 'italic') ? (fi.pdfFontStyle || 'italic') : 'normal';
+          editor.style.textDecoration = (fi.textDecoration && fi.textDecoration.indexOf('underline') >= 0) ? 'underline' : 'none';
+        }
+
+        function getSpanFontInfo(span){
           var cs = window.getComputedStyle(span);
           var fontSize = parseFloat(cs.fontSize) || 14;
-          var fontFamily = cs.fontFamily || 'sans-serif';
+          var fontFamily = readSpanFontFamily(span);
           var transform = span.style.transform || cs.transform || '';
           var scaleMatch = transform.match(/scaleX\\(([\\d.]+)\\)/);
           var scaleX = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
           var canvasColor = sampleCanvasColor(span);
-          var color = canvasColor || '#000';
-          var pdfFont = detectPdfFontStyle(span, pageNum || 1);
-          var fontWeight = pdfFont.bold ? 'bold' : (parseInt(cs.fontWeight) >= 600 ? 'bold' : 'normal');
-          var fontStyle = pdfFont.italic ? 'italic' : cs.fontStyle || 'normal';
-          return { fontSize: fontSize, fontFamily: fontFamily, scaleX: scaleX, color: color, fontWeight: fontWeight, fontStyle: fontStyle };
+          var color = canvasColor || (cs.color && cs.color !== 'rgba(0, 0, 0, 0)' ? cs.color : '#000');
+          var textDecoration = cs.textDecorationLine || cs.textDecoration || 'none';
+          if(textDecoration === 'none' && cs.webkitTextDecorationsInEffect){
+            textDecoration = cs.webkitTextDecorationsInEffect;
+          }
+          if(textDecoration === 'none' && detectCanvasUnderline(span)){
+            textDecoration = 'underline';
+          }
+          var flags = parseFontNameFlags(fontFamily);
+          var useSyntheticBold = !flags.bold && (parseInt(cs.fontWeight, 10) >= 600 || span.style.fontWeight === 'bold');
+          var useSyntheticItalic = !flags.italic && (cs.fontStyle === 'italic' || cs.fontStyle === 'oblique' || span.style.fontStyle === 'italic');
+          if(!useSyntheticItalic){
+            var tf = cs.transform || transform || '';
+            var skew = tf.match(/skewX\\((-?[\\d.]+)deg\\)/);
+            if(skew && Math.abs(parseFloat(skew[1])) > 4) useSyntheticItalic = true;
+            var mm = tf.match(/matrix\\(([^)]+)\\)/);
+            if(mm){
+              var parts = mm[1].split(',').map(function(v){ return parseFloat(v.trim()); });
+              if(parts.length >= 4 && (Math.abs(parts[1]) > 0.02 || Math.abs(parts[2]) > 0.02)) useSyntheticItalic = true;
+            }
+          }
+          return {
+            fontSize: fontSize,
+            fontFamily: fontFamily,
+            scaleX: scaleX,
+            color: color,
+            fontWeight: (flags.bold || useSyntheticBold) ? 'bold' : 'normal',
+            fontStyle: (flags.italic || useSyntheticItalic) ? 'italic' : 'normal',
+            useSyntheticBold: useSyntheticBold,
+            useSyntheticItalic: useSyntheticItalic,
+            textDecoration: textDecoration
+          };
+        }
+
+        function colorLum(c){
+          if(!c) return 999;
+          var m = c.match(/rgb\\(\\s*(\\d+)\\s*,\\s*(\\d+)\\s*,\\s*(\\d+)/);
+          if(!m) return (c === '#000' || c === '#000000') ? 0 : 999;
+          return Number(m[1]) * 0.299 + Number(m[2]) * 0.587 + Number(m[3]) * 0.114;
+        }
+
+        function getLineFontInfo(lineSpans, pageNum){
+          var info = getSpanFontInfo(lineSpans[0]);
+          mergePdfFontInfo(info, pageNum > 0 ? getPdfFontInfoForSpan(lineSpans[0], pageNum) : null);
+          var bold = info.fontWeight === 'bold';
+          var italic = info.fontStyle === 'italic';
+          var bestColor = info.color;
+          var bestColorLum = colorLum(bestColor);
+          for(var i = 1; i < lineSpans.length; i++){
+            var fi = getSpanFontInfo(lineSpans[i]);
+            mergePdfFontInfo(fi, pageNum > 0 ? getPdfFontInfoForSpan(lineSpans[i], pageNum) : null);
+            if(fi.fontWeight === 'bold') bold = true;
+            if(fi.fontStyle === 'italic') italic = true;
+            var fiLum = colorLum(fi.color);
+            if(fiLum < bestColorLum){
+              bestColorLum = fiLum;
+              bestColor = fi.color;
+            }
+          }
+          info.color = bestColor;
+          info.fontWeight = bold ? 'bold' : 'normal';
+          info.fontStyle = italic ? 'italic' : 'normal';
+          if(bold){
+            var bFlags = parseFontNameFlags(info.fontFamily);
+            info.useSyntheticBold = !bFlags.bold;
+          }
+          if(italic){
+            var iFlags = parseFontNameFlags(info.fontFamily);
+            info.useSyntheticItalic = !iFlags.italic;
+          }
+          for(var j = 0; j < lineSpans.length; j++){
+            var deco = getSpanFontInfo(lineSpans[j]).textDecoration;
+            if(deco && deco !== 'none' && deco.indexOf('underline') >= 0){
+              info.textDecoration = 'underline';
+              break;
+            }
+          }
+          return info;
         }
 
         function createLineEditor(lineSpans, clickedSpan){
           if(!editTextActive || !lineSpans.length) return;
+          commitPendingTextEdits();
           var page = clickedSpan.closest('.page');
-          if(!page) return;
+          var textLayer = clickedSpan.closest('.textLayer');
+          if(!page || !textLayer) return;
           var pageNum = getPageNumberFromEl(clickedSpan);
           if(pageNum < 1) return;
-          var pageRect = page.getBoundingClientRect();
+          prefetchPageText(pageNum);
+          var layerRect = textLayer.getBoundingClientRect();
           var firstRect = lineSpans[0].getBoundingClientRect();
           var lastRect = lineSpans[lineSpans.length - 1].getBoundingClientRect();
-          var x = firstRect.left - pageRect.left;
-          var y = firstRect.top - pageRect.top;
-          var right = lastRect.right - pageRect.left;
+          var x = firstRect.left - layerRect.left;
+          var y = firstRect.top - layerRect.top;
+          var right = lastRect.right - layerRect.left;
           var maxH = 0;
           var parts = [];
           for(var i = 0; i < lineSpans.length; i++){
             var sp = lineSpans[i];
             var r = sp.getBoundingClientRect();
-            var spY = r.top - pageRect.top;
+            var spY = r.top - layerRect.top;
             if(spY < y) y = spY;
-            if(r.right - pageRect.left > right) right = r.right - pageRect.left;
+            if(r.right - layerRect.left > right) right = r.right - layerRect.left;
             if(r.height > maxH) maxH = r.height;
             parts.push(sp.textContent || '');
-            sp.__pdfcraftEditing = true;
           }
           var w = right - x;
+          var pageX = x;
+          var pageY = y;
           var originalText = parts.join('');
           if(!originalText.trim()) return;
 
-          var fi = getSpanFontInfo(lineSpans[0], pageNum);
+          var refSpan = clickedSpan;
+          var fi = getLineFontInfo(lineSpans, pageNum);
           var fontSize = fi.fontSize;
           var fontFamily = fi.fontFamily;
-          var h = Math.max(maxH, fontSize * 1.3);
+          var h = Math.max(maxH, fontSize * 1.15);
           var pad = 2;
-          var vPadTop = Math.max(4, Math.ceil(fontSize * 0.45));
-          var vPadBottom = Math.max(2, Math.ceil(fontSize * 0.12));
+          var vPadTop = Math.max(2, Math.ceil(fontSize * 0.2));
+          var vPadBottom = 1;
 
-          var textLayer = clickedSpan.closest('.textLayer');
-          if(textLayer){
-            lineSpans = collectAccentSpans(textLayer, lineSpans, pageRect, x, right, y, h, fontSize);
-          }
           hideTextSpans(lineSpans);
 
           var cover = document.createElement('div');
           cover.className = 'pdfcraft-text-cover';
-          cover.style.left = (x - pad) + 'px';
-          cover.style.top = (y - vPadTop) + 'px';
-          cover.style.width = (w + pad * 2) + 'px';
+          cover.style.left = (pageX - pad) + 'px';
+          cover.style.top = (pageY - vPadTop) + 'px';
           cover.style.height = (h + vPadTop + vPadBottom) + 'px';
-          page.appendChild(cover);
+          textLayer.appendChild(cover);
 
           var editor = document.createElement('div');
           editor.contentEditable = 'true';
           editor.className = 'pdfcraft-text-editor';
           editor.textContent = originalText;
-          editor.style.left = x + 'px';
-          editor.style.top = y + 'px';
-          editor.style.minWidth = w + 'px';
+          editor.style.left = pageX + 'px';
+          editor.style.top = pageY + 'px';
           editor.style.minHeight = h + 'px';
-          editor.style.height = 'auto';
-          editor.style.fontSize = fontSize + 'px';
-          editor.style.fontFamily = fontFamily;
-          editor.style.lineHeight = '1.3';
-          editor.style.color = fi.color;
-          editor.style.fontWeight = fi.fontWeight;
-          editor.style.fontStyle = fi.fontStyle;
-          editor.style.letterSpacing = '0px';
-          page.appendChild(editor);
+          var maxEditorW = Math.max(200, layerRect.width - pageX - 4);
+          editor.style.maxWidth = maxEditorW + 'px';
+          applyEditorStyles(editor, refSpan, fi);
+          textLayer.appendChild(editor);
+          var initW = Math.min(Math.max(editor.scrollWidth + 20, fontSize * 4), maxEditorW);
+          editor.style.width = initW + 'px';
+
+          var userModifiedStyle = false;
+
+          var toolbar = document.createElement('div');
+          toolbar.className = 'pdfcraft-text-toolbar';
+          var tbTop = pageY - 38;
+          if(tbTop < 2) tbTop = pageY + h + 4;
+          toolbar.style.left = pageX + 'px';
+          toolbar.style.top = tbTop + 'px';
+          toolbar.addEventListener('mousedown', function(e){
+            var tag = e.target && e.target.tagName;
+            if(tag === 'SELECT' || tag === 'INPUT' || tag === 'OPTION') return;
+            e.preventDefault();
+          });
+
+          function rgbToHex(c){
+            try{
+              var m = (c||'').match(/rgb\\(\\s*(\\d+)\\s*,\\s*(\\d+)\\s*,\\s*(\\d+)/);
+              if(m) return '#' + ((1<<24)|(Number(m[1])<<16)|(Number(m[2])<<8)|Number(m[3])).toString(16).slice(1);
+            }catch(e){}
+            return '#000000';
+          }
+
+          var WEB_FONTS = [
+            { label:'Arial', value:'Arial, Helvetica, sans-serif' },
+            { label:'Times New Roman', value:'"Times New Roman", Times, serif' },
+            { label:'Georgia', value:'Georgia, serif' },
+            { label:'Verdana', value:'Verdana, Geneva, sans-serif' },
+            { label:'Tahoma', value:'Tahoma, Geneva, sans-serif' },
+            { label:'Courier New', value:'"Courier New", Courier, monospace' },
+            { label:'Trebuchet MS', value:'"Trebuchet MS", sans-serif' }
+          ];
+
+          function detectFontGroup(ff){
+            var lo = (ff||'').toLowerCase();
+            if(/times|roman|serif|minion|georgia|garamond|palatino/i.test(lo) && !/sans/i.test(lo)) return 1;
+            if(/courier|mono|consolas/i.test(lo)) return 5;
+            if(/georgia/i.test(lo)) return 2;
+            if(/verdana/i.test(lo)) return 3;
+            if(/tahoma/i.test(lo)) return 4;
+            if(/trebuchet/i.test(lo)) return 6;
+            return 0;
+          }
+
+          var fontSel = document.createElement('select');
+          fontSel.className = 'pdfcraft-tb-fontfamily';
+          fontSel.title = 'Font';
+          var detectedGroup = detectFontGroup(fi.fontFamily);
+          for(var fi2 = 0; fi2 < WEB_FONTS.length; fi2++){
+            var fOpt = document.createElement('option');
+            fOpt.value = WEB_FONTS[fi2].value;
+            fOpt.textContent = WEB_FONTS[fi2].label;
+            fOpt.style.fontFamily = WEB_FONTS[fi2].value;
+            if(fi2 === detectedGroup) fOpt.selected = true;
+            fontSel.appendChild(fOpt);
+          }
+          fontSel.addEventListener('change', function(){
+            userModifiedStyle = true;
+            fi.fontFamily = fontSel.value;
+            fontFamily = fontSel.value;
+            editor.style.fontFamily = fontSel.value;
+            syncEditorSize();
+          });
+
+          var grpFormat = document.createElement('div');
+          grpFormat.className = 'pdfcraft-tb-group';
+          var btnB = document.createElement('button');
+          btnB.innerHTML = '<b>B</b>';
+          btnB.title = 'Bold';
+          if(fi.fontWeight === 'bold') btnB.classList.add('active');
+          btnB.addEventListener('click', function(){
+            userModifiedStyle = true;
+            fi.fontWeight = (fi.fontWeight === 'bold') ? 'normal' : 'bold';
+            fi.pdfFontWeight = fi.fontWeight;
+            editor.style.fontWeight = fi.fontWeight;
+            btnB.classList.toggle('active', fi.fontWeight === 'bold');
+          });
+          grpFormat.appendChild(btnB);
+
+          var btnI = document.createElement('button');
+          btnI.innerHTML = '<i>I</i>';
+          btnI.title = 'Italic';
+          if(fi.fontStyle === 'italic') btnI.classList.add('active');
+          btnI.addEventListener('click', function(){
+            userModifiedStyle = true;
+            fi.fontStyle = (fi.fontStyle === 'italic') ? 'normal' : 'italic';
+            fi.pdfFontStyle = fi.fontStyle;
+            editor.style.fontStyle = fi.fontStyle;
+            btnI.classList.toggle('active', fi.fontStyle === 'italic');
+          });
+          grpFormat.appendChild(btnI);
+
+          var btnU = document.createElement('button');
+          btnU.innerHTML = '<u>U</u>';
+          btnU.title = 'Underline';
+          if(fi.textDecoration && fi.textDecoration.indexOf('underline') >= 0) btnU.classList.add('active');
+          btnU.addEventListener('click', function(){
+            userModifiedStyle = true;
+            var hasUl = fi.textDecoration && fi.textDecoration.indexOf('underline') >= 0;
+            fi.textDecoration = hasUl ? 'none' : 'underline';
+            editor.style.textDecoration = fi.textDecoration;
+            btnU.classList.toggle('active', fi.textDecoration === 'underline');
+          });
+          grpFormat.appendChild(btnU);
+
+          var sizeInput = document.createElement('input');
+          sizeInput.type = 'number';
+          sizeInput.className = 'pdfcraft-tb-fontsize';
+          sizeInput.title = 'Font size';
+          sizeInput.min = '6';
+          sizeInput.max = '200';
+          sizeInput.step = '1';
+          sizeInput.value = String(Math.round(fontSize));
+          sizeInput.addEventListener('change', function(){
+            userModifiedStyle = true;
+            var v = Math.max(6, Math.min(200, Number(sizeInput.value) || fontSize));
+            sizeInput.value = String(Math.round(v));
+            fontSize = v;
+            fi.fontSize = fontSize;
+            editor.style.fontSize = fontSize + 'px';
+            syncEditorSize();
+          });
+          sizeInput.addEventListener('keydown', function(e){
+            e.stopPropagation();
+          });
+
+          var colorWrap = document.createElement('div');
+          colorWrap.className = 'pdfcraft-tb-color';
+          colorWrap.title = 'Color';
+          var colorPreview = document.createElement('div');
+          colorPreview.className = 'pdfcraft-tb-color-preview';
+          colorPreview.style.background = fi.color || '#000';
+          var colorInput = document.createElement('input');
+          colorInput.type = 'color';
+          colorInput.value = rgbToHex(fi.color);
+          colorInput.addEventListener('input', function(){
+            userModifiedStyle = true;
+            var hex = colorInput.value;
+            var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+            fi.color = 'rgb(' + r + ',' + g + ',' + b + ')';
+            editor.style.color = fi.color;
+            colorPreview.style.background = fi.color;
+          });
+          colorWrap.appendChild(colorPreview);
+          colorWrap.appendChild(colorInput);
+
+          toolbar.appendChild(fontSel);
+          toolbar.appendChild(document.createElement('div')).className = 'pdfcraft-tb-sep';
+          toolbar.appendChild(sizeInput);
+          toolbar.appendChild(document.createElement('div')).className = 'pdfcraft-tb-sep';
+          toolbar.appendChild(grpFormat);
+          toolbar.appendChild(document.createElement('div')).className = 'pdfcraft-tb-sep';
+          toolbar.appendChild(colorWrap);
+
+          textLayer.appendChild(toolbar);
+
+          prefetchPageText(pageNum).then(function(){
+            if(!editor.isConnected || userModifiedStyle) return;
+            fi = getLineFontInfo(lineSpans, pageNum);
+            applyEditorStyles(editor, refSpan, fi);
+            btnB.classList.toggle('active', fi.fontWeight === 'bold');
+            btnI.classList.toggle('active', fi.fontStyle === 'italic');
+            btnU.classList.toggle('active', !!(fi.textDecoration && fi.textDecoration.indexOf('underline') >= 0));
+            colorInput.value = rgbToHex(fi.color);
+            colorPreview.style.background = fi.color || '#000';
+            var newDetected = detectFontGroup(fi.fontFamily);
+            if(newDetected !== detectedGroup) fontSel.selectedIndex = newDetected;
+            var newSize = Math.round(fi.fontSize);
+            if(newSize !== curSize){
+              fontSize = fi.fontSize;
+              sizeInput.value = String(newSize);
+            }
+          });
           editor.focus();
           try{
             var rng = document.createRange();
@@ -1599,10 +2024,11 @@ export function EditPDFTool({
           }catch(e){}
 
           function syncEditorSize(){
-            var edW = Math.max(w, editor.scrollWidth + 4);
-            var edH = Math.max(h, editor.scrollHeight + 2);
-            editor.style.minWidth = edW + 'px';
-            editor.style.minHeight = edH + 'px';
+            editor.style.height = 'auto';
+            var sh = editor.scrollHeight;
+            var edW = editor.offsetWidth || initW;
+            var edH = Math.max(h, sh);
+            editor.style.height = edH + 'px';
             cover.style.width = (edW + pad * 2) + 'px';
             cover.style.height = (edH + vPadTop + vPadBottom) + 'px';
             return { edW: edW, edH: edH };
@@ -1614,10 +2040,13 @@ export function EditPDFTool({
           function finalize(){
             if(finalized) return;
             finalized = true;
+            var pendingIdx = pendingTextFinalizers.indexOf(finalize);
+            if(pendingIdx >= 0) pendingTextFinalizers.splice(pendingIdx, 1);
             var newText = (editor.innerText || '').replace(/\\r\\n/g, '\\n').replace(/\\r/g, '\\n');
             if(newText !== originalText && newText.trim()){
               editor.contentEditable = 'false';
               editor.classList.add('finalized');
+              toolbar.remove();
               var size = syncEditorSize();
               var edW = size.edW;
               var edH = size.edH;
@@ -1634,39 +2063,57 @@ export function EditPDFTool({
                 }
               }catch(e){}
 
+              applyEditorStyles(editor, refSpan, fi);
+
               window.__pdfcraftTextEdits.push({
                 pageNumber: pageNum,
-                pdfX: (x / pw) * pdfW,
-                pdfY: pdfH - ((y + edH) / ph) * pdfH,
+                pdfX: (pageX / pw) * pdfW,
+                pdfY: pdfH - ((pageY + edH) / ph) * pdfH,
                 pdfWidth: (edW / pw) * pdfW,
                 pdfHeight: (edH / ph) * pdfH,
                 fontSize: (fontSize / ph) * pdfH,
                 fontFamily: fontFamily,
+                fontWeight: fi.fontWeight,
+                fontStyle: fi.fontStyle,
+                color: fi.color,
+                textDecoration: fi.textDecoration,
                 originalText: originalText,
                 newText: newText
               });
 
               editor.addEventListener('dblclick', function(){
                 finalized = false;
+                pendingTextFinalizers.push(finalize);
                 editor.contentEditable = 'true';
                 editor.classList.remove('finalized');
+                textLayer.appendChild(toolbar);
                 editor.focus();
               });
               var editData = window.__pdfcraftTextEdits[window.__pdfcraftTextEdits.length - 1];
-              textEditHistory.push({ editor: editor, cover: cover, spans: lineSpans, originalText: originalText, newText: newText, editData: editData });
+              textEditHistory.push({ editor: editor, cover: cover, toolbar: toolbar, spans: lineSpans, originalText: originalText, newText: newText, editData: editData });
               textEditRedoStack.length = 0;
               notifyUndoRedoState();
               notifyDirty();
             } else {
+              toolbar.remove();
               cover.remove();
               editor.remove();
               showTextSpans(lineSpans);
             }
           }
 
-          editor.addEventListener('blur', function(){ setTimeout(finalize, 80); });
+          editor.addEventListener('blur', function(){
+            setTimeout(function(){
+              if(toolbar.contains(document.activeElement)) return;
+              finalize();
+            }, 100);
+          });
           editor.addEventListener('keydown', function(ev){
             if(ev.key === 'Escape'){
+              finalized = true;
+              var escIdx = pendingTextFinalizers.indexOf(finalize);
+              if(escIdx >= 0) pendingTextFinalizers.splice(escIdx, 1);
+              toolbar.remove();
               cover.remove();
               editor.remove();
               showTextSpans(lineSpans);
@@ -1674,14 +2121,16 @@ export function EditPDFTool({
             }
             if(ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)){
               ev.preventDefault();
-              editor.blur();
+              finalize();
             }
           });
+
+          pendingTextFinalizers.push(finalize);
         }
 
         document.addEventListener('click', function(evt){
           if(!editTextActive) return;
-          if(evt.target.closest && evt.target.closest('.pdfcraft-text-editor')) return;
+          if(evt.target.closest && (evt.target.closest('.pdfcraft-text-editor') || evt.target.closest('.pdfcraft-text-toolbar'))) return;
           var span = evt.target && evt.target.closest && (
             evt.target.closest('span[role="presentation"]') ||
             evt.target.closest('.textLayer > span:not(.markedContent)')
@@ -1921,6 +2370,7 @@ export function EditPDFTool({
           var entry = textEditHistory.pop();
           entry.editor.remove();
           entry.cover.remove();
+          if(entry.toolbar) try{ entry.toolbar.remove(); }catch(e){}
           showTextSpans(entry.spans);
           var edits = window.__pdfcraftTextEdits;
           for(var j = edits.length - 1; j >= 0; j--){
@@ -1946,12 +2396,14 @@ export function EditPDFTool({
         }
 
         window.pdfcraftUndo = function(){
-          if(editTextActive && undoTextEdit()) return;
+          commitPendingTextEdits();
+          if(undoTextEdit()) return;
           if(performUndo()) return;
           dispatchEditorUndoRedo(false);
         };
         window.pdfcraftRedo = function(){
-          if(editTextActive && redoTextEdit()) return;
+          commitPendingTextEdits();
+          if(redoTextEdit()) return;
           if(performRedo()) return;
           dispatchEditorUndoRedo(true);
         };

@@ -1063,6 +1063,11 @@ const [canRedoText, setCanRedoText] = useState(false);
   }, [previewUrl, viewerInstanceKey]);
 
   useEffect(() => {
+    setCanUndoText(false);
+    setCanRedoText(false);
+  }, [viewerInstanceKey, previewUrl]);
+
+  useEffect(() => {
     const iframe = editorIframeRef.current;
     if (iframe) patchViewer(iframe);
   }, [isWorkspaceDark, patchViewer]);
@@ -1218,6 +1223,10 @@ const [canRedoText, setCanRedoText] = useState(false);
         setCanUndoText(!!e.data.canUndo);
         setCanRedoText(!!e.data.canRedo);
       }
+      if (e.data?.type === 'pdfcraft-pages-ready') {
+        setCanUndoText(false);
+        setCanRedoText(false);
+      }
     }
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
@@ -1286,12 +1295,20 @@ const [canRedoText, setCanRedoText] = useState(false);
         applyPdfZoom('fitWidth');
         break;
       case 'undo': {
+        if (canUndoText) {
+          try { (iframeWin() as { pdfcraftUndo?: () => void } | null)?.pdfcraftUndo?.(); } catch { /* noop */ }
+          break;
+        }
         const commentContext = activeTab === 'comment' || activeAnnotTool != null;
         if (!commentContext && performDocumentUndo()) break;
         try { (iframeWin() as { pdfcraftUndo?: () => void } | null)?.pdfcraftUndo?.(); } catch { /* noop */ }
         break;
       }
       case 'redo': {
+        if (canRedoText) {
+          try { (iframeWin() as { pdfcraftRedo?: () => void } | null)?.pdfcraftRedo?.(); } catch { /* noop */ }
+          break;
+        }
         const commentContext = activeTab === 'comment' || activeAnnotTool != null;
         if (!commentContext && performDocumentRedo()) break;
         try { (iframeWin() as { pdfcraftRedo?: () => void } | null)?.pdfcraftRedo?.(); } catch { /* noop */ }
@@ -1503,6 +1520,10 @@ const [canRedoText, setCanRedoText] = useState(false);
         const editTextDeselecting = activeAnnotTool === 'editText';
         sendAnnotationToolToViewer(editTextDeselecting ? 'select' : 'editText');
         setActiveAnnotTool(editTextDeselecting ? null : 'editText');
+        if (!editTextDeselecting) {
+          setCanUndoText(false);
+          setCanRedoText(false);
+        }
         setActiveTab('edit');
         break;
       }
@@ -1595,6 +1616,8 @@ const [canRedoText, setCanRedoText] = useState(false);
     activeAnnotTool,
     performDocumentUndo,
     performDocumentRedo,
+    canUndoText,
+    canRedoText,
     handleFileChange,
     pushDocumentHistory,
     openFilePicker,
@@ -1825,10 +1848,15 @@ const [canRedoText, setCanRedoText] = useState(false);
                     (tool.action.startsWith('annot:') && activeAnnotTool === tool.action.replace('annot:', '')) ||
                     (tool.action === 'editText' && activeAnnotTool === 'editText')
                   );
-                const isDisabled = activeAnnotTool === 'editText' && (
-                  (tool.action === 'undo' && !canUndoText) ||
-                  (tool.action === 'redo' && !canRedoText)
-                );
+                const isHistoryAction =
+                  tool.action === 'undo' || tool.action === 'redo';
+                const isDisabled =
+                  isHistoryAction &&
+                  activeTab === 'edit' &&
+                  (
+                    (tool.action === 'undo' && !canUndoText) ||
+                    (tool.action === 'redo' && !canRedoText)
+                  );
                 return (
                   <button
                     key={ti}
