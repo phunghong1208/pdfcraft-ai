@@ -123,8 +123,8 @@
     "upgradeTitle": "升级套餐",
     "footer": {
       "brandName": "PDF Reader 工作区",
-      "brandLine1": "PDF阅读器",
-      "brandLine2": "工作空间",
+      "brandLine1": "PDF Reader",
+      "brandLine2": "Workspace",
       "tagline": "私密 AI 工作区",
       "trustLocalFirst": "本地优先",
       "trustLocalFirstDesc": "没有服务器上传",
@@ -140,9 +140,9 @@
       "trustGroupPlatform": "平台",
       "trustGroupDownload": "下载应用",
       "storeGetOn": "穿上它",
-      "storeGooglePlay": "谷歌游戏",
+      "storeGooglePlay": "Google Play",
       "storeDownloadOn": "下载于",
-      "storeAppStore": "应用商店",
+      "storeAppStore": "App Store",
       "downloadApp": "下载应用",
       "availableOn": "可用于",
       "googlePlayAria": "在 Google Play 上获取",
@@ -155,14 +155,6 @@
       "cookies": "Cookie",
       "privacyBadge": "100% 私密 — 文件永远不会离开您的设备",
       "privacyBadgeSub": "您的文档在浏览器中得到安全处理",
-      "resources": "资源",
-      "security": "安全",
-      "compliance": "合规",
-      "gdprCompliant": "符合 GDPR",
-      "clientSideProcessing": "客户端处理",
-      "filesNeverLeave": "文件永不离开您的设备",
-      "noUploads": "不上传文件",
-      "privateSecure": "100% 私密且安全",
       "footer": "© 2025 PDFCraft. 保留所有权利。",
       "ctaHeadline": "准备好更智能地使用 PDF 了吗？",
       "ctaSubtitle": "使用 AI 上传、编辑、总结文档并与文档聊天。",
@@ -171,6 +163,8 @@
       "copyrightName": "PDF 阅读器工作区",
       "product": "产品",
       "madeWith": "使用 <Heart /> 和 <Nextjs /> 制作",
+      "resources": "资源",
+      "security": "安全",
       "documentation": "文档",
       "editPdf": "编辑PDF",
       "compressPdf": "压缩PDF",
@@ -202,7 +196,13 @@
       "featureOcr": "光学字符识别",
       "featureProtect": "保护",
       "featuresNav": "工作区功能",
-      "copyrightShort": "© {年} PDF"
+      "copyrightShort": "© {年} PDF",
+      "compliance": "合规",
+      "gdprCompliant": "符合 GDPR",
+      "clientSideProcessing": "客户端处理",
+      "filesNeverLeave": "文件永不离开您的设备",
+      "noUploads": "不上传文件",
+      "privateSecure": "100% 私密且安全"
     },
     "recentFiles": {
       "title": "最近文件",
@@ -317,7 +317,8 @@
         "pageNumbers": "页码",
         "headerFooter": "页眉和页脚",
         "convertToPdf": "转换为 PDF",
-        "convertFromPdf": "从 PDF 转换"
+        "convertFromPdf": "从 PDF 转换",
+        "assistPdf": "Summary and Chat"
       }
     }
   },
@@ -325,7 +326,7 @@
     "badge": "AI PDF 工作区",
     "heroTitle": "用 AI 理解任何 PDF",
     "heroTitleBefore": "用 ",
-    "heroTitleAccent": "人工智能",
+    "heroTitleAccent": "AI",
     "heroTitleAfter": " 理解任何 PDF",
     "heroSubtitle": "即时摘要、翻译、对话和编辑文档。",
     "uploadTitle": "上传文档开始使用",
@@ -337,7 +338,7 @@
     "uploadDropHint": "拖放或选择文件",
     "aiActionsTitle": "AI 操作",
     "popularAiBadge": "热门人工智能",
-    "aiBadge": "人工智能",
+    "aiBadge": "AI",
     "useInWorkspace": "在工作区中使用",
     "coreActionsTitle": "核心 PDF 操作",
     "viewAllTools": "查看所有工具",
@@ -352,7 +353,8 @@
       "translate": "将整个文档翻译成其他语言。",
       "voice": "立即将 PDF 转换为自然语音。",
       "ocr": "将扫描件转换为可编辑的 PDF。",
-      "chat": "询问有关您的文件的问题并立即获得答案。"
+      "chat": "询问有关您的文件的问题并立即获得答案。",
+      "assist": "Summarize your PDF, then ask questions in one flow."
     },
     "toolDescriptions": {
       "scanToPdf": "立即将图像转换为 PDF",
@@ -381,7 +383,8 @@
       "scanToPdf": "扫描为 PDF",
       "split": "拆分",
       "protect": "保护",
-      "ocrText": "OCR 文字"
+      "ocrText": "OCR 文字",
+      "assist": "Summary and Chat"
     }
   },
   "toolsPage": {
@@ -414,6 +417,10 @@
       "summarize": {
         "label": "AI 摘要",
         "description": "从任何 PDF 中提取关键见解。"
+      },
+      "assist": {
+        "label": "Summary & Chat",
+        "description": "Summarize your PDF, then ask questions in one flow."
       },
       "translate": {
         "label": "AI 翻译",
@@ -1843,8 +1850,6 @@
       "processButton": "开始OCR",
       "previewTitle": "提取文本预览",
       "successMessage": "OCR完成！点击下载按钮保存文件。",
-      "infoTitle": "关于OCR",
-      "infoText": "OCR（光学字符识别）从扫描文档和图像中提取文本。为获得最佳效果，请使用高质量扫描件并选择正确的语言。",
       "optimize": "优化",
       "optimizeNone": "没有任何",
       "optimizeDefault": "默认",
@@ -1853,7 +1858,9 @@
       "rotatePages": "自动旋转页面",
       "removeBackground": "删除背景",
       "clean": "OCR 之前清理页面",
-      "forceOcr": "强制 OCR（即使文本存在也重新 OCR）"
+      "forceOcr": "强制 OCR（即使文本存在也重新 OCR）",
+      "infoTitle": "关于OCR",
+      "infoText": "OCR（光学字符识别）从扫描文档和图像中提取文本。为获得最佳效果，请使用高质量扫描件并选择正确的语言。"
     },
     "linearizePdf": {
       "uploadLabel": "上传PDF文件",
@@ -2062,6 +2069,7 @@
       "formatNumber": "数字 (1, 2, 3)",
       "formatRoman": "罗马数字 (I, II, III)",
       "formatPageOfTotal": "第 X / Y 页",
+      "appearanceTitle": "外貌",
       "styleTitle": "样式",
       "style": "样式",
       "startNumber": "起始页码",
@@ -2069,12 +2077,16 @@
       "customFormatHint": "使用 {page} 和 {total} 作为占位符",
       "prefix": "前缀",
       "suffix": "后缀",
+      "prefixPlaceholder": "例如，页",
+      "suffixPlaceholder": "例如，-",
       "fontSize": "字体大小",
       "margin": "边距",
       "color": "颜色",
       "skipFirstPage": "跳过首页（封面）",
+      "fileMeta": "{尺寸} • {页} 页",
       "preview": "预览",
       "pageOf": "第 {current} 页，共 {total} 页",
+      "previewPageOf": "页数 {当前}/{总计}",
       "firstPageSkipped": "首页将被跳过",
       "previewText": "预览：「{text}」",
       "addButton": "添加页码",
@@ -2098,12 +2110,7 @@
       "posBottomRight": "右下角",
       "posTopLeft": "左上角",
       "posTopCenter": "顶部居中",
-      "posTopRight": "右上角",
-      "appearanceTitle": "外貌",
-      "prefixPlaceholder": "例如，页",
-      "suffixPlaceholder": "例如，-",
-      "fileMeta": "{尺寸} • {页} 页",
-      "previewPageOf": "页数 {当前}/{总计}"
+      "posTopRight": "右上角"
     },
     "watermark": {
       "uploadLabel": "上传PDF文件",
@@ -2158,13 +2165,6 @@
       "footerTitle": "页脚",
       "footerText": "页脚文字",
       "footerTextPlaceholder": "输入页脚内容...",
-      "styleTitle": "样式",
-      "fontSize": "字体大小",
-      "fontColor": "字体颜色",
-      "preview": "预览",
-      "previewHint": "输入页眉或页脚文本以查看预览",
-      "addButton": "添加页眉页脚",
-      "successMessage": "页眉页脚添加成功！",
       "positionLeft": "左边",
       "positionCenter": "中心",
       "positionRight": "正确的",
@@ -2176,15 +2176,22 @@
       "footerRightPlaceholder": "例如，“{日期}”",
       "quickInsertTitle": "快速插入",
       "quickInsertHint": "单击复制，然后粘贴到任意字段",
+      "styleTitle": "样式",
+      "fontSize": "字体大小",
+      "fontColor": "字体颜色",
       "margin": "保证金（点）",
       "pageRange": "页面范围",
       "pageRangePlaceholder": "例如，全部或 1-5、8、10-12",
       "pageRangeHint": "对所有页面使用“all”，或指定范围，如“1-5、8、10-12”",
       "skipFirstPage": "跳过第一页（封面页）",
       "fileMeta": "{尺寸} • {页} 页",
+      "preview": "预览",
       "previewPageOf": "第 {当前} 页，共 {total} 页",
+      "previewHint": "输入页眉或页脚文本以查看预览",
       "pageApplied": "页眉/页脚将添加到此页面",
-      "pageSkipped": "该页面将被跳过"
+      "pageSkipped": "该页面将被跳过",
+      "addButton": "添加页眉页脚",
+      "successMessage": "页眉页脚添加成功！"
     },
     "invertColors": {
       "uploadLabel": "上传PDF文件",
@@ -2723,6 +2730,11 @@
         "description": "上传 PDF 并获取 AI 生成的简明摘要。",
         "action": "生成摘要"
       },
+      "assist": {
+        "title": "Summary & Chat",
+        "description": "Summarize your PDF, then ask follow-up questions in one place.",
+        "action": "Open AI assistant"
+      },
       "translate": {
         "title": "人工智能翻译",
         "description": "上传 PDF 并使用您的 AI 服务器翻译内容。",
@@ -2774,6 +2786,7 @@
       "organize": "整理",
       "output": "输出",
       "history": "历史",
+      "content": "Content",
       "page": "页面",
       "insert": "插入",
       "save": "保存",
@@ -2947,6 +2960,10 @@
           "title": "详细"
         }
       },
+      "sessionTier": {
+        "label": "Level",
+        "hint": "Chat uses the same level as the summary"
+      },
       "chatContext": {
         "label": "对话深度",
         "light": {
@@ -2960,36 +2977,49 @@
         }
       },
       "generateSummary": "生成摘要",
+      "refreshSummary": "Update summary",
+      "regenerateSummary": "Update summary",
       "summaryPlaceholder": "运行摘要以查看 AI 为此 PDF 生成的要点。",
       "summaryDone": "摘要已就绪。打开摘要标签阅读。",
       "documentId": "文档 ID：{id}",
       "previewPdf": "PDF 预览",
       "title": "AI 助手",
       "tabs": {
+        "assist": "摘要与对话",
         "chat": "对话",
         "summary": "摘要",
         "translate": "翻译",
         "voice": "洞察"
       },
+      "summarySection": "摘要",
+      "chatSection": "问答",
+      "suggestedQuestions": "推荐问题：",
+      "suggestedQ1": "请详细说明：",
+      "suggestedQ2": "这份文档需要注意什么？",
+      "suggestedQ3": "简要列出所需步骤",
+      "assistHint": "请先生成摘要，然后在下方提问。",
+      "summaryEmpty": "The model returned an empty summary. Try Smart OCR for scanned PDFs, or use Medium/Deep detail.",
       "translateComingSoon": "文档翻译 — 即将推出。",
       "translate": {
         "run": "Translate document",
         "tiles": {
           "pdf": "PDF",
           "ocr": "OCR",
-          "text": "Text",
+          "blocks": "Blocks",
           "ai": "AI translate",
-          "output": "New PDF"
+          "output": "Render"
         },
         "stageCheck": "Checking text layer…",
         "stageOcr": "Running OCR…",
-        "stageTranslate": "Translating with AI…",
-        "stagePdf": "Building PDF…",
+        "stageBlocks": "Extracting layout blocks…",
+        "stageTranslate": "Translating each block…",
+        "stagePdf": "Rendering PDF…",
         "stageDone": "Done.",
         "error": "Translation failed.",
         "ocrApplied": "OCR was applied before translation (scanned or no text layer).",
         "applyToWorkspace": "Apply to workspace",
-        "applied": "Workspace PDF replaced with the translation."
+        "applied": "Workspace PDF replaced with the translation.",
+        "pdfReady": "Translated PDF is ready (layout preserved). Download or apply to workspace."
       },
       "voice": {
         "subtitle": "使用浏览器语音朗读文档内容",

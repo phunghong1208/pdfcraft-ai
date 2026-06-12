@@ -139,11 +139,19 @@
   "aiPanel": {
     "title": "مساعد الذكاء الاصطناعي",
     "tabs": {
+      "assist": "ملخص ودردشة",
       "chat": "دردشة",
       "summary": "ملخص",
       "translate": "ترجمة",
       "voice": "رؤى"
     },
+    "summarySection": "ملخص",
+    "chatSection": "أسئلة وأجوبة",
+    "suggestedQuestions": "أسئلة مقترحة:",
+    "suggestedQ1": "أخبرني المزيد عن:",
+    "suggestedQ2": "ما الذي يجب الانتباه إليه في هذا المستند؟",
+    "suggestedQ3": "لخّص الخطوات المطلوبة بإيجاز",
+    "assistHint": "أنشئ ملخصًا أولاً — ثم اسأل أدناه.",
     "detected": "تم الاكتشاف",
     "documentLoaded": "تم تحميل المستند",
     "pageDocument": "مستند من {count} صفحة",

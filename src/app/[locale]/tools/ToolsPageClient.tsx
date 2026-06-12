@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
-  Search, X, Sparkles, Languages, MessagesSquare, ScanText, Volume2, Table2,
+  Search, X, Sparkles, Languages, ScanText, Volume2, Table2,
   PencilLine, FileCog, Zap, ShieldCheck, ArrowRight,
 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
@@ -39,15 +39,13 @@ const AI_ACTIONS: Array<{
   icon: typeof Sparkles;
   href: string;
   accent: AiCardAccent;
+  featured?: boolean;
   popular?: boolean;
-  aiBadge?: boolean;
-  wide?: boolean;
 }> = [
-  { id: 'summarize', icon: Sparkles, href: '/ai-summary', accent: 'purple', aiBadge: true },
+  { id: 'assist', icon: Sparkles, href: '/ai-assist', accent: 'purple', featured: true, popular: true },
   { id: 'translate', icon: Languages, href: '/ai-translate', accent: 'blue' },
   { id: 'voice', icon: Volume2, href: '/voice-reader', accent: 'coral' },
   { id: 'ocr', icon: ScanText, href: '/smart-ocr', accent: 'green' },
-  { id: 'chat', icon: MessagesSquare, href: '/chat-pdf', accent: 'violet', wide: true, popular: true },
 ];
 
 const CONTEXT_SUGGESTION_HREFS: Record<string, string> = {
@@ -181,18 +179,15 @@ export default function ToolsPageClient({ locale, localizedToolContent }: ToolsP
                     {tHome('useInWorkspace')}
                   </Link>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="ai-actions-grid">
                   {AI_ACTIONS.map((action) => {
                     const Icon = action.icon;
                     return (
                       <Link
                         key={action.id}
                         href={`/${locale}${action.href}`}
-                        className={`${aiCardAccentClass(action.accent)} p-3.5 block h-full ${action.wide ? 'sm:col-span-2 lg:col-span-2' : ''}`}
+                        className={`${aiCardAccentClass(action.accent)} ai-actions-grid__card p-4 block h-full${action.featured ? ' ai-card--featured' : ''}`}
                       >
-                        {action.aiBadge && (
-                          <span className="ai-card__badge">{tHome('aiBadge')}</span>
-                        )}
                         {action.popular && (
                           <span className="ai-card__badge">{t('toolsPage.popularAiBadge')}</span>
                         )}

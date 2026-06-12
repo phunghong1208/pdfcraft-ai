@@ -123,8 +123,8 @@
     "upgradeTitle": "Tingkatkan paket",
     "footer": {
       "brandName": "Ruang Kerja Pembaca PDF",
-      "brandLine1": "Pembaca PDF",
-      "brandLine2": "Ruang kerja",
+      "brandLine1": "PDF Reader",
+      "brandLine2": "Workspace",
       "tagline": "Ruang Kerja AI Pribadi",
       "trustLocalFirst": "Lokal Pertama",
       "trustLocalFirstDesc": "Tidak ada unggahan server",
@@ -140,9 +140,9 @@
       "trustGroupPlatform": "Platform",
       "trustGroupDownload": "Unduh aplikasi",
       "storeGetOn": "Pakailah",
-      "storeGooglePlay": "Google Bermain",
+      "storeGooglePlay": "Google Play",
       "storeDownloadOn": "Unduh di",
-      "storeAppStore": "Toko Aplikasi",
+      "storeAppStore": "App Store",
       "downloadApp": "Unduh aplikasi",
       "availableOn": "Tersedia di",
       "googlePlayAria": "Dapatkan di Google Play",
@@ -155,14 +155,6 @@
       "cookies": "Cookie",
       "privacyBadge": "100% Pribadi — File tidak pernah keluar dari perangkat Anda",
       "privacyBadgeSub": "Dokumen Anda diproses dengan aman di browser Anda",
-      "resources": "Sumber Daya",
-      "security": "Keamanan",
-      "compliance": "Kepatuhan",
-      "gdprCompliant": "Sesuai GDPR",
-      "clientSideProcessing": "Pemrosesan di perangkat",
-      "filesNeverLeave": "File tidak pernah meninggalkan perangkat Anda",
-      "noUploads": "Tanpa unggahan file",
-      "privateSecure": "100% pribadi & aman",
       "footer": "© 2025 PDFCraft. Seluruh hak cipta dilindungi undang-undang.",
       "ctaHeadline": "Siap bekerja lebih cerdas dengan PDF?",
       "ctaSubtitle": "Unggah, edit, rangkum, dan ngobrol dengan dokumen menggunakan AI.",
@@ -171,6 +163,8 @@
       "copyrightName": "Ruang Kerja Pembaca PDF",
       "product": "Produk",
       "madeWith": "Dibuat dengan <Heart /> dan <Nextjs />",
+      "resources": "Sumber Daya",
+      "security": "Keamanan",
       "documentation": "Dokumentasi",
       "editPdf": "Sunting PDF",
       "compressPdf": "Kompres PDF",
@@ -202,7 +196,13 @@
       "featureOcr": "OCR",
       "featureProtect": "Melindungi",
       "featuresNav": "Fitur ruang kerja",
-      "copyrightShort": "© {tahun} PDF"
+      "copyrightShort": "© {tahun} PDF",
+      "compliance": "Kepatuhan",
+      "gdprCompliant": "Sesuai GDPR",
+      "clientSideProcessing": "Pemrosesan di perangkat",
+      "filesNeverLeave": "File tidak pernah meninggalkan perangkat Anda",
+      "noUploads": "Tanpa unggahan file",
+      "privateSecure": "100% pribadi & aman"
     },
     "recentFiles": {
       "title": "File Terbaru",
@@ -305,7 +305,7 @@
         "splitPdf": "Pisah PDF",
         "compressPdf": "Kompres PDF",
         "pdfToWord": "PDF ke Word",
-        "ocrPdf": "PDF OCR",
+        "ocrPdf": "OCR PDF",
         "rotatePdf": "Putar PDF",
         "organizePdf": "Atur Halaman",
         "extractPages": "Ekstrak Halaman",
@@ -317,7 +317,8 @@
         "pageNumbers": "Nomor Halaman",
         "headerFooter": "Tajuk & Kaki",
         "convertToPdf": "Konversikan ke PDF",
-        "convertFromPdf": "Konversi dari PDF"
+        "convertFromPdf": "Konversi dari PDF",
+        "assistPdf": "Summary and Chat"
       }
     }
   },
@@ -352,7 +353,8 @@
       "translate": "Terjemahkan seluruh dokumen ke bahasa lain.",
       "voice": "Konversi PDF menjadi ucapan alami secara instan.",
       "ocr": "Ubah pindaian menjadi PDF yang dapat diedit.",
-      "chat": "Ajukan pertanyaan tentang file Anda dan dapatkan jawaban instan."
+      "chat": "Ajukan pertanyaan tentang file Anda dan dapatkan jawaban instan.",
+      "assist": "Summarize your PDF, then ask questions in one flow."
     },
     "toolDescriptions": {
       "scanToPdf": "Konversikan gambar ke PDF secara instan",
@@ -381,7 +383,8 @@
       "scanToPdf": "Pindai ke PDF",
       "split": "Pisah",
       "protect": "Lindungi",
-      "ocrText": "OCR teks"
+      "ocrText": "OCR teks",
+      "assist": "Summary and Chat"
     }
   },
   "toolsPage": {
@@ -414,6 +417,10 @@
       "summarize": {
         "label": "Ringkasan AI",
         "description": "Ekstrak wawasan utama dari PDF apa pun."
+      },
+      "assist": {
+        "label": "Summary & Chat",
+        "description": "Summarize your PDF, then ask questions in one flow."
       },
       "translate": {
         "label": "Terjemahan AI",
@@ -1852,8 +1859,6 @@
       "processButton": "Mulai OCR",
       "previewTitle": "Pratinjau Teks yang Diekstraksi",
       "successMessage": "OCR berhasil diselesaikan! Klik tombol unduh untuk menyimpan file Anda.",
-      "infoTitle": "Tentang OCR",
-      "infoText": "OCR (Pengenalan Karakter Optik) mengekstrak teks dari dokumen dan gambar yang dipindai. Untuk hasil terbaik, gunakan pemindaian berkualitas tinggi dan pilih bahasa yang benar.",
       "optimize": "Optimasi",
       "optimizeNone": "Tidak ada",
       "optimizeDefault": "Bawaan",
@@ -1862,7 +1867,9 @@
       "rotatePages": "Putar halaman secara otomatis",
       "removeBackground": "Hapus latar belakang",
       "clean": "Bersihkan halaman sebelum OCR",
-      "forceOcr": "Paksa OCR (OCR ulang meskipun ada teks)"
+      "forceOcr": "Paksa OCR (OCR ulang meskipun ada teks)",
+      "infoTitle": "Tentang OCR",
+      "infoText": "OCR (Pengenalan Karakter Optik) mengekstrak teks dari dokumen dan gambar yang dipindai. Untuk hasil terbaik, gunakan pemindaian berkualitas tinggi dan pilih bahasa yang benar."
     },
     "linearizePdf": {
       "uploadLabel": "Unggah File PDF",
@@ -2071,6 +2078,7 @@
       "formatNumber": "Angka (1, 2, 3)",
       "formatRoman": "Romawi (I, II, III)",
       "formatPageOfTotal": "Halaman X dari Y",
+      "appearanceTitle": "Penampilan",
       "styleTitle": "Gaya",
       "style": "Gaya",
       "startNumber": "Nomor Mulai",
@@ -2078,12 +2086,16 @@
       "customFormatHint": "Gunakan {page} dan {total} sebagai placeholder",
       "prefix": "Awalan",
       "suffix": "Akhiran",
+      "prefixPlaceholder": "misalnya, Halaman",
+      "suffixPlaceholder": "misalnya, -",
       "fontSize": "Ukuran Font",
       "margin": "Margin",
       "color": "Warna",
       "skipFirstPage": "Lewati halaman pertama (sampul)",
+      "fileMeta": "{size} • {halaman} halaman",
       "preview": "Pratinjau",
       "pageOf": "Halaman {current} dari {total}",
+      "previewPageOf": "Halaman {saat ini}/{total}",
       "firstPageSkipped": "Halaman pertama akan dilewati",
       "previewText": "Pratinjau: \"{text}\"",
       "addButton": "Tambah Nomor Halaman",
@@ -2107,12 +2119,7 @@
       "posBottomRight": "Kanan Bawah",
       "posTopLeft": "Kiri Atas",
       "posTopCenter": "Pusat Atas",
-      "posTopRight": "Kanan atas",
-      "appearanceTitle": "Penampilan",
-      "prefixPlaceholder": "misalnya, Halaman",
-      "suffixPlaceholder": "misalnya, -",
-      "fileMeta": "{size} • {halaman} halaman",
-      "previewPageOf": "Halaman {saat ini}/{total}"
+      "posTopRight": "Kanan atas"
     },
     "watermark": {
       "uploadLabel": "Unggah File PDF",
@@ -2167,13 +2174,6 @@
       "footerTitle": "catatan kaki",
       "footerText": "Teks Footer",
       "footerTextPlaceholder": "Masukkan teks footer...",
-      "styleTitle": "Gaya",
-      "fontSize": "Ukuran Font",
-      "fontColor": "Warna Font",
-      "preview": "Pratinjau",
-      "previewHint": "Masukkan teks header atau footer untuk melihat pratinjau",
-      "addButton": "Tambah Header & Footer",
-      "successMessage": "Header & footer berhasil ditambahkan!",
       "positionLeft": "Kiri",
       "positionCenter": "Tengah",
       "positionRight": "Benar",
@@ -2185,15 +2185,22 @@
       "footerRightPlaceholder": "misalnya, '{tanggal}'",
       "quickInsertTitle": "Masukkan cepat",
       "quickInsertHint": "Klik untuk menyalin, lalu tempel ke bidang mana pun",
+      "styleTitle": "Gaya",
+      "fontSize": "Ukuran Font",
+      "fontColor": "Warna Font",
       "margin": "Margin (pt)",
       "pageRange": "Rentang Halaman",
       "pageRangePlaceholder": "misalnya, semua atau 1-5, 8, 10-12",
       "pageRangeHint": "Gunakan \"semua\" untuk semua halaman, atau tentukan rentang seperti \"1-5, 8, 10-12\"",
       "skipFirstPage": "Lewati halaman pertama (halaman sampul)",
       "fileMeta": "{size} • {halaman} halaman",
+      "preview": "Pratinjau",
       "previewPageOf": "Halaman {saat ini} dari {total}",
+      "previewHint": "Masukkan teks header atau footer untuk melihat pratinjau",
       "pageApplied": "Header/Footer akan ditambahkan ke halaman ini",
-      "pageSkipped": "Halaman ini akan dilewati"
+      "pageSkipped": "Halaman ini akan dilewati",
+      "addButton": "Tambah Header & Footer",
+      "successMessage": "Header & footer berhasil ditambahkan!"
     },
     "invertColors": {
       "uploadLabel": "Unggah File PDF",
@@ -2755,6 +2762,11 @@
         "description": "Unggah PDF dan dapatkan ringkasan singkat yang dihasilkan AI.",
         "action": "Hasilkan ringkasan"
       },
+      "assist": {
+        "title": "Summary & Chat",
+        "description": "Summarize your PDF, then ask follow-up questions in one place.",
+        "action": "Open AI assistant"
+      },
       "translate": {
         "title": "Terjemahan AI",
         "description": "Unggah PDF dan terjemahkan konten dengan server AI Anda.",
@@ -2806,6 +2818,7 @@
       "organize": "Atur",
       "output": "Keluaran",
       "history": "Riwayat",
+      "content": "Content",
       "page": "Halaman",
       "insert": "Sisipkan",
       "save": "Simpan",
@@ -2979,6 +2992,10 @@
           "title": "Detail"
         }
       },
+      "sessionTier": {
+        "label": "Level",
+        "hint": "Chat uses the same level as the summary"
+      },
       "chatContext": {
         "label": "Kedalaman obrolan",
         "light": {
@@ -2992,36 +3009,49 @@
         }
       },
       "generateSummary": "Buat ringkasan",
+      "refreshSummary": "Update summary",
+      "regenerateSummary": "Update summary",
       "summaryPlaceholder": "Jalankan ringkasan untuk melihat sorotan AI untuk PDF ini.",
       "summaryDone": "Ringkasan sudah siap. Buka tab Ringkasan untuk membacanya.",
       "documentId": "ID Dokumen: {id}",
       "previewPdf": "Pratinjau PDF",
       "title": "Asisten AI",
       "tabs": {
+        "assist": "Ringkasan dan obrolan",
         "chat": "Obrolan",
         "summary": "Ringkasan",
         "translate": "Terjemahkan",
         "voice": "Wawasan"
       },
+      "summarySection": "Ringkasan",
+      "chatSection": "Tanya jawab",
+      "suggestedQuestions": "Pertanyaan yang disarankan:",
+      "suggestedQ1": "Ceritakan lebih lanjut tentang:",
+      "suggestedQ2": "Apa yang perlu diperhatikan dalam dokumen ini?",
+      "suggestedQ3": "Ringkas langkah-langkah yang diperlukan",
+      "assistHint": "Buat ringkasan dulu — lalu tanyakan di bawah.",
+      "summaryEmpty": "The model returned an empty summary. Try Smart OCR for scanned PDFs, or use Medium/Deep detail.",
       "translateComingSoon": "Terjemahan dokumen — segera hadir.",
       "translate": {
         "run": "Translate document",
         "tiles": {
           "pdf": "PDF",
           "ocr": "OCR",
-          "text": "Text",
+          "blocks": "Blocks",
           "ai": "AI translate",
-          "output": "New PDF"
+          "output": "Render"
         },
         "stageCheck": "Checking text layer…",
         "stageOcr": "Running OCR…",
-        "stageTranslate": "Translating with AI…",
-        "stagePdf": "Building PDF…",
+        "stageBlocks": "Extracting layout blocks…",
+        "stageTranslate": "Translating each block…",
+        "stagePdf": "Rendering PDF…",
         "stageDone": "Done.",
         "error": "Translation failed.",
         "ocrApplied": "OCR was applied before translation (scanned or no text layer).",
         "applyToWorkspace": "Apply to workspace",
-        "applied": "Workspace PDF replaced with the translation."
+        "applied": "Workspace PDF replaced with the translation.",
+        "pdfReady": "Translated PDF is ready (layout preserved). Download or apply to workspace."
       },
       "voice": {
         "subtitle": "Dengarkan dokumen Anda dengan ucapan browser bawaan",

@@ -139,11 +139,19 @@
   "aiPanel": {
     "title": "AI 도우미",
     "tabs": {
+      "assist": "요약 및 채팅",
       "chat": "채팅",
       "summary": "요약",
       "translate": "번역",
       "voice": "인사이트"
     },
+    "summarySection": "요약",
+    "chatSection": "Q&A",
+    "suggestedQuestions": "추천 질문:",
+    "suggestedQ1": "자세히 설명해 주세요:",
+    "suggestedQ2": "이 문서에서 주의할 점은?",
+    "suggestedQ3": "필요한 단계를 간단히 정리해 주세요",
+    "assistHint": "먼저 요약을 생성한 뒤 아래에서 질문하세요.",
     "detected": "감지됨",
     "documentLoaded": "문서가 로드됨",
     "pageDocument": "{count}페이지 문서",

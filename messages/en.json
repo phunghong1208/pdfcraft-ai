@@ -311,7 +311,8 @@
         "pageNumbers": "Page Numbers",
         "headerFooter": "Header & Footer",
         "convertToPdf": "Convert to PDF",
-        "convertFromPdf": "Convert from PDF"
+        "convertFromPdf": "Convert from PDF",
+        "assistPdf": "Summary and Chat"
       }
     }
   },
@@ -346,7 +347,8 @@
       "translate": "Translate entire documents into other languages.",
       "voice": "Convert PDF to natural speech instantly.",
       "ocr": "Convert scans to editable PDF.",
-      "chat": "Ask questions about your files and get instant answers."
+      "chat": "Ask questions about your files and get instant answers.",
+      "assist": "Summarize your PDF, then ask questions in one flow."
     },
     "toolDescriptions": {
       "scanToPdf": "Convert images to PDF instantly",
@@ -375,7 +377,8 @@
       "scanToPdf": "Scan to PDF",
       "split": "Split",
       "protect": "Protect",
-      "ocrText": "OCR Text"
+      "ocrText": "OCR Text",
+      "assist": "Summary and Chat"
     }
   },
   "toolsPage": {
@@ -408,6 +411,10 @@
       "summarize": {
         "label": "AI Summary",
         "description": "Extract key insights from any PDF."
+      },
+      "assist": {
+        "label": "Summary and Chat",
+        "description": "Summarize your PDF, then ask questions in one flow."
       },
       "translate": {
         "label": "AI Translate",
@@ -2716,6 +2723,11 @@
         "description": "Upload a PDF and get a concise AI-generated summary.",
         "action": "Generate summary"
       },
+      "assist": {
+        "title": "Summary and Chat",
+        "description": "Summarize your PDF, then ask follow-up questions in one place.",
+        "action": "Open AI assistant"
+      },
       "translate": {
         "title": "AI Translate",
         "description": "Upload a PDF and translate content with your AI server.",
@@ -2941,6 +2953,10 @@
           "title": "Detailed"
         }
       },
+      "sessionTier": {
+        "label": "Level",
+        "hint": "Chat uses the same level as the summary"
+      },
       "chatContext": {
         "label": "Chat depth",
         "light": {
@@ -2954,17 +2970,28 @@
         }
       },
       "generateSummary": "Generate summary",
+      "refreshSummary": "Update summary",
+      "regenerateSummary": "Update summary",
       "summaryPlaceholder": "Run summary to see AI-generated highlights for this PDF.",
       "summaryDone": "Summary is ready. Open the Summary tab to read it.",
       "documentId": "Document ID: {id}",
       "previewPdf": "PDF preview",
       "title": "AI Assistant",
       "tabs": {
+        "assist": "Summary and Chat",
         "chat": "Chat",
         "summary": "Summary",
         "translate": "Translate",
         "voice": "Read file"
       },
+      "summarySection": "Summary",
+      "chatSection": "Q&A",
+      "suggestedQuestions": "Suggested questions:",
+      "suggestedQ1": "What is the main content of this document?",
+      "suggestedQ2": "What should I pay attention to in this document?",
+      "suggestedQ3": "Briefly list the required steps",
+      "assistHint": "Generate a summary first — then ask questions below.",
+      "summaryEmpty": "The model returned an empty summary. Try Smart OCR for scanned PDFs, or use Medium/Deep detail.",
       "translateComingSoon": "Document translation — coming soon.",
       "translate": {
         "run": "Translate document",

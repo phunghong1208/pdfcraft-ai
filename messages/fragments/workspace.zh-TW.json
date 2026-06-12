@@ -139,11 +139,19 @@
   "aiPanel": {
     "title": "AI 助手",
     "tabs": {
+      "assist": "摘要與對話",
       "chat": "對話",
       "summary": "摘要",
       "translate": "翻譯",
       "voice": "洞察"
     },
+    "summarySection": "摘要",
+    "chatSection": "問答",
+    "suggestedQuestions": "推薦問題：",
+    "suggestedQ1": "請詳細說明：",
+    "suggestedQ2": "這份文件需要注意什麼？",
+    "suggestedQ3": "簡要列出所需步驟",
+    "assistHint": "請先生成摘要，然後在下方提問。",
     "detected": "已偵測",
     "documentLoaded": "文件已載入",
     "pageDocument": "{count} 頁文件",

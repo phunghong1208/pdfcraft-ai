@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Upload, Sparkles, Languages, MessagesSquare, ScanText, Volume2, PencilLine, Minimize2, GitMerge, FileCog, ShieldCheck, Scissors, ArrowRight } from 'lucide-react';
+import { Upload, Sparkles, Languages, ScanText, Volume2, PencilLine, Minimize2, GitMerge, FileCog, ShieldCheck, Scissors, ArrowRight } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/Button';
@@ -39,16 +39,14 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
     label: string;
     icon: typeof Sparkles;
     accent: AiCardAccent;
-    descriptionKey: 'summarize' | 'translate' | 'voice' | 'ocr' | 'chat';
-    wide?: boolean;
+    descriptionKey: 'assist' | 'translate' | 'voice' | 'ocr';
+    featured?: boolean;
     popular?: boolean;
-    aiBadge?: boolean;
   }> = [
-    { href: `/${locale}/ai-summary`, label: t('actions.summarize'), icon: Sparkles, accent: 'purple', descriptionKey: 'summarize', aiBadge: true },
+    { href: `/${locale}/ai-assist`, label: t('actions.assist'), icon: Sparkles, accent: 'purple', descriptionKey: 'assist', featured: true, popular: true },
     { href: `/${locale}/ai-translate`, label: t('actions.translate'), icon: Languages, accent: 'blue', descriptionKey: 'translate' },
     { href: `/${locale}/voice-reader`, label: t('actions.voice'), icon: Volume2, accent: 'coral', descriptionKey: 'voice' },
     { href: `/${locale}/smart-ocr`, label: t('actions.ocr'), icon: ScanText, accent: 'green', descriptionKey: 'ocr' },
-    { href: `/${locale}/chat-pdf`, label: t('actions.chat'), icon: MessagesSquare, accent: 'violet', wide: true, popular: true, descriptionKey: 'chat' },
   ];
 
   const pdfActions: Array<{
@@ -167,25 +165,22 @@ export default function HomePageClient({ locale }: HomePageClientProps) {
 
         <section className="py-6">
           <div className="container mx-auto px-4">
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-3xl mx-auto">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold">{t('aiActionsTitle')}</h2>
                 <Link href={`/${locale}/workspace`} className="text-sm text-[hsl(var(--color-muted-foreground))] hover:text-[hsl(var(--color-foreground))]">
                   {t('useInWorkspace')}
                 </Link>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="ai-actions-grid">
                 {aiActions.map((item) => {
                   const Icon = item.icon;
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`${aiCardAccentClass(item.accent)} p-3.5 block ${item.wide ? 'sm:col-span-2 lg:col-span-2' : ''}`}
+                      className={`${aiCardAccentClass(item.accent)} ai-actions-grid__card p-4 block${item.featured ? ' ai-card--featured' : ''}`}
                     >
-                      {item.aiBadge && (
-                        <span className="ai-card__badge">{t('aiBadge')}</span>
-                      )}
                       {item.popular && (
                         <span className="ai-card__badge">{t('popularAiBadge')}</span>
                       )}

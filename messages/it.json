@@ -123,8 +123,8 @@
     "upgradeTitle": "Aggiorna piano",
     "footer": {
       "brandName": "Area di lavoro del lettore PDF",
-      "brandLine1": "Lettore PDF",
-      "brandLine2": "Spazio di lavoro",
+      "brandLine1": "PDF Reader",
+      "brandLine2": "Workspace",
       "tagline": "Spazio di lavoro privato per l'intelligenza artificiale",
       "trustLocalFirst": "Prima il locale",
       "trustLocalFirstDesc": "Nessun caricamento sul server",
@@ -155,14 +155,6 @@
       "cookies": "Cookie",
       "privacyBadge": "Privato al 100%: i file non lasciano mai il tuo dispositivo",
       "privacyBadgeSub": "I tuoi documenti vengono elaborati in modo sicuro nel tuo browser",
-      "resources": "Risorse",
-      "security": "Sicurezza",
-      "compliance": "Conformità",
-      "gdprCompliant": "Conforme al GDPR",
-      "clientSideProcessing": "Elaborazione lato client",
-      "filesNeverLeave": "I file non lasciano mai il tuo dispositivo",
-      "noUploads": "Nessun caricamento di file",
-      "privateSecure": "100% privato e sicuro",
       "footer": "© 2025 PDFCraft. Tutti i diritti riservati.",
       "ctaHeadline": "Pronto a lavorare in modo più intelligente con i PDF?",
       "ctaSubtitle": "Carica, modifica, riepiloga e chatta con documenti utilizzando l'intelligenza artificiale.",
@@ -171,6 +163,8 @@
       "copyrightName": "Area di lavoro del lettore PDF",
       "product": "Prodotto",
       "madeWith": "Creato con <Heart /> e <Nextjs />",
+      "resources": "Risorse",
+      "security": "Sicurezza",
       "documentation": "Documentazione",
       "editPdf": "Modifica PDF",
       "compressPdf": "Comprimi PDF",
@@ -202,7 +196,13 @@
       "featureOcr": "OCR",
       "featureProtect": "Proteggere",
       "featuresNav": "Funzionalità dell'area di lavoro",
-      "copyrightShort": "© {anno} PDF"
+      "copyrightShort": "© {anno} PDF",
+      "compliance": "Conformità",
+      "gdprCompliant": "Conforme al GDPR",
+      "clientSideProcessing": "Elaborazione lato client",
+      "filesNeverLeave": "I file non lasciano mai il tuo dispositivo",
+      "noUploads": "Nessun caricamento di file",
+      "privateSecure": "100% privato e sicuro"
     },
     "recentFiles": {
       "title": "File recenti",
@@ -305,7 +305,7 @@
         "splitPdf": "Dividi PDF",
         "compressPdf": "Comprimi PDF",
         "pdfToWord": "PDF in Word",
-        "ocrPdf": "PDF OCR",
+        "ocrPdf": "OCR PDF",
         "rotatePdf": "Ruota PDF",
         "organizePdf": "Organizza le pagine",
         "extractPages": "Estrai pagine",
@@ -317,7 +317,8 @@
         "pageNumbers": "Numeri di pagina",
         "headerFooter": "Intestazione e piè di pagina",
         "convertToPdf": "Converti in PDF",
-        "convertFromPdf": "Converti da PDF"
+        "convertFromPdf": "Converti da PDF",
+        "assistPdf": "Summary and Chat"
       }
     }
   },
@@ -352,7 +353,8 @@
       "translate": "Traduci interi documenti in altre lingue.",
       "voice": "Converti istantaneamente PDF in parlato naturale.",
       "ocr": "Converti scansioni in PDF modificabili.",
-      "chat": "Fai domande sui tuoi file e ottieni risposte immediate."
+      "chat": "Fai domande sui tuoi file e ottieni risposte immediate.",
+      "assist": "Summarize your PDF, then ask questions in one flow."
     },
     "toolDescriptions": {
       "scanToPdf": "Converti istantaneamente le immagini in PDF",
@@ -381,7 +383,8 @@
       "scanToPdf": "Scansiona in PDF",
       "split": "Dividi",
       "protect": "Proteggi",
-      "ocrText": "OCR testo"
+      "ocrText": "OCR testo",
+      "assist": "Summary and Chat"
     }
   },
   "toolsPage": {
@@ -414,6 +417,10 @@
       "summarize": {
         "label": "Riepilogo IA",
         "description": "Estrai informazioni chiave da qualsiasi PDF."
+      },
+      "assist": {
+        "label": "Summary & Chat",
+        "description": "Summarize your PDF, then ask questions in one flow."
       },
       "translate": {
         "label": "Traduzione IA",
@@ -1848,8 +1855,6 @@
       "processButton": "Avvia OCR",
       "previewTitle": "Anteprima testo estratto",
       "successMessage": "OCR completato con successo! Clicca il pulsante di download per salvare il file.",
-      "infoTitle": "Informazioni sull'OCR",
-      "infoText": "L'OCR (Riconoscimento Ottico dei Caratteri) estrae testo da documenti scansionati e immagini. Per risultati ottimali, usa scansioni di alta qualità e seleziona le lingue corrette.",
       "optimize": "Ottimizzazione",
       "optimizeNone": "Nessuno",
       "optimizeDefault": "Predefinito",
@@ -1858,7 +1863,9 @@
       "rotatePages": "Rotazione automatica delle pagine",
       "removeBackground": "Rimuovi lo sfondo",
       "clean": "Pulisci le pagine prima dell'OCR",
-      "forceOcr": "Forza l'OCR (riesegui l'OCR anche se il testo esiste)"
+      "forceOcr": "Forza l'OCR (riesegui l'OCR anche se il testo esiste)",
+      "infoTitle": "Informazioni sull'OCR",
+      "infoText": "L'OCR (Riconoscimento Ottico dei Caratteri) estrae testo da documenti scansionati e immagini. Per risultati ottimali, usa scansioni di alta qualità e seleziona le lingue corrette."
     },
     "linearizePdf": {
       "uploadLabel": "Carica file PDF",
@@ -2067,6 +2074,7 @@
       "formatNumber": "Numerico (1, 2, 3)",
       "formatRoman": "Romano (I, II, III)",
       "formatPageOfTotal": "Pagina X di Y",
+      "appearanceTitle": "Aspetto",
       "styleTitle": "Stile",
       "style": "Stile",
       "startNumber": "Numero iniziale",
@@ -2074,12 +2082,16 @@
       "customFormatHint": "Usa {page} e {total} come segnaposto",
       "prefix": "Prefisso",
       "suffix": "Suffisso",
+      "prefixPlaceholder": "ad esempio, Pagina",
+      "suffixPlaceholder": "per esempio., -",
       "fontSize": "Dimensione font",
       "margin": "Margine",
       "color": "Colore",
       "skipFirstPage": "Salta la prima pagina (copertina)",
+      "fileMeta": "{dimensione} • {pagine} pagine",
       "preview": "Anteprima",
       "pageOf": "Pagina {current} di {total}",
+      "previewPageOf": "Pagina {corrente}/{totale}",
       "firstPageSkipped": "La prima pagina verrà saltata",
       "previewText": "Anteprima: \"{text}\"",
       "addButton": "Aggiungi numeri di pagina",
@@ -2103,12 +2115,7 @@
       "posBottomRight": "In basso a destra",
       "posTopLeft": "In alto a sinistra",
       "posTopCenter": "In alto al centro",
-      "posTopRight": "In alto a destra",
-      "appearanceTitle": "Aspetto",
-      "prefixPlaceholder": "ad esempio, Pagina",
-      "suffixPlaceholder": "per esempio., -",
-      "fileMeta": "{dimensione} • {pagine} pagine",
-      "previewPageOf": "Pagina {corrente}/{totale}"
+      "posTopRight": "In alto a destra"
     },
     "watermark": {
       "uploadLabel": "Carica file PDF",
@@ -2163,13 +2170,6 @@
       "footerTitle": "Piè di pagina",
       "footerText": "Testo piè di pagina",
       "footerTextPlaceholder": "Inserisci il testo del piè di pagina…",
-      "styleTitle": "Stile",
-      "fontSize": "Dimensione font",
-      "fontColor": "Colore font",
-      "preview": "Anteprima",
-      "previewHint": "Inserisci il testo di intestazione o piè di pagina per visualizzare l'anteprima",
-      "addButton": "Aggiungi intestazione e piè di pagina",
-      "successMessage": "Intestazione e piè di pagina aggiunti con successo!",
       "positionLeft": "Sinistra",
       "positionCenter": "Centro",
       "positionRight": "Giusto",
@@ -2181,15 +2181,22 @@
       "footerRightPlaceholder": "ad esempio, \"{data}\"",
       "quickInsertTitle": "Inserimento rapido",
       "quickInsertHint": "Fare clic per copiare, quindi incollare in qualsiasi campo",
+      "styleTitle": "Stile",
+      "fontSize": "Dimensione font",
+      "fontColor": "Colore font",
       "margin": "Margine (pt)",
       "pageRange": "Intervallo di pagine",
       "pageRangePlaceholder": "ad esempio, tutti o 1-5, 8, 10-12",
       "pageRangeHint": "Utilizza \"tutto\" per tutte le pagine o specifica intervalli come \"1-5, 8, 10-12\"",
       "skipFirstPage": "Salta la prima pagina (copertina)",
       "fileMeta": "{dimensione} • {pagine} pagine",
+      "preview": "Anteprima",
       "previewPageOf": "Pagina {attuale} di {totale}",
+      "previewHint": "Inserisci il testo di intestazione o piè di pagina per visualizzare l'anteprima",
       "pageApplied": "L'intestazione/piè di pagina verranno aggiunti a questa pagina",
-      "pageSkipped": "Questa pagina verrà saltata"
+      "pageSkipped": "Questa pagina verrà saltata",
+      "addButton": "Aggiungi intestazione e piè di pagina",
+      "successMessage": "Intestazione e piè di pagina aggiunti con successo!"
     },
     "invertColors": {
       "uploadLabel": "Carica file PDF",
@@ -2732,6 +2739,11 @@
         "description": "Carica un PDF e ottieni un riepilogo conciso generato dall'intelligenza artificiale.",
         "action": "Genera riepilogo"
       },
+      "assist": {
+        "title": "Summary & Chat",
+        "description": "Summarize your PDF, then ask follow-up questions in one place.",
+        "action": "Open AI assistant"
+      },
       "translate": {
         "title": "AI Traduci",
         "description": "Carica un PDF e traduci i contenuti con il tuo server AI.",
@@ -2783,6 +2795,7 @@
       "organize": "Organizza",
       "output": "Produzione",
       "history": "Cronologia",
+      "content": "Content",
       "page": "Pagina",
       "insert": "Inserisci",
       "save": "Salva",
@@ -2956,6 +2969,10 @@
           "title": "Dettagliato"
         }
       },
+      "sessionTier": {
+        "label": "Level",
+        "hint": "Chat uses the same level as the summary"
+      },
       "chatContext": {
         "label": "Profondità della chat",
         "light": {
@@ -2969,36 +2986,49 @@
         }
       },
       "generateSummary": "Genera riepilogo",
+      "refreshSummary": "Update summary",
+      "regenerateSummary": "Update summary",
       "summaryPlaceholder": "Esegui il riepilogo per vedere i punti chiave generati dall’IA.",
       "summaryDone": "Il riepilogo è pronto. Apri la scheda Riepilogo per leggerlo.",
       "documentId": "ID documento: {id}",
       "previewPdf": "Anteprima PDF",
       "title": "Assistente AI",
       "tabs": {
+        "assist": "Riepilogo e chat",
         "chat": "Chiacchierata",
         "summary": "Riepilogo",
         "translate": "Traduci",
         "voice": "Approfondimenti"
       },
+      "summarySection": "Riepilogo",
+      "chatSection": "Domande",
+      "suggestedQuestions": "Domande suggerite:",
+      "suggestedQ1": "Dimmi di più su:",
+      "suggestedQ2": "A cosa devo fare attenzione in questo documento?",
+      "suggestedQ3": "Riassumi brevemente i passaggi necessari",
+      "assistHint": "Genera prima un riepilogo — poi chiedi qui sotto.",
+      "summaryEmpty": "The model returned an empty summary. Try Smart OCR for scanned PDFs, or use Medium/Deep detail.",
       "translateComingSoon": "Traduzione di documenti: disponibile a breve.",
       "translate": {
         "run": "Translate document",
         "tiles": {
           "pdf": "PDF",
           "ocr": "OCR",
-          "text": "Text",
+          "blocks": "Blocks",
           "ai": "AI translate",
-          "output": "New PDF"
+          "output": "Render"
         },
         "stageCheck": "Checking text layer…",
         "stageOcr": "Running OCR…",
-        "stageTranslate": "Translating with AI…",
-        "stagePdf": "Building PDF…",
+        "stageBlocks": "Extracting layout blocks…",
+        "stageTranslate": "Translating each block…",
+        "stagePdf": "Rendering PDF…",
         "stageDone": "Done.",
         "error": "Translation failed.",
         "ocrApplied": "OCR was applied before translation (scanned or no text layer).",
         "applyToWorkspace": "Apply to workspace",
-        "applied": "Workspace PDF replaced with the translation."
+        "applied": "Workspace PDF replaced with the translation.",
+        "pdfReady": "Translated PDF is ready (layout preserved). Download or apply to workspace."
       },
       "voice": {
         "subtitle": "Ascolta il tuo documento con la voce del browser integrata",

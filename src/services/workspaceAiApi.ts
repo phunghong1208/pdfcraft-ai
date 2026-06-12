@@ -1,4 +1,8 @@
 import { defaultLocale, localeConfig, locales, type Locale } from '@/lib/i18n/config';
+import {
+  buildSuggestedQuestionsPrompt,
+  parseSuggestedQuestionsFromResponse,
+} from '@/lib/workspace-ai-suggested-questions';
 
 /** Same-origin proxy path — paired with next.config rewrites (dev) or nginx (prod). */
 const WORKSPACE_AI_PROXY_PATH = '/api/workspace-ai';
@@ -138,12 +142,13 @@ function getBaseUrl(): string {
   return `${basePath}${WORKSPACE_AI_PROXY_PATH}`.replace(/\/$/, '');
 }
 
-/** Khớp `trailingSlash: true` của Next — tránh redirect 308 làm hỏng POST. */
+/** URL gọi API — slash cuối chỉ khi qua Next proxy (relative). FastAPI đăng ký /summary không có slash. */
 function buildApiUrl(pathSegment: string): string {
   const base = getBaseUrl();
   const segment = pathSegment.replace(/^\//, '').replace(/\/$/, '');
   const url = `${base}/${segment}`;
-  return url.startsWith('/') && !url.endsWith('/') ? `${url}/` : url;
+  const isRelativeNextProxy = url.startsWith('/');
+  return isRelativeNextProxy && !url.endsWith('/') ? `${url}/` : url;
 }
 
 function wrapNetworkError(err: unknown): Error {
@@ -313,6 +318,25 @@ export async function chatWithWorkspaceDocument(opts: {
   );
 }
 
+/** Gợi ý câu hỏi — một lần POST /chat, chỉ document_id + prompt ngắn. */
+export async function generateWorkspaceSuggestedQuestions(opts: {
+  documentId: number;
+  language?: string;
+  userKey?: string;
+  topK?: number;
+}): Promise<string[]> {
+  const language = opts.language ?? WORKSPACE_DEFAULT_AI_LANGUAGE;
+  const answer = await chatWithWorkspaceDocument({
+    question: buildSuggestedQuestionsPrompt(language),
+    documentId: opts.documentId,
+    topK: opts.topK ?? 3,
+    userKey: opts.userKey ?? DEFAULT_USER_KEY,
+    language,
+  });
+
+  return parseSuggestedQuestionsFromResponse(answer).slice(0, 3);
+}
+
 /**
  * Tóm tắt PDF — khớp Postman:
  * POST {BASE}/summary
@@ -377,7 +401,9 @@ export async function summarizeWorkspaceDocument(
 
 /** Server trả câu này khi chưa index / document_id không khớp kho vector. */
 export function isWorkspaceChatNoContextAnswer(text: string): boolean {
-  return /no relevant context|upload and summarize|không tìm thấy ngữ cảnh|chưa có ngữ cảnh/i.test(
-    text,
+  const normalized = text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+  return (
+    /no relevant context|upload and summarize|hay tao summary|tao summary truoc/i.test(normalized) ||
+    /khong tim thay ngu canh|chua co ngu canh|khong co ngu canh phu hop/i.test(normalized)
   );
 }

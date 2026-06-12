@@ -13,8 +13,10 @@ import {
   Pause,
   Square,
   ArrowLeftRight,
+  Upload,
 } from 'lucide-react';
 import { AiCenteredSpinner } from '@/components/ai/AiCenteredSpinner';
+import { EditPDFTool } from '@/components/tools/edit-pdf/EditPDFTool';
 import { AI_UI } from '@/lib/ai-ui-classes';
 import {
   isPdfNoExtractableTextError,
@@ -26,8 +28,10 @@ import {
   clearReadAlongHighlight,
 } from '@/lib/pdf/pdf-read-along-highlight';
 import { useDocumentSpeech } from '@/lib/hooks/useDocumentSpeech';
-import { EditPDFTool } from '@/components/tools/edit-pdf/EditPDFTool';
+import { resolveAutoSummaryTier } from '@/lib/workspace-ai-auto-tier';
+import { WorkspaceAiAssistSection } from '@/components/workspace/WorkspaceAiAssistSection';
 import { WorkspaceAiMarkdown } from '@/components/workspace/WorkspaceAiMarkdown';
+import { markdownToPDF } from '@/lib/pdf/processors/markdown-to-pdf';
 import { useLocale, useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -37,10 +41,8 @@ import {
   saveWorkspaceAiAnswerLanguage,
 } from '@/lib/workspace-ai-language-preference';
 import {
-  WORKSPACE_SUMMARY_DETAIL_PRESETS,
-  WORKSPACE_CHAT_TOP_K_PRESETS,
-  WORKSPACE_DEFAULT_PRESET_TIER,
   WORKSPACE_AI_USER_KEY,
+  WORKSPACE_DEFAULT_PRESET_TIER,
   chatWithWorkspaceDocument,
   summarizeWorkspaceDocument,
   isWorkspaceChatNoContextAnswer,
@@ -61,11 +63,12 @@ import { runSmartOcr, parseOcrLanguageCodes } from '@/lib/pdf/processors/ocr';
 import {
   getWorkspaceFileKey,
   loadPersistedWorkspaceAi,
+  loadWorkspaceAiSession,
   savePersistedWorkspaceAi,
   type WorkspaceAiChatMessage,
 } from '@/lib/workspace-ai-persistence';
 
-type AIActionType = 'summary' | 'translate' | 'chat' | 'smartOcr' | 'voice';
+type AIActionType = 'assist' | 'summary' | 'translate' | 'chat' | 'smartOcr' | 'voice';
 
 interface AIToolPageClientProps {
   title: string;
@@ -269,18 +272,18 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
   const [result, setResult] = useState<AiToolResult>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [summaryTierId, setSummaryTierId] = useState<WorkspacePresetTierId>(WORKSPACE_DEFAULT_PRESET_TIER);
   const [answerLanguage, setAnswerLanguage] = useState(() => loadWorkspaceAiAnswerLanguage(locale));
   const [restoredHint, setRestoredHint] = useState<string | null>(null);
   const [copyDone, setCopyDone] = useState(false);
   const [summaryGeneratedAt, setSummaryGeneratedAt] = useState<number | null>(null);
   const [uploadDragOver, setUploadDragOver] = useState(false);
   const [documentId, setDocumentId] = useState<number | null>(null);
+  const [summaryTierId, setSummaryTierId] = useState<WorkspacePresetTierId>(WORKSPACE_DEFAULT_PRESET_TIER);
   const [chatMessages, setChatMessages] = useState<WorkspaceAiChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
-  const [chatTierId, setChatTierId] = useState<WorkspacePresetTierId>(WORKSPACE_DEFAULT_PRESET_TIER);
   const [isPreparingChat, setIsPreparingChat] = useState(false);
   const [isChatThinking, setIsChatThinking] = useState(false);
+  const [isEnsuringIndex, setIsEnsuringIndex] = useState(false);
   const [chatHint, setChatHint] = useState<string | null>(null);
   const [voiceSummaryText, setVoiceSummaryText] = useState<string | null>(null);
   const [isPreparingVoice, setIsPreparingVoice] = useState(false);
@@ -306,9 +309,12 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
   const [ocrProgress, setOcrProgress] = useState(0);
   const [ocrCopyDone, setOcrCopyDone] = useState(false);
   const [isOcrDownloadingPdf, setIsOcrDownloadingPdf] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
 
   const voicePdfIframeRef = useRef<HTMLIFrameElement | null>(null);
+  const assistFileInputRef = useRef<HTMLInputElement | null>(null);
+  const reindexKeyRef = useRef<string | null>(null);
   const voiceSegmentsRef = useRef<PdfSpeechSegment[]>([]);
 
   const handleVoicePdfIframeRef = useCallback((iframe: HTMLIFrameElement | null) => {
@@ -337,19 +343,22 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
     [ocrResultBlob],
   );
   const isSmartOcrPage = actionType === 'smartOcr';
+  const isAssistPage = actionType === 'assist';
   const isSummaryPage = actionType === 'summary';
   const isChatPage = actionType === 'chat';
   const isVoicePage = actionType === 'voice';
   const isTranslatePage = actionType === 'translate';
-  const isDenseAiPage = isSummaryPage || isChatPage || isVoicePage || isTranslatePage || isSmartOcrPage;
+  const isDenseAiPage =
+    isAssistPage || isSummaryPage || isChatPage || isVoicePage || isTranslatePage || isSmartOcrPage;
   const speechLang = useMemo(
     () => getSpeechLangForWorkspaceAiAnswerLanguage(answerLanguage),
     [answerLanguage],
   );
   const voiceReady = Boolean(voiceSummaryText?.trim());
-  const chatReady = documentId != null;
-  const chatPreset = getWorkspaceChatTopKPreset(chatTierId);
-  const summaryPreset = getWorkspaceSummaryDetailPreset(summaryTierId);
+  const chatReady =
+    isAssistPage
+      ? documentId != null && Boolean(getSummaryTextFromResult(result).trim()) && !isEnsuringIndex
+      : documentId != null;
 
   useEffect(() => {
     return () => {
@@ -468,26 +477,62 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
         setResult(null);
         setDocumentId(null);
         setChatMessages([]);
+        setSummaryTierId(WORKSPACE_DEFAULT_PRESET_TIER);
         setVoiceSummaryText(null);
         return;
       }
       setResult(null);
       setDocumentId(null);
+      setSummaryTierId(WORKSPACE_DEFAULT_PRESET_TIER);
       setVoiceSummaryText(null);
-      if (actionType === 'summary') {
+      if (actionType === 'assist') {
+        const session = loadWorkspaceAiSession(next);
+        if (session) {
+          setResult({
+            summary: session.summaryText,
+            markdown: session.summaryText,
+            document_id: session.documentId,
+            documentId: session.documentId,
+            fileName: next.name,
+          });
+          setDocumentId(session.documentId);
+          setSummaryTierId(session.summaryTierId ?? WORKSPACE_DEFAULT_PRESET_TIER);
+          setChatMessages(session.messages);
+          if (session.answerLanguage) setAnswerLanguage(session.answerLanguage);
+          setRestoredHint(t('aiChatPage.restoredFileHint', { name: next.name }));
+          reindexKeyRef.current = null;
+        } else {
+          setChatMessages([]);
+          restoreSummaryForFile(next);
+          const restored = loadStoredSummary();
+          if (
+            restored &&
+            restored.fileName === next.name &&
+            restored.fileSize === next.size &&
+            restored.fileModified === next.lastModified
+          ) {
+            setDocumentId(restored.documentId);
+          }
+          reindexKeyRef.current = null;
+        }
+      } else if (actionType === 'summary') {
         setChatMessages([]);
         restoreSummaryForFile(next);
       } else if (actionType === 'chat') {
-        const stored = loadPersistedWorkspaceAi(next);
-        if (stored) {
-          setDocumentId(stored.documentId);
-          setChatMessages(stored.messages ?? []);
-          if (stored.chatTierId) setChatTierId(stored.chatTierId);
-          if (stored.answerLanguage) setAnswerLanguage(stored.answerLanguage);
-          setChatHint(t('aiChatPage.documentReady'));
+        const session = loadWorkspaceAiSession(next);
+        if (session) {
+          setDocumentId(session.documentId);
+          setSummaryTierId(session.summaryTierId ?? WORKSPACE_DEFAULT_PRESET_TIER);
+          setChatMessages(session.messages);
+          if (session.answerLanguage) setAnswerLanguage(session.answerLanguage);
+          if (session.documentId != null) {
+            setChatHint(t('aiChatPage.documentReady'));
+          }
           setRestoredHint(t('aiChatPage.restoredFileHint', { name: next.name }));
+          reindexKeyRef.current = null;
         } else {
           setChatMessages([]);
+          reindexKeyRef.current = null;
         }
       } else {
         setChatMessages([]);
@@ -511,12 +556,11 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
         savePersistedWorkspaceAi(file!, {
           documentId: newDocumentId,
           summaryText: text,
-          summaryTierId,
           answerLanguage,
         });
       }
     },
-    [answerLanguage, file, locale, summaryTierId, t],
+    [answerLanguage, file, locale, t],
   );
 
   const prepareVoiceDocument = useCallback(async () => {
@@ -538,8 +582,9 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
         return;
       }
 
+      const voiceSummaryDetail = getWorkspaceSummaryDetailPreset(resolveAutoSummaryTier(false)).detail;
       const { text: apiText, documentId: newId } = await summarizeWorkspaceDocument(file, {
-        detail: summaryPreset.detail,
+        detail: voiceSummaryDetail,
         userKey: WORKSPACE_AI_USER_KEY,
         language: answerLanguage,
       });
@@ -569,7 +614,7 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
     } finally {
       setIsPreparingVoice(false);
     }
-  }, [file, summaryPreset.detail, answerLanguage, applyVoiceReadiness, speech, t]);
+  }, [file, answerLanguage, applyVoiceReadiness, speech, t]);
 
   const voiceFileKey = file ? getWorkspaceFileKey(file) : '';
 
@@ -580,27 +625,101 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
   }, [isVoicePage, voiceFileKey]);
 
   useEffect(() => {
-    if (!isChatPage || !file || documentId == null) return;
+    if (!(isAssistPage || isChatPage) || !file || documentId == null) return;
     const existing = loadPersistedWorkspaceAi(file);
-    const summaryText = existing?.summaryText;
+    const summaryText = getSummaryTextFromResult(result) || existing?.summaryText;
     if (!summaryText?.trim()) return;
     savePersistedWorkspaceAi(file, {
       documentId,
       summaryText,
       summaryTierId,
-      chatTierId,
       answerLanguage,
       messages: chatMessages,
-      aiTab: 'chat',
+      aiTab: isAssistPage ? 'assist' : 'chat',
     });
   }, [
+    isAssistPage,
     isChatPage,
     file,
     documentId,
     summaryTierId,
-    chatTierId,
     answerLanguage,
     chatMessages,
+    result,
+  ]);
+
+  const applyDocumentIndex = useCallback(
+    (newDocumentId: number, text?: string) => {
+      const nextSummary = text?.trim() || getSummaryTextFromResult(result);
+      if (!nextSummary || !file) return;
+      setDocumentId(newDocumentId);
+      setResult({
+        summary: nextSummary,
+        markdown: nextSummary,
+        document_id: newDocumentId,
+        documentId: newDocumentId,
+        fileName: file.name,
+      });
+      savePersistedWorkspaceAi(file, {
+        documentId: newDocumentId,
+        summaryText: nextSummary,
+        summaryTierId,
+        answerLanguage,
+        messages: chatMessages,
+        aiTab: isAssistPage ? 'assist' : 'chat',
+      });
+    },
+    [file, result, summaryTierId, answerLanguage, chatMessages, isAssistPage],
+  );
+
+  const assistSummaryText = getSummaryTextFromResult(result);
+
+  useEffect(() => {
+    if (!isAssistPage || !file || documentId != null || !assistSummaryText.trim() || loading || isChatThinking) return;
+    const key = getWorkspaceFileKey(file);
+    if (reindexKeyRef.current === key) return;
+
+    let cancelled = false;
+    reindexKeyRef.current = key;
+    setIsEnsuringIndex(true);
+    setChatHint(t('aiPanel.chatReindexing'));
+
+    void summarizeWorkspaceDocument(file, {
+      detail: getWorkspaceSummaryDetailPreset(summaryTierId).detail,
+      userKey: WORKSPACE_AI_USER_KEY,
+      language: answerLanguage,
+    })
+      .then(({ text, documentId: newId }) => {
+        if (cancelled) return;
+        if (newId == null) {
+          setChatHint(t('aiPanel.summaryMissingDocumentId'));
+          return;
+        }
+        applyDocumentIndex(newId, text || assistSummaryText);
+        setChatHint(t('aiPanel.chatReady'));
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : t('aiPanel.summaryError'));
+      })
+      .finally(() => {
+        if (!cancelled) setIsEnsuringIndex(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    isAssistPage,
+    file,
+    documentId,
+    assistSummaryText,
+    summaryTierId,
+    loading,
+    isChatThinking,
+    answerLanguage,
+    applyDocumentIndex,
+    t,
   ]);
 
   const voiceStatusLabel = useMemo(() => {
@@ -649,8 +768,63 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
     [speech, speechLang, voiceSummaryText],
   );
 
+  const runAssistSummary = useCallback(async () => {
+    if (!file) return;
+    const tierId = summaryTierId;
+    const summaryDetail = getWorkspaceSummaryDetailPreset(tierId).detail;
+    setLoading(true);
+    setError(null);
+    setRestoredHint(null);
+    setChatHint(null);
+    setDocumentId(null);
+    setChatMessages([]);
+    try {
+      const { text, documentId: newId } = await summarizeWorkspaceDocument(file, {
+        detail: summaryDetail,
+        userKey: WORKSPACE_AI_USER_KEY,
+        language: answerLanguage,
+      });
+      if (!text.trim()) {
+        setError(t('aiPanel.summaryEmpty'));
+        return;
+      }
+      if (newId == null) {
+        setError(t('aiPanel.summaryMissingDocumentId'));
+        return;
+      }
+      const at = Date.now();
+      setResult({
+        summary: text,
+        markdown: text,
+        document_id: newId,
+        documentId: newId,
+        fileName: file.name,
+      });
+      setDocumentId(newId);
+      setSummaryTierId(tierId);
+      setSummaryGeneratedAt(at);
+      saveStoredSummary(file, text, newId, answerLanguage);
+      savePersistedWorkspaceAi(file, {
+        documentId: newId,
+        summaryText: text,
+        summaryTierId: tierId,
+        answerLanguage,
+        messages: [],
+        aiTab: 'assist',
+      });
+      saveWorkspaceAiAnswerLanguage(answerLanguage, locale);
+      setChatHint(t('aiPanel.chatReady'));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('aiPanel.summaryError'));
+    } finally {
+      setLoading(false);
+    }
+  }, [file, summaryTierId, answerLanguage, locale, t]);
+
   const prepareChatDocument = useCallback(async () => {
     if (!file) return;
+    const tierId = summaryTierId;
+    const summaryDetail = getWorkspaceSummaryDetailPreset(tierId).detail;
     setIsPreparingChat(true);
     setError(null);
     setChatHint(null);
@@ -658,7 +832,7 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
     setChatMessages([]);
     try {
       const { text, documentId: newId } = await summarizeWorkspaceDocument(file, {
-        detail: summaryPreset.detail,
+        detail: summaryDetail,
         userKey: WORKSPACE_AI_USER_KEY,
         language: answerLanguage,
       });
@@ -667,11 +841,11 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
         return;
       }
       setDocumentId(newId);
+      setSummaryTierId(tierId);
       savePersistedWorkspaceAi(file, {
         documentId: newId,
         summaryText: text,
-        summaryTierId,
-        chatTierId,
+        summaryTierId: tierId,
         answerLanguage,
         messages: [],
         aiTab: 'chat',
@@ -683,7 +857,7 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
     } finally {
       setIsPreparingChat(false);
     }
-  }, [file, summaryPreset.detail, answerLanguage, summaryTierId, chatTierId, locale, t]);
+  }, [file, summaryTierId, answerLanguage, locale, t]);
 
   const handleSendChatMessage = useCallback(async () => {
     const content = chatInput.trim();
@@ -701,9 +875,10 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
     setChatHint(null);
 
     try {
+      const chatTopK = getWorkspaceChatTopKPreset(summaryTierId).topK;
       const chatOpts = {
         question: content,
-        topK: chatPreset.topK,
+        topK: chatTopK,
         userKey: WORKSPACE_AI_USER_KEY,
         language: answerLanguage,
       };
@@ -713,24 +888,15 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
 
       if (isWorkspaceChatNoContextAnswer(answer)) {
         setChatHint(t('aiPanel.chatReindexing'));
-        setDocumentId(null);
+        const reindexDetail = getWorkspaceSummaryDetailPreset(summaryTierId).detail;
         const refreshed = await summarizeWorkspaceDocument(file, {
-          detail: summaryPreset.detail,
+          detail: reindexDetail,
           userKey: WORKSPACE_AI_USER_KEY,
           language: answerLanguage,
         });
         if (refreshed.documentId != null) {
           activeDocId = refreshed.documentId;
-          setDocumentId(refreshed.documentId);
-          savePersistedWorkspaceAi(file, {
-            documentId: refreshed.documentId,
-            summaryText: refreshed.text,
-            summaryTierId,
-            chatTierId,
-            answerLanguage,
-            messages: chatMessages,
-            aiTab: 'chat',
-          });
+          applyDocumentIndex(refreshed.documentId, refreshed.text);
           answer = await chatWithWorkspaceDocument({ ...chatOpts, documentId: activeDocId });
         }
       }
@@ -751,14 +917,12 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
   }, [
     chatInput,
     chatMessages,
-    chatPreset.topK,
     documentId,
     file,
     isChatThinking,
     answerLanguage,
-    summaryPreset.detail,
     summaryTierId,
-    chatTierId,
+    applyDocumentIndex,
     t,
   ]);
 
@@ -770,9 +934,10 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
 
     try {
       if (actionType === 'summary') {
-        const preset = WORKSPACE_SUMMARY_DETAIL_PRESETS.find((p) => p.id === summaryTierId);
+        const regenerate = Boolean(getSummaryTextFromResult(result).trim());
+        const summaryDetail = getWorkspaceSummaryDetailPreset(resolveAutoSummaryTier(regenerate)).detail;
         const data = (await summarizePdf(file, {
-          detail: preset?.detail,
+          detail: summaryDetail,
           language: answerLanguage,
         })) as SummaryResult;
         const withMeta = { ...data, fileName: file.name };
@@ -897,6 +1062,26 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
       setError(tWorkspace('aiPanel.copyFailed'));
     }
   }, [summaryText, tWorkspace]);
+
+  const handleExportSummaryPdf = useCallback(async () => {
+    if (!summaryText?.trim() || !file) return;
+    setIsExportingPdf(true);
+    setError(null);
+    try {
+      const base = file.name.replace(/\.pdf$/i, '') || 'document';
+      const mdFile = new File([summaryText], `${base}-summary.md`, { type: 'text/markdown' });
+      const out = await markdownToPDF(mdFile, { theme: 'light', gfm: true });
+      if (!out.success || !out.result) {
+        throw new Error(out.error?.message ?? t('aiPanel.exportFailed'));
+      }
+      const blob = Array.isArray(out.result) ? out.result[0] : out.result;
+      downloadBlob(blob, out.filename ?? `${base}-summary.pdf`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('aiPanel.exportFailed'));
+    } finally {
+      setIsExportingPdf(false);
+    }
+  }, [file, summaryText, t]);
 
   const handleOcrCopy = useCallback(async () => {
     if (!isOcrTextResult(result) || !result.text.trim()) return;
@@ -1046,6 +1231,16 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
 
   const summaryWordCount = countSummaryWords(summaryText);
   const modelLabel = t('aiSummaryPage.modelLabel');
+  const assistPanelCardTone = isDarkTheme
+    ? 'border-[#263241] bg-[#111820]'
+    : 'border-[hsl(var(--color-border))] bg-[hsl(var(--color-card))]';
+  const assistPanelSoftTone = isDarkTheme
+    ? 'bg-[#111820] border-[#263241]'
+    : 'bg-[#EEF2F6] border-[#E2E8F0]';
+  const assistPanelTextMuted = isDarkTheme ? 'text-[#8B949E]' : 'text-[hsl(var(--color-muted-foreground))]';
+  const assistInputTone = isDarkTheme
+    ? 'border-[#2F3A4A] bg-[#0F141B] text-[#E2E8F0] placeholder:text-[#64748B]'
+    : 'border-[#DCE1E7] bg-white text-[hsl(var(--color-foreground))] placeholder:text-[hsl(var(--color-muted-foreground))]';
 
   const pickFileFromDrop = useCallback(
     (list: FileList | null) => {
@@ -1056,6 +1251,40 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
     },
     [handleFileSelect],
   );
+
+  const openAssistFilePicker = useCallback(() => {
+    assistFileInputRef.current?.click();
+  }, []);
+
+  const assistSectionProps = {
+    file,
+    isDarkTheme,
+    summaryText,
+    isSummarizing: loading,
+    messages: chatMessages,
+    chatInput,
+    onChatInputChange: setChatInput,
+    onSendMessage: () => void handleSendChatMessage(),
+    isAiThinking: isChatThinking,
+    chatReady,
+    documentId,
+    answerLanguage,
+    onAnswerLanguageChange: (lang: string) => {
+      setAnswerLanguage(lang);
+      saveWorkspaceAiAnswerLanguage(lang, locale);
+    },
+    sessionTierId: summaryTierId,
+    onSessionTierIdChange: setSummaryTierId,
+    onRunSummary: () => void runAssistSummary(),
+    onCopySummary: () => void handleCopySummary(),
+    onExportSummaryPdf: () => void handleExportSummaryPdf(),
+    copyDone,
+    isExportingPdf,
+    panelCardTone: assistPanelCardTone,
+    panelSoftTone: assistPanelSoftTone,
+    panelTextMuted: assistPanelTextMuted,
+    inputTone: assistInputTone,
+  };
 
   return (
     <section
@@ -1088,7 +1317,7 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
         <div
           className={
             isDenseAiPage
-              ? `grid grid-cols-1 xl:grid-cols-[minmax(300px,380px)_1fr] gap-6 ${isSummaryPage || isChatPage || isVoicePage || isTranslatePage || isSmartOcrPage ? 'items-stretch' : 'items-start'}`
+              ? `grid grid-cols-1 xl:grid-cols-[minmax(300px,380px)_1fr] gap-6 ${isAssistPage || isSummaryPage || isChatPage || isVoicePage || isTranslatePage || isSmartOcrPage ? 'items-stretch' : 'items-start'}`
               : 'grid grid-cols-1 lg:grid-cols-2 gap-6'
           }
         >
@@ -1097,7 +1326,84 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
               isDenseAiPage ? 'p-4 xl:sticky xl:top-28' : 'p-6'
             } ${isVoicePage ? 'flex flex-col min-h-[min(calc(100dvh-11rem),840px)]' : ''}`}
           >
-            {isSummaryPage ? (
+            {isAssistPage ? (
+              <div className="flex flex-col gap-4">
+                <input
+                  ref={assistFileInputRef}
+                  type="file"
+                  className="hidden"
+                  accept=".pdf,application/pdf"
+                  onChange={(e) => handleFileSelect(e.target.files?.[0] ?? null)}
+                />
+
+                {file ? (
+                  <div className="rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.12)] p-3 space-y-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText className="h-4 w-4 shrink-0 text-[hsl(var(--color-primary))]" />
+                      <span className="text-[12px] truncate font-medium">{file.name}</span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full gap-2"
+                      onClick={openAssistFilePicker}
+                    >
+                      <Upload className="h-4 w-4" aria-hidden />
+                      {t('aiSummaryPage.uploadDropHint')}
+                    </Button>
+                  </div>
+                ) : (
+                  <div
+                    className={`rounded-xl border-2 border-dashed px-4 py-5 text-center transition-all ${
+                      uploadDragOver
+                        ? 'border-[hsl(var(--color-primary))] bg-[hsl(var(--color-primary)/0.06)]'
+                        : 'border-[hsl(var(--color-border))] bg-[hsl(var(--color-muted)/0.08)]'
+                    }`}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setUploadDragOver(true);
+                    }}
+                    onDragLeave={() => setUploadDragOver(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setUploadDragOver(false);
+                      pickFileFromDrop(e.dataTransfer.files);
+                    }}
+                  >
+                    <Upload className="mx-auto h-8 w-8 text-[hsl(var(--color-primary))]" aria-hidden />
+                    <p className="mt-2 text-[14px] font-semibold text-[hsl(var(--color-foreground))]">
+                      {t('aiSummaryPage.uploadTitle')}
+                    </p>
+                    <p className="mt-1 text-[12px] text-[hsl(var(--color-muted-foreground))]">
+                      {t('aiSummaryPage.uploadFormats')}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="md"
+                      className={`mt-4 w-full ${AI_UI.gradientBtn}`}
+                      onClick={openAssistFilePicker}
+                    >
+                      <Upload className="h-4 w-4" aria-hidden />
+                      {t('aiSummaryPage.uploadDropHint')}
+                    </Button>
+                  </div>
+                )}
+
+                <WorkspaceAiAssistSection {...assistSectionProps} layout="controls" />
+
+                {error && <p className="text-[12px] text-red-500 leading-snug">{error}</p>}
+                {restoredHint && (
+                  <p className="text-[11px] text-[hsl(var(--color-muted-foreground))] leading-snug">
+                    {restoredHint}
+                  </p>
+                )}
+                {chatHint && !error && (
+                  <p className="text-[11px] text-[hsl(var(--color-primary))] leading-snug">{chatHint}</p>
+                )}
+              </div>
+            ) : isSummaryPage ? (
               <>
                 <label
                   className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 cursor-pointer transition-all ${
@@ -1158,28 +1464,6 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                     }}
                     disabled={loading}
                   />
-                  <div>
-                    <p className="text-[11px] font-medium text-[hsl(var(--color-foreground))] mb-1.5">
-                      {t('aiPanel.summaryDetail.label')}
-                    </p>
-                    <div className="flex gap-1">
-                      {WORKSPACE_SUMMARY_DETAIL_PRESETS.map((preset) => (
-                        <button
-                          key={preset.id}
-                          type="button"
-                          disabled={loading}
-                          onClick={() => setSummaryTierId(preset.id)}
-                          className={`flex-1 rounded-lg py-1.5 text-[11px] font-medium border transition-all disabled:opacity-40 ${
-                            summaryTierId === preset.id
-                              ? 'bg-[hsl(var(--color-primary)/0.15)] border-[hsl(var(--color-primary)/0.4)] text-[hsl(var(--color-primary))]'
-                              : 'border-[hsl(var(--color-border))] text-[hsl(var(--color-muted-foreground))] hover:bg-[hsl(var(--color-muted))]/50'
-                          }`}
-                        >
-                          {t(`aiPanel.summaryDetail.${preset.id}.title`)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
                 </div>
 
                 <AiGradientButton
@@ -1257,30 +1541,6 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                     }}
                     disabled={isPreparingChat || isChatThinking}
                   />
-                  {chatReady && (
-                    <div>
-                      <p className="text-[11px] font-medium text-[hsl(var(--color-foreground))] mb-1.5">
-                        {t('aiPanel.chatContext.label')}
-                      </p>
-                      <div className="flex gap-1">
-                        {WORKSPACE_CHAT_TOP_K_PRESETS.map((preset) => (
-                          <button
-                            key={preset.id}
-                            type="button"
-                            disabled={isPreparingChat || isChatThinking}
-                            onClick={() => setChatTierId(preset.id)}
-                            className={`flex-1 rounded-lg py-1.5 text-[11px] font-medium border transition-all disabled:opacity-40 ${
-                              chatTierId === preset.id
-                                ? 'bg-[hsl(var(--color-primary)/0.15)] border-[hsl(var(--color-primary)/0.4)] text-[hsl(var(--color-primary))]'
-                                : 'border-[hsl(var(--color-border))] text-[hsl(var(--color-muted-foreground))] hover:bg-[hsl(var(--color-muted))]/50'
-                            }`}
-                          >
-                            {t(`aiPanel.chatContext.${preset.id}.title`)}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {!chatReady && file && (
@@ -1793,7 +2053,13 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
             )}
           </Card>
 
-          {isSummaryPage ? (
+          {isAssistPage ? (
+              <Card
+                className={`p-4 border ${AI_UI.cardBorder} ${AI_UI.cardBg} flex flex-col min-h-[min(calc(100dvh-11rem),840px)] h-full shadow-sm`}
+              >
+                <WorkspaceAiAssistSection {...assistSectionProps} layout="conversation" />
+              </Card>
+          ) : isSummaryPage ? (
               <Card
                 className={`p-4 border ${AI_UI.cardBorder} ${AI_UI.cardBg} flex flex-col min-h-[min(calc(100dvh-11rem),840px)] h-full shadow-sm`}
               >

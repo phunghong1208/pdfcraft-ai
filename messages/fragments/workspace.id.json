@@ -139,11 +139,19 @@
   "aiPanel": {
     "title": "Asisten AI",
     "tabs": {
+      "assist": "Ringkasan dan obrolan",
       "chat": "Obrolan",
       "summary": "Ringkasan",
       "translate": "Terjemahkan",
       "voice": "Wawasan"
     },
+    "summarySection": "Ringkasan",
+    "chatSection": "Tanya jawab",
+    "suggestedQuestions": "Pertanyaan yang disarankan:",
+    "suggestedQ1": "Ceritakan lebih lanjut tentang:",
+    "suggestedQ2": "Apa yang perlu diperhatikan dalam dokumen ini?",
+    "suggestedQ3": "Ringkas langkah-langkah yang diperlukan",
+    "assistHint": "Buat ringkasan dulu — lalu tanyakan di bawah.",
     "detected": "Terdeteksi",
     "documentLoaded": "Dokumen dimuat",
     "pageDocument": "Dokumen {count} halaman",

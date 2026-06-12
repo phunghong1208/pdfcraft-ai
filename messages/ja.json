@@ -123,8 +123,8 @@
     "upgradeTitle": "プランをアップグレード",
     "footer": {
       "brandName": "PDF リーダー ワークスペース",
-      "brandLine1": "PDFリーダー",
-      "brandLine2": "ワークスペース",
+      "brandLine1": "PDF Reader",
+      "brandLine2": "Workspace",
       "tagline": "プライベート AI ワークスペース",
       "trustLocalFirst": "ローカルファースト",
       "trustLocalFirstDesc": "サーバーアップロードなし",
@@ -140,9 +140,9 @@
       "trustGroupPlatform": "プラットフォーム",
       "trustGroupDownload": "アプリをダウンロード",
       "storeGetOn": "それを着てください",
-      "storeGooglePlay": "Googleプレイ",
+      "storeGooglePlay": "Google Play",
       "storeDownloadOn": "でダウンロードしてください",
-      "storeAppStore": "アプリストア",
+      "storeAppStore": "App Store",
       "downloadApp": "アプリをダウンロード",
       "availableOn": "で利用可能",
       "googlePlayAria": "Google Play で入手",
@@ -155,14 +155,6 @@
       "cookies": "Cookie",
       "privacyBadge": "100% プライベート — ファイルがデバイスから流出することはありません",
       "privacyBadgeSub": "ドキュメントはブラウザで安全に処理されます",
-      "resources": "リソース",
-      "security": "セキュリティ",
-      "compliance": "コンプライアンス",
-      "gdprCompliant": "GDPR準拠",
-      "clientSideProcessing": "クライアント側処理",
-      "filesNeverLeave": "ファイルはデバイスから送信されません",
-      "noUploads": "ファイルのアップロードなし",
-      "privateSecure": "100%プライベートで安全",
       "footer": "© 2025 PDFクラフト。無断転載を禁じます。",
       "ctaHeadline": "PDF を使ってよりスマートに作業する準備はできていますか?",
       "ctaSubtitle": "AI を使用してドキュメントをアップロード、編集、要約し、チャットします。",
@@ -171,6 +163,8 @@
       "copyrightName": "PDF リーダー ワークスペース",
       "product": "製品",
       "madeWith": "<Heart /> と <Nextjs /> で作成されました",
+      "resources": "リソース",
+      "security": "セキュリティ",
       "documentation": "ドキュメント",
       "editPdf": "PDFの編集",
       "compressPdf": "PDFを圧縮する",
@@ -202,7 +196,13 @@
       "featureOcr": "OCR",
       "featureProtect": "守る",
       "featuresNav": "ワークスペースの機能",
-      "copyrightShort": "© {年} PDF"
+      "copyrightShort": "© {年} PDF",
+      "compliance": "コンプライアンス",
+      "gdprCompliant": "GDPR準拠",
+      "clientSideProcessing": "クライアント側処理",
+      "filesNeverLeave": "ファイルはデバイスから送信されません",
+      "noUploads": "ファイルのアップロードなし",
+      "privateSecure": "100%プライベートで安全"
     },
     "recentFiles": {
       "title": "最近のファイル",
@@ -317,7 +317,8 @@
         "pageNumbers": "ページ番号",
         "headerFooter": "ヘッダーとフッター",
         "convertToPdf": "PDFに変換",
-        "convertFromPdf": "PDFから変換"
+        "convertFromPdf": "PDFから変換",
+        "assistPdf": "Summary and Chat"
       }
     },
     "faqPage": {
@@ -570,7 +571,8 @@
       "translate": "文書全体を他の言語に翻訳します。",
       "voice": "PDF を瞬時に自然音声に変換します。",
       "ocr": "スキャンを編集可能な PDF に変換します。",
-      "chat": "ファイルについて質問すると、すぐに回答が得られます。"
+      "chat": "ファイルについて質問すると、すぐに回答が得られます。",
+      "assist": "Summarize your PDF, then ask questions in one flow."
     },
     "toolDescriptions": {
       "scanToPdf": "画像を瞬時に PDF に変換",
@@ -599,7 +601,8 @@
       "scanToPdf": "スキャンしてPDF",
       "split": "分割",
       "protect": "保護",
-      "ocrText": "OCRテキスト"
+      "ocrText": "OCRテキスト",
+      "assist": "Summary and Chat"
     }
   },
   "toolsPage": {
@@ -632,6 +635,10 @@
       "summarize": {
         "label": "AI要約",
         "description": "あらゆるPDFから重要な洞察を抽出。"
+      },
+      "assist": {
+        "label": "Summary & Chat",
+        "description": "Summarize your PDF, then ask questions in one flow."
       },
       "translate": {
         "label": "AI翻訳",
@@ -2061,8 +2068,6 @@
       "processButton": "OCRを開始する",
       "previewTitle": "抽出されたテキストのプレビュー",
       "successMessage": "OCR が正常に完了しました。ダウンロード ボタンをクリックしてファイルを保存します。",
-      "infoTitle": "OCRについて",
-      "infoText": "OCR (光学文字認識) は、スキャンした文書や画像からテキストを抽出します。最良の結果を得るには、高品質のスキャンを使用し、正しい言語を選択してください。",
       "optimize": "最適化",
       "optimizeNone": "なし",
       "optimizeDefault": "デフォルト",
@@ -2071,7 +2076,9 @@
       "rotatePages": "ページの自動回転",
       "removeBackground": "背景を削除する",
       "clean": "OCR前にページをクリーンアップする",
-      "forceOcr": "強制 OCR (テキストが存在する場合でも再 OCR)"
+      "forceOcr": "強制 OCR (テキストが存在する場合でも再 OCR)",
+      "infoTitle": "OCRについて",
+      "infoText": "OCR (光学文字認識) は、スキャンした文書や画像からテキストを抽出します。最良の結果を得るには、高品質のスキャンを使用し、正しい言語を選択してください。"
     },
     "linearizePdf": {
       "uploadLabel": "PDF ファイルをアップロードする",
@@ -2280,6 +2287,7 @@
       "formatNumber": "数字 (1, 2, 3)",
       "formatRoman": "ローマ数字 (I, II, III)",
       "formatPageOfTotal": "X / Y ページ",
+      "appearanceTitle": "外観",
       "styleTitle": "スタイル",
       "style": "スタイル",
       "startNumber": "開始番号",
@@ -2287,12 +2295,16 @@
       "customFormatHint": "{page} と {total} をプレースホルダーとして使用",
       "prefix": "接頭辞",
       "suffix": "接尾辞",
+      "prefixPlaceholder": "例: ページ",
+      "suffixPlaceholder": "例: -",
       "fontSize": "フォントサイズ",
       "margin": "余白",
       "color": "色",
       "skipFirstPage": "最初のページをスキップ（表紙）",
+      "fileMeta": "{サイズ} • {pages} ページ",
       "preview": "プレビュー",
       "pageOf": "{current} / {total} ページ",
+      "previewPageOf": "ページ {現在}/{合計}",
       "firstPageSkipped": "最初のページはスキップされます",
       "previewText": "プレビュー：「{text}」",
       "addButton": "ページ番号を追加",
@@ -2316,12 +2328,7 @@
       "posBottomRight": "右下",
       "posTopLeft": "左上",
       "posTopCenter": "上中央",
-      "posTopRight": "右上",
-      "appearanceTitle": "外観",
-      "prefixPlaceholder": "例: ページ",
-      "suffixPlaceholder": "例: -",
-      "fileMeta": "{サイズ} • {pages} ページ",
-      "previewPageOf": "ページ {現在}/{合計}"
+      "posTopRight": "右上"
     },
     "watermark": {
       "uploadLabel": "PDFファイルをアップロードする",
@@ -2376,13 +2383,6 @@
       "footerTitle": "フッター",
       "footerText": "フッターテキスト",
       "footerTextPlaceholder": "フッターテキストを入力...",
-      "styleTitle": "スタイル",
-      "fontSize": "フォントサイズ",
-      "fontColor": "フォントの色",
-      "preview": "プレビュー",
-      "previewHint": "ヘッダーまたはフッターのテキストを入力してプレビューを表示します",
-      "addButton": "ヘッダーとフッターを追加する",
-      "successMessage": "ヘッダーとフッターが正常に追加されました。",
       "positionLeft": "左",
       "positionCenter": "中心",
       "positionRight": "右",
@@ -2394,15 +2394,22 @@
       "footerRightPlaceholder": "例: 「{日付}」",
       "quickInsertTitle": "クイックインサート",
       "quickInsertHint": "クリックしてコピーし、任意のフィールドに貼り付けます",
+      "styleTitle": "スタイル",
+      "fontSize": "フォントサイズ",
+      "fontColor": "フォントの色",
       "margin": "マージン(pt)",
       "pageRange": "ページ範囲",
       "pageRangePlaceholder": "例: すべてまたは 1-5、8、10-12",
       "pageRangeHint": "すべてのページに「all」を使用するか、「1-5、8、10-12」のような範囲を指定します。",
       "skipFirstPage": "最初のページ (表紙) をスキップする",
       "fileMeta": "{サイズ} • {pages} ページ",
+      "preview": "プレビュー",
       "previewPageOf": "ページ {現在}/{合計}",
+      "previewHint": "ヘッダーまたはフッターのテキストを入力してプレビューを表示します",
       "pageApplied": "このページにヘッダー/フッターが追加されます",
-      "pageSkipped": "このページはスキップされます"
+      "pageSkipped": "このページはスキップされます",
+      "addButton": "ヘッダーとフッターを追加する",
+      "successMessage": "ヘッダーとフッターが正常に追加されました。"
     },
     "invertColors": {
       "uploadLabel": "PDFファイルをアップロードする",
@@ -2941,6 +2948,11 @@
         "description": "PDF をアップロードすると、AI が生成した簡潔な概要が表示されます。",
         "action": "概要の生成"
       },
+      "assist": {
+        "title": "Summary & Chat",
+        "description": "Summarize your PDF, then ask follow-up questions in one place.",
+        "action": "Open AI assistant"
+      },
       "translate": {
         "title": "AI翻訳",
         "description": "PDF をアップロードし、AI サーバーでコンテンツを翻訳します。",
@@ -2992,6 +3004,7 @@
       "organize": "整理",
       "output": "出力",
       "history": "履歴",
+      "content": "Content",
       "page": "ページ",
       "insert": "挿入",
       "save": "保存",
@@ -3165,6 +3178,10 @@
           "title": "詳細"
         }
       },
+      "sessionTier": {
+        "label": "Level",
+        "hint": "Chat uses the same level as the summary"
+      },
       "chatContext": {
         "label": "チャットの深さ",
         "light": {
@@ -3178,36 +3195,49 @@
         }
       },
       "generateSummary": "要約を生成",
+      "refreshSummary": "Update summary",
+      "regenerateSummary": "Update summary",
       "summaryPlaceholder": "要約を実行して、この PDF の AI ハイライトを表示します。",
       "summaryDone": "概要が準備できました。 [概要] タブを開いて読んでください。",
       "documentId": "ドキュメント ID: {id}",
       "previewPdf": "PDF プレビュー",
       "title": "AIアシスタント",
       "tabs": {
+        "assist": "要約とチャット",
         "chat": "チャット",
         "summary": "要約",
         "translate": "翻訳",
         "voice": "インサイト"
       },
+      "summarySection": "要約",
+      "chatSection": "Q&A",
+      "suggestedQuestions": "おすすめの質問:",
+      "suggestedQ1": "詳しく教えてください:",
+      "suggestedQ2": "この文書で注意すべき点は？",
+      "suggestedQ3": "必要な手順を簡潔にまとめて",
+      "assistHint": "まず要約を作成 — その後、下で質問できます。",
+      "summaryEmpty": "The model returned an empty summary. Try Smart OCR for scanned PDFs, or use Medium/Deep detail.",
       "translateComingSoon": "ドキュメント翻訳 — 近日公開予定。",
       "translate": {
         "run": "Translate document",
         "tiles": {
           "pdf": "PDF",
           "ocr": "OCR",
-          "text": "Text",
+          "blocks": "Blocks",
           "ai": "AI translate",
-          "output": "New PDF"
+          "output": "Render"
         },
         "stageCheck": "Checking text layer…",
         "stageOcr": "Running OCR…",
-        "stageTranslate": "Translating with AI…",
-        "stagePdf": "Building PDF…",
+        "stageBlocks": "Extracting layout blocks…",
+        "stageTranslate": "Translating each block…",
+        "stagePdf": "Rendering PDF…",
         "stageDone": "Done.",
         "error": "Translation failed.",
         "ocrApplied": "OCR was applied before translation (scanned or no text layer).",
         "applyToWorkspace": "Apply to workspace",
-        "applied": "Workspace PDF replaced with the translation."
+        "applied": "Workspace PDF replaced with the translation.",
+        "pdfReady": "Translated PDF is ready (layout preserved). Download or apply to workspace."
       },
       "voice": {
         "subtitle": "内蔵のブラウザ音声でドキュメントを聞く",

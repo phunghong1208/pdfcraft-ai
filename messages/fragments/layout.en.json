@@ -50,6 +50,7 @@
     "convert": "Convert",
     "workspace": "Workspace",
     "summarizePdf": "Summarize PDF",
+    "assistPdf": "Summary and Chat",
     "translatePdf": "Translate PDF",
     "chatWithPdf": "Chat with PDF",
     "smartOcr": "Smart OCR",
@@ -101,6 +102,7 @@
     },
     "aiDescriptions": {
       "summarize": "Extract key insights from any PDF.",
+      "assist": "Summarize your PDF, then ask questions in one flow.",
       "translate": "Translate entire documents into other languages.",
       "voice": "Convert PDF to natural speech instantly.",
       "ocr": "Convert scans to editable PDF.",
@@ -122,6 +124,7 @@
     "preparingWorkspace": "Preparing AI workspace...",
     "actions": {
       "summarize": "Summarize",
+      "assist": "Summary and Chat",
       "translate": "Translate document",
       "chat": "Chat with PDF",
       "ocr": "OCR Scan",

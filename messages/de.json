@@ -123,8 +123,8 @@
     "upgradeTitle": "Tarif upgraden",
     "footer": {
       "brandName": "PDF-Reader-Arbeitsbereich",
-      "brandLine1": "PDF-Reader",
-      "brandLine2": "Arbeitsplatz",
+      "brandLine1": "PDF Reader",
+      "brandLine2": "Workspace",
       "tagline": "Privater KI-Arbeitsbereich",
       "trustLocalFirst": "Lokal zuerst",
       "trustLocalFirstDesc": "Keine Server-Uploads",
@@ -152,17 +152,9 @@
       "legalNav": "Legal",
       "terms": "AGB",
       "privacyLink": "Datenschutz",
-      "cookies": "Kekse",
+      "cookies": "Cookies",
       "privacyBadge": "100 % privat – Dateien verlassen niemals Ihr Gerät",
       "privacyBadgeSub": "Ihre Dokumente werden sicher in Ihrem Browser verarbeitet",
-      "resources": "Ressourcen",
-      "security": "Sicherheit",
-      "compliance": "Compliance",
-      "gdprCompliant": "DSGVO-konform",
-      "clientSideProcessing": "Clientseitige Verarbeitung",
-      "filesNeverLeave": "Dateien verlassen Ihr Gerät nie",
-      "noUploads": "Keine Datei-Uploads",
-      "privateSecure": "100 % privat und sicher",
       "footer": "© 2025 PDFCraft. Alle Rechte vorbehalten.",
       "ctaHeadline": "Sind Sie bereit, intelligenter mit PDFs zu arbeiten?",
       "ctaSubtitle": "Mithilfe von KI können Sie Dokumente hochladen, bearbeiten, zusammenfassen und mit ihnen chatten.",
@@ -171,6 +163,8 @@
       "copyrightName": "PDF-Reader-Arbeitsbereich",
       "product": "Produkt",
       "madeWith": "Hergestellt mit <Heart /> und <Nextjs />",
+      "resources": "Ressourcen",
+      "security": "Sicherheit",
       "documentation": "Dokumentation",
       "editPdf": "PDF bearbeiten",
       "compressPdf": "PDF komprimieren",
@@ -202,7 +196,13 @@
       "featureOcr": "OCR",
       "featureProtect": "Schützen",
       "featuresNav": "Arbeitsbereichsfunktionen",
-      "copyrightShort": "© {Jahr} PDF"
+      "copyrightShort": "© {Jahr} PDF",
+      "compliance": "Compliance",
+      "gdprCompliant": "DSGVO-konform",
+      "clientSideProcessing": "Clientseitige Verarbeitung",
+      "filesNeverLeave": "Dateien verlassen Ihr Gerät nie",
+      "noUploads": "Keine Datei-Uploads",
+      "privateSecure": "100 % privat und sicher"
     },
     "recentFiles": {
       "title": "Letzte Dateien",
@@ -317,7 +317,8 @@
         "pageNumbers": "Seitenzahlen",
         "headerFooter": "Kopf- und Fußzeile",
         "convertToPdf": "In PDF konvertieren",
-        "convertFromPdf": "Konvertieren von PDF"
+        "convertFromPdf": "Konvertieren von PDF",
+        "assistPdf": "Summary and Chat"
       }
     }
   },
@@ -337,7 +338,7 @@
     "uploadDropHint": "Ziehen & ablegen oder Datei wählen",
     "aiActionsTitle": "KI-Aktionen",
     "popularAiBadge": "Beliebte KI",
-    "aiBadge": "KI",
+    "aiBadge": "AI",
     "useInWorkspace": "Im Arbeitsbereich verwenden",
     "coreActionsTitle": "Zentrale PDF-Aktionen",
     "viewAllTools": "Alle Werkzeuge anzeigen",
@@ -352,7 +353,8 @@
       "translate": "Übersetzen Sie ganze Dokumente in andere Sprachen.",
       "voice": "Konvertieren Sie PDF-Dateien sofort in natürliche Sprache.",
       "ocr": "Konvertieren Sie Scans in bearbeitbare PDFs.",
-      "chat": "Stellen Sie Fragen zu Ihren Dateien und erhalten Sie sofort Antworten."
+      "chat": "Stellen Sie Fragen zu Ihren Dateien und erhalten Sie sofort Antworten.",
+      "assist": "Summarize your PDF, then ask questions in one flow."
     },
     "toolDescriptions": {
       "scanToPdf": "Konvertieren Sie Bilder sofort in PDF",
@@ -381,7 +383,8 @@
       "scanToPdf": "Als PDF scannen",
       "split": "Teilen",
       "protect": "Schützen",
-      "ocrText": "OCR-Text"
+      "ocrText": "OCR-Text",
+      "assist": "Summary and Chat"
     }
   },
   "toolsPage": {
@@ -414,6 +417,10 @@
       "summarize": {
         "label": "KI-Zusammenfassung",
         "description": "Wichtige Erkenntnisse aus jedem PDF extrahieren."
+      },
+      "assist": {
+        "label": "Summary & Chat",
+        "description": "Summarize your PDF, then ask questions in one flow."
       },
       "translate": {
         "label": "KI-Übersetzung",
@@ -1843,8 +1850,6 @@
       "processButton": "OCR starten",
       "previewTitle": "Vorschau des extrahierten Texts",
       "successMessage": "OCR erfolgreich abgeschlossen! Klicken Sie auf die Schaltfläche „Herunterladen“, um Ihre Datei zu speichern.",
-      "infoTitle": "Über OCR",
-      "infoText": "OCR (Optical Character Recognition) extrahiert Text aus gescannten Dokumenten und Bildern. Um optimale Ergebnisse zu erzielen, verwenden Sie qualitativ hochwertige Scans und wählen Sie die richtige(n) Sprache(n) aus.",
       "optimize": "Optimierung",
       "optimizeNone": "Keiner",
       "optimizeDefault": "Standard",
@@ -1853,7 +1858,9 @@
       "rotatePages": "Seiten automatisch drehen",
       "removeBackground": "Hintergrund entfernen",
       "clean": "Reinigen Sie die Seiten vor der OCR",
-      "forceOcr": "OCR erzwingen (erneute OCR, auch wenn Text vorhanden ist)"
+      "forceOcr": "OCR erzwingen (erneute OCR, auch wenn Text vorhanden ist)",
+      "infoTitle": "Über OCR",
+      "infoText": "OCR (Optical Character Recognition) extrahiert Text aus gescannten Dokumenten und Bildern. Um optimale Ergebnisse zu erzielen, verwenden Sie qualitativ hochwertige Scans und wählen Sie die richtige(n) Sprache(n) aus."
     },
     "linearizePdf": {
       "uploadLabel": "Laden Sie PDF-Dateien hoch",
@@ -2062,6 +2069,7 @@
       "formatNumber": "Zahl (1, 2, 3)",
       "formatRoman": "Römisch (I, II, III)",
       "formatPageOfTotal": "Seite X von Y",
+      "appearanceTitle": "Aussehen",
       "styleTitle": "Stil",
       "style": "Stil",
       "startNumber": "Startnummer",
@@ -2069,12 +2077,16 @@
       "customFormatHint": "Verwenden Sie {page} und {total} als Platzhalter",
       "prefix": "Präfix",
       "suffix": "Suffix",
+      "prefixPlaceholder": "z. B. Seite",
+      "suffixPlaceholder": "z.B. -",
       "fontSize": "Schriftgröße",
       "margin": "Rand",
       "color": "Farbe",
       "skipFirstPage": "Erste Seite überspringen (Deckblatt)",
+      "fileMeta": "{size} • {pages} Seiten",
       "preview": "Vorschau",
       "pageOf": "Seite {current} von {total}",
+      "previewPageOf": "Seite {aktuell}/{gesamt}",
       "firstPageSkipped": "Erste Seite wird übersprungen",
       "previewText": "Vorschau: \"{text}\"",
       "addButton": "Seitenzahlen hinzufügen",
@@ -2098,12 +2110,7 @@
       "posBottomRight": "Unten rechts",
       "posTopLeft": "Oben links",
       "posTopCenter": "Oben mittig",
-      "posTopRight": "Oben rechts",
-      "appearanceTitle": "Aussehen",
-      "prefixPlaceholder": "z. B. Seite",
-      "suffixPlaceholder": "z.B. -",
-      "fileMeta": "{size} • {pages} Seiten",
-      "previewPageOf": "Seite {aktuell}/{gesamt}"
+      "posTopRight": "Oben rechts"
     },
     "watermark": {
       "uploadLabel": "PDF-Datei hochladen",
@@ -2158,13 +2165,6 @@
       "footerTitle": "Fußzeile",
       "footerText": "Fußzeilentext",
       "footerTextPlaceholder": "Fußzeilentext eingeben...",
-      "styleTitle": "Stil",
-      "fontSize": "Schriftgröße",
-      "fontColor": "Schriftfarbe",
-      "preview": "Vorschau",
-      "previewHint": "Geben Sie Kopf- oder Fußzeilentext ein, um eine Vorschau anzuzeigen",
-      "addButton": "Kopf- und Fußzeile hinzufügen",
-      "successMessage": "Kopf- und Fußzeile erfolgreich hinzugefügt!",
       "positionLeft": "Links",
       "positionCenter": "Center",
       "positionRight": "Rechts",
@@ -2176,15 +2176,22 @@
       "footerRightPlaceholder": "z. B. „{Datum}“",
       "quickInsertTitle": "Schnelles Einfügen",
       "quickInsertHint": "Klicken Sie zum Kopieren und fügen Sie es dann in ein beliebiges Feld ein",
+      "styleTitle": "Stil",
+      "fontSize": "Schriftgröße",
+      "fontColor": "Schriftfarbe",
       "margin": "Marge (pt)",
       "pageRange": "Seitenbereich",
       "pageRangePlaceholder": "z. B. alle oder 1-5, 8, 10-12",
       "pageRangeHint": "Verwenden Sie „alle“ für alle Seiten oder geben Sie Bereiche wie „1–5, 8, 10–12“ an.",
       "skipFirstPage": "Erste Seite (Deckblatt) überspringen",
       "fileMeta": "{size} • {pages} Seiten",
+      "preview": "Vorschau",
       "previewPageOf": "Seite {current} von {total}",
+      "previewHint": "Geben Sie Kopf- oder Fußzeilentext ein, um eine Vorschau anzuzeigen",
       "pageApplied": "Kopf-/Fußzeile wird dieser Seite hinzugefügt",
-      "pageSkipped": "Diese Seite wird übersprungen"
+      "pageSkipped": "Diese Seite wird übersprungen",
+      "addButton": "Kopf- und Fußzeile hinzufügen",
+      "successMessage": "Kopf- und Fußzeile erfolgreich hinzugefügt!"
     },
     "invertColors": {
       "uploadLabel": "PDF-Datei hochladen",
@@ -2723,6 +2730,11 @@
         "description": "Laden Sie ein PDF hoch und erhalten Sie eine prägnante, KI-generierte Zusammenfassung.",
         "action": "Zusammenfassung erstellen"
       },
+      "assist": {
+        "title": "Summary & Chat",
+        "description": "Summarize your PDF, then ask follow-up questions in one place.",
+        "action": "Open AI assistant"
+      },
       "translate": {
         "title": "KI-Übersetzung",
         "description": "Laden Sie ein PDF hoch und übersetzen Sie Inhalte mit Ihrem AI-Server.",
@@ -2774,6 +2786,7 @@
       "organize": "Organisieren",
       "output": "Ausgabe",
       "history": "Verlauf",
+      "content": "Content",
       "page": "Seite",
       "insert": "Einfügen",
       "save": "Speichern",
@@ -2947,6 +2960,10 @@
           "title": "Ausführlich"
         }
       },
+      "sessionTier": {
+        "label": "Level",
+        "hint": "Chat uses the same level as the summary"
+      },
       "chatContext": {
         "label": "Chat-Tiefe",
         "light": {
@@ -2960,36 +2977,49 @@
         }
       },
       "generateSummary": "Zusammenfassung erstellen",
+      "refreshSummary": "Update summary",
+      "regenerateSummary": "Update summary",
       "summaryPlaceholder": "Zusammenfassung ausführen, um KI-Highlights für dieses PDF zu sehen.",
       "summaryDone": "Zusammenfassung ist fertig. Öffnen Sie die Registerkarte „Zusammenfassung“, um sie zu lesen.",
       "documentId": "Dokument-ID: {id}",
       "previewPdf": "PDF-Vorschau",
       "title": "KI-Assistent",
       "tabs": {
+        "assist": "Zusammenfassung und Chat",
         "chat": "Chatten",
         "summary": "Zusammenfassung",
         "translate": "Übersetzen",
         "voice": "Einblicke"
       },
+      "summarySection": "Zusammenfassung",
+      "chatSection": "Fragen",
+      "suggestedQuestions": "Vorgeschlagene Fragen:",
+      "suggestedQ1": "Erzählen Sie mir mehr über:",
+      "suggestedQ2": "Worauf sollte ich in diesem Dokument achten?",
+      "suggestedQ3": "Fassen Sie die erforderlichen Schritte kurz zusammen",
+      "assistHint": "Zuerst Zusammenfassung erstellen — dann unten fragen.",
+      "summaryEmpty": "The model returned an empty summary. Try Smart OCR for scanned PDFs, or use Medium/Deep detail.",
       "translateComingSoon": "Dokumentübersetzung – bald verfügbar.",
       "translate": {
         "run": "Translate document",
         "tiles": {
           "pdf": "PDF",
           "ocr": "OCR",
-          "text": "Text",
+          "blocks": "Blocks",
           "ai": "AI translate",
-          "output": "New PDF"
+          "output": "Render"
         },
         "stageCheck": "Checking text layer…",
         "stageOcr": "Running OCR…",
-        "stageTranslate": "Translating with AI…",
-        "stagePdf": "Building PDF…",
+        "stageBlocks": "Extracting layout blocks…",
+        "stageTranslate": "Translating each block…",
+        "stagePdf": "Rendering PDF…",
         "stageDone": "Done.",
         "error": "Translation failed.",
         "ocrApplied": "OCR was applied before translation (scanned or no text layer).",
         "applyToWorkspace": "Apply to workspace",
-        "applied": "Workspace PDF replaced with the translation."
+        "applied": "Workspace PDF replaced with the translation.",
+        "pdfReady": "Translated PDF is ready (layout preserved). Download or apply to workspace."
       },
       "voice": {
         "subtitle": "Hören Sie sich Ihr Dokument mit integrierter Browser-Sprachausgabe an",

@@ -123,8 +123,8 @@
     "upgradeTitle": "Actualizează planul",
     "footer": {
       "brandName": "Spațiu de lucru PDF Reader",
-      "brandLine1": "Cititor PDF",
-      "brandLine2": "Spațiul de lucru",
+      "brandLine1": "PDF Reader",
+      "brandLine2": "Workspace",
       "tagline": "Spațiu de lucru privat AI",
       "trustLocalFirst": "Local în primul rând",
       "trustLocalFirstDesc": "Fără încărcări de server",
@@ -155,14 +155,6 @@
       "cookies": "Cookie-uri",
       "privacyBadge": "100% Privat — Fișierele nu părăsesc dispozitivul dvs",
       "privacyBadgeSub": "Documentele dumneavoastră sunt procesate în siguranță în browser",
-      "resources": "Resurse",
-      "security": "Securitate",
-      "compliance": "Conformitate",
-      "gdprCompliant": "Conform GDPR",
-      "clientSideProcessing": "Procesare pe dispozitiv",
-      "filesNeverLeave": "Fișierele nu părăsesc niciodată dispozitivul tău",
-      "noUploads": "Fără încărcări de fișiere",
-      "privateSecure": "100% privat și securizat",
       "footer": "© 2025 PDFCraft. Toate drepturile rezervate.",
       "ctaHeadline": "Ești gata să lucrezi mai inteligent cu PDF-urile?",
       "ctaSubtitle": "Încărcați, editați, rezumați și discutați cu documente folosind AI.",
@@ -171,6 +163,8 @@
       "copyrightName": "Spațiu de lucru PDF Reader",
       "product": "Produs",
       "madeWith": "Creat cu <Heart /> și <Nextjs />",
+      "resources": "Resurse",
+      "security": "Securitate",
       "documentation": "Documentare",
       "editPdf": "Editați PDF",
       "compressPdf": "Comprimați PDF",
@@ -202,7 +196,13 @@
       "featureOcr": "OCR",
       "featureProtect": "Proteja",
       "featuresNav": "Caracteristicile spațiului de lucru",
-      "copyrightShort": "© {an} PDF"
+      "copyrightShort": "© {an} PDF",
+      "compliance": "Conformitate",
+      "gdprCompliant": "Conform GDPR",
+      "clientSideProcessing": "Procesare pe dispozitiv",
+      "filesNeverLeave": "Fișierele nu părăsesc niciodată dispozitivul tău",
+      "noUploads": "Fără încărcări de fișiere",
+      "privateSecure": "100% privat și securizat"
     },
     "recentFiles": {
       "title": "Fișiere Recente",
@@ -317,7 +317,8 @@
         "pageNumbers": "Numerele paginilor",
         "headerFooter": "Antet și subsol",
         "convertToPdf": "Convertiți în PDF",
-        "convertFromPdf": "Convertiți din PDF"
+        "convertFromPdf": "Convertiți din PDF",
+        "assistPdf": "Summary and Chat"
       }
     }
   },
@@ -352,7 +353,8 @@
       "translate": "Traduceți documente întregi în alte limbi.",
       "voice": "Convertiți instantaneu PDF în vorbire naturală.",
       "ocr": "Convertiți scanările în PDF editabil.",
-      "chat": "Puneți întrebări despre fișierele dvs. și obțineți răspunsuri instantanee."
+      "chat": "Puneți întrebări despre fișierele dvs. și obțineți răspunsuri instantanee.",
+      "assist": "Summarize your PDF, then ask questions in one flow."
     },
     "toolDescriptions": {
       "scanToPdf": "Convertiți instantaneu imaginile în PDF",
@@ -381,7 +383,8 @@
       "scanToPdf": "Scanează în PDF",
       "split": "Împarte",
       "protect": "Protejează",
-      "ocrText": "OCR text"
+      "ocrText": "OCR text",
+      "assist": "Summary and Chat"
     }
   },
   "toolsPage": {
@@ -414,6 +417,10 @@
       "summarize": {
         "label": "Rezumat AI",
         "description": "Extrage informații cheie din orice PDF."
+      },
+      "assist": {
+        "label": "Summary & Chat",
+        "description": "Summarize your PDF, then ask questions in one flow."
       },
       "translate": {
         "label": "Traducere AI",
@@ -1842,8 +1849,6 @@
       "processButton": "Pornește OCR",
       "previewTitle": "Previzualizare Text Extras",
       "successMessage": "OCR finalizat cu succes! Fă clic pe butonul de descărcare pentru a salva fișierul.",
-      "infoTitle": "Despre OCR",
-      "infoText": "OCR (Recunoașterea Optică a Caracterelor) extrage textul din documente scanate și imagini. Pentru cele mai bune rezultate, folosește scanări de înaltă calitate și selectează limbile corecte.",
       "optimize": "Optimizare",
       "optimizeNone": "Nici unul",
       "optimizeDefault": "Implicit",
@@ -1852,7 +1857,9 @@
       "rotatePages": "Rotiți automat paginile",
       "removeBackground": "Eliminați fundalul",
       "clean": "Curățați paginile înainte de OCR",
-      "forceOcr": "Forțați OCR (re-OCR chiar dacă există text)"
+      "forceOcr": "Forțați OCR (re-OCR chiar dacă există text)",
+      "infoTitle": "Despre OCR",
+      "infoText": "OCR (Recunoașterea Optică a Caracterelor) extrage textul din documente scanate și imagini. Pentru cele mai bune rezultate, folosește scanări de înaltă calitate și selectează limbile corecte."
     },
     "linearizePdf": {
       "uploadLabel": "Încarcă Fișiere PDF",
@@ -2061,6 +2068,7 @@
       "formatNumber": "Număr (1, 2, 3)",
       "formatRoman": "Roman (I, II, III)",
       "formatPageOfTotal": "Pagina X din Y",
+      "appearanceTitle": "Aspect",
       "styleTitle": "Stil",
       "style": "Stil",
       "startNumber": "Număr de Început",
@@ -2068,12 +2076,16 @@
       "customFormatHint": "Folosește {page} și {total} ca substituenți",
       "prefix": "Prefix",
       "suffix": "Sufix",
+      "prefixPlaceholder": "de exemplu, Pagina",
+      "suffixPlaceholder": "de ex., -",
       "fontSize": "Dimensiune Font",
       "margin": "Margine",
       "color": "Culoare",
       "skipFirstPage": "Omite prima pagină (coperta)",
+      "fileMeta": "{dimensiune} • {pagini} pagini",
       "preview": "Previzualizare",
       "pageOf": "Pagina {current} din {total}",
+      "previewPageOf": "Pagina {current}/{total}",
       "firstPageSkipped": "Prima pagină va fi omisă",
       "previewText": "Previzualizare: „{text}”",
       "addButton": "Adaugă Numere de Pagină",
@@ -2097,12 +2109,7 @@
       "posBottomRight": "Dreapta Jos",
       "posTopLeft": "Stânga Sus",
       "posTopCenter": "Centru Sus",
-      "posTopRight": "Dreapta Sus",
-      "appearanceTitle": "Aspect",
-      "prefixPlaceholder": "de exemplu, Pagina",
-      "suffixPlaceholder": "de ex., -",
-      "fileMeta": "{dimensiune} • {pagini} pagini",
-      "previewPageOf": "Pagina {current}/{total}"
+      "posTopRight": "Dreapta Sus"
     },
     "watermark": {
       "uploadLabel": "Încarcă Fișier PDF",
@@ -2157,13 +2164,6 @@
       "footerTitle": "Subsol",
       "footerText": "Text Subsol",
       "footerTextPlaceholder": "Introdu textul pentru subsol...",
-      "styleTitle": "Stil",
-      "fontSize": "Dimensiune Font",
-      "fontColor": "Culoare Font",
-      "preview": "Previzualizare",
-      "previewHint": "Introdu textul pentru antet sau subsol pentru a vedea previzualizarea",
-      "addButton": "Adaugă Antet și Subsol",
-      "successMessage": "Antet și subsol adăugate cu succes!",
       "positionLeft": "Stânga",
       "positionCenter": "Centru",
       "positionRight": "Corect",
@@ -2175,15 +2175,22 @@
       "footerRightPlaceholder": "de ex., „{data}”",
       "quickInsertTitle": "Inserare rapidă",
       "quickInsertHint": "Faceți clic pentru a copia, apoi inserați în orice câmp",
+      "styleTitle": "Stil",
+      "fontSize": "Dimensiune Font",
+      "fontColor": "Culoare Font",
       "margin": "Marja (pt)",
       "pageRange": "Interval de pagini",
       "pageRangePlaceholder": "de exemplu, toate sau 1-5, 8, 10-12",
       "pageRangeHint": "Folosiți „toate” pentru toate paginile sau specificați intervale precum „1-5, 8, 10-12”",
       "skipFirstPage": "Omite prima pagină (copertă)",
       "fileMeta": "{dimensiune} • {pagini} pagini",
+      "preview": "Previzualizare",
       "previewPageOf": "Pagina {current} din {total}",
+      "previewHint": "Introdu textul pentru antet sau subsol pentru a vedea previzualizarea",
       "pageApplied": "Antetul/subsolul va fi adăugat la această pagină",
-      "pageSkipped": "Această pagină va fi omisă"
+      "pageSkipped": "Această pagină va fi omisă",
+      "addButton": "Adaugă Antet și Subsol",
+      "successMessage": "Antet și subsol adăugate cu succes!"
     },
     "invertColors": {
       "uploadLabel": "Încarcă Fișier PDF",
@@ -2722,6 +2729,11 @@
         "description": "Încărcați un PDF și obțineți un rezumat concis generat de AI.",
         "action": "Generați un rezumat"
       },
+      "assist": {
+        "title": "Summary & Chat",
+        "description": "Summarize your PDF, then ask follow-up questions in one place.",
+        "action": "Open AI assistant"
+      },
       "translate": {
         "title": "AI Translate",
         "description": "Încărcați un PDF și traduceți conținut cu serverul dvs. AI.",
@@ -2773,6 +2785,7 @@
       "organize": "Organizare",
       "output": "Ieșire",
       "history": "Istoric",
+      "content": "Content",
       "page": "Pagină",
       "insert": "Inserează",
       "save": "Salvează",
@@ -2946,6 +2959,10 @@
           "title": "Detaliat"
         }
       },
+      "sessionTier": {
+        "label": "Level",
+        "hint": "Chat uses the same level as the summary"
+      },
       "chatContext": {
         "label": "Profunzime chat",
         "light": {
@@ -2959,36 +2976,49 @@
         }
       },
       "generateSummary": "Generează rezumat",
+      "refreshSummary": "Update summary",
+      "regenerateSummary": "Update summary",
       "summaryPlaceholder": "Rulează rezumatul pentru a vedea punctele cheie generate de AI.",
       "summaryDone": "Rezumatul este gata. Deschideți fila Rezumat pentru a o citi.",
       "documentId": "ID document: {id}",
       "previewPdf": "Previzualizare PDF",
       "title": "Asistent AI",
       "tabs": {
+        "assist": "Rezumat și chat",
         "chat": "Chat",
         "summary": "Rezumat",
         "translate": "Traduce",
         "voice": "Perspective"
       },
+      "summarySection": "Rezumat",
+      "chatSection": "Întrebări",
+      "suggestedQuestions": "Întrebări sugerate:",
+      "suggestedQ1": "Spune-mi mai multe despre:",
+      "suggestedQ2": "La ce ar trebui să fiu atent în acest document?",
+      "suggestedQ3": "Rezumă pe scurt pașii necesari",
+      "assistHint": "Generează mai întâi un rezumat — apoi întreabă mai jos.",
+      "summaryEmpty": "The model returned an empty summary. Try Smart OCR for scanned PDFs, or use Medium/Deep detail.",
       "translateComingSoon": "Traducerea documentelor — în curând.",
       "translate": {
         "run": "Translate document",
         "tiles": {
           "pdf": "PDF",
           "ocr": "OCR",
-          "text": "Text",
+          "blocks": "Blocks",
           "ai": "AI translate",
-          "output": "New PDF"
+          "output": "Render"
         },
         "stageCheck": "Checking text layer…",
         "stageOcr": "Running OCR…",
-        "stageTranslate": "Translating with AI…",
-        "stagePdf": "Building PDF…",
+        "stageBlocks": "Extracting layout blocks…",
+        "stageTranslate": "Translating each block…",
+        "stagePdf": "Rendering PDF…",
         "stageDone": "Done.",
         "error": "Translation failed.",
         "ocrApplied": "OCR was applied before translation (scanned or no text layer).",
         "applyToWorkspace": "Apply to workspace",
-        "applied": "Workspace PDF replaced with the translation."
+        "applied": "Workspace PDF replaced with the translation.",
+        "pdfReady": "Translated PDF is ready (layout preserved). Download or apply to workspace."
       },
       "voice": {
         "subtitle": "Ascultați documentul dvs. cu vorbirea în browser încorporată",

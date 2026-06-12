@@ -7,7 +7,11 @@ type RouteContext = { params: Promise<{ path: string[] }> };
 
 async function proxyRequest(req: NextRequest, context: RouteContext): Promise<NextResponse> {
   const { path } = await context.params;
-  const target = `${UPSTREAM}/${path.join('/')}${req.nextUrl.search}`;
+  // Bỏ segment rỗng từ trailingSlash — upstream FastAPI: /summary (không /summary/)
+  const upstreamPath = path.filter(Boolean).join('/');
+  const target = upstreamPath
+    ? `${UPSTREAM}/${upstreamPath}${req.nextUrl.search}`
+    : `${UPSTREAM}${req.nextUrl.search}`;
 
   const headers = new Headers();
   req.headers.forEach((value, key) => {

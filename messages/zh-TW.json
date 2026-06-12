@@ -155,14 +155,6 @@
       "cookies": "Cookie",
       "privacyBadge": "100% 私密 — 文件永遠不會離開您的設備",
       "privacyBadgeSub": "您的文件在瀏覽器中得到安全處理",
-      "resources": "資源",
-      "security": "安全",
-      "compliance": "合規",
-      "gdprCompliant": "符合 GDPR",
-      "clientSideProcessing": "用戶端處理",
-      "filesNeverLeave": "檔案永不離開您的裝置",
-      "noUploads": "不上傳檔案",
-      "privateSecure": "100% 私密且安全",
       "footer": "© 2025 PDFCraft. 保留所有權利。",
       "ctaHeadline": "準備好更聰明地使用 PDF 了嗎？",
       "ctaSubtitle": "使用 AI 上傳、編輯、總結文件並與文件聊天。",
@@ -171,6 +163,8 @@
       "copyrightName": "PDF 閱讀器工作區",
       "product": "產品",
       "madeWith": "使用 <Heart /> 和 <Nextjs /> 製作",
+      "resources": "資源",
+      "security": "安全",
       "documentation": "文件",
       "editPdf": "編輯PDF",
       "compressPdf": "壓縮PDF",
@@ -202,7 +196,13 @@
       "featureOcr": "光學字元辨識",
       "featureProtect": "保護",
       "featuresNav": "工作區功能",
-      "copyrightShort": "© {年} PDF"
+      "copyrightShort": "© {年} PDF",
+      "compliance": "合規",
+      "gdprCompliant": "符合 GDPR",
+      "clientSideProcessing": "用戶端處理",
+      "filesNeverLeave": "檔案永不離開您的裝置",
+      "noUploads": "不上傳檔案",
+      "privateSecure": "100% 私密且安全"
     },
     "recentFiles": {
       "title": "最近檔案",
@@ -317,7 +317,8 @@
         "pageNumbers": "頁碼",
         "headerFooter": "頁首和頁尾",
         "convertToPdf": "轉換為 PDF",
-        "convertFromPdf": "從 PDF 轉換"
+        "convertFromPdf": "從 PDF 轉換",
+        "assistPdf": "Summary and Chat"
       }
     }
   },
@@ -352,7 +353,8 @@
       "translate": "將整份文件翻譯成其他語言。",
       "voice": "立即將 PDF 轉換為自然語音。",
       "ocr": "將掃描件轉換為可編輯的 PDF。",
-      "chat": "詢問有關您的文件的問題並立即獲得答案。"
+      "chat": "詢問有關您的文件的問題並立即獲得答案。",
+      "assist": "Summarize your PDF, then ask questions in one flow."
     },
     "toolDescriptions": {
       "scanToPdf": "立即將圖像轉換為 PDF",
@@ -381,7 +383,8 @@
       "scanToPdf": "掃描為 PDF",
       "split": "拆分",
       "protect": "保護",
-      "ocrText": "OCR 文字"
+      "ocrText": "OCR 文字",
+      "assist": "Summary and Chat"
     }
   },
   "toolsPage": {
@@ -414,6 +417,10 @@
       "summarize": {
         "label": "AI 摘要",
         "description": "從任何 PDF 擷取關鍵見解。"
+      },
+      "assist": {
+        "label": "Summary & Chat",
+        "description": "Summarize your PDF, then ask questions in one flow."
       },
       "translate": {
         "label": "AI 翻譯",
@@ -1843,8 +1850,6 @@
       "processButton": "開始OCR",
       "previewTitle": "提取文字預覽",
       "successMessage": "OCR完成！點選下載按鈕儲存檔案。",
-      "infoTitle": "關於OCR",
-      "infoText": "OCR（光學字元識別）從掃描文件和影像中提取文字。為獲得最佳效果，請使用高品質掃描文件並選擇正確的語言。",
       "optimize": "Optimization",
       "optimizeNone": "None",
       "optimizeDefault": "Default",
@@ -1853,7 +1858,9 @@
       "rotatePages": "Auto-rotate pages",
       "removeBackground": "Remove background",
       "clean": "Clean pages before OCR",
-      "forceOcr": "Force OCR (re-OCR even if text exists)"
+      "forceOcr": "Force OCR (re-OCR even if text exists)",
+      "infoTitle": "關於OCR",
+      "infoText": "OCR（光學字元識別）從掃描文件和影像中提取文字。為獲得最佳效果，請使用高品質掃描文件並選擇正確的語言。"
     },
     "linearizePdf": {
       "uploadLabel": "上傳PDF檔案",
@@ -2062,6 +2069,7 @@
       "formatNumber": "數字 (1, 2, 3)",
       "formatRoman": "羅馬數字 (I, II, III)",
       "formatPageOfTotal": "第 X / Y 頁",
+      "appearanceTitle": "Appearance",
       "styleTitle": "樣式",
       "style": "樣式",
       "startNumber": "起始頁碼",
@@ -2069,12 +2077,16 @@
       "customFormatHint": "使用 {page} 和 {total} 作為佔位符",
       "prefix": "字首",
       "suffix": "字尾",
+      "prefixPlaceholder": "e.g., Page ",
+      "suffixPlaceholder": "e.g., -",
       "fontSize": "字型大小",
       "margin": "邊距",
       "color": "顏色",
       "skipFirstPage": "跳過首頁（封面）",
+      "fileMeta": "{尺寸} • {頁} 頁",
       "preview": "預覽",
       "pageOf": "第 {current} 頁，共 {total} 頁",
+      "previewPageOf": "頁數 {當前}/{總計}",
       "firstPageSkipped": "首頁將被跳過",
       "previewText": "預覽：「{text}」",
       "addButton": "新增頁碼",
@@ -2098,12 +2110,7 @@
       "posBottomRight": "右下角",
       "posTopLeft": "左上角",
       "posTopCenter": "頂部居中",
-      "posTopRight": "右上角",
-      "appearanceTitle": "Appearance",
-      "prefixPlaceholder": "e.g., Page ",
-      "suffixPlaceholder": "e.g., -",
-      "fileMeta": "{尺寸} • {頁} 頁",
-      "previewPageOf": "頁數 {當前}/{總計}"
+      "posTopRight": "右上角"
     },
     "watermark": {
       "uploadLabel": "上傳PDF檔案",
@@ -2158,13 +2165,6 @@
       "footerTitle": "頁尾",
       "footerText": "頁尾文字",
       "footerTextPlaceholder": "輸入頁尾文字...",
-      "styleTitle": "樣式",
-      "fontSize": "字體大小",
-      "fontColor": "字體顏色",
-      "preview": "預覽",
-      "previewHint": "輸入頁首或頁尾文字以檢視預覽",
-      "addButton": "新增頁首頁尾",
-      "successMessage": "頁首頁尾新增成功！",
       "positionLeft": "左邊",
       "positionCenter": "中心",
       "positionRight": "正確的",
@@ -2176,15 +2176,22 @@
       "footerRightPlaceholder": "例如，“{日期}”",
       "quickInsertTitle": "快速插入",
       "quickInsertHint": "按一下複製，然後貼上到任意字段",
+      "styleTitle": "樣式",
+      "fontSize": "字體大小",
+      "fontColor": "字體顏色",
       "margin": "保證金（點）",
       "pageRange": "頁面範圍",
       "pageRangePlaceholder": "例如，全部或 1-5、8、10-12",
       "pageRangeHint": "對所有頁面使用“all”，或指定範圍，如“1-5、8、10-12”",
       "skipFirstPage": "跳過第一頁（封面頁）",
       "fileMeta": "{尺寸} • {頁} 頁",
+      "preview": "預覽",
       "previewPageOf": "第 {當前} 頁，共 {total} 頁",
+      "previewHint": "輸入頁首或頁尾文字以檢視預覽",
       "pageApplied": "頁首/頁尾將會新增至此頁面",
-      "pageSkipped": "該頁面將被跳過"
+      "pageSkipped": "該頁面將被跳過",
+      "addButton": "新增頁首頁尾",
+      "successMessage": "頁首頁尾新增成功！"
     },
     "invertColors": {
       "uploadLabel": "上傳PDF檔案",
@@ -2723,6 +2730,11 @@
         "description": "上傳 PDF 並取得 AI 產生的簡明摘要。",
         "action": "產生摘要"
       },
+      "assist": {
+        "title": "Summary & Chat",
+        "description": "Summarize your PDF, then ask follow-up questions in one place.",
+        "action": "Open AI assistant"
+      },
       "translate": {
         "title": "人工智慧翻譯",
         "description": "上傳 PDF 並使用您的 AI 伺服器翻譯內容。",
@@ -2774,6 +2786,7 @@
       "organize": "整理",
       "output": "輸出",
       "history": "歷史",
+      "content": "Content",
       "page": "頁面",
       "insert": "插入",
       "save": "儲存",
@@ -2947,6 +2960,10 @@
           "title": "詳細"
         }
       },
+      "sessionTier": {
+        "label": "Level",
+        "hint": "Chat uses the same level as the summary"
+      },
       "chatContext": {
         "label": "聊天深度",
         "light": {
@@ -2960,36 +2977,49 @@
         }
       },
       "generateSummary": "產生摘要",
+      "refreshSummary": "Update summary",
+      "regenerateSummary": "Update summary",
       "summaryPlaceholder": "執行摘要以查看 AI 為此 PDF 產生的重點。",
       "summaryDone": "總結已經準備好了。開啟“摘要”標籤進行閱讀。",
       "documentId": "文件 ID：{id}",
       "previewPdf": "PDF預覽",
       "title": "AI 助手",
       "tabs": {
+        "assist": "摘要與對話",
         "chat": "對話",
         "summary": "摘要",
         "translate": "翻譯",
         "voice": "洞察"
       },
+      "summarySection": "摘要",
+      "chatSection": "問答",
+      "suggestedQuestions": "推薦問題：",
+      "suggestedQ1": "請詳細說明：",
+      "suggestedQ2": "這份文件需要注意什麼？",
+      "suggestedQ3": "簡要列出所需步驟",
+      "assistHint": "請先生成摘要，然後在下方提問。",
+      "summaryEmpty": "The model returned an empty summary. Try Smart OCR for scanned PDFs, or use Medium/Deep detail.",
       "translateComingSoon": "文件翻譯 - 即將推出。",
       "translate": {
         "run": "Translate document",
         "tiles": {
           "pdf": "PDF",
           "ocr": "OCR",
-          "text": "Text",
+          "blocks": "Blocks",
           "ai": "AI translate",
-          "output": "New PDF"
+          "output": "Render"
         },
         "stageCheck": "Checking text layer…",
         "stageOcr": "Running OCR…",
-        "stageTranslate": "Translating with AI…",
-        "stagePdf": "Building PDF…",
+        "stageBlocks": "Extracting layout blocks…",
+        "stageTranslate": "Translating each block…",
+        "stagePdf": "Rendering PDF…",
         "stageDone": "Done.",
         "error": "Translation failed.",
         "ocrApplied": "OCR was applied before translation (scanned or no text layer).",
         "applyToWorkspace": "Apply to workspace",
-        "applied": "Workspace PDF replaced with the translation."
+        "applied": "Workspace PDF replaced with the translation.",
+        "pdfReady": "Translated PDF is ready (layout preserved). Download or apply to workspace."
       },
       "voice": {
         "subtitle": "使用內建瀏覽器語音收聽您的文檔",

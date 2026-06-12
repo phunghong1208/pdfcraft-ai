@@ -139,11 +139,19 @@
   "aiPanel": {
     "title": "KI-Assistent",
     "tabs": {
+      "assist": "Zusammenfassung und Chat",
       "chat": "Chatten",
       "summary": "Zusammenfassung",
       "translate": "Übersetzen",
       "voice": "Einblicke"
     },
+    "summarySection": "Zusammenfassung",
+    "chatSection": "Fragen",
+    "suggestedQuestions": "Vorgeschlagene Fragen:",
+    "suggestedQ1": "Erzählen Sie mir mehr über:",
+    "suggestedQ2": "Worauf sollte ich in diesem Dokument achten?",
+    "suggestedQ3": "Fassen Sie die erforderlichen Schritte kurz zusammen",
+    "assistHint": "Zuerst Zusammenfassung erstellen — dann unten fragen.",
     "detected": "Erkannt",
     "documentLoaded": "Dokument geladen",
     "pageDocument": "Dokument mit {count} Seiten",

@@ -139,11 +139,19 @@
   "aiPanel": {
     "title": "AIアシスタント",
     "tabs": {
+      "assist": "要約とチャット",
       "chat": "チャット",
       "summary": "要約",
       "translate": "翻訳",
       "voice": "インサイト"
     },
+    "summarySection": "要約",
+    "chatSection": "Q&A",
+    "suggestedQuestions": "おすすめの質問:",
+    "suggestedQ1": "詳しく教えてください:",
+    "suggestedQ2": "この文書で注意すべき点は？",
+    "suggestedQ3": "必要な手順を簡潔にまとめて",
+    "assistHint": "まず要約を作成 — その後、下で質問できます。",
     "detected": "検出済み",
     "documentLoaded": "ドキュメントを読み込みました",
     "pageDocument": "{count}ページのドキュメント",

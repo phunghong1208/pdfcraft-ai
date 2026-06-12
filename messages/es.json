@@ -123,8 +123,8 @@
     "upgradeTitle": "Mejorar plan",
     "footer": {
       "brandName": "Espacio de trabajo del lector de PDF",
-      "brandLine1": "Lector de PDF",
-      "brandLine2": "Espacio de trabajo",
+      "brandLine1": "PDF Reader",
+      "brandLine2": "Workspace",
       "tagline": "Espacio de trabajo privado de IA",
       "trustLocalFirst": "Local primero",
       "trustLocalFirstDesc": "No hay cargas del servidor",
@@ -140,9 +140,9 @@
       "trustGroupPlatform": "Plataforma",
       "trustGroupDownload": "Descargar aplicación",
       "storeGetOn": "Consíguelo",
-      "storeGooglePlay": "GooglePlay",
+      "storeGooglePlay": "Google Play",
       "storeDownloadOn": "Descargar en el",
-      "storeAppStore": "Tienda de aplicaciones",
+      "storeAppStore": "App Store",
       "downloadApp": "Descargar aplicación",
       "availableOn": "Disponible en",
       "googlePlayAria": "Consíguelo en Google Play",
@@ -152,17 +152,9 @@
       "legalNav": "Legal",
       "terms": "Términos",
       "privacyLink": "Privacidad",
-      "cookies": "Galletas",
+      "cookies": "Cookies",
       "privacyBadge": "100% privado: los archivos nunca salen de su dispositivo",
       "privacyBadgeSub": "Sus documentos se procesan de forma segura en su navegador",
-      "resources": "Recursos",
-      "security": "Seguridad",
-      "compliance": "Cumplimiento",
-      "gdprCompliant": "Conforme con el RGPD",
-      "clientSideProcessing": "Procesamiento en el cliente",
-      "filesNeverLeave": "Los archivos nunca salen de su dispositivo",
-      "noUploads": "Sin subida de archivos",
-      "privateSecure": "100 % privado y seguro",
       "footer": "© 2025 PDFCraft. Reservados todos los derechos.",
       "ctaHeadline": "¿Listo para trabajar de forma más inteligente con archivos PDF?",
       "ctaSubtitle": "Cargue, edite, resuma y charle con documentos utilizando IA.",
@@ -171,6 +163,8 @@
       "copyrightName": "Espacio de trabajo del lector de PDF",
       "product": "Producto",
       "madeWith": "Hecho con <Heart /> y <Nextjs />",
+      "resources": "Recursos",
+      "security": "Seguridad",
       "documentation": "Documentación",
       "editPdf": "Editar PDF",
       "compressPdf": "Comprimir PDF",
@@ -202,7 +196,13 @@
       "featureOcr": "LOC",
       "featureProtect": "Proteger",
       "featuresNav": "Características del espacio de trabajo",
-      "copyrightShort": "© {año} PDF"
+      "copyrightShort": "© {año} PDF",
+      "compliance": "Cumplimiento",
+      "gdprCompliant": "Conforme con el RGPD",
+      "clientSideProcessing": "Procesamiento en el cliente",
+      "filesNeverLeave": "Los archivos nunca salen de su dispositivo",
+      "noUploads": "Sin subida de archivos",
+      "privateSecure": "100 % privado y seguro"
     },
     "recentFiles": {
       "title": "Archivos Recientes",
@@ -317,7 +317,8 @@
         "pageNumbers": "Números de página",
         "headerFooter": "Encabezado y pie de página",
         "convertToPdf": "Convertir a PDF",
-        "convertFromPdf": "Convertir desde PDF"
+        "convertFromPdf": "Convertir desde PDF",
+        "assistPdf": "Summary and Chat"
       }
     }
   },
@@ -352,7 +353,8 @@
       "translate": "Traducir documentos completos a otros idiomas.",
       "voice": "Convierta PDF a voz natural al instante.",
       "ocr": "Convierta escaneos a PDF editables.",
-      "chat": "Haga preguntas sobre sus archivos y obtenga respuestas instantáneas."
+      "chat": "Haga preguntas sobre sus archivos y obtenga respuestas instantáneas.",
+      "assist": "Summarize your PDF, then ask questions in one flow."
     },
     "toolDescriptions": {
       "scanToPdf": "Convierte imágenes a PDF al instante",
@@ -381,7 +383,8 @@
       "scanToPdf": "Escanear a PDF",
       "split": "Dividir",
       "protect": "Proteger",
-      "ocrText": "OCR texto"
+      "ocrText": "OCR texto",
+      "assist": "Summary and Chat"
     }
   },
   "toolsPage": {
@@ -414,6 +417,10 @@
       "summarize": {
         "label": "Resumen IA",
         "description": "Extrae ideas clave de cualquier PDF."
+      },
+      "assist": {
+        "label": "Summary & Chat",
+        "description": "Summarize your PDF, then ask questions in one flow."
       },
       "translate": {
         "label": "Traducción IA",
@@ -1843,8 +1850,6 @@
       "processButton": "Iniciar OCR",
       "previewTitle": "Vista previa del texto extraído",
       "successMessage": "¡OCR completado con éxito! Haga clic en el botón de descarga para guardar su archivo.",
-      "infoTitle": "Acerca del OCR",
-      "infoText": "OCR (reconocimiento óptico de caracteres) extrae texto de documentos e imágenes escaneados. Para obtener mejores resultados, utilice escaneos de alta calidad y seleccione los idiomas correctos.",
       "optimize": "Mejoramiento",
       "optimizeNone": "Ninguno",
       "optimizeDefault": "Por defecto",
@@ -1853,7 +1858,9 @@
       "rotatePages": "Rotar páginas automáticamente",
       "removeBackground": "Quitar fondo",
       "clean": "Limpiar páginas antes del OCR",
-      "forceOcr": "Forzar OCR (volver a realizar OCR incluso si existe texto)"
+      "forceOcr": "Forzar OCR (volver a realizar OCR incluso si existe texto)",
+      "infoTitle": "Acerca del OCR",
+      "infoText": "OCR (reconocimiento óptico de caracteres) extrae texto de documentos e imágenes escaneados. Para obtener mejores resultados, utilice escaneos de alta calidad y seleccione los idiomas correctos."
     },
     "linearizePdf": {
       "uploadLabel": "Cargar archivos PDF",
@@ -2062,6 +2069,7 @@
       "formatNumber": "Número (1, 2, 3)",
       "formatRoman": "Romano (I, II, III)",
       "formatPageOfTotal": "Página X de Y",
+      "appearanceTitle": "Apariencia",
       "styleTitle": "Estilo",
       "style": "Estilo",
       "startNumber": "Número inicial",
@@ -2069,12 +2077,16 @@
       "customFormatHint": "Usa {page} y {total} como marcadores",
       "prefix": "Prefijo",
       "suffix": "Sufijo",
+      "prefixPlaceholder": "por ejemplo, página",
+      "suffixPlaceholder": "p.ej., -",
       "fontSize": "Tamaño de fuente",
       "margin": "Margen",
       "color": "Color",
       "skipFirstPage": "Saltar primera página (portada)",
+      "fileMeta": "{tamaño} • {páginas} páginas",
       "preview": "Vista previa",
       "pageOf": "Página {current} de {total}",
+      "previewPageOf": "Página {actual}/{total}",
       "firstPageSkipped": "La primera página será omitida",
       "previewText": "Vista previa: \"{text}\"",
       "addButton": "Agregar números de página",
@@ -2098,12 +2110,7 @@
       "posBottomRight": "Inferior derecha",
       "posTopLeft": "Superior izquierda",
       "posTopCenter": "Superior centro",
-      "posTopRight": "Superior derecha",
-      "appearanceTitle": "Apariencia",
-      "prefixPlaceholder": "por ejemplo, página",
-      "suffixPlaceholder": "p.ej., -",
-      "fileMeta": "{tamaño} • {páginas} páginas",
-      "previewPageOf": "Página {actual}/{total}"
+      "posTopRight": "Superior derecha"
     },
     "watermark": {
       "uploadLabel": "Subir archivo PDF",
@@ -2158,13 +2165,6 @@
       "footerTitle": "Pie de página",
       "footerText": "Texto del pie de página",
       "footerTextPlaceholder": "Ingrese el texto del pie de página...",
-      "styleTitle": "Estilo",
-      "fontSize": "Tamaño de fuente",
-      "fontColor": "Color de fuente",
-      "preview": "Avance",
-      "previewHint": "Ingrese el texto del encabezado o pie de página para ver una vista previa",
-      "addButton": "Agregar encabezado y pie de página",
-      "successMessage": "¡Encabezado y pie de página agregados exitosamente!",
       "positionLeft": "Izquierda",
       "positionCenter": "Centro",
       "positionRight": "Bien",
@@ -2176,15 +2176,22 @@
       "footerRightPlaceholder": "por ejemplo, '{fecha}'",
       "quickInsertTitle": "Inserción rápida",
       "quickInsertHint": "Haga clic para copiar y luego pegar en cualquier campo.",
+      "styleTitle": "Estilo",
+      "fontSize": "Tamaño de fuente",
+      "fontColor": "Color de fuente",
       "margin": "Margen (pt)",
       "pageRange": "Rango de páginas",
       "pageRangePlaceholder": "por ejemplo, todos o 1-5, 8, 10-12",
       "pageRangeHint": "Utilice \"todos\" para todas las páginas o especifique rangos como \"1-5, 8, 10-12\"",
       "skipFirstPage": "Saltar la primera página (portada)",
       "fileMeta": "{tamaño} • {páginas} páginas",
+      "preview": "Avance",
       "previewPageOf": "Página {actual} de {total}",
+      "previewHint": "Ingrese el texto del encabezado o pie de página para ver una vista previa",
       "pageApplied": "Se agregará encabezado/pie de página a esta página",
-      "pageSkipped": "Esta página será omitida"
+      "pageSkipped": "Esta página será omitida",
+      "addButton": "Agregar encabezado y pie de página",
+      "successMessage": "¡Encabezado y pie de página agregados exitosamente!"
     },
     "invertColors": {
       "uploadLabel": "Subir archivo PDF",
@@ -2723,6 +2730,11 @@
         "description": "Cargue un PDF y obtenga un resumen conciso generado por IA.",
         "action": "Generar resumen"
       },
+      "assist": {
+        "title": "Summary & Chat",
+        "description": "Summarize your PDF, then ask follow-up questions in one place.",
+        "action": "Open AI assistant"
+      },
       "translate": {
         "title": "Traductor AI",
         "description": "Cargue un PDF y traduzca contenido con su servidor de IA.",
@@ -2774,6 +2786,7 @@
       "organize": "Organizar",
       "output": "Salida",
       "history": "Historial",
+      "content": "Content",
       "page": "Página",
       "insert": "Insertar",
       "save": "Guardar",
@@ -2947,6 +2960,10 @@
           "title": "Detallado"
         }
       },
+      "sessionTier": {
+        "label": "Level",
+        "hint": "Chat uses the same level as the summary"
+      },
       "chatContext": {
         "label": "Profundidad del chat",
         "light": {
@@ -2960,36 +2977,49 @@
         }
       },
       "generateSummary": "Generar resumen",
+      "refreshSummary": "Update summary",
+      "regenerateSummary": "Update summary",
       "summaryPlaceholder": "Ejecuta el resumen para ver los puntos clave generados por IA.",
       "summaryDone": "El resumen está listo. Abra la pestaña Resumen para leerlo.",
       "documentId": "ID del documento: {id}",
       "previewPdf": "Vista previa de PDF",
       "title": "Asistente de IA",
       "tabs": {
+        "assist": "Resumen y chat",
         "chat": "Charlar",
         "summary": "Resumen",
         "translate": "Traducir",
         "voice": "Información"
       },
+      "summarySection": "Resumen",
+      "chatSection": "Preguntas",
+      "suggestedQuestions": "Preguntas sugeridas:",
+      "suggestedQ1": "Cuéntame más sobre:",
+      "suggestedQ2": "¿Qué debo tener en cuenta en este documento?",
+      "suggestedQ3": "Resume brevemente los pasos necesarios",
+      "assistHint": "Genera un resumen primero; luego pregunta abajo.",
+      "summaryEmpty": "The model returned an empty summary. Try Smart OCR for scanned PDFs, or use Medium/Deep detail.",
       "translateComingSoon": "Traducción de documentos: próximamente.",
       "translate": {
         "run": "Translate document",
         "tiles": {
           "pdf": "PDF",
           "ocr": "OCR",
-          "text": "Text",
+          "blocks": "Blocks",
           "ai": "AI translate",
-          "output": "New PDF"
+          "output": "Render"
         },
         "stageCheck": "Checking text layer…",
         "stageOcr": "Running OCR…",
-        "stageTranslate": "Translating with AI…",
-        "stagePdf": "Building PDF…",
+        "stageBlocks": "Extracting layout blocks…",
+        "stageTranslate": "Translating each block…",
+        "stagePdf": "Rendering PDF…",
         "stageDone": "Done.",
         "error": "Translation failed.",
         "ocrApplied": "OCR was applied before translation (scanned or no text layer).",
         "applyToWorkspace": "Apply to workspace",
-        "applied": "Workspace PDF replaced with the translation."
+        "applied": "Workspace PDF replaced with the translation.",
+        "pdfReady": "Translated PDF is ready (layout preserved). Download or apply to workspace."
       },
       "voice": {
         "subtitle": "Escuche su documento con la voz integrada del navegador",

@@ -50,6 +50,7 @@
     "convert": "Chuyển đổi",
     "workspace": "Không gian làm việc",
     "summarizePdf": "Tóm tắt PDF",
+    "assistPdf": "Tóm tắt và Chat",
     "translatePdf": "Dịch PDF",
     "chatWithPdf": "Chat với PDF",
     "smartOcr": "OCR thông minh",
@@ -101,6 +102,7 @@
     },
     "aiDescriptions": {
       "summarize": "Rút trích ý chính từ mọi PDF.",
+      "assist": "Tóm tắt PDF rồi hỏi đáp AI trong cùng một luồng.",
       "translate": "Dịch toàn bộ tài liệu sang ngôn ngữ khác.",
       "voice": "Chuyển PDF thành giọng nói tự nhiên.",
       "ocr": "Biến bản quét thành PDF có thể chỉnh sửa.",
@@ -122,6 +124,7 @@
     "preparingWorkspace": "Đang chuẩn bị workspace AI...",
     "actions": {
       "summarize": "Tóm tắt",
+      "assist": "Tóm tắt và Chat",
       "translate": "Dịch tài liệu",
       "chat": "Chat với PDF",
       "ocr": "Quét OCR",

@@ -139,11 +139,19 @@
   "aiPanel": {
     "title": "Asistent AI",
     "tabs": {
+      "assist": "Rezumat și chat",
       "chat": "Chat",
       "summary": "Rezumat",
       "translate": "Traduce",
       "voice": "Perspective"
     },
+    "summarySection": "Rezumat",
+    "chatSection": "Întrebări",
+    "suggestedQuestions": "Întrebări sugerate:",
+    "suggestedQ1": "Spune-mi mai multe despre:",
+    "suggestedQ2": "La ce ar trebui să fiu atent în acest document?",
+    "suggestedQ3": "Rezumă pe scurt pașii necesari",
+    "assistHint": "Generează mai întâi un rezumat — apoi întreabă mai jos.",
     "detected": "Detectat",
     "documentLoaded": "Document încărcat",
     "pageDocument": "Document de {count} pagini",

@@ -16,7 +16,6 @@ import {
   PencilLine,
   ArrowLeftRight,
   Languages,
-  MessageCircle,
   Volume2,
   type LucideIcon,
 } from 'lucide-react';
@@ -87,9 +86,8 @@ export const Header: React.FC<HeaderProps> = ({ locale, showSearch = true }) => 
   const groupRef = useRef<HTMLDivElement>(null);
 
   const aiItems: NavDropdownItem[] = [
-    { href: `/${locale}/ai-summary`, label: t('ai.menu.summarizePdf'), lucideIcon: Sparkles, tone: 'purple' },
+    { href: `/${locale}/ai-assist`, label: t('ai.menu.assistPdf'), lucideIcon: Sparkles, tone: 'purple' },
     { href: `/${locale}/ai-translate`, label: t('ai.menu.translatePdf'), lucideIcon: Languages, tone: 'blue' },
-    { href: `/${locale}/chat-pdf`, label: t('ai.menu.chatWithPdf'), lucideIcon: MessageCircle, tone: 'purple' },
     { href: `/${locale}/smart-ocr`, label: t('ai.menu.smartOcr'), readerIconId: 'scan-to-pdf' },
     { href: `/${locale}/voice-reader`, label: t('ai.menu.voiceReader'), lucideIcon: Volume2, tone: 'red' },
   ];

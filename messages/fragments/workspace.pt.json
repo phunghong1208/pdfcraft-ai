@@ -139,11 +139,19 @@
   "aiPanel": {
     "title": "Assistente de IA",
     "tabs": {
+      "assist": "Resumo e chat",
       "chat": "Bater papo",
       "summary": "Resumo",
       "translate": "Traduzir",
       "voice": "Insights"
     },
+    "summarySection": "Resumo",
+    "chatSection": "Perguntas",
+    "suggestedQuestions": "Perguntas sugeridas:",
+    "suggestedQ1": "Conte-me mais sobre:",
+    "suggestedQ2": "O que devo observar neste documento?",
+    "suggestedQ3": "Resuma brevemente as etapas necessárias",
+    "assistHint": "Gere um resumo primeiro — depois pergunte abaixo.",
     "detected": "Detectado",
     "documentLoaded": "Documento carregado",
     "pageDocument": "Documento de {count} páginas",

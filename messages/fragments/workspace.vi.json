@@ -201,6 +201,10 @@
         "title": "Chi tiết"
       }
     },
+    "sessionTier": {
+      "label": "Mức độ",
+      "hint": "Chat trả lời cùng mức với tóm tắt"
+    },
     "chatContext": {
       "label": "Độ sâu chat",
       "light": {
@@ -214,17 +218,28 @@
       }
     },
     "generateSummary": "Tạo tóm tắt",
+    "refreshSummary": "Cập nhật tóm tắt",
+    "regenerateSummary": "Cập nhật tóm tắt",
     "summaryPlaceholder": "Chạy tóm tắt để xem nội dung chính do AI tạo cho PDF này.",
     "summaryDone": "Đã tóm tắt xong. Mở tab Tóm tắt để đọc.",
     "documentId": "Mã tài liệu (chat): {id}",
     "previewPdf": "Xem PDF",
     "title": "Trợ lý AI",
     "tabs": {
+      "assist": "Tóm tắt và Chat",
       "chat": "Trò chuyện",
       "summary": "Tóm tắt",
       "translate": "Dịch",
       "voice": "Đọc file"
     },
+    "summarySection": "Tóm tắt",
+    "chatSection": "Hỏi đáp",
+    "suggestedQuestions": "Câu hỏi gợi ý:",
+    "suggestedQ1": "Nội dung chính của tài liệu này là gì?",
+    "suggestedQ2": "Điểm nào cần lưu ý trong tài liệu?",
+    "suggestedQ3": "Tóm tắt ngắn các bước cần làm trong tài liệu?",
+    "assistHint": "Tạo tóm tắt trước — sau đó hỏi AI ngay bên dưới.",
+    "summaryEmpty": "AI không trả về tóm tắt. PDF có thể là bản scan — hãy chạy OCR thông minh trước, hoặc thử mức «Vừa» / «Chi tiết».",
     "translateComingSoon": "Dịch tài liệu — sắp ra mắt.",
     "translate": {
       "run": "Dịch tài liệu",

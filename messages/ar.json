@@ -131,8 +131,8 @@
     "upgradeTitle": "ترقية الخطة",
     "footer": {
       "brandName": "مساحة عمل قارئ PDF",
-      "brandLine1": "قارئ قوات الدفاع الشعبي",
-      "brandLine2": "مساحة العمل",
+      "brandLine1": "PDF Reader",
+      "brandLine2": "Workspace",
       "tagline": "مساحة عمل خاصة بالذكاء الاصطناعي",
       "trustLocalFirst": "المحلية أولا",
       "trustLocalFirstDesc": "لا توجد تحميلات الخادم",
@@ -148,9 +148,9 @@
       "trustGroupPlatform": "منصة",
       "trustGroupDownload": "تنزيل التطبيق",
       "storeGetOn": "احصل عليه",
-      "storeGooglePlay": "جوجل بلاي",
+      "storeGooglePlay": "Google Play",
       "storeDownloadOn": "تحميل على",
-      "storeAppStore": "متجر التطبيقات",
+      "storeAppStore": "App Store",
       "downloadApp": "تنزيل التطبيق",
       "availableOn": "متاح على",
       "googlePlayAria": "احصل عليه على جوجل بلاي",
@@ -163,14 +163,6 @@
       "cookies": "ملفات تعريف الارتباط",
       "privacyBadge": "خاص بنسبة 100% - الملفات لا تترك جهازك أبدًا",
       "privacyBadgeSub": "تتم معالجة مستنداتك بشكل آمن في متصفحك",
-      "resources": "الموارد",
-      "security": "الأمان",
-      "compliance": "الامتثال",
-      "gdprCompliant": "متوافق مع GDPR",
-      "clientSideProcessing": "معالجة على جهاز العميل",
-      "filesNeverLeave": "الملفات لا تغادر جهازك",
-      "noUploads": "بدون رفع ملفات",
-      "privateSecure": "خاص وآمن بنسبة 100%",
       "footer": "© {year} PDFCraft. جميع الحقوق محفوظة.",
       "ctaHeadline": "هل أنت مستعد للعمل بشكل أكثر ذكاءً مع ملفات PDF؟",
       "ctaSubtitle": "قم بتحميل المستندات وتحريرها وتلخيصها والدردشة معها باستخدام الذكاء الاصطناعي.",
@@ -179,6 +171,8 @@
       "copyrightName": "مساحة عمل قارئ PDF",
       "product": "منتج",
       "madeWith": "صُنع باستخدام <Heart /> و <Nextjs />",
+      "resources": "الموارد",
+      "security": "الأمان",
       "documentation": "التوثيق",
       "editPdf": "تحرير قوات الدفاع الشعبي",
       "compressPdf": "ضغط قوات الدفاع الشعبي",
@@ -210,7 +204,13 @@
       "featureOcr": "التعرف الضوئي على الحروف",
       "featureProtect": "يحمي",
       "featuresNav": "ميزات مساحة العمل",
-      "copyrightShort": "© {السنة} PDF"
+      "copyrightShort": "© {السنة} PDF",
+      "compliance": "الامتثال",
+      "gdprCompliant": "متوافق مع GDPR",
+      "clientSideProcessing": "معالجة على جهاز العميل",
+      "filesNeverLeave": "الملفات لا تغادر جهازك",
+      "noUploads": "بدون رفع ملفات",
+      "privateSecure": "خاص وآمن بنسبة 100%"
     },
     "recentFiles": {
       "title": "الملفات الأخيرة",
@@ -345,7 +345,8 @@
         "pageNumbers": "أرقام الصفحات",
         "headerFooter": "رأس وتذييل الصفحة",
         "convertToPdf": "تحويل إلى قوات الدفاع الشعبي",
-        "convertFromPdf": "تحويل من قوات الدفاع الشعبي"
+        "convertFromPdf": "تحويل من قوات الدفاع الشعبي",
+        "assistPdf": "Summary and Chat"
       }
     },
     "errors": {
@@ -369,7 +370,7 @@
     "uploadDropHint": "اسحب وأفلت أو اختر ملفًا",
     "aiActionsTitle": "إجراءات الذكاء الاصطناعي",
     "popularAiBadge": "الذكاء الاصطناعي المشهور",
-    "aiBadge": "منظمة العفو الدولية",
+    "aiBadge": "AI",
     "useInWorkspace": "استخدام في مساحة العمل",
     "coreActionsTitle": "إجراءات PDF الأساسية",
     "viewAllTools": "عرض جميع الأدوات",
@@ -384,7 +385,8 @@
       "translate": "ترجمة المستندات بأكملها إلى لغات أخرى.",
       "voice": "تحويل PDF إلى كلام طبيعي على الفور.",
       "ocr": "تحويل عمليات المسح إلى PDF قابل للتحرير.",
-      "chat": "اطرح أسئلة حول ملفاتك واحصل على إجابات فورية."
+      "chat": "اطرح أسئلة حول ملفاتك واحصل على إجابات فورية.",
+      "assist": "Summarize your PDF, then ask questions in one flow."
     },
     "toolDescriptions": {
       "scanToPdf": "تحويل الصور إلى PDF على الفور",
@@ -413,7 +415,8 @@
       "scanToPdf": "مسح إلى PDF",
       "split": "تقسيم",
       "protect": "حماية",
-      "ocrText": "OCR نص"
+      "ocrText": "OCR نص",
+      "assist": "Summary and Chat"
     }
   },
   "toolsPage": {
@@ -446,6 +449,10 @@
       "summarize": {
         "label": "ملخص بالذكاء الاصطناعي",
         "description": "استخرج الرؤى الرئيسية من أي PDF."
+      },
+      "assist": {
+        "label": "Summary & Chat",
+        "description": "Summarize your PDF, then ask questions in one flow."
       },
       "translate": {
         "label": "ترجمة بالذكاء الاصطناعي",
@@ -1899,12 +1906,6 @@
       "processButton": "بدء OCR",
       "previewTitle": "معاينة النص المستخرج",
       "successMessage": "اكتملت عملية OCR بنجاح!",
-      "infoTitle": "حول OCR",
-      "infoText": "تقوم تقنية OCR (التعرف الضوئي على الحروف) باستخراج النص من المستندات والصور الممسوحة ضوئيًا. للحصول على أفضل النتائج، استخدم صورًا عالية الجودة وحدد اللغة الصحيحة.",
-      "language": "لغة المستند",
-      "searchablePdf": "PDF قابل للبحث",
-      "textPlain": "نص عادي (.txt)",
-      "ocrButton": "بدء OCR",
       "optimize": "تحسين",
       "optimizeNone": "لا أحد",
       "optimizeDefault": "تقصير",
@@ -1913,7 +1914,13 @@
       "rotatePages": "تدوير الصفحات تلقائيًا",
       "removeBackground": "إزالة الخلفية",
       "clean": "تنظيف الصفحات قبل التعرف الضوئي على الحروف",
-      "forceOcr": "فرض التعرف الضوئي على الحروف (إعادة التعرف الضوئي على الحروف حتى لو كان النص موجودًا)"
+      "forceOcr": "فرض التعرف الضوئي على الحروف (إعادة التعرف الضوئي على الحروف حتى لو كان النص موجودًا)",
+      "infoTitle": "حول OCR",
+      "infoText": "تقوم تقنية OCR (التعرف الضوئي على الحروف) باستخراج النص من المستندات والصور الممسوحة ضوئيًا. للحصول على أفضل النتائج، استخدم صورًا عالية الجودة وحدد اللغة الصحيحة.",
+      "language": "لغة المستند",
+      "searchablePdf": "PDF قابل للبحث",
+      "textPlain": "نص عادي (.txt)",
+      "ocrButton": "بدء OCR"
     },
     "linearizePdf": {
       "uploadLabel": "تحميل ملفات PDF",
@@ -2122,6 +2129,7 @@
       "formatNumber": "أرقام (1، 2، 3)",
       "formatRoman": "أرقام رومانية (I، II، III)",
       "formatPageOfTotal": "صفحة X من Y",
+      "appearanceTitle": "مظهر",
       "styleTitle": "النمط",
       "style": "نمط الخط",
       "startNumber": "ابدأ من رقم",
@@ -2129,12 +2137,16 @@
       "customFormatHint": "استخدم {n} للرقم الحالي و {total} للإجمالي",
       "prefix": "البادئة",
       "suffix": "اللاحقة",
+      "prefixPlaceholder": "على سبيل المثال، الصفحة",
+      "suffixPlaceholder": "على سبيل المثال، -",
       "fontSize": "حجم الخط",
       "margin": "الهامش (نقاط)",
       "color": "لون النص",
       "skipFirstPage": "تخطي الصفحة الأولى",
+      "fileMeta": "{الحجم} • {صفحات}.",
       "preview": "معاينة",
       "pageOf": "من",
+      "previewPageOf": "الصفحة {الحالية}/{الإجمالي}",
       "firstPageSkipped": "(تم تخطي الصفحة الأولى)",
       "previewText": "مثال المعاينة",
       "addButton": "إضافة أرقام الصفحات",
@@ -2173,12 +2185,7 @@
       "pageRangePlaceholder": "مثال: 1-3، 5، 7",
       "pageNumbersButton": "إضافة أرقام الصفحات",
       "posCenterLeft": "وسط اليسار",
-      "posCenterRight": "وسط اليمين",
-      "appearanceTitle": "مظهر",
-      "prefixPlaceholder": "على سبيل المثال، الصفحة",
-      "suffixPlaceholder": "على سبيل المثال، -",
-      "fileMeta": "{الحجم} • {صفحات}.",
-      "previewPageOf": "الصفحة {الحالية}/{الإجمالي}"
+      "posCenterRight": "وسط اليمين"
     },
     "watermark": {
       "uploadLabel": "رفع ملف PDF",
@@ -2222,6 +2229,7 @@
       "previewTitle": "معاينة",
       "previewNote": "يتم عرض الصفحة الأولى فقط للحصول على أداء أفضل",
       "previewGenerating": "جارٍ إنشاء المعاينة...",
+      "previewPageOf": "الصفحة {الحالية} من {total}",
       "text": "نص",
       "image": "صورة",
       "textValue": "نص العلامة المائية",
@@ -2247,8 +2255,7 @@
       "addTextWatermark": "إضافة علامة مائية نصية",
       "addImageWatermark": "إضافة علامة مائية صورية",
       "textType": "نص",
-      "imageType": "صورة",
-      "previewPageOf": "الصفحة {الحالية} من {total}"
+      "imageType": "صورة"
     },
     "headerFooter": {
       "uploadLabel": "رفع ملف PDF",
@@ -2259,18 +2266,36 @@
       "footerTitle": "إعدادات التذييل",
       "footerText": "نص التذييل",
       "footerTextPlaceholder": "أدخل نص التذييل...",
+      "positionLeft": "غادر",
+      "positionCenter": "مركز",
+      "positionRight": "يمين",
+      "headerLeftPlaceholder": "على سبيل المثال، اسم الشركة",
+      "headerCenterPlaceholder": "على سبيل المثال، عنوان المستند",
+      "headerRightPlaceholder": "على سبيل المثال، \"{تاريخ}\"",
+      "footerLeftPlaceholder": "على سبيل المثال، سري",
+      "footerCenterPlaceholder": "على سبيل المثال، الصفحة \"{صفحة}\" من \"{total}\"",
+      "footerRightPlaceholder": "على سبيل المثال، \"{تاريخ}\"",
+      "quickInsertTitle": "إدراج سريع",
+      "quickInsertHint": "انقر للنسخ، ثم الصق في أي حقل",
       "styleTitle": "إعدادات النمط",
       "fontSize": "حجم الخط",
       "fontColor": "لون الخط",
+      "margin": "الهامش (نقطة)",
+      "pageRange": "نطاق الصفحات",
+      "pageRangePlaceholder": "مثال: 1-3، 5، 7",
+      "pageRangeHint": "استخدم \"الكل\" لجميع الصفحات، أو حدد نطاقات مثل \"1-5، 8، 10-12\"",
+      "skipFirstPage": "تخطي الصفحة الأولى (صفحة الغلاف)",
+      "fileMeta": "{الحجم} • {صفحات}.",
       "preview": "المعاينة",
+      "previewPageOf": "الصفحة {الحالية} من {total}",
       "previewHint": "معاينة لكيفية ظهور الرأس والتذييل",
+      "pageApplied": "ستتم إضافة الرأس/التذييل إلى هذه الصفحة",
+      "pageSkipped": "سيتم تخطي هذه الصفحة",
       "addButton": "إضافة رأس وتذييل",
       "successMessage": "تمت إضافة الرأس والتذييل بنجاح!",
       "optionsTitle": "خيارات الرأس والتذييل",
       "position": "الموضع",
       "textColor": "لون النص",
-      "pageRange": "نطاق الصفحات",
-      "pageRangePlaceholder": "مثال: 1-3، 5، 7",
       "headerFooterButton": "إضافة رأس وتذييل",
       "oddEvenTitle": "الصفحات الفردية والزوجية",
       "pageMode": "وضع الصفحات",
@@ -2283,25 +2308,7 @@
       "oddHint": "تطبيق على الصفحات 1، 3، 5...",
       "evenHint": "تطبيق على الصفحات 2، 4، 6...",
       "differentHint": "مفيد للكتب أو المجلات ذات التنسيقات المتناوبة",
-      "applyButton": "إضافة الرأس والتذييل",
-      "positionLeft": "غادر",
-      "positionCenter": "مركز",
-      "positionRight": "يمين",
-      "headerLeftPlaceholder": "على سبيل المثال، اسم الشركة",
-      "headerCenterPlaceholder": "على سبيل المثال، عنوان المستند",
-      "headerRightPlaceholder": "على سبيل المثال، \"{تاريخ}\"",
-      "footerLeftPlaceholder": "على سبيل المثال، سري",
-      "footerCenterPlaceholder": "على سبيل المثال، الصفحة \"{صفحة}\" من \"{total}\"",
-      "footerRightPlaceholder": "على سبيل المثال، \"{تاريخ}\"",
-      "quickInsertTitle": "إدراج سريع",
-      "quickInsertHint": "انقر للنسخ، ثم الصق في أي حقل",
-      "margin": "الهامش (نقطة)",
-      "pageRangeHint": "استخدم \"الكل\" لجميع الصفحات، أو حدد نطاقات مثل \"1-5، 8، 10-12\"",
-      "skipFirstPage": "تخطي الصفحة الأولى (صفحة الغلاف)",
-      "fileMeta": "{الحجم} • {صفحات}.",
-      "previewPageOf": "الصفحة {الحالية} من {total}",
-      "pageApplied": "ستتم إضافة الرأس/التذييل إلى هذه الصفحة",
-      "pageSkipped": "سيتم تخطي هذه الصفحة"
+      "applyButton": "إضافة الرأس والتذييل"
     },
     "invertColors": {
       "uploadLabel": "رفع ملف PDF",
@@ -2949,6 +2956,11 @@
         "description": "قم بتحميل ملف PDF واحصل على ملخص موجز تم إنشاؤه بواسطة الذكاء الاصطناعي.",
         "action": "إنشاء ملخص"
       },
+      "assist": {
+        "title": "Summary & Chat",
+        "description": "Summarize your PDF, then ask follow-up questions in one place.",
+        "action": "Open AI assistant"
+      },
       "translate": {
         "title": "ترجمة الذكاء الاصطناعي",
         "description": "قم بتحميل ملف PDF وترجمة المحتوى باستخدام خادم AI الخاص بك.",
@@ -3000,6 +3012,7 @@
       "organize": "تنظيم",
       "output": "إخراج",
       "history": "السجل",
+      "content": "Content",
       "page": "صفحة",
       "insert": "إدراج",
       "save": "حفظ",
@@ -3173,6 +3186,10 @@
           "title": "مفصل"
         }
       },
+      "sessionTier": {
+        "label": "Level",
+        "hint": "Chat uses the same level as the summary"
+      },
       "chatContext": {
         "label": "عمق الدردشة",
         "light": {
@@ -3186,36 +3203,49 @@
         }
       },
       "generateSummary": "إنشاء ملخص",
+      "refreshSummary": "Update summary",
+      "regenerateSummary": "Update summary",
       "summaryPlaceholder": "شغّل الملخص لرؤية النقاط الرئيسية التي أنشأها الذكاء الاصطناعي.",
       "summaryDone": "الملخص جاهز. افتح علامة التبويب \"الملخص\" لقراءتها.",
       "documentId": "معرف المستند: {id}",
       "previewPdf": "معاينة قوات الدفاع الشعبي",
       "title": "مساعد الذكاء الاصطناعي",
       "tabs": {
+        "assist": "ملخص ودردشة",
         "chat": "دردشة",
         "summary": "ملخص",
         "translate": "ترجمة",
         "voice": "رؤى"
       },
+      "summarySection": "ملخص",
+      "chatSection": "أسئلة وأجوبة",
+      "suggestedQuestions": "أسئلة مقترحة:",
+      "suggestedQ1": "أخبرني المزيد عن:",
+      "suggestedQ2": "ما الذي يجب الانتباه إليه في هذا المستند؟",
+      "suggestedQ3": "لخّص الخطوات المطلوبة بإيجاز",
+      "assistHint": "أنشئ ملخصًا أولاً — ثم اسأل أدناه.",
+      "summaryEmpty": "The model returned an empty summary. Try Smart OCR for scanned PDFs, or use Medium/Deep detail.",
       "translateComingSoon": "ترجمة المستندات – قريباً.",
       "translate": {
         "run": "Translate document",
         "tiles": {
           "pdf": "PDF",
           "ocr": "OCR",
-          "text": "Text",
+          "blocks": "Blocks",
           "ai": "AI translate",
-          "output": "New PDF"
+          "output": "Render"
         },
         "stageCheck": "Checking text layer…",
         "stageOcr": "Running OCR…",
-        "stageTranslate": "Translating with AI…",
-        "stagePdf": "Building PDF…",
+        "stageBlocks": "Extracting layout blocks…",
+        "stageTranslate": "Translating each block…",
+        "stagePdf": "Rendering PDF…",
         "stageDone": "Done.",
         "error": "Translation failed.",
         "ocrApplied": "OCR was applied before translation (scanned or no text layer).",
         "applyToWorkspace": "Apply to workspace",
-        "applied": "Workspace PDF replaced with the translation."
+        "applied": "Workspace PDF replaced with the translation.",
+        "pdfReady": "Translated PDF is ready (layout preserved). Download or apply to workspace."
       },
       "voice": {
         "subtitle": "استمع إلى المستند الخاص بك باستخدام كلام المتصفح المدمج",

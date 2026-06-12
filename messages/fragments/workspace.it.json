@@ -139,11 +139,19 @@
   "aiPanel": {
     "title": "Assistente AI",
     "tabs": {
+      "assist": "Riepilogo e chat",
       "chat": "Chiacchierata",
       "summary": "Riepilogo",
       "translate": "Traduci",
       "voice": "Approfondimenti"
     },
+    "summarySection": "Riepilogo",
+    "chatSection": "Domande",
+    "suggestedQuestions": "Domande suggerite:",
+    "suggestedQ1": "Dimmi di più su:",
+    "suggestedQ2": "A cosa devo fare attenzione in questo documento?",
+    "suggestedQ3": "Riassumi brevemente i passaggi necessari",
+    "assistHint": "Genera prima un riepilogo — poi chiedi qui sotto.",
     "detected": "Rilevato",
     "documentLoaded": "Documento caricato",
     "pageDocument": "Documento di {count} pagine",

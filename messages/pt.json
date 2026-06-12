@@ -123,8 +123,8 @@
     "upgradeTitle": "Atualizar plano",
     "footer": {
       "brandName": "Espaço de trabalho do leitor de PDF",
-      "brandLine1": "Leitor de PDF",
-      "brandLine2": "Espaço de trabalho",
+      "brandLine1": "PDF Reader",
+      "brandLine2": "Workspace",
       "tagline": "Espaço de trabalho privado de IA",
       "trustLocalFirst": "Local primeiro",
       "trustLocalFirstDesc": "Nenhum upload de servidor",
@@ -142,7 +142,7 @@
       "storeGetOn": "Comece",
       "storeGooglePlay": "Google Play",
       "storeDownloadOn": "Baixe no",
-      "storeAppStore": "Loja de aplicativos",
+      "storeAppStore": "App Store",
       "downloadApp": "Baixar aplicativo",
       "availableOn": "Disponível em",
       "googlePlayAria": "Obtenha no Google Play",
@@ -152,17 +152,9 @@
       "legalNav": "Jurídico",
       "terms": "Termos",
       "privacyLink": "Privacidade",
-      "cookies": "Biscoitos",
+      "cookies": "Cookies",
       "privacyBadge": "100% Privado — Os arquivos nunca saem do seu dispositivo",
       "privacyBadgeSub": "Seus documentos são processados ​​com segurança em seu navegador",
-      "resources": "Recursos",
-      "security": "Segurança",
-      "compliance": "Conformidade",
-      "gdprCompliant": "Compatível com GDPR",
-      "clientSideProcessing": "Processamento no cliente",
-      "filesNeverLeave": "Os arquivos nunca saem do seu dispositivo",
-      "noUploads": "Sem envio de arquivos",
-      "privateSecure": "100% privado e seguro",
       "footer": "© 2025 PDFCraft. Todos os direitos reservados.",
       "ctaHeadline": "Pronto para trabalhar de maneira mais inteligente com PDFs?",
       "ctaSubtitle": "Carregue, edite, resuma e converse com documentos usando IA.",
@@ -171,6 +163,8 @@
       "copyrightName": "Espaço de trabalho do leitor de PDF",
       "product": "Produto",
       "madeWith": "Feito com <Heart /> e <Nextjs />",
+      "resources": "Recursos",
+      "security": "Segurança",
       "documentation": "Documentação",
       "editPdf": "Editar PDF",
       "compressPdf": "Compactar PDF",
@@ -202,7 +196,13 @@
       "featureOcr": "OCR",
       "featureProtect": "Proteger",
       "featuresNav": "Recursos do espaço de trabalho",
-      "copyrightShort": "© {ano} PDF"
+      "copyrightShort": "© {ano} PDF",
+      "compliance": "Conformidade",
+      "gdprCompliant": "Compatível com GDPR",
+      "clientSideProcessing": "Processamento no cliente",
+      "filesNeverLeave": "Os arquivos nunca saem do seu dispositivo",
+      "noUploads": "Sem envio de arquivos",
+      "privateSecure": "100% privado e seguro"
     },
     "recentFiles": {
       "title": "Arquivos Recentes",
@@ -317,7 +317,8 @@
         "pageNumbers": "Números de página",
         "headerFooter": "Cabeçalho e rodapé",
         "convertToPdf": "Converter para PDF",
-        "convertFromPdf": "Converter de PDF"
+        "convertFromPdf": "Converter de PDF",
+        "assistPdf": "Summary and Chat"
       }
     },
     "faqPage": {
@@ -555,7 +556,7 @@
     "uploadDropHint": "Arraste e solte ou escolha um arquivo",
     "aiActionsTitle": "Ações de IA",
     "popularAiBadge": "IA popular",
-    "aiBadge": "IA",
+    "aiBadge": "AI",
     "useInWorkspace": "Usar na área de trabalho",
     "coreActionsTitle": "Ações principais de PDF",
     "viewAllTools": "Ver todas as ferramentas",
@@ -570,7 +571,8 @@
       "translate": "Traduza documentos inteiros para outros idiomas.",
       "voice": "Converta PDF em fala natural instantaneamente.",
       "ocr": "Converta digitalizações em PDF editável.",
-      "chat": "Faça perguntas sobre seus arquivos e obtenha respostas instantâneas."
+      "chat": "Faça perguntas sobre seus arquivos e obtenha respostas instantâneas.",
+      "assist": "Summarize your PDF, then ask questions in one flow."
     },
     "toolDescriptions": {
       "scanToPdf": "Converta imagens em PDF instantaneamente",
@@ -599,7 +601,8 @@
       "scanToPdf": "Digitalizar para PDF",
       "split": "Dividir",
       "protect": "Proteger",
-      "ocrText": "OCR texto"
+      "ocrText": "OCR texto",
+      "assist": "Summary and Chat"
     }
   },
   "toolsPage": {
@@ -632,6 +635,10 @@
       "summarize": {
         "label": "Resumo IA",
         "description": "Extraia insights principais de qualquer PDF."
+      },
+      "assist": {
+        "label": "Summary & Chat",
+        "description": "Summarize your PDF, then ask questions in one flow."
       },
       "translate": {
         "label": "Tradução IA",
@@ -2061,8 +2068,6 @@
       "processButton": "Iniciar OCR",
       "previewTitle": "Pré-visualização do texto extraído",
       "successMessage": "OCR concluído com sucesso! Clique no botão de download para salvar seu arquivo.",
-      "infoTitle": "Sobre OCR",
-      "infoText": "OCR (Reconhecimento Óptico de Caracteres) extrai texto de documentos digitalizados e imagens. Para melhores resultados, use digitalizações de alta qualidade e selecione o(s) idioma(s) correto(s).",
       "optimize": "Otimização",
       "optimizeNone": "Nenhum",
       "optimizeDefault": "Padrão",
@@ -2071,7 +2076,9 @@
       "rotatePages": "Girar páginas automaticamente",
       "removeBackground": "Remover fundo",
       "clean": "Limpe as páginas antes do OCR",
-      "forceOcr": "Forçar OCR (re-OCR mesmo se existir texto)"
+      "forceOcr": "Forçar OCR (re-OCR mesmo se existir texto)",
+      "infoTitle": "Sobre OCR",
+      "infoText": "OCR (Reconhecimento Óptico de Caracteres) extrai texto de documentos digitalizados e imagens. Para melhores resultados, use digitalizações de alta qualidade e selecione o(s) idioma(s) correto(s)."
     },
     "linearizePdf": {
       "uploadLabel": "Enviar arquivos PDF",
@@ -2280,6 +2287,7 @@
       "formatNumber": "Número (1, 2, 3)",
       "formatRoman": "Romano (I, II, III)",
       "formatPageOfTotal": "Página X de Y",
+      "appearanceTitle": "Aparência",
       "styleTitle": "Estilo",
       "style": "Estilo",
       "startNumber": "Número inicial",
@@ -2287,12 +2295,16 @@
       "customFormatHint": "Use {page} e {total} como marcadores",
       "prefix": "Prefixo",
       "suffix": "Sufixo",
+      "prefixPlaceholder": "por exemplo, página",
+      "suffixPlaceholder": "por exemplo, -",
       "fontSize": "Tamanho da fonte",
       "margin": "Margem",
       "color": "Cor",
       "skipFirstPage": "Pular primeira página (capa)",
+      "fileMeta": "{tamanho} • {páginas} páginas",
       "preview": "Visualização",
       "pageOf": "Página {current} de {total}",
+      "previewPageOf": "Página {atual}/{total}",
       "firstPageSkipped": "A primeira página será pulada",
       "previewText": "Visualização: \"{text}\"",
       "addButton": "Adicionar números de página",
@@ -2316,12 +2328,7 @@
       "posBottomRight": "Inferior direita",
       "posTopLeft": "Superior esquerda",
       "posTopCenter": "Superior centro",
-      "posTopRight": "Superior direita",
-      "appearanceTitle": "Aparência",
-      "prefixPlaceholder": "por exemplo, página",
-      "suffixPlaceholder": "por exemplo, -",
-      "fileMeta": "{tamanho} • {páginas} páginas",
-      "previewPageOf": "Página {atual}/{total}"
+      "posTopRight": "Superior direita"
     },
     "watermark": {
       "uploadLabel": "Enviar arquivo PDF",
@@ -2376,13 +2383,6 @@
       "footerTitle": "Rodapé",
       "footerText": "Texto do Rodapé",
       "footerTextPlaceholder": "Digite o texto do rodapé...",
-      "styleTitle": "Estilo",
-      "fontSize": "Tamanho da Fonte",
-      "fontColor": "Cor da Fonte",
-      "preview": "Pré-visualização",
-      "previewHint": "Digite o texto do cabeçalho ou rodapé para ver a pré-visualização",
-      "addButton": "Adicionar cabeçalho e rodapé",
-      "successMessage": "Cabeçalho e rodapé adicionados com sucesso!",
       "positionLeft": "Esquerda",
       "positionCenter": "Centro",
       "positionRight": "Certo",
@@ -2394,15 +2394,22 @@
       "footerRightPlaceholder": "por exemplo, '{data}'",
       "quickInsertTitle": "Inserção rápida",
       "quickInsertHint": "Clique para copiar e cole em qualquer campo",
+      "styleTitle": "Estilo",
+      "fontSize": "Tamanho da Fonte",
+      "fontColor": "Cor da Fonte",
       "margin": "Margem (pt)",
       "pageRange": "Intervalo de páginas",
       "pageRangePlaceholder": "por exemplo, todos ou 1-5, 8, 10-12",
       "pageRangeHint": "Use \"todos\" para todas as páginas ou especifique intervalos como \"1-5, 8, 10-12\"",
       "skipFirstPage": "Pular primeira página (página de rosto)",
       "fileMeta": "{tamanho} • {páginas} páginas",
+      "preview": "Pré-visualização",
       "previewPageOf": "Página {atual} de {total}",
+      "previewHint": "Digite o texto do cabeçalho ou rodapé para ver a pré-visualização",
       "pageApplied": "Cabeçalho/rodapé serão adicionados a esta página",
-      "pageSkipped": "Esta página será ignorada"
+      "pageSkipped": "Esta página será ignorada",
+      "addButton": "Adicionar cabeçalho e rodapé",
+      "successMessage": "Cabeçalho e rodapé adicionados com sucesso!"
     },
     "invertColors": {
       "uploadLabel": "Enviar arquivo PDF",
@@ -2941,6 +2948,11 @@
         "description": "Carregue um PDF e obtenha um resumo conciso gerado por IA.",
         "action": "Gerar resumo"
       },
+      "assist": {
+        "title": "Summary & Chat",
+        "description": "Summarize your PDF, then ask follow-up questions in one place.",
+        "action": "Open AI assistant"
+      },
       "translate": {
         "title": "Tradução IA",
         "description": "Carregue um PDF e traduza o conteúdo com seu servidor de IA.",
@@ -2992,6 +3004,7 @@
       "organize": "Organizar",
       "output": "Saída",
       "history": "Histórico",
+      "content": "Content",
       "page": "Página",
       "insert": "Inserir",
       "save": "Salvar",
@@ -3165,6 +3178,10 @@
           "title": "Detalhado"
         }
       },
+      "sessionTier": {
+        "label": "Level",
+        "hint": "Chat uses the same level as the summary"
+      },
       "chatContext": {
         "label": "Profundidade do bate-papo",
         "light": {
@@ -3178,36 +3195,49 @@
         }
       },
       "generateSummary": "Gerar resumo",
+      "refreshSummary": "Update summary",
+      "regenerateSummary": "Update summary",
       "summaryPlaceholder": "Execute o resumo para ver destaques gerados pela IA.",
       "summaryDone": "O resumo está pronto. Abra a guia Resumo para lê-lo.",
       "documentId": "ID do documento: {id}",
       "previewPdf": "Visualização de PDF",
       "title": "Assistente de IA",
       "tabs": {
+        "assist": "Resumo e chat",
         "chat": "Bater papo",
         "summary": "Resumo",
         "translate": "Traduzir",
         "voice": "Insights"
       },
+      "summarySection": "Resumo",
+      "chatSection": "Perguntas",
+      "suggestedQuestions": "Perguntas sugeridas:",
+      "suggestedQ1": "Conte-me mais sobre:",
+      "suggestedQ2": "O que devo observar neste documento?",
+      "suggestedQ3": "Resuma brevemente as etapas necessárias",
+      "assistHint": "Gere um resumo primeiro — depois pergunte abaixo.",
+      "summaryEmpty": "The model returned an empty summary. Try Smart OCR for scanned PDFs, or use Medium/Deep detail.",
       "translateComingSoon": "Tradução de documentos — em breve.",
       "translate": {
         "run": "Translate document",
         "tiles": {
           "pdf": "PDF",
           "ocr": "OCR",
-          "text": "Text",
+          "blocks": "Blocks",
           "ai": "AI translate",
-          "output": "New PDF"
+          "output": "Render"
         },
         "stageCheck": "Checking text layer…",
         "stageOcr": "Running OCR…",
-        "stageTranslate": "Translating with AI…",
-        "stagePdf": "Building PDF…",
+        "stageBlocks": "Extracting layout blocks…",
+        "stageTranslate": "Translating each block…",
+        "stagePdf": "Rendering PDF…",
         "stageDone": "Done.",
         "error": "Translation failed.",
         "ocrApplied": "OCR was applied before translation (scanned or no text layer).",
         "applyToWorkspace": "Apply to workspace",
-        "applied": "Workspace PDF replaced with the translation."
+        "applied": "Workspace PDF replaced with the translation.",
+        "pdfReady": "Translated PDF is ready (layout preserved). Download or apply to workspace."
       },
       "voice": {
         "subtitle": "Ouça seu documento com a fala integrada do navegador",
