@@ -37,6 +37,34 @@ function groupIntoLines(items: TextItem[], tolerance = 4): TextLine[] {
   return lines;
 }
 
+function splitLineAtLargeGaps(line: TextLine, gapMultiplier = 2): TextLine[] {
+  if (line.items.length <= 1) return [line];
+
+  const subLines: TextLine[] = [];
+  let currentItems: TextItem[] = [line.items[0]];
+
+  for (let i = 1; i < line.items.length; i++) {
+    const item = line.items[i];
+    const prev = line.items[i - 1];
+    const prevEnd = prev.transform[4] + itemWidth(prev);
+    const gap = item.transform[4] - prevEnd;
+    const fontSize = Math.max(itemFontSize(prev), itemFontSize(item));
+
+    if (gap > fontSize * gapMultiplier) {
+      subLines.push({ y: line.y, items: [...currentItems] });
+      currentItems = [item];
+    } else {
+      currentItems.push(item);
+    }
+  }
+
+  if (currentItems.length) {
+    subLines.push({ y: line.y, items: currentItems });
+  }
+
+  return subLines.length > 1 ? subLines : [line];
+}
+
 function itemWidth(item: TextItem): number {
   if (item.width > 0) return item.width;
   const scale = Math.abs(item.transform[0]) || Math.abs(item.transform[3]) || 8;
@@ -184,8 +212,13 @@ export async function extractLayoutBlocks(file: File): Promise<LayoutTextBlock[]
       rawItems.push(item);
     }
 
-    const lines = groupIntoLines(rawItems);
-    if (!lines.length) continue;
+    const rawLines = groupIntoLines(rawItems);
+    if (!rawLines.length) continue;
+
+    const lines: TextLine[] = [];
+    for (const line of rawLines) {
+      lines.push(...splitLineAtLargeGaps(line));
+    }
 
     let currentLines: TextLine[] = [];
     let currentBounds: ReturnType<typeof lineBounds> | null = null;
@@ -227,7 +260,19 @@ export async function extractLayoutBlocks(file: File): Promise<LayoutTextBlock[]
       const verticalGap = prevLine.y - line.y;
       const gapThreshold = Math.max(currentBounds!.fontSize, bounds.fontSize) * 1.35;
 
-      if (verticalGap > gapThreshold) {
+      const isSameRow = Math.abs(verticalGap) <= 2;
+      const horizGap = bounds.pdfX - (currentBounds!.pdfX + currentBounds!.pdfWidth);
+      const largeHorizGap = horizGap > Math.max(currentBounds!.fontSize, bounds.fontSize) * 2;
+
+      const overlapX0 = Math.max(currentBounds!.pdfX, bounds.pdfX);
+      const overlapX1 = Math.min(
+        currentBounds!.pdfX + currentBounds!.pdfWidth,
+        bounds.pdfX + bounds.pdfWidth,
+      );
+      const minWidth = Math.min(currentBounds!.pdfWidth, bounds.pdfWidth);
+      const horizontallyDisjoint = (overlapX1 - overlapX0) < minWidth * 0.3;
+
+      if (verticalGap > gapThreshold || (isSameRow && largeHorizGap) || horizontallyDisjoint) {
         flushBlock();
         currentLines = [line];
         currentBounds = bounds;

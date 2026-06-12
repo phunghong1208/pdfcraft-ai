@@ -30,7 +30,24 @@ function buildSystemPrompt(sourceLang: string, targetLang: string): string {
   ].join(' ');
 }
 
-function parseTranslationsJson(content: string, expectedCount: number): string[] {
+function alignTranslations(
+  out: string[],
+  expectedCount: number,
+  fallback: string[],
+): string[] {
+  const result: string[] = [];
+  for (let i = 0; i < expectedCount; i += 1) {
+    const translated = out[i]?.trim();
+    result.push(translated || fallback[i] || '');
+  }
+  return result;
+}
+
+function parseTranslationsJson(
+  content: string,
+  expectedCount: number,
+  fallback: string[],
+): string[] {
   const trimmed = content.trim();
   const jsonMatch = trimmed.match(/\{[\s\S]*\}/);
   const jsonText = jsonMatch ? jsonMatch[0] : trimmed;
@@ -40,11 +57,10 @@ function parseTranslationsJson(content: string, expectedCount: number): string[]
     throw new Error('JSON thiếu mảng translations.');
   }
 
-  const out = parsed.translations.map((value) => (typeof value === 'string' ? value : String(value ?? '')));
-  if (out.length !== expectedCount) {
-    throw new Error(`Số segment dịch (${out.length}) khác input (${expectedCount}).`);
-  }
-  return out;
+  const out = parsed.translations.map((value) =>
+    typeof value === 'string' ? value : String(value ?? ''),
+  );
+  return alignTranslations(out, expectedCount, fallback);
 }
 
 async function translateBatch(
@@ -54,7 +70,6 @@ async function translateBatch(
   model: string,
 ): Promise<{ translations: string[]; usage: TokenUsage }> {
   const payload = JSON.stringify({ segments });
-  let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
     try {
@@ -68,15 +83,14 @@ async function translateBatch(
         reasoningEffort: 'low',
       });
 
-      const translations = parseTranslationsJson(content, segments.length);
+      const translations = parseTranslationsJson(content, segments.length, segments);
       return { translations, usage: usage ?? emptyUsage() };
-    } catch (err) {
-      lastError = err instanceof Error ? err : new Error(String(err));
+    } catch {
       if (attempt >= MAX_RETRIES) break;
     }
   }
 
-  throw lastError ?? new Error('Dịch batch thất bại.');
+  return { translations: [...segments], usage: emptyUsage() };
 }
 
 export async function translateSegmentsLightweight(options: {

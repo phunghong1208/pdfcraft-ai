@@ -30,7 +30,7 @@ export type WorkspaceTranslateResult = {
   ocrApplied: boolean;
   ocrMethod?: string;
   blockCount?: number;
-  layoutEngine?: 'docling' | 'pdfjs';
+  layoutEngine?: 'pdfjs';
 };
 
 const MIN_EXTRACTABLE_CHARS = 64;
@@ -128,7 +128,7 @@ export async function runWorkspaceTranslatePipeline(
 
   const prepared = await ensureTextLayerPdf(file, sourceLang, onProgress);
 
-  emit(onProgress, 'blocks', 64, 'Docling — đang trích block + bbox…');
+  emit(onProgress, 'blocks', 64, 'Đang trích block + bbox…');
   const layout = await extractDocumentLayoutBlocks(prepared.file);
   const { blocks, engine: layoutEngine } = layout;
 

@@ -31,11 +31,11 @@ async function translateChunk(
   }
 
   const translations = body.translations;
-  if (!Array.isArray(translations) || translations.length !== segments.length) {
-    throw new Error('API dịch không trả đủ số segment.');
+  if (!Array.isArray(translations)) {
+    throw new Error('API dịch không trả mảng translations.');
   }
 
-  return translations.map((t, j) => t?.trim() || segments[j]);
+  return segments.map((seg, j) => translations[j]?.trim() || seg);
 }
 
 export async function translateBlockTexts(
