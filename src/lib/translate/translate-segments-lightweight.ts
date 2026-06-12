@@ -68,6 +68,7 @@ async function translateBatch(
   sourceLang: string,
   targetLang: string,
   model: string,
+  _depth = 0,
 ): Promise<{ translations: string[]; usage: TokenUsage }> {
   const payload = JSON.stringify({ segments });
 
@@ -85,11 +86,34 @@ async function translateBatch(
 
       const translations = parseTranslationsJson(content, segments.length, segments);
       return { translations, usage: usage ?? emptyUsage() };
-    } catch {
+    } catch (err) {
+      console.error(
+        `[translate] batch fail (attempt ${attempt + 1}/${MAX_RETRIES + 1}, ${segments.length} segs):`,
+        err instanceof Error ? err.message : err,
+      );
       if (attempt >= MAX_RETRIES) break;
     }
   }
 
+  if (_depth === 0 && segments.length > 1) {
+    console.warn(`[translate] splitting failed batch of ${segments.length} into smaller chunks`);
+    const chunkSize = Math.max(1, Math.ceil(segments.length / 4));
+    const chunks: string[][] = [];
+    for (let i = 0; i < segments.length; i += chunkSize) {
+      chunks.push(segments.slice(i, i + chunkSize));
+    }
+    const results = await Promise.all(
+      chunks.map((chunk) => translateBatch(chunk, sourceLang, targetLang, model, 1)),
+    );
+    return {
+      translations: results.flatMap((r) => r.translations),
+      usage: results.reduce((acc, r) => mergeUsage(acc, r.usage), emptyUsage()),
+    };
+  }
+
+  console.warn(
+    `[translate] ${segments.length} segment(s) untranslatable, returning original`,
+  );
   return { translations: [...segments], usage: emptyUsage() };
 }
 

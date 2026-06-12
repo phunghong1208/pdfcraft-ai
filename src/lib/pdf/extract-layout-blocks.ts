@@ -114,8 +114,8 @@ function lineBounds(items: TextItem[]) {
     const w = itemWidth(item);
     minX = Math.min(minX, x);
     maxX = Math.max(maxX, x + w);
-    minY = Math.min(minY, y);
-    maxY = Math.max(maxY, y + h);
+    minY = Math.min(minY, y - h * 0.3);
+    maxY = Math.max(maxY, y + h * 1.15);
     fontSize = Math.max(fontSize, h);
     if (item.fontName) fontFamily = item.fontName;
   }

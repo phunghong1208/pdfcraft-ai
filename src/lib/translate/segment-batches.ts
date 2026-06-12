@@ -1,9 +1,9 @@
 /** Gom segment ngắn (ô bảng, nhãn) vào ít request GPT hơn. */
 export const DEFAULT_MAX_SEGMENTS_PER_BATCH = Number(
-  process.env.TRANSLATE_BATCH_SIZE || '28',
+  process.env.TRANSLATE_BATCH_SIZE || '16',
 );
 export const DEFAULT_MAX_CHARS_PER_BATCH = Number(
-  process.env.TRANSLATE_BATCH_MAX_CHARS || '5500',
+  process.env.TRANSLATE_BATCH_MAX_CHARS || '4000',
 );
 
 export type SegmentBatch = {

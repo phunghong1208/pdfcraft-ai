@@ -51,9 +51,16 @@ export async function translateBlockTexts(
   let doneCount = 0;
 
   await runSegmentBatches(batches, async ({ offset, segments }) => {
-    const translations = await translateChunk(segments, sourceLang, targetLang);
-    for (let j = 0; j < segments.length; j += 1) {
-      results[offset + j] = translations[j];
+    try {
+      const translations = await translateChunk(segments, sourceLang, targetLang);
+      for (let j = 0; j < segments.length; j += 1) {
+        results[offset + j] = translations[j];
+      }
+    } catch (err) {
+      console.error('[translateBlockTexts] batch failed, keeping originals:', err);
+      for (let j = 0; j < segments.length; j += 1) {
+        results[offset + j] = segments[j];
+      }
     }
     doneCount += segments.length;
     onProgress?.(doneCount, texts.length);

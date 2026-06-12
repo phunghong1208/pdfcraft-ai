@@ -103,12 +103,12 @@ function fitTextInBlock(
   return measureLayout(text, font, minSize, widthBudget);
 }
 
-const PAD = 3;
-
 type PreparedBlock = {
   block: LayoutTextBlock;
   layout: FittedLayout;
   page: PDFPage;
+  vPad: number;
+  hPad: number;
 };
 
 export async function applyBlockTranslations(
@@ -130,32 +130,34 @@ export async function applyBlockTranslations(
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i];
     const newText = (translations[i] ?? block.text).trim();
-    if (!newText || newText === block.text) continue;
+    if (!newText || newText === block.text.trim()) continue;
 
     const pageIndex = block.pageNumber - 1;
     if (pageIndex < 0 || pageIndex >= pdfDoc.getPageCount()) continue;
 
-    const innerWidth = Math.max(8, block.pdfWidth - PAD);
+    const vPad = Math.max(5, block.fontSize * 0.5);
+    const hPad = Math.max(3, block.fontSize * 0.15);
+    const innerWidth = Math.max(8, block.pdfWidth - hPad * 2);
     const layout = fitTextInBlock(newText, font, block, innerWidth);
-    prepared.push({ block, layout, page: pdfDoc.getPage(pageIndex) });
+    prepared.push({ block, layout, page: pdfDoc.getPage(pageIndex), vPad, hPad });
   }
 
   // Pass 1: draw ALL white rects first — cover all original text
-  for (const { block, page } of prepared) {
+  for (const { block, vPad, hPad, page } of prepared) {
     page.drawRectangle({
-      x: block.pdfX - PAD,
-      y: block.pdfY - PAD,
-      width: block.pdfWidth + PAD * 2,
-      height: block.pdfHeight + PAD * 2,
+      x: block.pdfX - hPad,
+      y: block.pdfY - vPad,
+      width: block.pdfWidth + hPad * 2,
+      height: block.pdfHeight + vPad * 2,
       color: rgb(1, 1, 1),
       borderWidth: 0,
     });
   }
 
   // Pass 2: draw ALL translated text on top — no white rect can cover it
-  for (const { block, layout, page } of prepared) {
+  for (const { block, layout, vPad, page } of prepared) {
     let lineY = block.pdfY + block.pdfHeight - layout.fontSize;
-    const minY = block.pdfY - PAD;
+    const minY = block.pdfY - vPad;
 
     for (const line of layout.lines) {
       if (lineY < minY) break;
