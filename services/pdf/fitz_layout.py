@@ -101,26 +101,96 @@ def _merge_marker_with_next(blocks: list[dict[str, Any]]) -> list[dict[str, Any]
     return merged
 
 
+def _merge_nearby_blocks(
+    blocks: list[dict[str, Any]],
+    gap_factor: float = 1.35,
+) -> list[dict[str, Any]]:
+    """Gộp các dòng liền kề thành đoạn — tránh khe hở khi che chữ gốc."""
+    if not blocks:
+        return blocks
+
+    blocks.sort(key=lambda b: (b["pageNumber"], -(b["pdfY"] + b["pdfHeight"]), b["pdfX"]))
+    merged: list[dict[str, Any]] = []
+    cur: dict[str, Any] | None = None
+
+    for blk in blocks:
+        if cur is None:
+            cur = {**blk}
+            continue
+
+        if blk["pageNumber"] != cur["pageNumber"]:
+            merged.append(cur)
+            cur = {**blk}
+            continue
+
+        cur_top = cur["pdfY"] + cur["pdfHeight"]
+        blk_top = blk["pdfY"] + blk["pdfHeight"]
+        gap = cur["pdfY"] - blk_top
+        max_gap = max(cur["fontSize"], blk["fontSize"]) * gap_factor
+
+        overlap_x0 = max(cur["pdfX"], blk["pdfX"])
+        overlap_x1 = min(cur["pdfX"] + cur["pdfWidth"], blk["pdfX"] + blk["pdfWidth"])
+        min_w = min(cur["pdfWidth"], blk["pdfWidth"])
+        aligned = (overlap_x1 - overlap_x0) > min_w * 0.3
+
+        if 0 <= gap < max_gap and aligned:
+            new_x = min(cur["pdfX"], blk["pdfX"])
+            new_y = min(cur["pdfY"], blk["pdfY"])
+            new_x2 = max(cur["pdfX"] + cur["pdfWidth"], blk["pdfX"] + blk["pdfWidth"])
+            new_y2 = max(cur_top, blk_top)
+            cur["text"] += "\n" + blk["text"]
+            cur["pdfX"] = round(new_x, 2)
+            cur["pdfY"] = round(new_y, 2)
+            cur["pdfWidth"] = round(max(4.0, new_x2 - new_x), 2)
+            cur["pdfHeight"] = round(max(4.0, new_y2 - new_y), 2)
+            cur["fontSize"] = max(cur["fontSize"], blk["fontSize"])
+        else:
+            merged.append(cur)
+            cur = {**blk}
+
+    if cur:
+        merged.append(cur)
+
+    return merged
+
+
+def _collect_page_lines(page_index: int, page: fitz.Page) -> list[dict[str, Any]]:
+    page_no = page_index + 1
+    page_h = float(page.rect.height)
+    page_lines: list[dict[str, Any]] = []
+
+    for block in page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE).get("blocks", []):
+        if block.get("type") != 0:
+            continue
+        for line in block.get("lines", []):
+            spans = [s for s in line.get("spans", []) if (s.get("text") or "").strip()]
+            row = _line_block(page_no, page_h, spans, label="line")
+            if row:
+                page_lines.append(row)
+
+    page_lines.sort(key=lambda b: (-(b["pdfY"] + b["pdfHeight"]), b["pdfX"]))
+    return page_lines
+
+
+def extract_fitz_wipe_lines(pdf_path: Path) -> list[dict[str, Any]]:
+    """Mọi dòng text (chưa gộp đoạn) — dùng che/xóa chữ gốc khi dịch."""
+    lines: list[dict[str, Any]] = []
+    doc = fitz.open(pdf_path)
+    try:
+        for page_index, page in enumerate(doc):
+            lines.extend(_collect_page_lines(page_index, page))
+    finally:
+        doc.close()
+    return lines
+
+
 def extract_fitz_line_blocks(pdf_path: Path) -> list[dict[str, Any]]:
     blocks: list[dict[str, Any]] = []
     doc = fitz.open(pdf_path)
     try:
         for page_index, page in enumerate(doc):
-            page_no = page_index + 1
-            page_h = float(page.rect.height)
-            page_lines: list[dict[str, Any]] = []
-
-            for block in page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE).get("blocks", []):
-                if block.get("type") != 0:
-                    continue
-                for line in block.get("lines", []):
-                    spans = [s for s in line.get("spans", []) if (s.get("text") or "").strip()]
-                    row = _line_block(page_no, page_h, spans, label="line")
-                    if row:
-                        page_lines.append(row)
-
-            page_lines.sort(key=lambda b: (-(b["pdfY"] + b["pdfHeight"]), b["pdfX"]))
-            blocks.extend(_merge_marker_with_next(page_lines))
+            page_lines = _collect_page_lines(page_index, page)
+            blocks.extend(_merge_nearby_blocks(_merge_marker_with_next(page_lines)))
     finally:
         doc.close()
 

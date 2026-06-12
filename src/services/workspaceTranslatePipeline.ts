@@ -5,7 +5,10 @@ import {
   runSmartOcr,
   type OCRLanguage,
 } from '@/lib/pdf/processors/ocr';
-import { extractDocumentLayoutBlocks } from '@/services/layoutExtractApi';
+import {
+  extractDocumentLayoutBlocks,
+  type LayoutEngine,
+} from '@/services/layoutExtractApi';
 import { translateBlockTexts } from '@/services/translateBlocksApi';
 
 export type TranslatePipelineStage = 'check' | 'ocr' | 'blocks' | 'translate' | 'pdf' | 'done';
@@ -30,7 +33,7 @@ export type WorkspaceTranslateResult = {
   ocrApplied: boolean;
   ocrMethod?: string;
   blockCount?: number;
-  layoutEngine?: 'pdfjs';
+  layoutEngine?: LayoutEngine;
 };
 
 const MIN_EXTRACTABLE_CHARS = 64;
@@ -126,11 +129,34 @@ export async function runWorkspaceTranslatePipeline(
 ): Promise<WorkspaceTranslateResult> {
   const { file, sourceLang, targetLang, onProgress } = opts;
 
-  const prepared = await ensureTextLayerPdf(file, sourceLang, onProgress);
+  emit(onProgress, 'blocks', 10, 'Đang trích block (PyMuPDF)…');
+  const layoutResult = await extractDocumentLayoutBlocks(file, sourceLang);
 
-  emit(onProgress, 'blocks', 64, 'Đang trích block + bbox…');
-  const layout = await extractDocumentLayoutBlocks(prepared.file);
-  const { blocks, engine: layoutEngine } = layout;
+  let pdfFile: File;
+  let ocrApplied = false;
+  let ocrMethod: string | undefined;
+  let blocks = layoutResult.blocks;
+  let wipeLinesByPage = layoutResult.wipeLinesByPage;
+  let layoutEngine: LayoutEngine = layoutResult.engine;
+
+  const blockChars = blocks.reduce((sum, b) => sum + b.text.trim().length, 0);
+  const layoutReady = layoutResult.engine === 'fitz' && blocks.length >= 6 && blockChars >= 96;
+
+  if (layoutReady) {
+    emit(onProgress, 'blocks', 62, `PyMuPDF trích ${blocks.length} block.`);
+    pdfFile = file;
+  } else {
+    const prepared = await ensureTextLayerPdf(file, sourceLang, onProgress);
+    pdfFile = prepared.file;
+    ocrApplied = prepared.ocrApplied;
+    ocrMethod = prepared.ocrMethod;
+
+    emit(onProgress, 'blocks', 64, 'Đang trích block (PDF.js)…');
+    const fallback = await extractDocumentLayoutBlocks(pdfFile, sourceLang);
+    blocks = fallback.blocks;
+    wipeLinesByPage = fallback.wipeLinesByPage;
+    layoutEngine = fallback.engine;
+  }
 
   if (!blocks.length) {
     throw new Error('Không trích được block văn bản từ PDF.');
@@ -153,8 +179,14 @@ export async function runWorkspaceTranslatePipeline(
   );
 
   emit(onProgress, 'pdf', 90, 'pdf-lib — render lại đúng tọa độ…');
-  const pdfBytes = await prepared.file.arrayBuffer();
-  const outputBytes = await applyBlockTranslations(pdfBytes, blocks, translatedTexts, targetLang);
+  const pdfBytes = await pdfFile.arrayBuffer();
+  const outputBytes = await applyBlockTranslations(
+    pdfBytes,
+    blocks,
+    translatedTexts,
+    targetLang,
+    { wipeLinesByPage },
+  );
   const pdfBlob = new Blob([new Uint8Array(outputBytes)], { type: 'application/pdf' });
   const pdfFileName = buildTranslatedPdfName(file.name, targetLang);
 
@@ -166,8 +198,8 @@ export async function runWorkspaceTranslatePipeline(
     translatedText,
     pdfBlob,
     pdfFileName,
-    ocrApplied: prepared.ocrApplied,
-    ocrMethod: prepared.ocrMethod,
+    ocrApplied,
+    ocrMethod,
     blockCount: blocks.length,
     layoutEngine,
   };

@@ -289,3 +289,55 @@ export async function extractLayoutBlocks(file: File): Promise<LayoutTextBlock[]
 
   return mergeListMarkerBlocks(blocks.filter((b) => b.text.trim().length >= 1));
 }
+
+export type TextLineRect = {
+  pdfX: number;
+  pdfY: number;
+  pdfWidth: number;
+  pdfHeight: number;
+  fontSize: number;
+};
+
+/** Mọi dòng text trên từng trang — dùng để xóa (che) toàn bộ lớp chữ gốc. */
+export async function extractTextLineRectsByPage(
+  pdfBytes: ArrayBuffer | Uint8Array,
+): Promise<Map<number, TextLineRect[]>> {
+  const pdfjsLib = await loadPdfjs();
+  const data = pdfBytes instanceof Uint8Array ? pdfBytes : new Uint8Array(pdfBytes);
+  const pdf = await pdfjsLib.getDocument({ data }).promise;
+  const byPage = new Map<number, TextLineRect[]>();
+  const pageCount = Math.min(pdf.numPages, MAX_PAGES);
+
+  for (let pageNum = 1; pageNum <= pageCount; pageNum++) {
+    const page = await pdf.getPage(pageNum);
+    const textContent = await page.getTextContent();
+    const rawItems: TextItem[] = [];
+
+    for (const raw of textContent.items) {
+      if (!('str' in raw) || typeof raw.str !== 'string' || !raw.str.trim()) continue;
+      const item = raw as TextItem;
+      if (!item.transform) continue;
+      rawItems.push(item);
+    }
+
+    const pageRects: TextLineRect[] = [];
+    for (const line of groupIntoLines(rawItems)) {
+      for (const subLine of splitLineAtLargeGaps(line)) {
+        const text = lineTextFromItems(subLine.items);
+        if (!text) continue;
+        const bounds = lineBounds(subLine.items);
+        pageRects.push({
+          pdfX: bounds.pdfX,
+          pdfY: bounds.pdfY,
+          pdfWidth: bounds.pdfWidth,
+          pdfHeight: bounds.pdfHeight,
+          fontSize: bounds.fontSize,
+        });
+      }
+    }
+
+    if (pageRects.length) byPage.set(pageNum, pageRects);
+  }
+
+  return byPage;
+}

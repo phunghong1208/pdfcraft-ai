@@ -1,4 +1,4 @@
-"""OCR microservice — wraps OCRmyPDF behind a FastAPI endpoint."""
+"""PDF microservice — OCR, layout extract, pdf-to-docx trên một cổng."""
 
 from __future__ import annotations
 
@@ -8,14 +8,17 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
+from typing import Any
 
 import ocrmypdf
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 
-app = FastAPI(title="PDFCraft OCR Service")
+from fitz_layout import extract_fitz_line_blocks, extract_fitz_wipe_lines
+
+app = FastAPI(title="PDFCraft PDF Service")
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("pdfcraft.ocr")
+logger = logging.getLogger("pdfcraft.pdf")
 
 LANG_ALLOWLIST = frozenset(
     [
@@ -135,9 +138,59 @@ def _ocr_jobs() -> int:
     return max(1, min(os.cpu_count() or 2, 8))
 
 
+def _extract_with_fitz(pdf_path: Path) -> list[dict[str, Any]]:
+    blocks = extract_fitz_line_blocks(pdf_path)
+    for i, blk in enumerate(blocks):
+        blk["id"] = f"p{blk['pageNumber']}-b{i}"
+    return blocks
+
+
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "layout": "fitz", "ocr": "ocrmypdf"}
+
+
+@app.post("/extract")
+async def extract_layout(
+    file: UploadFile = File(...),
+    lang: str = Form(default="en"),
+):
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files accepted.")
+
+    tmpdir = Path(tempfile.mkdtemp())
+    input_path = tmpdir / "input.pdf"
+
+    try:
+        with open(input_path, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+
+        logger.info("Layout extract (fitz): %s (lang=%s)", file.filename, lang)
+
+        blocks = _extract_with_fitz(input_path)
+        if not blocks:
+            raise HTTPException(
+                status_code=422,
+                detail="No text blocks extracted. PDF scan may need OCR first.",
+            )
+
+        wipe_lines = extract_fitz_wipe_lines(input_path)
+
+        return JSONResponse(
+            {
+                "blocks": blocks,
+                "engine": "fitz",
+                "count": len(blocks),
+                "wipeLines": wipe_lines,
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Layout extract failed")
+        raise HTTPException(status_code=500, detail=f"Extract failed: {exc}") from exc
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
 
 
 @app.post("/pdf-to-docx")
@@ -161,7 +214,7 @@ async def convert_pdf_to_docx(file: UploadFile = File(...)):
 
         from pdf_to_docx import convert_pdf_to_docx
 
-        logger.info("pdf-to-docx server: %s (%s bytes)", file.filename, input_size)
+        logger.info("pdf-to-docx: %s (%s bytes)", file.filename, input_size)
         engine = convert_pdf_to_docx(input_path, output_path)
 
         if not output_path.exists() or output_path.stat().st_size < 4096:
@@ -202,7 +255,6 @@ async def ocr_pdf(
     output_format: str = Form("pdf"),
     oversample: int = Form(300),
     tesseract_oem: int = Form(1),
-    # 3 = khối văn bản thường (Word, scan A4); 11 chỉ cho poster/ảnh rải rác
     tesseract_pagesegmode: int = Form(3),
 ):
     if not file.filename or not file.filename.lower().endswith(".pdf"):
@@ -225,7 +277,6 @@ async def ocr_pdf(
 
     def run_ocr(*, force: bool, redo: bool) -> None:
         jobs = _ocr_jobs()
-        # jobs>1 = đa process; use_threads=True gây oversubscribe CPU → treo/chậm trên Docker
         ocrmypdf.ocr(
             input_path,
             output_path,
@@ -254,7 +305,6 @@ async def ocr_pdf(
 
         fast_extract, cached_text = should_fast_extract(input_path, force_ocr)
 
-        # PDF Word/Tagged hoặc đã có text layer → pdftotext ngay, không Tesseract
         if fast_extract:
             logger.info(
                 "Fast text extract: %s (tagged=%s)",

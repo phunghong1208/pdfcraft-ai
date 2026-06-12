@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const UPSTREAM = (process.env.LAYOUT_SERVER_UPSTREAM || 'http://localhost:8101').replace(/\/$/, '');
+import { pdfServerUpstream } from '@/lib/pdf-server-upstream';
+
+const UPSTREAM = pdfServerUpstream();
 const PROXY_TIMEOUT_MS = Number(process.env.LAYOUT_PROXY_TIMEOUT_MS || '600000');
 
 export async function POST(req: NextRequest): Promise<NextResponse> {

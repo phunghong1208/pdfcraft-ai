@@ -22,8 +22,16 @@ let pdfjsLoadingPromise: Promise<PDFJSModule> | null = null;
 
 import { withBasePath } from '../utils/path';
 
-// Worker configuration flag
+// Worker configuration flag (per runtime — client bundle vs server bundle are separate)
 let workerConfigured = false;
+
+function resolveServerPdfWorkerSrc(): string {
+  // Chỉ gọi trên Node (API route) — tránh kéo `path` vào client bundle
+  const { join } = require('node:path') as typeof import('node:path');
+  const { pathToFileURL } = require('node:url') as typeof import('node:url');
+  const workerPath = join(process.cwd(), 'node_modules/pdfjs-dist/build/pdf.worker.mjs');
+  return pathToFileURL(workerPath).href;
+}
 
 /**
  * Configure PDF.js worker source
@@ -33,11 +41,12 @@ export function configurePdfjsWorker(pdfjsLib: PDFJSModule): void {
   if (workerConfigured) return;
 
   if (typeof window !== 'undefined') {
-    // Use the local worker file for offline support
-    // The worker file is located in public/workers/pdf.worker.min.js
-    pdfjsLib.GlobalWorkerOptions.workerSrc = withBasePath('/workers/pdf.worker.min.js');
-    workerConfigured = true;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = withBasePath('/workers/pdf.worker.min.mjs');
+  } else {
+    // Next.js API routes — worker phải trỏ file thật trên disk, không để rỗng (fake worker sẽ lỗi)
+    pdfjsLib.GlobalWorkerOptions.workerSrc = resolveServerPdfWorkerSrc();
   }
+  workerConfigured = true;
 }
 
 /**

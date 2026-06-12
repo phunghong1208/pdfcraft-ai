@@ -9,8 +9,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Download tessdata_best (LSTM, highest accuracy) instead of standard tessdata
-# Critical for Vietnamese diacritics: ă â ê ô ơ ư đ + tone marks
 ENV TESSDATA_PREFIX=/usr/share/tesseract-ocr/5/tessdata
 ENV TESSDATA_URL=https://github.com/tesseract-ocr/tessdata_best/raw/main
 
@@ -24,7 +22,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY main.py pdf_to_docx.py ./
+COPY main.py fitz_layout.py pdf_to_docx.py ./
 
 EXPOSE 8100
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8100"]

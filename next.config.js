@@ -94,6 +94,8 @@ const nextConfig = {
     proxyTimeout: Number(process.env.AI_PROXY_TIMEOUT_MS || 600_000),
   },
 
+  serverExternalPackages: ['pdfjs-dist'],
+
   // Strict mode for better development experience
   reactStrictMode: true,
 
