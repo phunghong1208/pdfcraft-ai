@@ -11,6 +11,20 @@ import fitz
 LIST_MARKER_RE = re.compile(r"^\d{1,3}\.?$")
 BULLET_MARKER_RE = re.compile(r"^[\u2022\u2023\u25E6\u2043\-–—]\.?$")
 
+# Map special Unicode bullets/symbols -> ASCII so NotoSans renders them
+_GLYPH_FIXES: dict[str, str] = {
+    chr(0x2022): '-', chr(0x2023): '-', chr(0x25E6): '-', chr(0x2043): '-',
+    chr(0x25CF): '*', chr(0x25CB): 'o', chr(0x25A0): '[x]', chr(0x25A1): '[ ]',
+    chr(0x25B6): '>', chr(0x25B8): '>', chr(0x2713): 'v', chr(0x2714): 'v',
+    chr(0x2717): 'x', chr(0x2718): 'x', chr(0x00B7): '-', chr(0x2027): '-',
+}
+_GLYPH_TABLE = str.maketrans(_GLYPH_FIXES)
+
+
+def _fix_glyphs(text: str) -> str:
+    return text.translate(_GLYPH_TABLE)
+
+
 
 def _join_spans(spans: list[dict]) -> str:
     parts: list[str] = []
@@ -26,7 +40,7 @@ def _join_spans(spans: list[dict]) -> str:
             if gap > max(size * 0.18, 1.0):
                 parts.append(" ")
         parts.append(text)
-    return "".join(parts).strip()
+    return _fix_glyphs("".join(parts).strip())
 
 
 def _line_block(
@@ -43,18 +57,29 @@ def _line_block(
         return None
 
     x0 = min(float(s["bbox"][0]) for s in spans)
-    y0 = min(float(s["bbox"][1]) for s in spans)
     x1 = max(float(s["bbox"][2]) for s in spans)
-    y1 = max(float(s["bbox"][3]) for s in spans)
     font_size = max(float(s.get("size", 11) or 11) for s in spans)
+
+    # Use baseline (span origin) to compute glyph region — bbox includes line spacing
+    # fitz origin = (x, baseline_y) in top-left coords
+    baselines = [float(s["origin"][1]) for s in spans if s.get("origin")]
+    if baselines:
+        baseline = sum(baselines) / len(baselines)
+        # Glyph ascent ~80% above baseline, descent ~25% below
+        glyph_top = baseline - font_size * 0.80
+        glyph_bot = baseline + font_size * 0.25
+    else:
+        # Fallback to bbox if no origin available
+        glyph_top = min(float(s["bbox"][1]) for s in spans)
+        glyph_bot = max(float(s["bbox"][3]) for s in spans)
 
     return {
         "pageNumber": page_no,
         "text": text,
         "pdfX": round(x0, 2),
-        "pdfY": round(page_h - y1, 2),
-        "pdfWidth": round(max(4.0, x1 - x0), 2),
-        "pdfHeight": round(max(4.0, y1 - y0), 2),
+        "pdfY": round(page_h - glyph_bot, 2),
+        "pdfWidth": round(max(4.0, min(x1 - x0, max(len(text) * font_size * 0.72, 20.0))), 2),
+        "pdfHeight": round(max(4.0, glyph_bot - glyph_top), 2),
         "fontSize": round(max(6.0, min(72.0, font_size)), 1),
         "fontFamily": "Helvetica",
         "label": label,
@@ -101,26 +126,32 @@ def _merge_marker_with_next(blocks: list[dict[str, Any]]) -> list[dict[str, Any]
     return merged
 
 
+MAX_MERGE_LINES = 4  # cap lines per block — prevents table rows / tall blocks from merging
+
+
 def _merge_nearby_blocks(
     blocks: list[dict[str, Any]],
-    gap_factor: float = 1.35,
+    gap_factor: float = 0.25,
 ) -> list[dict[str, Any]]:
-    """Gộp các dòng liền kề thành đoạn — tránh khe hở khi che chữ gốc."""
+    """Gộp các dòng liền kề trong cùng đoạn — gap_factor nhỏ để không nuốt khoảng trắng giữa đoạn."""
     if not blocks:
         return blocks
 
     blocks.sort(key=lambda b: (b["pageNumber"], -(b["pdfY"] + b["pdfHeight"]), b["pdfX"]))
     merged: list[dict[str, Any]] = []
     cur: dict[str, Any] | None = None
+    cur_lines: int = 1
 
     for blk in blocks:
         if cur is None:
             cur = {**blk}
+            cur_lines = 1
             continue
 
         if blk["pageNumber"] != cur["pageNumber"]:
             merged.append(cur)
             cur = {**blk}
+            cur_lines = 1
             continue
 
         cur_top = cur["pdfY"] + cur["pdfHeight"]
@@ -133,7 +164,7 @@ def _merge_nearby_blocks(
         min_w = min(cur["pdfWidth"], blk["pdfWidth"])
         aligned = (overlap_x1 - overlap_x0) > min_w * 0.3
 
-        if 0 <= gap < max_gap and aligned:
+        if 0 <= gap < max_gap and aligned and cur_lines < MAX_MERGE_LINES:
             new_x = min(cur["pdfX"], blk["pdfX"])
             new_y = min(cur["pdfY"], blk["pdfY"])
             new_x2 = max(cur["pdfX"] + cur["pdfWidth"], blk["pdfX"] + blk["pdfWidth"])
@@ -144,9 +175,11 @@ def _merge_nearby_blocks(
             cur["pdfWidth"] = round(max(4.0, new_x2 - new_x), 2)
             cur["pdfHeight"] = round(max(4.0, new_y2 - new_y), 2)
             cur["fontSize"] = max(cur["fontSize"], blk["fontSize"])
+            cur_lines += 1
         else:
             merged.append(cur)
             cur = {**blk}
+            cur_lines = 1
 
     if cur:
         merged.append(cur)
@@ -159,6 +192,7 @@ def _collect_page_lines(page_index: int, page: fitz.Page) -> list[dict[str, Any]
     page_h = float(page.rect.height)
     page_lines: list[dict[str, Any]] = []
 
+    # Regular text blocks
     for block in page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE).get("blocks", []):
         if block.get("type") != 0:
             continue
@@ -167,6 +201,27 @@ def _collect_page_lines(page_index: int, page: fitz.Page) -> list[dict[str, Any]
             row = _line_block(page_no, page_h, spans, label="line")
             if row:
                 page_lines.append(row)
+
+    # AcroForm field values (form widgets) — not captured by get_text
+    for widget in page.widgets() or []:
+        val = (widget.field_value or "").strip()
+        if not val:
+            continue
+        r = widget.rect
+        if not r or r.is_empty:
+            continue
+        fs = max(6.0, min(72.0, widget.text_fontsize or 11.0))
+        page_lines.append({
+            "pageNumber": page_no,
+            "text": _fix_glyphs(val),
+            "pdfX": round(float(r.x0), 2),
+            "pdfY": round(page_h - float(r.y1), 2),
+            "pdfWidth": round(max(4.0, min(float(r.x1 - r.x0), len(val) * fs * 0.72)), 2),
+            "pdfHeight": round(max(4.0, min(float(r.y1 - r.y0), fs * 1.4)), 2),
+            "fontSize": round(fs, 1),
+            "fontFamily": "Helvetica",
+            "label": "field",
+        })
 
     page_lines.sort(key=lambda b: (-(b["pdfY"] + b["pdfHeight"]), b["pdfX"]))
     return page_lines
@@ -184,13 +239,38 @@ def extract_fitz_wipe_lines(pdf_path: Path) -> list[dict[str, Any]]:
     return lines
 
 
+def _dedup_blocks(blocks: list[dict[str, Any]], iou_thresh: float = 0.6) -> list[dict[str, Any]]:
+    """Remove blocks whose bbox overlaps heavily with a larger/earlier block."""
+    kept: list[dict[str, Any]] = []
+    for blk in blocks:
+        bx, by = blk["pdfX"], blk["pdfY"]
+        bw, bh = blk["pdfWidth"], blk["pdfHeight"]
+        dominated = False
+        for k in kept:
+            kx, ky = k["pdfX"], k["pdfY"]
+            kw, kh = k["pdfWidth"], k["pdfHeight"]
+            if k["pageNumber"] != blk["pageNumber"]:
+                continue
+            ix = max(0, min(bx + bw, kx + kw) - max(bx, kx))
+            iy = max(0, min(by + bh, ky + kh) - max(by, ky))
+            inter = ix * iy
+            area = bw * bh
+            if area > 0 and inter / area >= iou_thresh:
+                dominated = True
+                break
+        if not dominated:
+            kept.append(blk)
+    return kept
+
+
 def extract_fitz_line_blocks(pdf_path: Path) -> list[dict[str, Any]]:
     blocks: list[dict[str, Any]] = []
     doc = fitz.open(pdf_path)
     try:
         for page_index, page in enumerate(doc):
             page_lines = _collect_page_lines(page_index, page)
-            blocks.extend(_merge_nearby_blocks(_merge_marker_with_next(page_lines)))
+            merged = _merge_nearby_blocks(_merge_marker_with_next(page_lines))
+            blocks.extend(_dedup_blocks(merged))
     finally:
         doc.close()
 

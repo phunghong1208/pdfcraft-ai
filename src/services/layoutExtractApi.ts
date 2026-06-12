@@ -1,5 +1,4 @@
 import type { TextLineRect } from '@/lib/pdf/extract-layout-blocks';
-import { extractLayoutBlocks } from '@/lib/pdf/extract-layout-blocks';
 import type { LayoutTextBlock } from '@/lib/pdf/layout-blocks';
 
 export type LayoutEngine = 'fitz' | 'pdfjs';
@@ -46,55 +45,54 @@ function groupWipeLinesByPage(
   return byPage;
 }
 
-async function extractViaLayoutService(
-  file: File,
-  lang: string,
-): Promise<LayoutExtractResult | null> {
-  try {
-    const form = new FormData();
-    form.append('file', file);
-    form.append('lang', lang);
-
-    const url = LAYOUT_API.startsWith('/')
-      ? LAYOUT_API
-      : `${LAYOUT_API.replace(/\/$/, '')}/extract`;
-    const res = await fetch(url, {
-      method: 'POST',
-      body: form,
-      signal: AbortSignal.timeout(120_000),
-    });
-
-    if (!res.ok) return null;
-
-    const data = (await res.json()) as {
-      blocks?: LayoutTextBlock[];
-      engine?: LayoutEngine;
-      wipeLines?: unknown[];
-    };
-
-    if (!Array.isArray(data.blocks) || data.blocks.length === 0) return null;
-
-    const wipeLines = (data.wipeLines ?? []).filter(isWipeLine);
-    const engine: LayoutEngine =
-      data.engine === 'fitz' || data.engine === 'pdfjs' ? data.engine : 'fitz';
-
-    return {
-      blocks: data.blocks,
-      engine,
-      wipeLinesByPage: groupWipeLinesByPage(wipeLines),
-    };
-  } catch {
-    return null;
-  }
-}
+const VALID_ENGINES: Set<string> = new Set(['fitz', 'pdfjs']);
 
 export async function extractDocumentLayoutBlocks(
   file: File,
   sourceLang = 'en',
 ): Promise<LayoutExtractResult> {
-  const fromService = await extractViaLayoutService(file, sourceLang);
-  if (fromService) return fromService;
+  const form = new FormData();
+  form.append('file', file);
+  form.append('lang', sourceLang);
 
-  const blocks = await extractLayoutBlocks(file);
-  return { blocks, engine: 'pdfjs', wipeLinesByPage: new Map() };
+  const url = LAYOUT_API.startsWith('/')
+    ? LAYOUT_API
+    : `${LAYOUT_API.replace(/\/$/, '')}/extract`;
+  const res = await fetch(url, {
+    method: 'POST',
+    body: form,
+    signal: AbortSignal.timeout(120_000),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    let detail: string;
+    try {
+      detail = JSON.parse(text).detail;
+    } catch {
+      detail = text;
+    }
+    throw new Error(`Layout extract thất bại (${res.status}): ${detail}`);
+  }
+
+  const data = (await res.json()) as {
+    blocks?: LayoutTextBlock[];
+    engine?: string;
+    wipeLines?: unknown[];
+  };
+
+  if (!Array.isArray(data.blocks) || data.blocks.length === 0) {
+    throw new Error('Layout server trả về 0 block. PDF có thể cần OCR trước.');
+  }
+
+  const wipeLines = (data.wipeLines ?? []).filter(isWipeLine);
+  const engine: LayoutEngine = VALID_ENGINES.has(data.engine ?? '')
+    ? (data.engine as LayoutEngine)
+    : 'fitz';
+
+  return {
+    blocks: data.blocks,
+    engine,
+    wipeLinesByPage: groupWipeLinesByPage(wipeLines),
+  };
 }

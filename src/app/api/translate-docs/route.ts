@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isTranslatePassthroughServer } from '@/lib/translate/passthrough';
 import { getDefaultTranslateModel } from '@/lib/translate/openai-client';
 import {
   translatePdfKeepLayout,
@@ -33,6 +34,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const outputType = (incoming.get('output_type')?.toString() || 'keep_layout') as TranslateOutputType;
   const model = incoming.get('model')?.toString().trim() || getDefaultTranslateModel();
+  const passthrough = isTranslatePassthroughServer(incoming.get('passthrough')?.toString());
 
   try {
     if (outputType === 'text_only') {
@@ -40,7 +42,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ translated_text: translatedText });
     }
 
-    const pdfBytes = await translatePdfKeepLayout(file, sourceLang, targetLang, model);
+    const pdfBytes = await translatePdfKeepLayout(
+      file,
+      sourceLang,
+      targetLang,
+      model,
+      passthrough,
+    );
     const fileName = buildTranslatedFileName(file.name, targetLang);
     return new NextResponse(new Uint8Array(pdfBytes), {
       status: 200,

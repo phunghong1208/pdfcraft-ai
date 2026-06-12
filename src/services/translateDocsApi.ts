@@ -20,6 +20,8 @@ export type TranslateDocumentOptions = {
   targetLang: string;
   outputType: TranslateOutputType;
   model?: string;
+  /** Bỏ qua OpenAI — vẽ lại text gốc (test OCR/render). */
+  passthrough?: boolean;
 };
 
 export type TranslateDocumentResult =
@@ -109,6 +111,7 @@ export async function translateDocument(
   form.append('target_lang', opts.targetLang);
   form.append('output_type', opts.outputType);
   if (opts.model) form.append('model', opts.model);
+  if (opts.passthrough) form.append('passthrough', '1');
 
   const res = await fetch(TRANSLATE_PROXY_PATH, {
     method: 'POST',

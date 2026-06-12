@@ -1,5 +1,3 @@
-import { applyBlockTranslations } from '@/lib/pdf/apply-block-translations';
-import { extractLayoutBlocks, type TextLineRect } from '@/lib/pdf/extract-layout-blocks';
 import { extractTextFromPdfFile } from '@/lib/pdf/extract-pdf-text';
 import type { LayoutTextBlock } from '@/lib/pdf/layout-blocks';
 import { pdfServerUpstream } from '@/lib/pdf-server-upstream';
@@ -9,6 +7,7 @@ import {
 } from '@/lib/translate/translate-segments-lightweight';
 
 const LAYOUT_UPSTREAM = pdfServerUpstream();
+const RENDER_TIMEOUT_MS = Number(process.env.RENDER_PROXY_TIMEOUT_MS || '300000');
 
 function isLayoutBlock(value: unknown): value is LayoutTextBlock {
   if (!value || typeof value !== 'object') return false;
@@ -24,7 +23,16 @@ function isLayoutBlock(value: unknown): value is LayoutTextBlock {
   );
 }
 
-function isWipeLine(value: unknown): value is TextLineRect & { pageNumber: number } {
+type WipeLine = {
+  pageNumber: number;
+  pdfX: number;
+  pdfY: number;
+  pdfWidth: number;
+  pdfHeight: number;
+  fontSize: number;
+};
+
+function isWipeLine(value: unknown): value is WipeLine {
   if (!value || typeof value !== 'object') return false;
   const v = value as Record<string, unknown>;
   return (
@@ -37,27 +45,9 @@ function isWipeLine(value: unknown): value is TextLineRect & { pageNumber: numbe
   );
 }
 
-function groupWipeLinesByPage(
-  lines: Array<TextLineRect & { pageNumber: number }>,
-): Map<number, TextLineRect[]> {
-  const byPage = new Map<number, TextLineRect[]>();
-  for (const line of lines) {
-    const bucket = byPage.get(line.pageNumber) ?? [];
-    bucket.push({
-      pdfX: line.pdfX,
-      pdfY: line.pdfY,
-      pdfWidth: line.pdfWidth,
-      pdfHeight: line.pdfHeight,
-      fontSize: line.fontSize,
-    });
-    byPage.set(line.pageNumber, bucket);
-  }
-  return byPage;
-}
-
 type LayoutExtractPayload = {
   blocks: LayoutTextBlock[];
-  wipeLinesByPage: Map<number, TextLineRect[]>;
+  wipeLines: WipeLine[];
 };
 
 async function extractFromLayoutService(
@@ -80,21 +70,41 @@ async function extractFromLayoutService(
     if (!blocks.length) return null;
 
     const wipeLines = (json.wipeLines ?? []).filter(isWipeLine);
-    return {
-      blocks,
-      wipeLinesByPage: groupWipeLinesByPage(wipeLines),
-    };
+    return { blocks, wipeLines };
   } catch {
     return null;
   }
 }
 
-async function extractDocumentLayout(file: File, sourceLang: string): Promise<LayoutExtractPayload> {
-  const fromService = await extractFromLayoutService(file, sourceLang);
-  if (fromService) return fromService;
+async function renderOnServer(
+  file: File,
+  blocks: LayoutTextBlock[],
+  translations: string[],
+  targetLang: string,
+  wipeLines: WipeLine[],
+): Promise<Uint8Array> {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('blocks_json', JSON.stringify(blocks));
+  form.append('translations_json', JSON.stringify(translations));
+  form.append('target_lang', targetLang);
+  if (wipeLines.length > 0) {
+    form.append('wipe_lines_json', JSON.stringify(wipeLines));
+  }
 
-  const blocks = await extractLayoutBlocks(file);
-  return { blocks, wipeLinesByPage: new Map() };
+  const res = await fetch(`${LAYOUT_UPSTREAM}/render`, {
+    method: 'POST',
+    body: form,
+    signal: AbortSignal.timeout(RENDER_TIMEOUT_MS),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Render failed (${res.status}): ${text}`);
+  }
+
+  const buf = await res.arrayBuffer();
+  return new Uint8Array(buf);
 }
 
 export async function translatePdfTextOnly(
@@ -123,21 +133,23 @@ export async function translatePdfKeepLayout(
   sourceLang: string,
   targetLang: string,
   model?: string,
+  passthrough = false,
 ): Promise<Uint8Array> {
-  const { blocks, wipeLinesByPage } = await extractDocumentLayout(file, sourceLang);
-  if (!blocks.length) {
+  const payload = await extractFromLayoutService(file, sourceLang);
+  if (!payload || !payload.blocks.length) {
     throw new Error('Không trích được block văn bản từ PDF.');
   }
 
-  const { translations } = await translateSegmentsLightweight({
-    segments: blocks.map((b) => b.text),
-    sourceLang,
-    targetLang,
-    model,
-  });
+  const translations = passthrough
+    ? payload.blocks.map((b) => b.text)
+    : (
+        await translateSegmentsLightweight({
+          segments: payload.blocks.map((b) => b.text),
+          sourceLang,
+          targetLang,
+          model,
+        })
+      ).translations;
 
-  const pdfBytes = await file.arrayBuffer();
-  return applyBlockTranslations(pdfBytes, blocks, translations, targetLang, {
-    wipeLinesByPage,
-  });
+  return renderOnServer(file, payload.blocks, translations, targetLang, payload.wipeLines);
 }

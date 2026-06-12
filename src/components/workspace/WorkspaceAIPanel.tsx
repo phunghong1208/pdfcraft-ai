@@ -66,6 +66,7 @@ import {
   getDefaultTranslateLanguagePair,
   TRANSLATE_LANGUAGE_OPTIONS,
 } from '@/services/translateDocsApi';
+import { isTranslatePassthroughClient } from '@/lib/translate/passthrough';
 import {
   runWorkspaceTranslatePipeline,
   type TranslatePipelineProgress,
@@ -259,6 +260,8 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef,
   const voiceSegmentsRef = useRef<PdfSpeechSegment[]>([]);
   const reindexKeyRef = useRef<string | null>(null);
   const pdfViewerIframeRefStable = pdfViewerIframeRef;
+  // Always hold the original (pre-translation) file so re-translating uses source, not translated output
+  const originalFileRef = useRef<File | null>(null);
 
   useEffect(() => {
     if (typeof document === 'undefined' || typeof window === 'undefined') return;
@@ -331,8 +334,13 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef,
     setTranslatedPdfBlob(null);
     setTranslatedPdfName(null);
     setTranslateProgress(null);
-    setSourceLang(defaultLangPair.source);
-    setTargetLang(defaultLangPair.target);
+    // Only update original ref when file is not a translated output from this session
+    if (file && file !== originalFileRef.current) {
+      const isTranslatedOutput = translatedPdfName != null && file.name === translatedPdfName;
+      if (!isTranslatedOutput) {
+        originalFileRef.current = file;
+      }
+    }
 
     const session = loadWorkspaceAiSession(file);
     if (session) {
@@ -724,11 +732,14 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef,
     setTranslatedPdfBlob(null);
     setTranslatedPdfName(null);
     try {
+      const passthroughTranslation = isTranslatePassthroughClient();
+      const sourceFile = originalFileRef.current ?? file;
       const result = await runWorkspaceTranslatePipeline({
-        file,
+        file: sourceFile,
         sourceLang,
         targetLang,
         onProgress: setTranslateProgress,
+        passthroughTranslation,
       });
       setTranslatedText(result.translatedText);
       setTranslatedPdfBlob(result.pdfBlob);

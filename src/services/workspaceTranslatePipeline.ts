@@ -1,5 +1,5 @@
-import { applyBlockTranslations } from '@/lib/pdf/apply-block-translations';
 import { extractTextFromPdfFile } from '@/lib/pdf/extract-pdf-text';
+import type { LayoutTextBlock } from '@/lib/pdf/layout-blocks';
 import {
   parseOcrLanguageCodes,
   runSmartOcr,
@@ -24,6 +24,8 @@ export type RunWorkspaceTranslateOptions = {
   sourceLang: string;
   targetLang: string;
   onProgress?: (progress: TranslatePipelineProgress) => void;
+  /** Skip AI translation — use original block text as-is. For render testing. */
+  passthroughTranslation?: boolean;
 };
 
 export type WorkspaceTranslateResult = {
@@ -37,6 +39,7 @@ export type WorkspaceTranslateResult = {
 };
 
 const MIN_EXTRACTABLE_CHARS = 64;
+const RENDER_TIMEOUT_MS = 300_000;
 
 const OCR_LANG_MAP: Record<string, OCRLanguage> = {
   vi: 'vie',
@@ -93,7 +96,7 @@ async function ensureTextLayerPdf(
     return { file, ocrApplied: false };
   }
 
-  emit(onProgress, 'ocr', 22, 'Đang OCR (OCRmyPDF)…');
+  emit(onProgress, 'ocr', 22, 'Đang OCR (RapidOCR)…');
   const ocrOut = await runSmartOcr(
     file,
     {
@@ -120,14 +123,71 @@ async function ensureTextLayerPdf(
   const method =
     typeof ocrOut.metadata?.ocrMethod === 'string' ? ocrOut.metadata.ocrMethod : undefined;
 
-  emit(onProgress, 'ocr', 62, method === 'extract' ? 'Đã trích text nhanh.' : 'OCR xong.');
+  emit(onProgress, 'ocr', 62, method === 'extract' ? 'Đã trích text nhanh.' : 'OCR xong rồi! Kiên nhẫn nhé, sắp dịch xong…');
   return { file: ocrFile, ocrApplied: true, ocrMethod: method };
+}
+
+function serializeWipeLines(
+  wipeLinesByPage: Map<number, { pdfX: number; pdfY: number; pdfWidth: number; pdfHeight: number; fontSize: number }[]>,
+): string {
+  const arr: Array<Record<string, number>> = [];
+  wipeLinesByPage.forEach((lines, pageNumber) => {
+    for (const l of lines) {
+      arr.push({
+        pageNumber,
+        pdfX: l.pdfX,
+        pdfY: l.pdfY,
+        pdfWidth: l.pdfWidth,
+        pdfHeight: l.pdfHeight,
+        fontSize: l.fontSize,
+      });
+    }
+  });
+  return JSON.stringify(arr);
+}
+
+async function renderOnServer(
+  pdfFile: File,
+  blocks: LayoutTextBlock[],
+  translatedTexts: string[],
+  targetLang: string,
+  wipeLinesByPage: Map<number, { pdfX: number; pdfY: number; pdfWidth: number; pdfHeight: number; fontSize: number }[]>,
+  debugOcr = false,
+): Promise<Blob> {
+  const form = new FormData();
+  form.append('file', pdfFile);
+  form.append('blocks_json', JSON.stringify(blocks));
+  form.append('translations_json', JSON.stringify(translatedTexts));
+  form.append('target_lang', targetLang);
+  if (wipeLinesByPage.size > 0) {
+    form.append('wipe_lines_json', serializeWipeLines(wipeLinesByPage));
+  }
+  if (debugOcr) {
+    form.append('debug_ocr', '1');
+  }
+
+  const res = await fetch('/api/render-pdf', {
+    method: 'POST',
+    body: form,
+    signal: AbortSignal.timeout(RENDER_TIMEOUT_MS),
+  });
+
+  if (!res.ok) {
+    let detail = 'Render PDF thất bại.';
+    try {
+      const json = await res.json();
+      detail = json.detail || detail;
+    } catch { /* ignore */ }
+    throw new Error(detail);
+  }
+
+  return res.blob();
 }
 
 export async function runWorkspaceTranslatePipeline(
   opts: RunWorkspaceTranslateOptions,
 ): Promise<WorkspaceTranslateResult> {
-  const { file, sourceLang, targetLang, onProgress } = opts;
+  const { file, sourceLang, targetLang, onProgress, passthroughTranslation } = opts;
 
   emit(onProgress, 'blocks', 10, 'Đang trích block (PyMuPDF)…');
   const layoutResult = await extractDocumentLayoutBlocks(file, sourceLang);
@@ -143,7 +203,7 @@ export async function runWorkspaceTranslatePipeline(
   const layoutReady = layoutResult.engine === 'fitz' && blocks.length >= 6 && blockChars >= 96;
 
   if (layoutReady) {
-    emit(onProgress, 'blocks', 62, `PyMuPDF trích ${blocks.length} block.`);
+    emit(onProgress, 'blocks', 62, `Trích xong! Kiên nhẫn nhé, đang dịch cho bạn…`);
     pdfFile = file;
   } else {
     const prepared = await ensureTextLayerPdf(file, sourceLang, onProgress);
@@ -151,43 +211,43 @@ export async function runWorkspaceTranslatePipeline(
     ocrApplied = prepared.ocrApplied;
     ocrMethod = prepared.ocrMethod;
 
-    emit(onProgress, 'blocks', 64, 'Đang trích block (PDF.js)…');
+    emit(onProgress, 'blocks', 64, 'Đang trích block lại sau OCR…');
     const fallback = await extractDocumentLayoutBlocks(pdfFile, sourceLang);
     blocks = fallback.blocks;
     wipeLinesByPage = fallback.wipeLinesByPage;
     layoutEngine = fallback.engine;
+
+    emit(onProgress, 'blocks', 65, 'OCR xong rồi! Kiên nhẫn nhé, sắp dịch xong…');
   }
 
   if (!blocks.length) {
     throw new Error('Không trích được block văn bản từ PDF.');
   }
 
-  emit(
-    onProgress,
-    'translate',
-    70,
-    `GPT dịch ${blocks.length} block (${layoutEngine})…`,
-  );
-  const translatedTexts = await translateBlockTexts(
-    blocks.map((b) => b.text),
-    sourceLang,
-    targetLang,
-    (done, total) => {
-      const pct = 70 + Math.round((done / total) * 18);
-      emit(onProgress, 'translate', pct, `Đang dịch block ${done}/${total}…`);
-    },
-  );
+  let translatedTexts: string[];
+  if (passthroughTranslation) {
+    emit(onProgress, 'translate', 88, `Passthrough — dùng text gốc (${blocks.length} block)…`);
+    translatedTexts = blocks.map((b) => b.text);
+  } else {
+    emit(
+      onProgress,
+      'translate',
+      70,
+      `Đang dịch ${blocks.length} block (${layoutEngine})…`,
+    );
+    translatedTexts = await translateBlockTexts(
+      blocks.map((b) => b.text),
+      sourceLang,
+      targetLang,
+      (done, total) => {
+        const pct = 70 + Math.round((done / total) * 18);
+        emit(onProgress, 'translate', pct, `Đang dịch block ${done}/${total}…`);
+      },
+    );
+  }
 
-  emit(onProgress, 'pdf', 90, 'pdf-lib — render lại đúng tọa độ…');
-  const pdfBytes = await pdfFile.arrayBuffer();
-  const outputBytes = await applyBlockTranslations(
-    pdfBytes,
-    blocks,
-    translatedTexts,
-    targetLang,
-    { wipeLinesByPage },
-  );
-  const pdfBlob = new Blob([new Uint8Array(outputBytes)], { type: 'application/pdf' });
+  emit(onProgress, 'pdf', 90, 'PyMuPDF — render bản dịch…');
+  const pdfBlob = await renderOnServer(pdfFile, blocks, translatedTexts, targetLang, wipeLinesByPage, passthroughTranslation);
   const pdfFileName = buildTranslatedPdfName(file.name, targetLang);
 
   const translatedText = translatedTexts.filter(Boolean).join('\n\n').trim();

@@ -6,7 +6,7 @@ export type ChatMessage = {
 };
 
 const DEFAULT_TIMEOUT_MS = Number(process.env.OPENAI_TIMEOUT_MS || '120000');
-const DEFAULT_MODEL = process.env.TRANSLATE_MODEL || process.env.TRANSLATE_DOCS_MODEL || 'gpt-4o-mini';
+const DEFAULT_MODEL = process.env.TRANSLATE_MODEL || process.env.TRANSLATE_DOCS_MODEL || 'gpt-5-nano';
 
 let cachedApiKey: string | null = null;
 
@@ -26,6 +26,7 @@ export function getDefaultTranslateModel(): string {
 
 function isReasoningModel(model: string): boolean {
   const m = model.toLowerCase();
+  if (m.includes('nano') || m.includes('mini')) return false;
   return (
     m.startsWith('o1') ||
     m.startsWith('o3') ||

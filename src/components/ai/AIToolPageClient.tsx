@@ -956,10 +956,12 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
         );
         saveWorkspaceAiAnswerLanguage(answerLanguage, locale);
       } else if (actionType === 'translate') {
+        const { isTranslatePassthroughClient } = await import('@/lib/translate/passthrough');
         const translated = await translateDocument(file, {
           sourceLang,
           targetLang,
           outputType: translateOutputType,
+          passthrough: isTranslatePassthroughClient(),
         });
         if (translated.kind === 'text') {
           setTranslatedText(translated.text);
