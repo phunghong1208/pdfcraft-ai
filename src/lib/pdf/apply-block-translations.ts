@@ -1,4 +1,4 @@
-import { PDFDocument, rgb, type PDFFont } from 'pdf-lib';
+import { PDFDocument, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
 import type { LayoutTextBlock } from '@/lib/pdf/layout-blocks';
 import { AVAILABLE_FONTS, type FontId } from '@/lib/pdf/processors/text-to-pdf';
 
@@ -56,23 +56,6 @@ function wrapText(text: string, font: PDFFont, fontSize: number, maxWidth: numbe
   return lines.length ? lines : [''];
 }
 
-function blockArea(block: LayoutTextBlock): number {
-  return block.pdfWidth * block.pdfHeight;
-}
-
-/** Vẽ block lớn trước, ô bảng nhỏ sau — tránh white rect che mất chữ ô kế bên. */
-function sortBlockIndices(blocks: LayoutTextBlock[]): number[] {
-  return blocks.map((_, i) => i).sort((ai, bi) => {
-    const a = blocks[ai];
-    const b = blocks[bi];
-    if (a.pageNumber !== b.pageNumber) return a.pageNumber - b.pageNumber;
-    const areaDiff = blockArea(b) - blockArea(a);
-    if (Math.abs(areaDiff) > 1) return areaDiff;
-    if (a.pdfY !== b.pdfY) return b.pdfY - a.pdfY;
-    return a.pdfX - b.pdfX;
-  });
-}
-
 type FittedLayout = {
   fontSize: number;
   lines: string[];
@@ -104,8 +87,8 @@ function fitTextInBlock(
   innerWidth: number,
 ): FittedLayout {
   const maxSize = Math.max(6, Math.min(block.fontSize, 72));
-  const minSize = block.label === 'table_cell' ? 5 : 6;
-  const heightBudget = block.pdfHeight * (block.label === 'table_cell' ? 1.02 : 1.08);
+  const minSize = 5;
+  const heightBudget = block.pdfHeight * 1.02;
   const widthBudget = innerWidth;
 
   let size = maxSize;
@@ -120,32 +103,13 @@ function fitTextInBlock(
   return measureLayout(text, font, minSize, widthBudget);
 }
 
-function computeUniformTableFontSizes(
-  blocks: LayoutTextBlock[],
-  translations: string[],
-  font: PDFFont,
-): Map<number, number> {
-  const sizesByPage = new Map<number, number[]>();
+const PAD = 3;
 
-  for (let i = 0; i < blocks.length; i++) {
-    const block = blocks[i];
-    if (block.label !== 'table_cell') continue;
-    const newText = (translations[i] ?? block.text).trim();
-    if (!newText || newText === block.text) continue;
-
-    const innerWidth = Math.max(8, block.pdfWidth - 1);
-    const layout = fitTextInBlock(newText, font, block, innerWidth);
-
-    if (!sizesByPage.has(block.pageNumber)) sizesByPage.set(block.pageNumber, []);
-    sizesByPage.get(block.pageNumber)!.push(layout.fontSize);
-  }
-
-  const uniformByPage = new Map<number, number>();
-  for (const [page, sizes] of sizesByPage) {
-    uniformByPage.set(page, Math.min(...sizes));
-  }
-  return uniformByPage;
-}
+type PreparedBlock = {
+  block: LayoutTextBlock;
+  layout: FittedLayout;
+  page: PDFPage;
+};
 
 export async function applyBlockTranslations(
   pdfBytes: ArrayBuffer | Uint8Array,
@@ -161,49 +125,37 @@ export async function applyBlockTranslations(
   const fontBytes = await loadNotoFont(fontId);
   const font = await pdfDoc.embedFont(fontBytes, { subset: false });
 
-  const uniformTableSize = computeUniformTableFontSizes(blocks, translations, font);
-  const renderOrder = sortBlockIndices(blocks);
+  const prepared: PreparedBlock[] = [];
 
-  for (const blockIndex of renderOrder) {
-    const block = blocks[blockIndex];
-    const newText = (translations[blockIndex] ?? block.text).trim();
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i];
+    const newText = (translations[i] ?? block.text).trim();
     if (!newText || newText === block.text) continue;
 
     const pageIndex = block.pageNumber - 1;
     if (pageIndex < 0 || pageIndex >= pdfDoc.getPageCount()) continue;
-    const page = pdfDoc.getPage(pageIndex);
 
-    const isTableCell = block.label === 'table_cell';
-    const padding = isTableCell ? 1 : 2;
-    const innerWidth = Math.max(8, block.pdfWidth - padding);
+    const innerWidth = Math.max(8, block.pdfWidth - PAD);
+    const layout = fitTextInBlock(newText, font, block, innerWidth);
+    prepared.push({ block, layout, page: pdfDoc.getPage(pageIndex) });
+  }
 
-    let layout: FittedLayout;
-    if (isTableCell) {
-      const targetSize = uniformTableSize.get(block.pageNumber) ?? block.fontSize;
-      layout = measureLayout(newText, font, Math.max(5, targetSize), innerWidth);
-    } else {
-      layout = fitTextInBlock(newText, font, block, innerWidth);
-    }
-
-    const topPad = isTableCell ? 0 : layout.fontSize * 0.35;
-
-    const coverWidth = block.pdfWidth + padding * 2;
-    const coverHeight = isTableCell
-      ? block.pdfHeight + padding * 2
-      : Math.max(block.pdfHeight, layout.renderHeight) + padding * 2 + topPad;
-
+  // Pass 1: draw ALL white rects first — cover all original text
+  for (const { block, page } of prepared) {
     page.drawRectangle({
-      x: block.pdfX - padding,
-      y: block.pdfY - padding - topPad,
-      width: coverWidth,
-      height: coverHeight,
+      x: block.pdfX - PAD,
+      y: block.pdfY - PAD,
+      width: block.pdfWidth + PAD * 2,
+      height: block.pdfHeight + PAD * 2,
       color: rgb(1, 1, 1),
       borderWidth: 0,
     });
+  }
 
-    const blockHeight = isTableCell ? block.pdfHeight : Math.max(block.pdfHeight, layout.renderHeight);
-    let lineY = block.pdfY + blockHeight - layout.fontSize;
-    const minY = block.pdfY - padding;
+  // Pass 2: draw ALL translated text on top — no white rect can cover it
+  for (const { block, layout, page } of prepared) {
+    let lineY = block.pdfY + block.pdfHeight - layout.fontSize;
+    const minY = block.pdfY - PAD;
 
     for (const line of layout.lines) {
       if (lineY < minY) break;

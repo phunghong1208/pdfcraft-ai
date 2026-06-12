@@ -104,7 +104,7 @@ function lineBounds(items: TextItem[]) {
   let maxX = -Infinity;
   let minY = Infinity;
   let maxY = -Infinity;
-  let fontSize = 12;
+  let fontSize = 0;
   let fontFamily = 'Helvetica';
 
   for (const item of items) {
@@ -237,7 +237,6 @@ export async function extractLayoutBlocks(file: File): Promise<LayoutTextBlock[]
         pageNumber: pageNum,
         text,
         ...currentBounds,
-        fontSize: estimateFontSize(text, currentBounds.pdfWidth, currentBounds.pdfHeight),
       });
       blockIndex += 1;
       currentLines = [];
