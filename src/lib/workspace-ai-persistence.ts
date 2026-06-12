@@ -18,6 +18,8 @@ export type PersistedWorkspaceAi = {
   answerLanguage?: string;
   messages?: WorkspaceAiChatMessage[];
   aiTab?: WorkspaceAiTab;
+  /** Câu hỏi gợi ý theo `${documentId}:${language}` */
+  suggestedQuestionsCache?: Record<string, string[]>;
 };
 
 const WORKSPACE_AI_STORAGE_PREFIX = 'pdfcraft-workspace-ai:';
@@ -148,5 +150,43 @@ export function clearPersistedWorkspaceAi(file: File): void {
     sessionStorage.removeItem(WORKSPACE_AI_STORAGE_PREFIX + getWorkspaceFileKey(file));
   } catch {
     // ignore
+  }
+}
+
+export function loadPersistedSuggestedQuestions(file: File, cacheKey: string): string[] | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(WORKSPACE_AI_STORAGE_PREFIX + getWorkspaceFileKey(file));
+    if (!raw) return null;
+    const data = JSON.parse(raw) as PersistedWorkspaceAi;
+    const questions = data.suggestedQuestionsCache?.[cacheKey];
+    if (!Array.isArray(questions) || !questions.every((q) => typeof q === 'string' && q.trim())) {
+      return null;
+    }
+    const normalized = questions.map((q) => q.trim()).filter(Boolean);
+    return normalized.length > 0 ? normalized : null;
+  } catch {
+    return null;
+  }
+}
+
+export function savePersistedSuggestedQuestions(
+  file: File,
+  cacheKey: string,
+  questions: string[],
+): void {
+  if (typeof window === 'undefined' || questions.length === 0) return;
+  try {
+    const storageKey = WORKSPACE_AI_STORAGE_PREFIX + getWorkspaceFileKey(file);
+    const raw = sessionStorage.getItem(storageKey);
+    if (!raw) return;
+    const data = JSON.parse(raw) as PersistedWorkspaceAi;
+    data.suggestedQuestionsCache = {
+      ...data.suggestedQuestionsCache,
+      [cacheKey]: questions,
+    };
+    sessionStorage.setItem(storageKey, JSON.stringify(data));
+  } catch {
+    // ignore quota / private mode
   }
 }

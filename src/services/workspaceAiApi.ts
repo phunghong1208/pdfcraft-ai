@@ -1,7 +1,14 @@
 import { defaultLocale, localeConfig, locales, type Locale } from '@/lib/i18n/config';
 import {
+  loadPersistedSuggestedQuestions,
+  savePersistedSuggestedQuestions,
+} from '@/lib/workspace-ai-persistence';
+import {
   buildSuggestedQuestionsPrompt,
   parseSuggestedQuestionsFromResponse,
+  peekSuggestedQuestions,
+  rememberSuggestedQuestions,
+  suggestedQuestionsCacheKey,
 } from '@/lib/workspace-ai-suggested-questions';
 
 /** Same-origin proxy path — paired with next.config rewrites (dev) or nginx (prod). */
@@ -318,6 +325,8 @@ export async function chatWithWorkspaceDocument(opts: {
   );
 }
 
+const suggestedQuestionsInflight = new Map<string, Promise<string[]>>();
+
 /** Gợi ý câu hỏi — một lần POST /chat, chỉ document_id + prompt ngắn. */
 export async function generateWorkspaceSuggestedQuestions(opts: {
   documentId: number;
@@ -335,6 +344,52 @@ export async function generateWorkspaceSuggestedQuestions(opts: {
   });
 
   return parseSuggestedQuestionsFromResponse(answer).slice(0, 3);
+}
+
+/** Lấy câu hỏi gợi ý — ưu tiên cache (memory + session), tránh gọi API trùng. */
+export async function resolveWorkspaceSuggestedQuestions(opts: {
+  documentId: number;
+  language?: string;
+  file?: File | null;
+  userKey?: string;
+  topK?: number;
+}): Promise<string[]> {
+  const language = opts.language ?? WORKSPACE_DEFAULT_AI_LANGUAGE;
+  const cacheKey = suggestedQuestionsCacheKey(opts.documentId, language);
+
+  const fromMemory = peekSuggestedQuestions(cacheKey);
+  if (fromMemory) return fromMemory;
+
+  if (opts.file) {
+    const fromSession = loadPersistedSuggestedQuestions(opts.file, cacheKey);
+    if (fromSession) {
+      rememberSuggestedQuestions(cacheKey, fromSession);
+      return fromSession;
+    }
+  }
+
+  const inflight = suggestedQuestionsInflight.get(cacheKey);
+  if (inflight) return inflight;
+
+  const request = generateWorkspaceSuggestedQuestions({
+    documentId: opts.documentId,
+    language,
+    userKey: opts.userKey,
+    topK: opts.topK,
+  })
+    .then((questions) => {
+      rememberSuggestedQuestions(cacheKey, questions);
+      if (opts.file && questions.length > 0) {
+        savePersistedSuggestedQuestions(opts.file, cacheKey, questions);
+      }
+      return questions;
+    })
+    .finally(() => {
+      suggestedQuestionsInflight.delete(cacheKey);
+    });
+
+  suggestedQuestionsInflight.set(cacheKey, request);
+  return request;
 }
 
 /**

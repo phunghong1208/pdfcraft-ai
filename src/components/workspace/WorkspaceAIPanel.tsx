@@ -429,7 +429,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef,
           return;
         }
         applyDocumentIndex(newId, text || summaryText);
-        setAiHint(t('aiPanel.chatReady'));
+        setAiHint(null);
       })
       .catch((err) => {
         if (cancelled) return;
@@ -474,7 +474,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef,
         }
         commitSummaryResult(text, newId, tierId);
         if (options?.keepTab) {
-          setAiHint(t('aiPanel.chatReady'));
+          setAiHint(null);
         } else {
           setAiHint(t('aiPanel.summaryDone'));
         }

@@ -63,3 +63,16 @@ export function buildSuggestedQuestionsPrompt(language: string): string {
 export function suggestedQuestionsCacheKey(documentId: number, language: string): string {
   return `${documentId}:${language}`;
 }
+
+const memorySuggestedQuestions = new Map<string, string[]>();
+
+export function peekSuggestedQuestions(cacheKey: string): string[] | null {
+  const cached = memorySuggestedQuestions.get(cacheKey);
+  return cached?.length ? cached : null;
+}
+
+export function rememberSuggestedQuestions(cacheKey: string, questions: string[]): void {
+  if (questions.length > 0) {
+    memorySuggestedQuestions.set(cacheKey, questions);
+  }
+}

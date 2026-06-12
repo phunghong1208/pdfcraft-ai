@@ -16,13 +16,31 @@ import { AI_UI } from '@/lib/ai-ui-classes';
 import { Button } from '@/components/ui/Button';
 import { WorkspaceAiLanguageSelect } from '@/components/workspace/WorkspaceAiLanguageSelect';
 import { WorkspaceAiMarkdown } from '@/components/workspace/WorkspaceAiMarkdown';
-import { suggestedQuestionsCacheKey } from '@/lib/workspace-ai-suggested-questions';
+import { suggestedQuestionsCacheKey, peekSuggestedQuestions, rememberSuggestedQuestions } from '@/lib/workspace-ai-suggested-questions';
 import type { WorkspaceAiChatMessage } from '@/lib/workspace-ai-persistence';
+import { loadPersistedSuggestedQuestions } from '@/lib/workspace-ai-persistence';
 import {
-  generateWorkspaceSuggestedQuestions,
+  resolveWorkspaceSuggestedQuestions,
   WORKSPACE_SUMMARY_DETAIL_PRESETS,
   type WorkspacePresetTierId,
 } from '@/services/workspaceAiApi';
+
+function readCachedSuggestedQuestions(
+  file: File | null,
+  documentId: number | null,
+  language: string,
+): string[] {
+  if (documentId == null) return [];
+  const cacheKey = suggestedQuestionsCacheKey(documentId, language);
+  const cached =
+    peekSuggestedQuestions(cacheKey) ??
+    (file ? loadPersistedSuggestedQuestions(file, cacheKey) : null);
+  if (cached?.length) {
+    rememberSuggestedQuestions(cacheKey, cached);
+    return cached;
+  }
+  return [];
+}
 
 export type WorkspaceAiAssistSectionProps = {
   file: File | null;
@@ -102,9 +120,19 @@ export function WorkspaceAiAssistSection({
   const t = useTranslations('workspace');
   const hasSummary = Boolean(summaryText?.trim());
   const showContent = isSummarizing || hasSummary || chatReady;
-  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
+  const initialCachedQuestions = readCachedSuggestedQuestions(file, documentId ?? null, answerLanguage);
+  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>(initialCachedQuestions);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
-  const fetchedSuggestionsKeyRef = useRef<string | null>(null);
+  const [suggestionsReady, setSuggestionsReady] = useState(initialCachedQuestions.length > 0);
+  const fetchedSuggestionsKeyRef = useRef<string | null>(
+    initialCachedQuestions.length > 0 && documentId != null
+      ? suggestedQuestionsCacheKey(documentId, answerLanguage)
+      : null,
+  );
+
+  const needsSuggestions = chatReady && messages.length === 0 && documentId != null;
+  const chatInputEnabled =
+    chatReady && !isAiThinking && (messages.length > 0 || !needsSuggestions || suggestionsReady);
 
   useEffect(() => {
     if (
@@ -117,20 +145,35 @@ export function WorkspaceAiAssistSection({
         setSuggestedQuestions([]);
         fetchedSuggestionsKeyRef.current = null;
       }
+      setSuggestionsReady(true);
       return;
     }
 
     const cacheKey = suggestedQuestionsCacheKey(documentId, answerLanguage);
-    if (fetchedSuggestionsKeyRef.current === cacheKey) return;
+    const cached = readCachedSuggestedQuestions(file, documentId ?? null, answerLanguage);
+
+    if (cached.length > 0) {
+      setSuggestedQuestions(cached);
+      fetchedSuggestionsKeyRef.current = cacheKey;
+      setIsLoadingSuggestions(false);
+      setSuggestionsReady(true);
+      return;
+    }
+
+    if (fetchedSuggestionsKeyRef.current === cacheKey) {
+      setSuggestionsReady(true);
+      return;
+    }
 
     let cancelled = false;
     fetchedSuggestionsKeyRef.current = cacheKey;
     setIsLoadingSuggestions(true);
-    setSuggestedQuestions([]);
+    setSuggestionsReady(false);
 
-    void generateWorkspaceSuggestedQuestions({
+    void resolveWorkspaceSuggestedQuestions({
       documentId,
       language: answerLanguage,
+      file,
     })
       .then((questions) => {
         if (cancelled) return;
@@ -138,12 +181,14 @@ export function WorkspaceAiAssistSection({
       })
       .catch(() => {
         if (!cancelled) {
-          fetchedSuggestionsKeyRef.current = null;
           setSuggestedQuestions([]);
         }
       })
       .finally(() => {
-        if (!cancelled) setIsLoadingSuggestions(false);
+        if (!cancelled) {
+          setIsLoadingSuggestions(false);
+          setSuggestionsReady(true);
+        }
       });
 
     return () => {
@@ -155,6 +200,7 @@ export function WorkspaceAiAssistSection({
     answerLanguage,
     messages.length,
     isSummarizing,
+    file,
   ]);
 
   const handleSuggestedClick = (question: string) => {
@@ -198,7 +244,6 @@ export function WorkspaceAiAssistSection({
               </button>
             ))}
           </div>
-          <p className={`text-[10px] mt-1 leading-snug ${panelTextMuted}`}>{t('aiPanel.sessionTier.hint')}</p>
         </div>
       ) : null}
       <button
@@ -355,28 +400,32 @@ export function WorkspaceAiAssistSection({
 
       <div
         className={`pt-3 border-t flex items-end gap-2 shrink-0 ${isDarkTheme ? 'border-[#263241]' : 'border-[#E5E7EB]'} ${
-          !chatReady ? 'pointer-events-none opacity-55' : ''
+          !chatInputEnabled ? 'pointer-events-none opacity-55' : ''
         }`}
       >
         <textarea
           value={chatInput}
           onChange={(e) => onChatInputChange(e.target.value)}
           onKeyDown={(e) => {
-            if (!chatReady) return;
+            if (!chatInputEnabled) return;
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
               onSendMessage();
             }
           }}
           rows={2}
-          placeholder={chatReady ? t('aiPanel.placeholder') : t('aiPanel.chatReadonlyPlaceholder')}
-          disabled={!file || isAiThinking || !chatReady}
+          placeholder={
+            chatReady || chatInputEnabled
+              ? t('aiPanel.placeholder')
+              : t('aiPanel.chatReadonlyPlaceholder')
+          }
+          disabled={!file || isAiThinking || !chatInputEnabled}
           className={`flex-1 min-w-0 resize-none rounded-lg border px-3 py-2 text-[12px] focus:outline-none focus:ring-2 ${AI_UI.focusRing} disabled:opacity-50 ${inputTone}`}
         />
         <Button
           size="sm"
           onClick={onSendMessage}
-          disabled={!file || isAiThinking || !chatReady || !chatInput.trim()}
+          disabled={!file || isAiThinking || !chatInputEnabled || !chatInput.trim()}
           className="h-[52px] px-4 text-[12px] bg-[#EF4444] hover:bg-[#DC2626] text-white border border-transparent"
           aria-label={t('aiPanel.send')}
         >

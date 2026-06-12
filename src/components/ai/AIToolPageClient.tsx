@@ -696,7 +696,6 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
           return;
         }
         applyDocumentIndex(newId, text || assistSummaryText);
-        setChatHint(t('aiPanel.chatReady'));
       })
       .catch((err) => {
         if (cancelled) return;
@@ -813,7 +812,6 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
         aiTab: 'assist',
       });
       saveWorkspaceAiAnswerLanguage(answerLanguage, locale);
-      setChatHint(t('aiPanel.chatReady'));
     } catch (err) {
       setError(err instanceof Error ? err.message : t('aiPanel.summaryError'));
     } finally {
@@ -1394,14 +1392,6 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                 <WorkspaceAiAssistSection {...assistSectionProps} layout="controls" />
 
                 {error && <p className="text-[12px] text-red-500 leading-snug">{error}</p>}
-                {restoredHint && (
-                  <p className="text-[11px] text-[hsl(var(--color-muted-foreground))] leading-snug">
-                    {restoredHint}
-                  </p>
-                )}
-                {chatHint && !error && (
-                  <p className="text-[11px] text-[hsl(var(--color-primary))] leading-snug">{chatHint}</p>
-                )}
               </div>
             ) : isSummaryPage ? (
               <>
