@@ -108,15 +108,12 @@ def _wrap_line_count(text: str, width: float, font: fitz.Font, size: float) -> i
 
 
 def _find_ceiling(base: fitz.Rect, following: list[fitz.Rect], page_h: float) -> float:
-    """Giới hạn dưới khi mở rộng đoạn — chỉ dừng ở khoảng cách đoạn (gap), không phải dòng kế."""
-    default = min(base.y1 + 500, page_h - 8)
+    """Prose: luôn dừng trước block kế (mỗi mục đã gom ở extract)."""
+    default = min(base.y1 + 48, page_h - 12)
     for nxt in following:
         if nxt.y0 <= base.y0 + 1:
             continue
-        gap = nxt.y0 - base.y1
-        # Khoảng trống rõ ràng giữa đoạn / mục danh sách
-        if gap > 8 or nxt.y0 - base.y0 > max(base.height * 2.0, 16):
-            return max(base.y0 + 10, nxt.y0 - 1)
+        return max(base.y0 + 4, nxt.y0 - 2)
     return default
 
 
@@ -130,14 +127,15 @@ def _fit_prose_rect(
     """Giữ y0 gốc, auto-shrink font cho vừa tới max_y1."""
     width = max(base.width, 40.0)
     min_size = 4.5
-    start = min(base_size * 0.92, 11.0)
+    start = min(base_size * 0.88, 10.5)
+    avail_h = max(max_y1 - base.y0, base.height)
 
     size = start
     while size >= min_size:
         lines = _wrap_line_count(text, width, font, size)
-        need_h = lines * size * 1.26 + 3
+        need_h = lines * size * 1.28 + 3
         y1 = min(base.y0 + need_h, max_y1)
-        if y1 - base.y0 >= size * 0.85:
+        if y1 - base.y0 >= min(size * 0.85, avail_h * 0.5):
             return size, fitz.Rect(base.x0, base.y0, base.x1, y1)
         size -= 0.4
 
@@ -175,8 +173,9 @@ def _insert_text(
         size = min(base_size * 0.80, 72.0)
         min_size = 4.0
     else:
-        if page_width and base.width < page_width * 0.55:
-            base = fitz.Rect(base.x0, base.y0, page_width - 12, base.y1)
+        margin_x = base.x0
+        if page_width and base.width < page_width * 0.45:
+            base = fitz.Rect(margin_x, base.y0, page_width - 12, base.y1)
         font = font_obj or (fitz.Font(fontfile=fontfile) if fontfile else None)
         if font is None:
             rect, size, min_size = base, min(base_size, 11.0), 5.0
@@ -215,6 +214,13 @@ def _debug_block(page: fitz.Page, block: dict[str, Any], page_h: float, index: i
         str(index),
         fontsize=5,
         color=(1, 0.4, 0),
+    )
+
+
+def _point_in_block(px: float, py: float, block: dict[str, Any]) -> bool:
+    return (
+        block["pdfX"] <= px <= block["pdfX"] + block["pdfWidth"]
+        and block["pdfY"] <= py <= block["pdfY"] + block["pdfHeight"]
     )
 
 
@@ -265,11 +271,17 @@ def render_translated_pdf(
             page_wipes = wipe_by_page.get(page_no, [])
 
             # Pass 1: wipe ALL raw lines on page (complete original text removal)
+            table_on_page = [b for _, b, _ in page_blocks if b.get("label") == "table_cell"]
             for wl in page_wipes:
                 wfs = float(wl.get("fontSize", 11))
+                wx = float(wl["pdfX"]) + float(wl["pdfWidth"]) / 2
+                wy = float(wl["pdfY"]) + float(wl["pdfHeight"]) / 2
+                in_table = any(_point_in_block(wx, wy, tb) for tb in table_on_page)
+                pad_x = 0.5 if in_table else max(1, wfs * 0.12)
+                pad_y = 0.5 if in_table else 1.0
                 _wipe_rect(page, float(wl["pdfX"]), float(wl["pdfY"]),
                            float(wl["pdfWidth"]), float(wl["pdfHeight"]),
-                           page_h, pad_x=max(1, wfs * 0.12), pad_y=1.0)
+                           page_h, pad_x=pad_x, pad_y=pad_y)
             # Also wipe block rects (merged blocks may cover area between lines)
             for i, block, translated in page_blocks:
                 is_cell = block.get("label") == "table_cell"
@@ -280,9 +292,13 @@ def render_translated_pdf(
                                page_h, pad_x=0, pad_y=0)
                 else:
                     fs = float(block.get("fontSize", 11))
+                    # Prose đã gom mục — wipe thêm vùng dưới để tránh sót chữ gốc
+                    wipe_h = float(block["pdfHeight"])
+                    if block.get("label") != "table_cell":
+                        wipe_h = max(wipe_h, fs * 3.5)
                     _wipe_rect(page, float(block["pdfX"]), float(block["pdfY"]),
-                               float(block["pdfWidth"]), float(block["pdfHeight"]),
-                               page_h, pad_x=max(1, fs * 0.12), pad_y=2.0)
+                               float(block["pdfWidth"]), wipe_h,
+                               page_h, pad_x=max(1, fs * 0.08), pad_y=1.5)
 
             page.apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE)
 

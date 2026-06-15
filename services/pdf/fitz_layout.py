@@ -9,7 +9,12 @@ from typing import Any
 import fitz
 
 LIST_MARKER_RE = re.compile(r"^\d{1,3}\.?$")
+LIST_START_RE = re.compile(r"^\d{1,3}\.\s")
 BULLET_MARKER_RE = re.compile(r"^[\u2022\u2023\u25E6\u2043\-–—]\.?$")
+NOISE_LINE_RE = re.compile(
+    r"^(page\s+\d+(\s+of\s+\d+)?|trang\s+\d+(\s+trang\s+\d+)?|document\s+created)",
+    re.I,
+)
 
 # Map special Unicode bullets/symbols -> ASCII so NotoSans renders them
 _GLYPH_FIXES: dict[str, str] = {
@@ -126,6 +131,54 @@ def _merge_marker_with_next(blocks: list[dict[str, Any]]) -> list[dict[str, Any]
     return merged
 
 
+def _is_noise_line(text: str) -> bool:
+    t = (text or "").strip()
+    return not t or bool(NOISE_LINE_RE.match(t))
+
+
+def _merge_list_items(blocks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Gom toàn bộ dòng thuộc cùng mục 1., 2., ... thành một block."""
+    if not blocks:
+        return blocks
+
+    ordered = sorted(blocks, key=lambda b: (-(b["pdfY"] + b["pdfHeight"]), b["pdfX"]))
+    out: list[dict[str, Any]] = []
+    cur: dict[str, Any] | None = None
+
+    for blk in ordered:
+        text = (blk.get("text") or "").strip()
+        if _is_noise_line(text):
+            continue
+
+        if LIST_START_RE.match(text):
+            if cur is not None:
+                out.append(cur)
+            cur = {**blk, "text": text}
+            continue
+
+        if cur is not None and blk["pageNumber"] == cur["pageNumber"]:
+            cur_top = max(cur["pdfY"] + cur["pdfHeight"], blk["pdfY"] + blk["pdfHeight"])
+            x0 = min(cur["pdfX"], blk["pdfX"])
+            x1 = max(cur["pdfX"] + cur["pdfWidth"], blk["pdfX"] + blk["pdfWidth"])
+            y0 = min(cur["pdfY"], blk["pdfY"])
+            cur["text"] = f"{cur['text']}\n{text}".strip()
+            cur["pdfX"] = round(x0, 2)
+            cur["pdfY"] = round(y0, 2)
+            cur["pdfWidth"] = round(max(4.0, x1 - x0), 2)
+            cur["pdfHeight"] = round(max(4.0, cur_top - y0), 2)
+            cur["fontSize"] = max(cur["fontSize"], blk["fontSize"])
+            continue
+
+        if cur is not None:
+            out.append(cur)
+            cur = None
+        out.append(blk)
+
+    if cur is not None:
+        out.append(cur)
+    return out
+
+
 MAX_MERGE_LINES = 20
 
 
@@ -163,8 +216,10 @@ def _merge_nearby_blocks(
         overlap_x1 = min(cur["pdfX"] + cur["pdfWidth"], blk["pdfX"] + blk["pdfWidth"])
         min_w = min(cur["pdfWidth"], blk["pdfWidth"])
         aligned = (overlap_x1 - overlap_x0) > min_w * 0.3
+        blk_text = (blk.get("text") or "").strip()
+        new_list_item = bool(LIST_START_RE.match(blk_text))
 
-        if 0 <= gap < max_gap and aligned and cur_lines < MAX_MERGE_LINES:
+        if 0 <= gap < max_gap and aligned and cur_lines < MAX_MERGE_LINES and not new_list_item:
             new_x = min(cur["pdfX"], blk["pdfX"])
             new_y = min(cur["pdfY"], blk["pdfY"])
             new_x2 = max(cur["pdfX"] + cur["pdfWidth"], blk["pdfX"] + blk["pdfWidth"])
@@ -185,6 +240,50 @@ def _merge_nearby_blocks(
         merged.append(cur)
 
     return merged
+
+
+def _rect_overlap_area(a: fitz.Rect, b: fitz.Rect) -> float:
+    ix = max(0.0, min(a.x1, b.x1) - max(a.x0, b.x0))
+    iy = max(0.0, min(a.y1, b.y1) - max(a.y0, b.y0))
+    return ix * iy
+
+
+def _widget_in_cell(widget: Any, cell_rect: fitz.Rect) -> bool:
+    wr = widget.rect
+    if wr.is_empty:
+        return False
+    inter = _rect_overlap_area(wr, cell_rect)
+    if inter / max(wr.get_area(), 1.0) > 0.35:
+        return True
+    wx = (wr.x0 + wr.x1) / 2
+    wy = (wr.y0 + wr.y1) / 2
+    return cell_rect.x0 <= wx <= cell_rect.x1 and cell_rect.y0 <= wy <= cell_rect.y1
+
+
+def _cell_value_from_page(page: fitz.Page, cell_rect: fitz.Rect) -> tuple[str, list[dict]]:
+    """Trích text trong ô — spans, plain text, rồi form widget."""
+    text_dict = page.get_text("dict", clip=cell_rect, flags=fitz.TEXT_PRESERVE_WHITESPACE)
+    spans = [
+        s
+        for blk in text_dict.get("blocks", [])
+        for line in blk.get("lines", [])
+        for s in line.get("spans", [])
+        if (s.get("text") or "").strip()
+    ]
+    if spans:
+        return _fix_glyphs(" ".join(s["text"].strip() for s in spans)), spans
+
+    plain = (page.get_text("text", clip=cell_rect) or "").strip()
+    if plain:
+        return _fix_glyphs(re.sub(r"\s+", " ", plain)), [{"size": 10}]
+
+    for widget in page.widgets() or []:
+        val = (widget.field_value or "").strip()
+        if not val or not _widget_in_cell(widget, cell_rect):
+            continue
+        fs = widget.text_fontsize or 10
+        return _fix_glyphs(val), [{"size": fs}]
+    return "", []
 
 
 def _collect_table_blocks(
@@ -216,18 +315,8 @@ def _collect_table_blocks(
                 continue
 
             cell_rect = fitz.Rect(cx0, cy0, cx1, cy1)
-            text_dict = page.get_text("dict", clip=cell_rect, flags=fitz.TEXT_PRESERVE_WHITESPACE)
-            spans = [
-                s
-                for blk in text_dict.get("blocks", [])
-                for line in blk.get("lines", [])
-                for s in line.get("spans", [])
-                if (s.get("text") or "").strip()
-            ]
-            if not spans:
-                continue
+            cell_text, spans = _cell_value_from_page(page, cell_rect)
 
-            cell_text = _fix_glyphs(" ".join(s["text"].strip() for s in spans))
             if not cell_text:
                 continue
 
@@ -283,7 +372,7 @@ def _collect_page_lines(
                 and not _span_in_table(s.get("bbox", [0, 0, 0, 0]), tr)
             ]
             row = _line_block(page_no, page_h, spans, label="line")
-            if row:
+            if row and not _is_noise_line(row.get("text", "")):
                 page_lines.append(row)
 
     # AcroForm field values (form widgets) — not captured by get_text
@@ -293,6 +382,10 @@ def _collect_page_lines(
             continue
         r = widget.rect
         if not r or r.is_empty:
+            continue
+        wx = (r.x0 + r.x1) / 2
+        wy = (r.y0 + r.y1) / 2
+        if any(tr.x0 <= wx <= tr.x1 and tr.y0 <= wy <= tr.y1 for tr in tr):
             continue
         fs = max(6.0, min(72.0, widget.text_fontsize or 11.0))
         page_lines.append({
@@ -354,7 +447,7 @@ def _text_overlap(a: str, b: str) -> float:
 
 
 def _dedup_blocks(blocks: list[dict[str, Any]], iou_thresh: float = 0.4) -> list[dict[str, Any]]:
-    """Remove blocks dominated by bbox overlap OR text content overlap."""
+    """Remove overlap duplicates — ưu tiên giữ table_cell."""
     kept: list[dict[str, Any]] = []
     for blk in blocks:
         bx, by = blk["pdfX"], blk["pdfY"]
@@ -362,7 +455,7 @@ def _dedup_blocks(blocks: list[dict[str, Any]], iou_thresh: float = 0.4) -> list
         b_text = blk.get("text", "")
         is_cell = blk.get("label") == "table_cell"
         dominated = False
-        for k in kept:
+        for ki, k in enumerate(kept):
             if k["pageNumber"] != blk["pageNumber"]:
                 continue
             kx, ky = k["pdfX"], k["pdfY"]
@@ -371,11 +464,16 @@ def _dedup_blocks(blocks: list[dict[str, Any]], iou_thresh: float = 0.4) -> list
             iy = max(0, min(by + bh, ky + kh) - max(by, ky))
             inter = ix * iy
             area = bw * bh
+            k_cell = k.get("label") == "table_cell"
             if area > 0 and inter / area >= iou_thresh:
+                if is_cell and not k_cell:
+                    kept[ki] = blk
                 dominated = True
                 break
-            both_cells = is_cell and k.get("label") == "table_cell"
+            both_cells = is_cell and k_cell
             if not both_cells and len(b_text) > 3 and _text_overlap(b_text, k.get("text", "")) > 0.6:
+                if is_cell and not k_cell:
+                    kept[ki] = blk
                 dominated = True
                 break
         if not dominated:
@@ -390,8 +488,9 @@ def extract_fitz_line_blocks(pdf_path: Path) -> list[dict[str, Any]]:
         for page_index, page in enumerate(doc):
             table_blocks, table_rects = _collect_table_blocks(page_index, page)
             page_lines = _collect_page_lines(page_index, page, table_rects)
-            merged = _merge_nearby_blocks(_merge_marker_with_next(page_lines))
-            blocks.extend(_dedup_blocks(merged + table_blocks))
+            merged = _merge_list_items(_merge_marker_with_next(page_lines))
+            merged = _merge_nearby_blocks(merged, gap_factor=0.55)
+            blocks.extend(_dedup_blocks(table_blocks + merged))
     finally:
         doc.close()
 
