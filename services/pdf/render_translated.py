@@ -37,6 +37,8 @@ FONT_MAP: dict[str, str] = {
 }
 
 DEFAULT_FONT = "NotoSans-Regular.ttf"
+RTL_LANGS = frozenset({"ar", "he"})
+DUAL_FONT_LANGS = frozenset({"ar", "he"})
 
 
 def _font_path(target_lang: str) -> str:
@@ -48,6 +50,235 @@ def _font_path(target_lang: str) -> str:
     if fallback.exists():
         return str(fallback)
     return ""
+
+
+def _latin_font_path() -> str:
+    path = FONTS_DIR / DEFAULT_FONT
+    return str(path) if path.exists() else ""
+
+
+def _text_align(target_lang: str) -> int:
+    return fitz.TEXT_ALIGN_RIGHT if target_lang in RTL_LANGS else fitz.TEXT_ALIGN_LEFT
+
+
+def _prepare_script_line(line: str, target_lang: str, script_font: str = "") -> str:
+    """Reshape Arabic / bidi RTL trước khi vẽ."""
+    if target_lang == "ar":
+        try:
+            import arabic_reshaper
+            from bidi.algorithm import get_display
+
+            shaped = arabic_reshaper.reshape(line)
+            return get_display(shaped)
+        except Exception as exc:
+            logger.warning("arabic reshape failed: %s", exc)
+    if target_lang == "he":
+        try:
+            from bidi.algorithm import get_display
+
+            return get_display(line)
+        except Exception as exc:
+            logger.warning("hebrew bidi failed: %s", exc)
+    return line
+
+
+def _split_latin_runs(text: str) -> list[tuple[str, bool]]:
+    """Tách đoạn Latin (URL, số) vs script — bool True = dùng NotoSans."""
+    runs: list[tuple[str, bool]] = []
+    i = 0
+    n = len(text)
+    while i < n:
+        ch = text[i]
+        if ch.isspace():
+            j = i + 1
+            while j < n and text[j].isspace():
+                j += 1
+            runs.append((text[i:j], False))
+            i = j
+            continue
+        is_latin = ch.isascii() and ord(ch) < 0x0250
+        j = i + 1
+        while j < n:
+            cj = text[j]
+            if cj.isspace():
+                break
+            lj = cj.isascii() and ord(cj) < 0x0250
+            if lj != is_latin:
+                break
+            j += 1
+        runs.append((text[i:j], is_latin))
+        i = j
+    return runs
+
+
+def _run_width(seg: str, is_latin: bool, ar_font: fitz.Font, lat_font: fitz.Font, size: float) -> float:
+    font = lat_font if is_latin else ar_font
+    try:
+        return float(font.text_length(seg, fontsize=size))
+    except Exception:
+        return len(seg) * size * 0.48
+
+
+def _runs_width(runs: list[tuple[str, bool]], ar_font: fitz.Font, lat_font: fitz.Font, size: float) -> float:
+    return sum(_run_width(s, lat, ar_font, lat_font, size) for s, lat in runs)
+
+
+def _wrap_visual_runs(
+    prepared: str,
+    max_w: float,
+    ar_font: fitz.Font,
+    lat_font: fitz.Font,
+    size: float,
+) -> list[list[tuple[str, bool]]]:
+    """Wrap dòng đã bidi — mỗi dòng là list (segment, is_latin)."""
+    runs = _split_latin_runs(prepared)
+    if not runs:
+        return [[]]
+
+    lines: list[list[tuple[str, bool]]] = []
+    cur: list[tuple[str, bool]] = []
+    cur_w = 0.0
+
+    for seg, is_lat in runs:
+        if not seg:
+            continue
+        seg_w = _run_width(seg, is_lat, ar_font, lat_font, size)
+        if cur and cur_w + seg_w > max_w:
+            lines.append(cur)
+            cur, cur_w = [], 0.0
+        if seg_w > max_w and is_lat and " " in seg:
+            for word in seg.split(" "):
+                if not word:
+                    continue
+                ww = _run_width(word, True, ar_font, lat_font, size)
+                sp = _run_width(" ", True, ar_font, lat_font, size) if cur else 0.0
+                if cur and cur_w + sp + ww > max_w:
+                    lines.append(cur)
+                    cur, cur_w = [], 0.0
+                if cur:
+                    cur.append((" ", True))
+                    cur_w += sp
+                cur.append((word, True))
+                cur_w += ww
+            continue
+        cur.append((seg, is_lat))
+        cur_w += seg_w
+
+    if cur:
+        lines.append(cur)
+    return lines or [[]]
+
+
+def _count_rtl_lines(
+    text: str,
+    max_w: float,
+    ar_font: fitz.Font,
+    lat_font: fitz.Font,
+    size: float,
+    target_lang: str,
+    script_font: str,
+) -> int:
+    total = 0
+    for raw in text.split("\n"):
+        raw = raw.strip()
+        if not raw:
+            continue
+        prep = _prepare_script_line(raw, target_lang, script_font)
+        total += len(_wrap_visual_runs(prep, max_w, ar_font, lat_font, size))
+    return max(1, total)
+
+
+def _insert_rtl_mixed(
+    page: fitz.Page,
+    rect: fitz.Rect,
+    text: str,
+    target_lang: str,
+    script_font: str,
+    size: float,
+) -> bool:
+    """Ả Rập/Hebrew: TextWriter với font script + NotoSans cho Latin/URL."""
+    latin_font = _latin_font_path()
+    if not script_font or not latin_font:
+        return False
+    try:
+        ar_font = fitz.Font(fontfile=script_font)
+        lat_font = fitz.Font(fontfile=latin_font)
+    except Exception as exc:
+        logger.warning("rtl font load failed: %s", exc)
+        return False
+
+    max_w = max(rect.width - 4, 20.0)
+    line_h = size * 1.35
+    n_lines = _count_rtl_lines(text, max_w, ar_font, lat_font, size, target_lang, script_font)
+    if n_lines * line_h > rect.height + 2:
+        return False
+
+    tw = fitz.TextWriter(page.rect, color=(0, 0, 0))
+    y = rect.y0 + size * 0.92
+    bottom = rect.y1 - 1
+
+    for raw in text.split("\n"):
+        raw = raw.strip()
+        if not raw:
+            continue
+        prepared = _prepare_script_line(raw, target_lang, script_font)
+        for runs in _wrap_visual_runs(prepared, max_w, ar_font, lat_font, size):
+            if y > bottom:
+                return False
+            total_w = _runs_width(runs, ar_font, lat_font, size)
+            x = rect.x1 - 2 - total_w
+            for seg, is_lat in runs:
+                if not seg:
+                    continue
+                font = lat_font if is_lat else ar_font
+                tw.append((x, y), seg, font=font, fontsize=size)
+                x += _run_width(seg, is_lat, ar_font, lat_font, size)
+            y += line_h
+
+    tw.write_text(page)
+    return True
+
+
+def _draw_textbox(
+    page: fitz.Page,
+    rect: fitz.Rect,
+    text: str,
+    target_lang: str,
+    fontfile: str,
+    fontname: str,
+    size: float,
+    min_size: float,
+) -> bool:
+    """Vẽ textbox — RTL mixed dùng TextWriter, còn lại insert_textbox."""
+    if target_lang in DUAL_FONT_LANGS and _latin_font_path():
+        s = size
+        while s >= min_size:
+            if _insert_rtl_mixed(page, rect, text, target_lang, fontfile, s):
+                return True
+            s -= 0.4
+        # Fallback: insert_textbox with reshaped text when TextWriter approach fails
+
+    shaped = text
+    if target_lang in RTL_LANGS:
+        shaped = "\n".join(
+            _prepare_script_line(ln, target_lang, fontfile)
+            for ln in text.split("\n")
+            if ln.strip()
+        )
+    fname = fontname if fontfile else "helv"
+    ffile = fontfile if fontfile else None
+    align = _text_align(target_lang)
+    s = size
+    while s >= min_size:
+        rc = page.insert_textbox(
+            rect, shaped, fontsize=s,
+            fontname=fname, fontfile=ffile,
+            color=(0, 0, 0), align=align,
+        )
+        if rc >= 0:
+            return True
+        s -= 0.4
+    return False
 
 
 def _wipe_rect(
@@ -153,6 +384,7 @@ def _insert_text(
     font_obj: fitz.Font | None = None,
     max_y1: float | None = None,
     page_width: float | None = None,
+    target_lang: str = "en",
 ) -> None:
     """Insert translated text — table cell giữ logic cũ, prose fit trong bbox gốc."""
     text = "\n".join(line for line in text.split("\n") if line.strip())
@@ -165,9 +397,6 @@ def _insert_text(
         return
 
     is_cell = block.get("label") == "table_cell"
-    fname = fontname if fontfile else "helv"
-    ffile = fontfile if fontfile else None
-
     if is_cell:
         rect = fitz.Rect(base.x0 + 2, base.y0 + 2, base.x1 - 2, base.y1 - 2)
         size = min(base_size * 0.80, 72.0)
@@ -184,19 +413,13 @@ def _insert_text(
             size, rect = _fit_prose_rect(text, base, ceiling, font, base_size)
             min_size = 4.5
 
-    try:
-        s = size
-        while s >= min_size:
-            rc = page.insert_textbox(
-                rect, text, fontsize=s,
-                fontname=fname, fontfile=ffile,
-                color=(0, 0, 0), align=fitz.TEXT_ALIGN_LEFT,
-            )
-            if rc >= 0:
-                return
-            s -= 0.4
-    except Exception as e:
-        logger.warning("insert_textbox failed: %s", e)
+    if not _draw_textbox(
+        page, rect, text, target_lang, fontfile, fontname, size, min_size,
+    ):
+        logger.warning(
+            "textbox overflow lang=%s len=%d rect=%s",
+            target_lang, len(text), rect,
+        )
 
 
 def _debug_block(page: fitz.Page, block: dict[str, Any], page_h: float, index: int) -> None:
@@ -327,6 +550,7 @@ def render_translated_pdf(
                     fontname=fontname, font_obj=font_obj,
                     max_y1=ceilings.get(i),
                     page_width=float(page.rect.width),
+                    target_lang=target_lang,
                 )
                 if debug_ocr:
                     _debug_block(page, block, page_h, i)
