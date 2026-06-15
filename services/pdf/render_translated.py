@@ -87,8 +87,16 @@ def _insert_text(
     fontname: str = "noto",
 ) -> None:
     """Insert translated text into block's bounding box with word wrap."""
+    text = "\n".join(line for line in text.split("\n") if line.strip())
+    if not text:
+        return
+
     base_size = float(block.get("fontSize", 11))
     rect = _block_rect(block, page_h)
+
+    if rect.is_empty or rect.is_infinite or rect.width < 2 or rect.height < 2:
+        return
+
     is_cell = block.get("label") == "table_cell"
 
     if is_cell:
@@ -96,9 +104,11 @@ def _insert_text(
         rect = fitz.Rect(rect.x0 + 2, rect.y0 + 2, rect.x1 - 2, rect.y1 - 2)
     else:
         start_size = base_size
-        # Modest vertical expansion for paragraph reflow
         expand = min(base_size * 2.0, 40.0)
         rect = fitz.Rect(rect.x0, rect.y0, rect.x1, rect.y1 + expand)
+
+    if rect.is_empty or rect.width < 2 or rect.height < 2:
+        return
 
     size = min(start_size, 72.0)
     min_size = 4.0
@@ -107,21 +117,24 @@ def _insert_text(
     fname = fontname if use_font else "helv"
     ffile = fontfile if use_font else None
 
-    while size >= min_size:
-        rc = page.insert_textbox(
-            rect, text, fontsize=size,
+    try:
+        while size >= min_size:
+            rc = page.insert_textbox(
+                rect, text, fontsize=size,
+                fontname=fname, fontfile=ffile,
+                color=(0, 0, 0), align=fitz.TEXT_ALIGN_LEFT,
+            )
+            if rc >= 0:
+                return
+            size -= 0.5
+
+        page.insert_textbox(
+            rect, text, fontsize=min_size,
             fontname=fname, fontfile=ffile,
             color=(0, 0, 0), align=fitz.TEXT_ALIGN_LEFT,
         )
-        if rc >= 0:
-            return
-        size -= 0.5
-
-    page.insert_textbox(
-        rect, text, fontsize=min_size,
-        fontname=fname, fontfile=ffile,
-        color=(0, 0, 0), align=fitz.TEXT_ALIGN_LEFT,
-    )
+    except Exception as e:
+        logger.warning("insert_textbox failed: %s", e)
 
 
 def _debug_block(page: fitz.Page, block: dict[str, Any], page_h: float, index: int) -> None:
