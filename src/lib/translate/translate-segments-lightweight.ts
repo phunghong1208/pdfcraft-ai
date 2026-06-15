@@ -38,7 +38,7 @@ function alignTranslations(
   const result: string[] = [];
   for (let i = 0; i < expectedCount; i += 1) {
     const translated = out[i]?.trim();
-    result.push(translated || fallback[i] || '');
+    result.push(translated || '');
   }
   return result;
 }
@@ -112,9 +112,9 @@ async function translateBatch(
   }
 
   console.warn(
-    `[translate] ${segments.length} segment(s) untranslatable, returning original`,
+    `[translate] ${segments.length} segment(s) untranslatable, skipping`,
   );
-  return { translations: [...segments], usage: emptyUsage() };
+  return { translations: segments.map(() => ''), usage: emptyUsage() };
 }
 
 export async function translateSegmentsLightweight(options: {
@@ -139,7 +139,7 @@ export async function translateSegmentsLightweight(options: {
   const batchResults = await runSegmentBatches(batches, async ({ offset, segments: batch }) => {
     const { translations, usage } = await translateBatch(batch, sourceLang, targetLang, model);
     for (let j = 0; j < batch.length; j += 1) {
-      results[offset + j] = translations[j]?.trim() || batch[j];
+      results[offset + j] = translations[j]?.trim() || '';
     }
     doneCount += batch.length;
     onProgress?.(doneCount, segments.length);
