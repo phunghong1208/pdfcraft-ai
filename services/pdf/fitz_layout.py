@@ -126,9 +126,7 @@ def _merge_marker_with_next(blocks: list[dict[str, Any]]) -> list[dict[str, Any]
     return merged
 
 
-MAX_MERGE_LINES = 12  # cap lines per block. Raised from 4 so full prose paragraphs merge
-# into ONE block (better translation context, fewer misses). Table rows still don't merge:
-# they fail the gap (cell padding > fontSize*gap_factor) and alignment checks regardless.
+MAX_MERGE_LINES = 4  # cap lines per block — prevents table rows / tall blocks from merging
 
 
 def _merge_nearby_blocks(
