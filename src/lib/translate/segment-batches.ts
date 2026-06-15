@@ -1,6 +1,6 @@
 /** Gom segment ngắn (ô bảng, nhãn) vào ít request GPT hơn. */
 export const DEFAULT_MAX_SEGMENTS_PER_BATCH = Number(
-  process.env.TRANSLATE_BATCH_SIZE || '16',
+  process.env.TRANSLATE_BATCH_SIZE || '6',
 );
 export const DEFAULT_MAX_CHARS_PER_BATCH = Number(
   process.env.TRANSLATE_BATCH_MAX_CHARS || '4000',

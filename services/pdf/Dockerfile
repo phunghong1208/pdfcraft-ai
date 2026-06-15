@@ -11,7 +11,8 @@ RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 # ── font stage ────────────────────────────────────────────────
 FROM python:3.12-slim AS fonts
-
+# Bump this value to force re-download all fonts
+ARG FONT_VERSION=3
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /fonts && \

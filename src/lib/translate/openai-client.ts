@@ -6,7 +6,10 @@ export type ChatMessage = {
 };
 
 const DEFAULT_TIMEOUT_MS = Number(process.env.OPENAI_TIMEOUT_MS || '120000');
-const DEFAULT_MODEL = process.env.TRANSLATE_MODEL || process.env.TRANSLATE_DOCS_MODEL || 'gpt-5-nano';
+const DEFAULT_MODEL =
+  process.env.TRANSLATE_MODEL ||
+  process.env.TRANSLATE_DOCS_MODEL ||
+  'gpt-4.1-nano';
 
 let cachedApiKey: string | null = null;
 
@@ -54,17 +57,18 @@ export async function chatCompletion(options: {
   const model = options.model || getDefaultTranslateModel();
   const apiKey = getOpenAiApiKey();
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const maxCompletionTokens = options.maxCompletionTokens ?? 4096;
-
   const body: Record<string, unknown> = {
     model,
     messages: options.messages,
-    max_completion_tokens: maxCompletionTokens,
   };
 
-  const effort = options.reasoningEffort ?? (process.env.TRANSLATE_REASONING_EFFORT as 'low' | 'medium' | 'high' | undefined);
-  if (effort && isReasoningModel(model)) {
-    body.reasoning_effort = effort;
+  if (options.maxCompletionTokens) {
+    body.max_completion_tokens = options.maxCompletionTokens;
+  }
+
+  if (isReasoningModel(model)) {
+    const effort = options.reasoningEffort ?? (process.env.TRANSLATE_REASONING_EFFORT as 'low' | 'medium' | 'high' | undefined);
+    if (effort) body.reasoning_effort = effort;
   }
 
   const res = await fetch('https://api.openai.com/v1/chat/completions', {

@@ -1,9 +1,7 @@
-import {
-  buildSegmentBatches,
-  runSegmentBatches,
-} from '@/lib/translate/segment-batches';
-
 const TRANSLATE_TEXT_PATH = '/api/translate/text';
+
+/** Một request HTTP mang nhiều block — server batch + gọi OpenAI song song bên trong. */
+const SEGMENTS_PER_HTTP = Number(process.env.NEXT_PUBLIC_TRANSLATE_HTTP_CHUNK || '120');
 
 type TranslateTextApiResponse = {
   translations?: string[];
@@ -47,24 +45,31 @@ export async function translateBlockTexts(
   if (!texts.length) return [];
 
   const results = new Array<string>(texts.length).fill('');
-  const batches = buildSegmentBatches(texts);
-  let doneCount = 0;
+  const httpChunks: { offset: number; segments: string[] }[] = [];
 
-  await runSegmentBatches(batches, async ({ offset, segments }) => {
+  for (let i = 0; i < texts.length; i += SEGMENTS_PER_HTTP) {
+    httpChunks.push({
+      offset: i,
+      segments: texts.slice(i, i + SEGMENTS_PER_HTTP),
+    });
+  }
+
+  let doneCount = 0;
+  for (const chunk of httpChunks) {
     try {
-      const translations = await translateChunk(segments, sourceLang, targetLang);
-      for (let j = 0; j < segments.length; j += 1) {
-        results[offset + j] = translations[j];
+      const translations = await translateChunk(chunk.segments, sourceLang, targetLang);
+      for (let j = 0; j < chunk.segments.length; j += 1) {
+        results[chunk.offset + j] = translations[j];
       }
     } catch (err) {
-      console.error('[translateBlockTexts] batch failed, keeping originals:', err);
-      for (let j = 0; j < segments.length; j += 1) {
-        results[offset + j] = segments[j];
+      console.error('[translateBlockTexts] chunk failed, keeping originals:', err);
+      for (let j = 0; j < chunk.segments.length; j += 1) {
+        results[chunk.offset + j] = chunk.segments[j];
       }
     }
-    doneCount += segments.length;
+    doneCount += chunk.segments.length;
     onProgress?.(doneCount, texts.length);
-  });
+  }
 
   return results;
 }
