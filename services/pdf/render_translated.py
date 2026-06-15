@@ -78,6 +78,73 @@ def _block_rect(block: dict[str, Any], page_h: float) -> fitz.Rect:
     return fitz.Rect(pdf_x, fitz_y0, pdf_x + pdf_w, fitz_y1)
 
 
+def _wrap_line_count(text: str, width: float, font: fitz.Font, size: float) -> int:
+    """Ước lượng số dòng sau wrap theo chiều rộng."""
+    if width < 8:
+        return max(1, text.count("\n") + 1)
+
+    lines = 0
+    for paragraph in text.split("\n"):
+        words = paragraph.split()
+        if not words:
+            lines += 1
+            continue
+        current = ""
+        for word in words:
+            candidate = f"{current} {word}".strip()
+            try:
+                fits = font.text_length(candidate, fontsize=size) <= width - 4
+            except Exception:
+                fits = len(candidate) * size * 0.48 <= width
+            if fits:
+                current = candidate
+            else:
+                if current:
+                    lines += 1
+                current = word
+        if current:
+            lines += 1
+    return max(1, lines)
+
+
+def _find_ceiling(base: fitz.Rect, following: list[fitz.Rect], page_h: float) -> float:
+    """Giới hạn dưới khi mở rộng đoạn — chỉ dừng ở khoảng cách đoạn (gap), không phải dòng kế."""
+    default = min(base.y1 + 500, page_h - 8)
+    for nxt in following:
+        if nxt.y0 <= base.y0 + 1:
+            continue
+        gap = nxt.y0 - base.y1
+        # Khoảng trống rõ ràng giữa đoạn / mục danh sách
+        if gap > 8 or nxt.y0 - base.y0 > max(base.height * 2.0, 16):
+            return max(base.y0 + 10, nxt.y0 - 1)
+    return default
+
+
+def _fit_prose_rect(
+    text: str,
+    base: fitz.Rect,
+    max_y1: float,
+    font: fitz.Font,
+    base_size: float,
+) -> tuple[float, fitz.Rect]:
+    """Giữ y0 gốc, auto-shrink font cho vừa tới max_y1."""
+    width = max(base.width, 40.0)
+    min_size = 4.5
+    start = min(base_size * 0.92, 11.0)
+
+    size = start
+    while size >= min_size:
+        lines = _wrap_line_count(text, width, font, size)
+        need_h = lines * size * 1.26 + 3
+        y1 = min(base.y0 + need_h, max_y1)
+        if y1 - base.y0 >= size * 0.85:
+            return size, fitz.Rect(base.x0, base.y0, base.x1, y1)
+        size -= 0.4
+
+    y1 = min(base.y0 + min_size * 2.5, max_y1)
+    return min_size, fitz.Rect(base.x0, base.y0, base.x1, max(y1, base.y0 + min_size))
+
+
 def _insert_text(
     page: fitz.Page,
     text: str,
@@ -85,54 +152,50 @@ def _insert_text(
     page_h: float,
     fontfile: str,
     fontname: str = "noto",
+    font_obj: fitz.Font | None = None,
+    max_y1: float | None = None,
+    page_width: float | None = None,
 ) -> None:
-    """Insert translated text into block's bounding box with word wrap."""
+    """Insert translated text — table cell giữ logic cũ, prose fit trong bbox gốc."""
     text = "\n".join(line for line in text.split("\n") if line.strip())
     if not text:
         return
 
     base_size = float(block.get("fontSize", 11))
-    rect = _block_rect(block, page_h)
-
-    if rect.is_empty or rect.is_infinite or rect.width < 2 or rect.height < 2:
+    base = _block_rect(block, page_h)
+    if base.is_empty or base.width < 2 or base.height < 2:
         return
 
     is_cell = block.get("label") == "table_cell"
+    fname = fontname if fontfile else "helv"
+    ffile = fontfile if fontfile else None
 
     if is_cell:
-        start_size = base_size * 0.80
-        rect = fitz.Rect(rect.x0 + 2, rect.y0 + 2, rect.x1 - 2, rect.y1 - 2)
+        rect = fitz.Rect(base.x0 + 2, base.y0 + 2, base.x1 - 2, base.y1 - 2)
+        size = min(base_size * 0.80, 72.0)
+        min_size = 4.0
     else:
-        start_size = base_size
-        expand = min(base_size * 2.0, 40.0)
-        rect = fitz.Rect(rect.x0, rect.y0, rect.x1, rect.y1 + expand)
-
-    if rect.is_empty or rect.width < 2 or rect.height < 2:
-        return
-
-    size = min(start_size, 72.0)
-    min_size = 4.0
-
-    use_font = bool(fontfile)
-    fname = fontname if use_font else "helv"
-    ffile = fontfile if use_font else None
+        if page_width and base.width < page_width * 0.55:
+            base = fitz.Rect(base.x0, base.y0, page_width - 12, base.y1)
+        font = font_obj or (fitz.Font(fontfile=fontfile) if fontfile else None)
+        if font is None:
+            rect, size, min_size = base, min(base_size, 11.0), 5.0
+        else:
+            ceiling = max_y1 if max_y1 is not None else base.y1 + 120
+            size, rect = _fit_prose_rect(text, base, ceiling, font, base_size)
+            min_size = 4.5
 
     try:
-        while size >= min_size:
+        s = size
+        while s >= min_size:
             rc = page.insert_textbox(
-                rect, text, fontsize=size,
+                rect, text, fontsize=s,
                 fontname=fname, fontfile=ffile,
                 color=(0, 0, 0), align=fitz.TEXT_ALIGN_LEFT,
             )
             if rc >= 0:
                 return
-            size -= 0.5
-
-        page.insert_textbox(
-            rect, text, fontsize=min_size,
-            fontname=fname, fontfile=ffile,
-            color=(0, 0, 0), align=fitz.TEXT_ALIGN_LEFT,
-        )
+            s -= 0.4
     except Exception as e:
         logger.warning("insert_textbox failed: %s", e)
 
@@ -169,8 +232,13 @@ def render_translated_pdf(
         output_path = pdf_path.parent / "translated.pdf"
 
     fontfile = _font_path(target_lang)
-    # Unique fontname per file so PyMuPDF doesn't reuse cached wrong font
     fontname = "f-" + Path(fontfile).stem[:12] if fontfile else "helv"
+    font_obj: fitz.Font | None = None
+    if fontfile:
+        try:
+            font_obj = fitz.Font(fontfile=fontfile)
+        except Exception as exc:
+            logger.warning("font load failed: %s", exc)
     doc = fitz.open(pdf_path)
 
     try:
@@ -218,11 +286,32 @@ def render_translated_pdf(
 
             page.apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE)
 
-            # Pass 2: insert translated text (skip empty)
+            # Trần mở rộng theo đoạn (không đẩy block xuống)
+            prose_sorted: list[tuple[int, fitz.Rect]] = []
             for i, block, translated in page_blocks:
+                if translated and block.get("label") != "table_cell":
+                    prose_sorted.append((i, _block_rect(block, page_h)))
+            prose_sorted.sort(key=lambda x: x[1].y0)
+
+            ceilings: dict[int, float] = {}
+            for idx, (i, rect) in enumerate(prose_sorted):
+                following = [r for _, r in prose_sorted[idx + 1:]]
+                ceilings[i] = _find_ceiling(rect, following, float(page.rect.height))
+
+            # Vẽ từ trên xuống — block sau không bị block trước che
+            ordered = sorted(
+                page_blocks,
+                key=lambda x: _block_rect(x[1], page_h).y0,
+            )
+            for i, block, translated in ordered:
                 if not translated:
                     continue
-                _insert_text(page, translated, block, page_h, fontfile, fontname=fontname)
+                _insert_text(
+                    page, translated, block, page_h, fontfile,
+                    fontname=fontname, font_obj=font_obj,
+                    max_y1=ceilings.get(i),
+                    page_width=float(page.rect.width),
+                )
                 if debug_ocr:
                     _debug_block(page, block, page_h, i)
 
