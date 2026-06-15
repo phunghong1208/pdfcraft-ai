@@ -22,45 +22,58 @@ function buildSystemPrompt(sourceLang: string, targetLang: string): string {
   const target = languageDisplayName(targetLang);
   return [
     `You are a professional translator (${source} → ${target}).`,
-    'Translate each input segment independently.',
-    'Preserve numbers, punctuation, line breaks, placeholders, and leading list markers (e.g. 3., 4.). Keep URLs, email addresses, domain names, and file paths exactly as-is — do not transliterate or translate them.',
-    'Do not merge, split, or reorder segments.',
-    'Return ONLY valid JSON: {"translations":["..."]}',
-    'The translations array MUST have exactly the same length as the input segments array.',
+    'Input: JSON array of objects with "id" and "text".',
+    'Translate every "text" value. Do NOT include original text. Translate ALL segments.',
+    'Preserve numbers, URLs, email addresses, domain names, file paths exactly as-is.',
+    'Preserve leading list markers (e.g. 3., 4.).',
+    'Return ONLY valid JSON array: [{"id":1,"text":"translated"},...]',
+    'Keep every id. Same count as input. Do not merge, split, or reorder.',
   ].join(' ');
 }
 
-function alignTranslations(
-  out: string[],
-  expectedCount: number,
-  fallback: string[],
-): string[] {
-  const result: string[] = [];
-  for (let i = 0; i < expectedCount; i += 1) {
-    const translated = out[i]?.trim();
-    result.push(translated || '');
-  }
-  return result;
-}
-
-function parseTranslationsJson(
+function parseTranslationsById(
   content: string,
   expectedCount: number,
-  fallback: string[],
 ): string[] {
   const trimmed = content.trim();
-  const jsonMatch = trimmed.match(/\{[\s\S]*\}/);
-  const jsonText = jsonMatch ? jsonMatch[0] : trimmed;
-  const parsed = JSON.parse(jsonText) as { translations?: unknown };
+  const start = trimmed.indexOf('[');
+  const end = trimmed.lastIndexOf(']');
+  let jsonText = start >= 0 && end > start ? trimmed.slice(start, end + 1) : trimmed;
 
-  if (!Array.isArray(parsed.translations)) {
-    throw new Error('JSON thiếu mảng translations.');
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonText);
+  } catch {
+    const repaired = jsonText.replace(/[\x00-\x1f]/g, (c) =>
+      c === '\n' ? '\\n' : c === '\t' ? '\\t' : c === '\r' ? '\\r' : ' ',
+    );
+    parsed = JSON.parse(repaired);
   }
 
-  const out = parsed.translations.map((value) =>
-    typeof value === 'string' ? value : String(value ?? ''),
-  );
-  return alignTranslations(out, expectedCount, fallback);
+  // Support both formats: [{id,text}] array or {translations:[]} legacy
+  if (!Array.isArray(parsed)) {
+    const obj = parsed as { translations?: unknown };
+    if (Array.isArray(obj.translations)) {
+      const out = new Array<string>(expectedCount).fill('');
+      for (let i = 0; i < expectedCount; i++) {
+        const v = obj.translations[i];
+        out[i] = typeof v === 'string' ? v.trim() : '';
+      }
+      return out;
+    }
+    throw new Error('[translate] response is not an array');
+  }
+
+  const result = new Array<string>(expectedCount).fill('');
+  for (const item of parsed) {
+    if (item && typeof item === 'object' && typeof item.id === 'number') {
+      const idx = item.id - 1;
+      if (idx >= 0 && idx < expectedCount) {
+        result[idx] = typeof item.text === 'string' ? item.text.trim() : '';
+      }
+    }
+  }
+  return result;
 }
 
 async function translateBatch(
@@ -70,7 +83,8 @@ async function translateBatch(
   model: string,
   _depth = 0,
 ): Promise<{ translations: string[]; usage: TokenUsage }> {
-  const payload = JSON.stringify({ segments });
+  const idPayload = segments.map((text, i) => ({ id: i + 1, text }));
+  const payload = JSON.stringify(idPayload);
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
     try {
@@ -84,7 +98,7 @@ async function translateBatch(
         reasoningEffort: 'low',
       });
 
-      const translations = parseTranslationsJson(content, segments.length, segments);
+      const translations = parseTranslationsById(content, segments.length);
       return { translations, usage: usage ?? emptyUsage() };
     } catch (err) {
       console.error(

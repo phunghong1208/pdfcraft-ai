@@ -33,7 +33,7 @@ async function translateChunk(
     throw new Error('API dịch không trả mảng translations.');
   }
 
-  return segments.map((seg, j) => translations[j]?.trim() || seg);
+  return segments.map((_seg, j) => translations[j]?.trim() || '');
 }
 
 export async function translateBlockTexts(
@@ -62,10 +62,7 @@ export async function translateBlockTexts(
         results[chunk.offset + j] = translations[j];
       }
     } catch (err) {
-      console.error('[translateBlockTexts] chunk failed, keeping originals:', err);
-      for (let j = 0; j < chunk.segments.length; j += 1) {
-        results[chunk.offset + j] = chunk.segments[j];
-      }
+      console.error('[translateBlockTexts] chunk failed, leaving empty:', err);
     }
     doneCount += chunk.segments.length;
     onProgress?.(doneCount, texts.length);

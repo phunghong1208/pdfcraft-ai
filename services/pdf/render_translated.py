@@ -68,6 +68,16 @@ def _wipe_rect(
     page.add_redact_annot(rect, fill=(1, 1, 1))
 
 
+def _block_rect(block: dict[str, Any], page_h: float) -> fitz.Rect:
+    pdf_x = float(block["pdfX"])
+    pdf_y = float(block["pdfY"])
+    pdf_w = float(block["pdfWidth"])
+    pdf_h = float(block["pdfHeight"])
+    fitz_y0 = page_h - (pdf_y + pdf_h)
+    fitz_y1 = page_h - pdf_y
+    return fitz.Rect(pdf_x, fitz_y0, pdf_x + pdf_w, fitz_y1)
+
+
 def _insert_text(
     page: fitz.Page,
     text: str,
@@ -76,48 +86,41 @@ def _insert_text(
     fontfile: str,
     fontname: str = "noto",
 ) -> None:
-    """Insert translated text into block's bounding box."""
-    pdf_x = float(block["pdfX"])
-    pdf_y = float(block["pdfY"])
-    pdf_w = float(block["pdfWidth"])
-    pdf_h = float(block["pdfHeight"])
+    """Insert translated text into block's bounding box with word wrap."""
     base_size = float(block.get("fontSize", 11))
+    rect = _block_rect(block, page_h)
+    is_cell = block.get("label") == "table_cell"
 
-    fitz_y0 = page_h - (pdf_y + pdf_h)
-    fitz_y1 = page_h - pdf_y
-    rect = fitz.Rect(pdf_x, fitz_y0, pdf_x + pdf_w, fitz_y1)
+    if is_cell:
+        start_size = base_size * 0.80
+        rect = fitz.Rect(rect.x0 + 2, rect.y0 + 2, rect.x1 - 2, rect.y1 - 2)
+    else:
+        start_size = base_size
+        # Modest vertical expansion for paragraph reflow
+        expand = min(base_size * 2.0, 40.0)
+        rect = fitz.Rect(rect.x0, rect.y0, rect.x1, rect.y1 + expand)
 
-    size = min(base_size, 72.0)
-    min_size = 5.0
+    size = min(start_size, 72.0)
+    min_size = 4.0
 
-    # Try with custom font if available
-    if fontfile:
-        while size >= min_size:
-            rc = page.insert_textbox(
-                rect, text, fontsize=size,
-                fontname=fontname, fontfile=fontfile,
-                color=(0, 0, 0), align=fitz.TEXT_ALIGN_LEFT,
-            )
-            if rc >= 0:
-                return
-            size -= 0.5
+    use_font = bool(fontfile)
+    fname = fontname if use_font else "helv"
+    ffile = fontfile if use_font else None
 
-    # Fallback to built-in Helvetica (always available, no fontfile needed)
-    size = min(base_size, 72.0)
     while size >= min_size:
         rc = page.insert_textbox(
             rect, text, fontsize=size,
-            fontname="helv",
+            fontname=fname, fontfile=ffile,
             color=(0, 0, 0), align=fitz.TEXT_ALIGN_LEFT,
         )
         if rc >= 0:
             return
         size -= 0.5
 
-    # Last resort — helv always works
     page.insert_textbox(
         rect, text, fontsize=min_size,
-        fontname="helv", color=(0, 0, 0), align=fitz.TEXT_ALIGN_LEFT,
+        fontname=fname, fontfile=ffile,
+        color=(0, 0, 0), align=fitz.TEXT_ALIGN_LEFT,
     )
 
 
@@ -165,52 +168,47 @@ def render_translated_pdf(
                 if pn > 0:
                     wipe_by_page.setdefault(pn, []).append(wl)
 
-        # Group blocks by page for two-pass: redact all → apply → insert text
-        by_page: dict[int, list[tuple[int, dict[str, Any], str]]] = {}
+        # Group ALL blocks by page (including empty translations for wiping)
+        all_by_page: dict[int, list[tuple[int, dict[str, Any], str]]] = {}
         for i, block in enumerate(blocks):
             translated = (translations[i] if i < len(translations) else "").strip()
-            if not translated:
-                continue
             page_no = int(block["pageNumber"])
             page_idx = page_no - 1
             if page_idx < 0 or page_idx >= len(doc):
                 continue
-            by_page.setdefault(page_no, []).append((i, block, translated))
+            all_by_page.setdefault(page_no, []).append((i, block, translated))
 
-        for page_no, page_blocks in by_page.items():
+        for page_no, page_blocks in all_by_page.items():
             page = doc[page_no - 1]
             page_h = float(page.rect.height)
             page_wipes = wipe_by_page.get(page_no, [])
 
-            # Pass 1: add redact annots for all blocks on this page
+            # Pass 1: wipe ALL raw lines on page (complete original text removal)
+            for wl in page_wipes:
+                wfs = float(wl.get("fontSize", 11))
+                _wipe_rect(page, float(wl["pdfX"]), float(wl["pdfY"]),
+                           float(wl["pdfWidth"]), float(wl["pdfHeight"]),
+                           page_h, pad_x=max(1, wfs * 0.12), pad_y=1.0)
+            # Also wipe block rects (merged blocks may cover area between lines)
             for i, block, translated in page_blocks:
-                if page_wipes:
-                    block_x = float(block["pdfX"])
-                    block_y = float(block["pdfY"])
-                    block_w = float(block["pdfWidth"])
-                    block_h = float(block["pdfHeight"])
-                    for wl in page_wipes:
-                        wl_x = float(wl["pdfX"])
-                        wl_y = float(wl["pdfY"])
-                        wl_w = float(wl["pdfWidth"])
-                        wl_h = float(wl["pdfHeight"])
-                        overlap_x = max(0, min(block_x + block_w, wl_x + wl_w) - max(block_x, wl_x))
-                        overlap_y = max(0, min(block_y + block_h, wl_y + wl_h) - max(block_y, wl_y))
-                        if overlap_x > 2 and overlap_y > 2:
-                            fs = float(wl.get("fontSize", 11))
-                            _wipe_rect(page, wl_x, wl_y, wl_w, wl_h, page_h,
-                                       pad_x=max(1, fs * 0.08), pad_y=2.0)
+                is_cell = block.get("label") == "table_cell"
+                if is_cell:
+                    _wipe_rect(page,
+                               float(block["pdfX"]) + 2, float(block["pdfY"]) + 2,
+                               float(block["pdfWidth"]) - 4, float(block["pdfHeight"]) - 4,
+                               page_h, pad_x=0, pad_y=0)
                 else:
                     fs = float(block.get("fontSize", 11))
                     _wipe_rect(page, float(block["pdfX"]), float(block["pdfY"]),
                                float(block["pdfWidth"]), float(block["pdfHeight"]),
-                               page_h, pad_x=max(1, fs * 0.08), pad_y=2.0)
+                               page_h, pad_x=max(1, fs * 0.12), pad_y=2.0)
 
-            # Apply redactions — permanently removes text from PDF layer
             page.apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE)
 
-            # Pass 2: insert translated text
+            # Pass 2: insert translated text (skip empty)
             for i, block, translated in page_blocks:
+                if not translated:
+                    continue
                 _insert_text(page, translated, block, page_h, fontfile, fontname=fontname)
                 if debug_ocr:
                     _debug_block(page, block, page_h, i)

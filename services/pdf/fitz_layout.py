@@ -78,7 +78,7 @@ def _line_block(
         "text": text,
         "pdfX": round(x0, 2),
         "pdfY": round(page_h - glyph_bot, 2),
-        "pdfWidth": round(max(4.0, min(x1 - x0, max(len(text) * font_size * 0.72, 20.0))), 2),
+        "pdfWidth": round(max(4.0, x1 - x0), 2),
         "pdfHeight": round(max(4.0, glyph_bot - glyph_top), 2),
         "fontSize": round(max(6.0, min(72.0, font_size)), 1),
         "fontFamily": "Helvetica",
@@ -126,12 +126,12 @@ def _merge_marker_with_next(blocks: list[dict[str, Any]]) -> list[dict[str, Any]
     return merged
 
 
-MAX_MERGE_LINES = 4  # cap lines per block — prevents table rows / tall blocks from merging
+MAX_MERGE_LINES = 20
 
 
 def _merge_nearby_blocks(
     blocks: list[dict[str, Any]],
-    gap_factor: float = 0.25,
+    gap_factor: float = 0.5,
 ) -> list[dict[str, Any]]:
     """Gộp các dòng liền kề trong cùng đoạn — gap_factor nhỏ để không nuốt khoảng trắng giữa đoạn."""
     if not blocks:
@@ -187,17 +187,101 @@ def _merge_nearby_blocks(
     return merged
 
 
-def _collect_page_lines(page_index: int, page: fitz.Page) -> list[dict[str, Any]]:
+def _collect_table_blocks(
+    page_index: int, page: fitz.Page
+) -> tuple[list[dict[str, Any]], list[fitz.Rect]]:
+    """Detect tables via find_tables(). Returns (cell_blocks, table_rects)."""
+    page_no = page_index + 1
+    page_h = float(page.rect.height)
+    blocks: list[dict[str, Any]] = []
+    table_rects: list[fitz.Rect] = []
+
+    try:
+        finder = page.find_tables(strategy="lines")
+    except Exception:
+        return [], []
+
+    for tab in finder.tables:
+        valid_cells = [c for c in tab.cells if c is not None]
+        if len(valid_cells) < 4 or tab.row_count < 2 or tab.col_count < 2:
+            continue
+        b = tab.bbox
+        table_rects.append(fitz.Rect(b[0], b[1], b[2], b[3]))
+
+        for cell_bbox in tab.cells:
+            if cell_bbox is None:
+                continue
+            cx0, cy0, cx1, cy1 = cell_bbox
+            if cx0 is None or cx1 <= cx0 or cy1 <= cy0:
+                continue
+
+            cell_rect = fitz.Rect(cx0, cy0, cx1, cy1)
+            text_dict = page.get_text("dict", clip=cell_rect, flags=fitz.TEXT_PRESERVE_WHITESPACE)
+            spans = [
+                s
+                for blk in text_dict.get("blocks", [])
+                for line in blk.get("lines", [])
+                for s in line.get("spans", [])
+                if (s.get("text") or "").strip()
+            ]
+            if not spans:
+                continue
+
+            cell_text = _fix_glyphs(" ".join(s["text"].strip() for s in spans))
+            if not cell_text:
+                continue
+
+            fs = round(max(6.0, min(72.0, max(float(s.get("size", 10)) for s in spans))), 1)
+            blocks.append({
+                "pageNumber": page_no,
+                "text": cell_text,
+                "pdfX": round(float(cx0), 2),
+                "pdfY": round(page_h - float(cy1), 2),
+                "pdfWidth": round(max(4.0, float(cx1 - cx0)), 2),
+                "pdfHeight": round(max(4.0, float(cy1 - cy0)), 2),
+                "fontSize": fs,
+                "fontFamily": "Helvetica",
+                "label": "table_cell",
+            })
+
+    return blocks, table_rects
+
+
+def _span_in_table(bbox: list, table_rects: list[fitz.Rect]) -> bool:
+    """True if span bbox overlaps >50% with any table region."""
+    if not table_rects:
+        return False
+    sx0, sy0, sx1, sy1 = float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3])
+    span_area = max((sx1 - sx0) * (sy1 - sy0), 1.0)
+    for tr in table_rects:
+        ix = max(0.0, min(sx1, tr.x1) - max(sx0, tr.x0))
+        iy = max(0.0, min(sy1, tr.y1) - max(sy0, tr.y0))
+        if ix * iy / span_area > 0.5:
+            return True
+    return False
+
+
+def _collect_page_lines(
+    page_index: int, page: fitz.Page, table_rects: list[fitz.Rect] | None = None
+) -> list[dict[str, Any]]:
     page_no = page_index + 1
     page_h = float(page.rect.height)
     page_lines: list[dict[str, Any]] = []
+    tr = table_rects or []
 
-    # Regular text blocks
+    # Regular text blocks — skip rotated/vertical text and table spans
     for block in page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE).get("blocks", []):
         if block.get("type") != 0:
             continue
         for line in block.get("lines", []):
-            spans = [s for s in line.get("spans", []) if (s.get("text") or "").strip()]
+            dir_vec = line.get("dir", (1, 0))
+            if abs(dir_vec[0]) < 0.9:
+                continue
+            spans = [
+                s for s in line.get("spans", [])
+                if (s.get("text") or "").strip()
+                and not _span_in_table(s.get("bbox", [0, 0, 0, 0]), tr)
+            ]
             row = _line_block(page_no, page_h, spans, label="line")
             if row:
                 page_lines.append(row)
@@ -228,34 +312,70 @@ def _collect_page_lines(page_index: int, page: fitz.Page) -> list[dict[str, Any]
 
 
 def extract_fitz_wipe_lines(pdf_path: Path) -> list[dict[str, Any]]:
-    """Mọi dòng text (chưa gộp đoạn) — dùng che/xóa chữ gốc khi dịch."""
+    """Raw text bboxes — NO filtering. Wipe ALL original text before rendering."""
     lines: list[dict[str, Any]] = []
     doc = fitz.open(pdf_path)
     try:
         for page_index, page in enumerate(doc):
-            lines.extend(_collect_page_lines(page_index, page))
+            page_no = page_index + 1
+            page_h = float(page.rect.height)
+            for block in page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE).get("blocks", []):
+                if block.get("type") != 0:
+                    continue
+                for line in block.get("lines", []):
+                    spans = [s for s in line.get("spans", []) if (s.get("text") or "").strip()]
+                    if not spans:
+                        continue
+                    x0 = min(float(s["bbox"][0]) for s in spans)
+                    y0 = min(float(s["bbox"][1]) for s in spans)
+                    x1 = max(float(s["bbox"][2]) for s in spans)
+                    y1 = max(float(s["bbox"][3]) for s in spans)
+                    fs = max(float(s.get("size", 11) or 11) for s in spans)
+                    lines.append({
+                        "pageNumber": page_no,
+                        "pdfX": round(x0, 2),
+                        "pdfY": round(page_h - y1, 2),
+                        "pdfWidth": round(max(4.0, x1 - x0), 2),
+                        "pdfHeight": round(max(4.0, y1 - y0), 2),
+                        "fontSize": round(fs, 1),
+                    })
     finally:
         doc.close()
     return lines
 
 
-def _dedup_blocks(blocks: list[dict[str, Any]], iou_thresh: float = 0.6) -> list[dict[str, Any]]:
-    """Remove blocks whose bbox overlaps heavily with a larger/earlier block."""
+def _text_overlap(a: str, b: str) -> float:
+    """Fraction of words in `a` that also appear in `b`."""
+    wa = set(a.lower().split())
+    wb = set(b.lower().split())
+    if not wa:
+        return 0.0
+    return len(wa & wb) / len(wa)
+
+
+def _dedup_blocks(blocks: list[dict[str, Any]], iou_thresh: float = 0.4) -> list[dict[str, Any]]:
+    """Remove blocks dominated by bbox overlap OR text content overlap."""
     kept: list[dict[str, Any]] = []
     for blk in blocks:
         bx, by = blk["pdfX"], blk["pdfY"]
         bw, bh = blk["pdfWidth"], blk["pdfHeight"]
+        b_text = blk.get("text", "")
+        is_cell = blk.get("label") == "table_cell"
         dominated = False
         for k in kept:
-            kx, ky = k["pdfX"], k["pdfY"]
-            kw, kh = k["pdfWidth"], k["pdfHeight"]
             if k["pageNumber"] != blk["pageNumber"]:
                 continue
+            kx, ky = k["pdfX"], k["pdfY"]
+            kw, kh = k["pdfWidth"], k["pdfHeight"]
             ix = max(0, min(bx + bw, kx + kw) - max(bx, kx))
             iy = max(0, min(by + bh, ky + kh) - max(by, ky))
             inter = ix * iy
             area = bw * bh
             if area > 0 and inter / area >= iou_thresh:
+                dominated = True
+                break
+            both_cells = is_cell and k.get("label") == "table_cell"
+            if not both_cells and len(b_text) > 3 and _text_overlap(b_text, k.get("text", "")) > 0.6:
                 dominated = True
                 break
         if not dominated:
@@ -268,9 +388,10 @@ def extract_fitz_line_blocks(pdf_path: Path) -> list[dict[str, Any]]:
     doc = fitz.open(pdf_path)
     try:
         for page_index, page in enumerate(doc):
-            page_lines = _collect_page_lines(page_index, page)
+            table_blocks, table_rects = _collect_table_blocks(page_index, page)
+            page_lines = _collect_page_lines(page_index, page, table_rects)
             merged = _merge_nearby_blocks(_merge_marker_with_next(page_lines))
-            blocks.extend(_dedup_blocks(merged))
+            blocks.extend(_dedup_blocks(merged + table_blocks))
     finally:
         doc.close()
 
