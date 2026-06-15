@@ -48,9 +48,16 @@ DEFAULT_FONT = "NotoSans-Regular.ttf"
 RTL_LANGS = frozenset(["ar", "he", "fa", "ur"])
 
 
+def _has_rtl_chars(text: str) -> bool:
+    """Text có ký tự RTL thật (Arabic/Hebrew) không — không tin target_lang vì
+    fallback dịch-lỗi giữ chữ nguồn LTR."""
+    return any(("؀" <= c <= "ۿ") or ("֐" <= c <= "׿") or ("ﭐ" <= c <= "﻿") for c in text)
+
+
 def _prepare_text(text: str, target_lang: str) -> tuple[str, int]:
-    """Return (display_text, fitz_align). RTL langs: reshape + bidi + align right."""
-    if target_lang in RTL_LANGS and _BIDI_AVAILABLE:
+    """Return (display_text, fitz_align). Chỉ reshape+bidi khi text THỰC có chữ
+    RTL — tránh áp bidi lên fallback LTR (tiếng Việt/English) gây sai/tofu."""
+    if target_lang in RTL_LANGS and _BIDI_AVAILABLE and _has_rtl_chars(text):
         reshaped = arabic_reshaper.reshape(text)
         display = bidi_display(reshaped)
         return display, fitz.TEXT_ALIGN_RIGHT
@@ -70,6 +77,32 @@ def _font_path(target_lang: str) -> str:
         return str(fallback)
     logger.error("font: no fallback found at %s", fallback)
     return ""
+
+
+def _script_font_name(text: str, target_lang: str) -> str:
+    """Chọn font theo SCRIPT của text thật (không theo target_lang).
+
+    Khi dịch fail, fallback giữ text nguồn (vd tiếng Việt). Render bằng font
+    target (Arabic) → chữ Việt thành tofu. Phải chọn font theo ký tự thực có.
+    """
+    for ch in text:
+        if "؀" <= ch <= "ۿ" or "ݐ" <= ch <= "ݿ" or "ﭐ" <= ch <= "﻿":
+            return FONT_MAP["ar"]
+        if "֐" <= ch <= "׿":
+            return FONT_MAP["he"]
+        if "฀" <= ch <= "๿":
+            return FONT_MAP["th"]
+        if "ऀ" <= ch <= "ॿ":
+            return FONT_MAP["hi"]
+        if "가" <= ch <= "힯":
+            return FONT_MAP["ko"]
+        if "぀" <= ch <= "ヿ":
+            return FONT_MAP["ja"]
+        if "一" <= ch <= "鿿":
+            # Han: dùng font CJK của target nếu target là CJK, mặc định SC
+            return FONT_MAP.get(target_lang, FONT_MAP["zh"]) if target_lang in ("ja", "ko", "zh", "zh-TW") else FONT_MAP["zh"]
+    # Latin / Vietnamese / Cyrillic / Greek → NotoSans bao hết
+    return DEFAULT_FONT
 
 
 def _wipe_rect(
@@ -100,7 +133,7 @@ def _block_rect(block: dict[str, Any], page_h: float) -> fitz.Rect:
     return fitz.Rect(pdf_x, fitz_y0, pdf_x + pdf_w, fitz_y1)
 
 
-def _prepare_insert_rect(
+def _widen_rect(
     rect: fitz.Rect,
     font: fitz.Font,
     display_text: str,
@@ -108,80 +141,35 @@ def _prepare_insert_rect(
     page_rect: fitz.Rect,
     rtl: bool,
 ) -> fitz.Rect:
-    """Đảm bảo rect đủ cao/rộng — ô bảng fitz hay chỉ ~8pt, Arabic dài bị cắt hết."""
-    min_h = max(size * 1.35, 10.0)
-    if rect.height < min_h:
-        rect = fitz.Rect(rect.x0, rect.y1 - min_h, rect.x1, rect.y1)
-
+    """Nới ngang cho field 1 dòng (ô bảng/label) khi text dịch dài hơn ô gốc."""
     try:
         needed = font.text_length(display_text, fontsize=size)
     except Exception:
         needed = len(display_text) * size * 0.55
-
-    if needed > rect.width * 1.05:
-        extra = min(needed - rect.width + 8, page_rect.width * 0.55)
-        if rtl:
-            rect = fitz.Rect(max(page_rect.x0 + 2, rect.x0 - extra), rect.y0, rect.x1, rect.y1)
-        else:
-            rect = fitz.Rect(rect.x0, rect.y0, min(page_rect.x1 - 2, rect.x1 + extra), rect.y1)
-    return rect
-
-
-def _insert_text_point(
-    page: fitz.Page,
-    display_text: str,
-    rect: fitz.Rect,
-    fontfile: str,
-    fontname: str,
-    size: float,
-    rtl: bool,
-) -> bool:
-    """Vẽ tại baseline — không bị clip chiều cao như textbox."""
-    try:
-        font = fitz.Font(fontfile=fontfile)
-        tw = font.text_length(display_text, fontsize=size)
-        y = rect.y1 - size * 0.25
-        if rtl:
-            x = max(rect.x0, rect.x1 - tw - 1)
-        else:
-            x = rect.x0 + 1
-        page.insert_text(
-            (x, y), display_text,
-            fontfile=fontfile, fontname=fontname, fontsize=size,
-            color=(0, 0, 0),
-        )
-        return True
-    except Exception as exc:
-        logger.warning("insert_text point failed: %s", exc)
-        return False
-
-
-def _expand_rect_for_text(
-    rect: fitz.Rect,
-    text: str,
-    font: fitz.Font,
-    fontsize: float,
-    page_rect: fitz.Rect,
-    rtl: bool,
-) -> fitz.Rect:
-    """Mở rộng ô khi bản dịch dài hơn bbox gốc."""
-    if "\n" in text:
-        return rect
-
-    try:
-        needed = font.text_length(text, fontsize=fontsize)
-    except Exception:
-        needed = len(text) * fontsize * 0.55
-
     if needed <= rect.width * 1.05:
         return rect
-
     extra = min(needed - rect.width + 8, page_rect.width * 0.55)
     if rtl:
-        new_x0 = max(page_rect.x0 + 2, rect.x0 - extra)
-        return fitz.Rect(new_x0, rect.y0, rect.x1, rect.y1)
-    new_x1 = min(page_rect.x1 - 2, rect.x1 + extra)
-    return fitz.Rect(rect.x0, rect.y0, new_x1, rect.y1)
+        return fitz.Rect(max(page_rect.x0 + 2, rect.x0 - extra), rect.y0, rect.x1, rect.y1)
+    return fitz.Rect(rect.x0, rect.y0, min(page_rect.x1 - 2, rect.x1 + extra), rect.y1)
+
+
+def _max_bottom(rect: fitz.Rect, others: list[fitz.Rect]) -> float | None:
+    """Đỉnh (y nhỏ nhất) của block kế dưới có CHỒNG NGANG — giới hạn giãn box
+    để không đè block sau. None = không có block nào chặn."""
+    limit: float | None = None
+    for o in others:
+        if o is rect:
+            continue
+        # o nằm dưới rect (top của o >= bottom của rect, fitz: y tăng xuống dưới)
+        if o.y0 < rect.y1 - 1:
+            continue
+        ox = min(rect.x1, o.x1) - max(rect.x0, o.x0)
+        if ox <= min(rect.width, o.width) * 0.3:
+            continue
+        if limit is None or o.y0 < limit:
+            limit = o.y0
+    return None if limit is None else limit - 1
 
 
 def _insert_text(
@@ -193,88 +181,81 @@ def _insert_text(
     fontfile: str,
     fontname: str,
     target_lang: str,
+    max_bottom: float | None = None,
 ) -> bool:
-    """Insert translated text into block's bounding box. Returns True if visible text placed."""
+    """Vẽ bản dịch vào block. MỘT chiến lược cho mọi block:
+
+      1. Pad mép trong (RTL align phải, LTR align trái).
+      2. Giãn box xuống TỚI ĐỈNH block kế dưới (max_bottom) — dùng khoảng trống,
+         KHÔNG đè block sau.
+      3. Shrink font trong box (đã giãn) từ size gốc → min, để vừa.
+      4. Field 1 dòng (ô bảng) → cho nới NGANG để vừa 1 dòng.
+
+    Luôn dùng insert_textbox (wrap + tôn trọng align/pad). Không vẽ baseline
+    single-line (gây dính mép phải + đè). Arabic/CJK luôn dùng custom font.
+    """
     base_size = float(block.get("fontSize", 11))
     rect = _block_rect(block, page_h)
     page_rect = page.rect
 
     display_text, align = _prepare_text(text, target_lang)
-    rtl = target_lang in RTL_LANGS
+    # rtl theo align THỰC (text có RTL), không theo target_lang — fallback LTR
+    # không bị align phải nhầm.
+    rtl = align == fitz.TEXT_ALIGN_RIGHT
 
-    # Inner padding so text doesn't hug the edge (RTL aligns right, LTR left).
+    # Pad mép trong để chữ không dính lề.
     pad = 3.0
     if rect.width > pad * 2 + 4:
         if rtl:
             rect = fitz.Rect(rect.x0 + 1, rect.y0, rect.x1 - pad, rect.y1)
         else:
             rect = fitz.Rect(rect.x0 + pad, rect.y0, rect.x1 - 1, rect.y1)
-    min_size = 4.0
-    size = min(base_size, 14.0)
 
-    # Paragraph vs single-line field, decided by BLOCK geometry (not by text content —
-    # translations are sent with newlines flattened, so "\n in text" is unreliable).
-    # Tall block = wrapped paragraph → wrap inside its column, never widen horizontally
-    # (widening makes long text collapse onto fewer/one line → overlap, lost text).
+    start_size = min(base_size, 14.0)
+    use_font = bool(fontfile) and font is not None
+    fname = fontname if use_font else "helv"
+    ffile = fontfile if use_font else None
+
+    # Block cao > ~1.8 dòng = đoạn nhiều dòng → wrap trong cột, KHÔNG nới ngang.
     is_multiline = rect.height > base_size * 1.8
 
+    # Giãn box xuống tới đỉnh block kế dưới (vào khoảng trống, không đè).
+    hard_bottom = page_rect.y1 - 2
+    if max_bottom is not None:
+        hard_bottom = min(hard_bottom, max_bottom)
+    avail = rect
+    if hard_bottom > rect.y1:
+        avail = fitz.Rect(rect.x0, rect.y0, rect.x1, hard_bottom)
+
+    def _try(r: fitz.Rect, s: float) -> bool:
+        rc = page.insert_textbox(
+            r, display_text, fontsize=s,
+            fontname=fname, fontfile=ffile,
+            color=(0, 0, 0), align=align,
+        )
+        return rc >= 0
+
     try:
-        if not fontfile or font is None:
-            while size >= min_size:
-                rc = page.insert_textbox(
-                    rect, display_text, fontsize=size,
-                    fontname="helv", color=(0, 0, 0), align=align,
-                )
-                if rc >= 0:
-                    return True
-                size -= 0.5
-            return False
-
-        assert font is not None
-
-        if is_multiline:
-            # Wrap within the original column width; just shrink font until it fits.
-            while size >= min_size:
-                rc = page.insert_textbox(
-                    rect, display_text, fontsize=size,
-                    fontname=fontname, fontfile=fontfile,
-                    color=(0, 0, 0), align=align,
-                )
-                if rc >= 0:
-                    return True
-                size -= 0.5
-            # Still overflows vertically at min_size — force wrapped insert (clips bottom,
-            # never runs off page horizontally). Better than single-line point draw.
-            page.insert_textbox(
-                rect, display_text, fontsize=min_size,
-                fontname=fontname, fontfile=fontfile,
-                color=(0, 0, 0), align=align,
-            )
-            return True
-
-        # Single-line field (table cell / form label): may widen to fit one line.
-        draw_rect = _prepare_insert_rect(rect, font, display_text, size, page_rect, rtl)
-        while size >= min_size:
-            expanded = _expand_rect_for_text(draw_rect, display_text, font, size, page_rect, rtl)
-            rc = page.insert_textbox(
-                expanded, display_text, fontsize=size,
-                fontname=fontname, fontfile=fontfile,
-                color=(0, 0, 0), align=align,
-            )
-            if rc >= 0:
+        # Shrink font trong box đã giãn, từ size gốc xuống tới min (4pt).
+        size = start_size
+        while size >= 4.0:
+            if is_multiline or not use_font:
+                target = avail
+            else:
+                target = _widen_rect(avail, font, display_text, size, page_rect, rtl)
+            if _try(target, size):
                 return True
             size -= 0.5
 
-        # Textbox không vừa (ô bảng thấp) → vẽ baseline, không clip
-        return _insert_text_point(
-            page, display_text, draw_rect, fontfile, fontname, min_size, rtl,
+        # Ép vẽ ở 4pt (clip đáy, không tràn ngang/đè).
+        page.insert_textbox(
+            avail, display_text, fontsize=4.0,
+            fontname=fname, fontfile=ffile,
+            color=(0, 0, 0), align=align,
         )
+        return True
     except Exception as exc:
         logger.warning("insert_text error: %s", exc)
-        if fontfile and font is not None:
-            return _insert_text_point(
-                page, display_text, rect, fontfile, fontname, min_size, rtl,
-            )
         return False
 
 
@@ -309,14 +290,28 @@ def render_translated_pdf(
     if output_path is None:
         output_path = pdf_path.parent / "translated.pdf"
 
-    fontfile = _font_path(target_lang)
-    fontname = "f-" + Path(fontfile).stem[:12] if fontfile else "helv"
-    font_obj: fitz.Font | None = None
-    if fontfile:
-        try:
-            font_obj = fitz.Font(fontfile=fontfile)
-        except Exception as exc:
-            logger.error("font load failed: %s", exc)
+    # Font cache keyed by font filename — chọn font PER-BLOCK theo script của text
+    # (fallback dịch-lỗi giữ chữ nguồn, cần font khác target).
+    _font_cache: dict[str, tuple[str, str, fitz.Font | None]] = {}
+
+    def _resolve_font(text: str) -> tuple[str, str, fitz.Font | None]:
+        name = _script_font_name(text, target_lang)
+        cached = _font_cache.get(name)
+        if cached is not None:
+            return cached
+        path = FONTS_DIR / name
+        ff = str(path) if path.exists() else _font_path(target_lang)
+        fn = "f-" + Path(ff).stem[:12] if ff else "helv"
+        obj: fitz.Font | None = None
+        if ff:
+            try:
+                obj = fitz.Font(fontfile=ff)
+            except Exception as exc:
+                logger.error("font load failed (%s): %s", ff, exc)
+        result = (ff, fn, obj)
+        _font_cache[name] = result
+        return result
+
     doc = fitz.open(pdf_path)
 
     try:
@@ -324,8 +319,8 @@ def render_translated_pdf(
         inserted_ok = 0
         inserted_fail = 0
         logger.info(
-            "render: %d blocks, %d empty translations, lang=%s, font=%s, bidi=%s",
-            len(blocks), empty_count, target_lang, fontname, _BIDI_AVAILABLE,
+            "render: %d blocks, %d empty translations, lang=%s, bidi=%s",
+            len(blocks), empty_count, target_lang, _BIDI_AVAILABLE,
         )
         wipe_by_page: dict[int, list[dict[str, Any]]] = {}
         if wipe_lines:
@@ -383,10 +378,27 @@ def render_translated_pdf(
 
             page.apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE)
 
+            # Pass 1.5: phủ TRẮNG tường minh đè chữ gốc. Redaction có thể fail âm thầm
+            # trên PDF hỏng xref (MuPDF "cannot find object in xref") → chữ gốc còn lại,
+            # bản dịch vẽ đè → thấy cả 2. draw_rect không phụ thuộc xref nên che chắc chắn.
             for i, block, translated in page_blocks:
+                r = _block_rect(block, page_h)
+                page.draw_rect(r, color=None, fill=(1, 1, 1))
+
+            # Rect của MỌI block trên trang (kể cả không dịch) — để giới hạn giãn box.
+            all_rects = [
+                _block_rect(b, page_h)
+                for b in blocks
+                if int(b["pageNumber"]) == page_no
+            ]
+
+            for i, block, translated in page_blocks:
+                b_fontfile, b_fontname, b_font = _resolve_font(translated)
+                rect_c = _block_rect(block, page_h)
+                max_bottom = _max_bottom(rect_c, all_rects)
                 ok = _insert_text(
                     page, translated, block, page_h,
-                    font_obj, fontfile, fontname, target_lang,
+                    b_font, b_fontfile, b_fontname, target_lang, max_bottom,
                 )
                 if ok:
                     inserted_ok += 1
@@ -402,8 +414,7 @@ def render_translated_pdf(
         logger.info("render done: inserted=%d failed=%d", inserted_ok, inserted_fail)
         if inserted_ok == 0 and inserted_fail > 0:
             raise RuntimeError(
-                f"Render failed: no text inserted ({inserted_fail} blocks). "
-                f"Check font at {fontfile or 'N/A'}"
+                f"Render failed: no text inserted ({inserted_fail} blocks)."
             )
 
         doc.save(str(output_path), garbage=4, deflate=True)
