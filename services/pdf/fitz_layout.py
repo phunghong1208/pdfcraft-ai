@@ -180,6 +180,26 @@ def _line_block(
     }
 
 
+# Tách cột khi gap ngang > factor * fontSize (header đề thi 2 cột không có merge cell)
+COLUMN_SPLIT_GAP_FACTOR = 3.5
+
+
+def _split_spans_by_column_gap(spans: list[dict]) -> list[list[dict]]:
+    """Tách spans cùng dòng tại gutter cột — tránh 'SỞ GD... KỲ THI THỬ...' thành 1 dòng."""
+    if len(spans) < 2:
+        return [spans] if spans else []
+    ordered = sorted(spans, key=lambda s: float(s["bbox"][0]))
+    runs: list[list[dict]] = [[ordered[0]]]
+    for prev, cur in zip(ordered, ordered[1:]):
+        size = max(float(prev.get("size", 11) or 11), float(cur.get("size", 11) or 11))
+        gap = float(cur["bbox"][0]) - float(prev["bbox"][2])
+        if gap > size * COLUMN_SPLIT_GAP_FACTOR:
+            runs.append([cur])
+        else:
+            runs[-1].append(cur)
+    return runs
+
+
 # Gộp ngang khi gap <= factor * fontSize (đủ để nối stt + text, không nuốt sang cột khác)
 SAME_LINE_GAP_FACTOR = 3.0
 
@@ -477,8 +497,12 @@ def _collect_table_blocks(
         valid_cells = [c for c in tab.cells if c is not None]
         if tab.col_count < 2 or len(valid_cells) < tab.col_count:
             return False
-        # Bảng 1 hàng header (Phần|Câu|Nội dung|Điểm) — >=3 cột vẫn nhận
-        return tab.row_count >= 2 or (tab.row_count >= 1 and tab.col_count >= 3)
+        # Bảng 1 hàng header (Phần|Câu|Nội dung|Điểm) hoặc header đề 2 cột
+        return (
+            tab.row_count >= 2
+            or (tab.row_count >= 1 and tab.col_count >= 3)
+            or (tab.row_count >= 1 and tab.col_count >= 2 and len(valid_cells) >= 2)
+        )
 
     # Chỉ dùng strategy theo ĐƯỜNG KẺ (viền thật). KHÔNG dùng "text" vì nó cắt
     # vụn ô nhiều dòng thành hàng/cột giả (gây vỡ layout).
@@ -572,9 +596,10 @@ def _collect_page_lines(
                 and not _is_barcode_span(s)
                 and not _span_in_table(s.get("bbox", [0, 0, 0, 0]), tr)
             ]
-            row = _line_block(page_no, page_h, spans, label="line")
-            if row and not _is_noise_line(row.get("text", "")):
-                page_lines.append(row)
+            for run in _split_spans_by_column_gap(spans):
+                row = _line_block(page_no, page_h, run, label="line")
+                if row and not _is_noise_line(row.get("text", "")):
+                    page_lines.append(row)
 
     # AcroForm field values (form widgets) — not captured by get_text
     for widget in page.widgets() or []:
@@ -716,7 +741,11 @@ def extract_fitz_line_blocks(pdf_path: Path) -> list[dict[str, Any]]:
             )
             merged = _merge_list_items(_merge_marker_with_next(page_lines))
             merged = _merge_nearby_blocks(merged, gap_factor=0.55)
-            blocks.extend(_dedup_blocks(table_blocks + merged))
+            page_blocks = _dedup_blocks(table_blocks + merged)
+            page_blocks.sort(
+                key=lambda b: (b["pageNumber"], -(b["pdfY"] + b["pdfHeight"]), b["pdfX"])
+            )
+            blocks.extend(page_blocks)
     finally:
         doc.close()
 
