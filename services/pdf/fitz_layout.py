@@ -12,6 +12,8 @@ import fitz
 LIST_MARKER_RE = re.compile(r"^\d{1,3}\.?$")
 # Đầu mục "1." / "1. text" / "1.Text" — nhưng KHÔNG bắt số thập phân ("3.5", "1.1")
 LIST_START_RE = re.compile(r"^\d{1,3}\.(?!\d)")
+# Dòng bắt đầu bằng bullet/đầu mục → cần ngắt dòng thật (không phải soft-wrap)
+BULLET_LINE_RE = re.compile(r"^\s*([-+*•▪◦‣·–—]\s|\d{1,3}[.)](?!\d)\s?)")
 BULLET_MARKER_RE = re.compile(r"^[\u2022\u2023\u25E6\u2043\-–—]\.?$")
 NOISE_LINE_RE = re.compile(
     r"^(page\s+\d+(\s+of\s+\d+)?|trang\s+\d+(\s+trang\s+\d+)?|document\s+created)",
@@ -60,6 +62,48 @@ def _strip_stray_edges(text: str) -> str:
 
 
 
+def _span_style(span: dict) -> tuple[bool, bool]:
+    """(bold, italic) cho 1 span — dựa vào flags PyMuPDF + tên font."""
+    flags = int(span.get("flags", 0) or 0)
+    italic = bool(flags & 2)        # bit 1
+    bold = bool(flags & 16)         # bit 4
+    name = (span.get("font") or "").lower()
+    if not bold and any(k in name for k in ("bold", "black", "semibold", "heavy")):
+        bold = True
+    if not italic and ("italic" in name or "oblique" in name):
+        italic = True
+    return bold, italic
+
+
+def _spans_style(spans: list[dict]) -> tuple[bool, bool]:
+    """Style trội của cả block: >=60% ký tự đậm/nghiêng thì coi là đậm/nghiêng."""
+    b = i = total = 0
+    for s in spans:
+        txt = (s.get("text") or "").strip()
+        if not txt:
+            continue
+        n = len(txt)
+        total += n
+        bo, it = _span_style(s)
+        if bo:
+            b += n
+        if it:
+            i += n
+    return (total > 0 and b >= total * 0.6, total > 0 and i >= total * 0.6)
+
+
+def _append_line(cur_text: str, new_text: str) -> str:
+    """Nối dòng mới: soft-wrap → ' ' (cho câu liền mạch để dịch tốt),
+    chỉ xuống dòng thật trước bullet/đầu mục."""
+    nt = (new_text or "").strip()
+    if not nt:
+        return cur_text
+    if not cur_text:
+        return nt
+    sep = "\n" if BULLET_LINE_RE.match(nt) else " "
+    return f"{cur_text.rstrip()}{sep}{nt}".strip()
+
+
 def _join_spans(spans: list[dict]) -> str:
     parts: list[str] = []
     for i, span in enumerate(spans):
@@ -93,6 +137,7 @@ def _line_block(
     x0 = min(float(s["bbox"][0]) for s in spans)
     x1 = max(float(s["bbox"][2]) for s in spans)
     font_size = max(float(s.get("size", 11) or 11) for s in spans)
+    bold, italic = _spans_style(spans)
 
     # Use baseline (span origin) to compute glyph region — bbox includes line spacing
     # fitz origin = (x, baseline_y) in top-left coords
@@ -116,6 +161,8 @@ def _line_block(
         "pdfHeight": round(max(4.0, glyph_bot - glyph_top), 2),
         "fontSize": round(max(6.0, min(72.0, font_size)), 1),
         "fontFamily": "Helvetica",
+        "bold": bold,
+        "italic": italic,
         "label": label,
     }
 
@@ -160,6 +207,8 @@ def _merge_same_line(blocks: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 cur["pdfWidth"] = round(max(4.0, x1 - x0), 2)
                 cur["pdfHeight"] = round(max(4.0, y1 - y0), 2)
                 cur["fontSize"] = round(max(cur["fontSize"], blk["fontSize"]), 1)
+                cur["bold"] = bool(cur.get("bold")) and bool(blk.get("bold"))
+                cur["italic"] = bool(cur.get("italic")) and bool(blk.get("italic"))
                 continue
 
         if cur is not None:
@@ -201,6 +250,8 @@ def _merge_marker_with_next(blocks: list[dict[str, Any]]) -> list[dict[str, Any]
                     "pdfWidth": round(max(4.0, x1 - x0), 2),
                     "pdfHeight": round(max(4.0, y1 - y0), 2),
                     "fontSize": round(max(cur["fontSize"], nxt["fontSize"]), 1),
+                    "bold": bool(cur.get("bold")) and bool(nxt.get("bold")),
+                    "italic": bool(cur.get("italic")) and bool(nxt.get("italic")),
                 })
                 i += 2
                 continue
@@ -241,12 +292,14 @@ def _merge_list_items(blocks: list[dict[str, Any]]) -> list[dict[str, Any]]:
             x0 = min(cur["pdfX"], blk["pdfX"])
             x1 = max(cur["pdfX"] + cur["pdfWidth"], blk["pdfX"] + blk["pdfWidth"])
             y0 = min(cur["pdfY"], blk["pdfY"])
-            cur["text"] = f"{cur['text']}\n{text}".strip()
+            cur["text"] = _append_line(cur["text"], text)
             cur["pdfX"] = round(x0, 2)
             cur["pdfY"] = round(y0, 2)
             cur["pdfWidth"] = round(max(4.0, x1 - x0), 2)
             cur["pdfHeight"] = round(max(4.0, cur_top - y0), 2)
             cur["fontSize"] = max(cur["fontSize"], blk["fontSize"])
+            cur["bold"] = bool(cur.get("bold")) and bool(blk.get("bold"))
+            cur["italic"] = bool(cur.get("italic")) and bool(blk.get("italic"))
             continue
 
         if cur is not None:
@@ -304,12 +357,14 @@ def _merge_nearby_blocks(
             new_y = min(cur["pdfY"], blk["pdfY"])
             new_x2 = max(cur["pdfX"] + cur["pdfWidth"], blk["pdfX"] + blk["pdfWidth"])
             new_y2 = max(cur_top, blk_top)
-            cur["text"] += "\n" + blk["text"]
+            cur["text"] = _append_line(cur["text"], blk["text"])
             cur["pdfX"] = round(new_x, 2)
             cur["pdfY"] = round(new_y, 2)
             cur["pdfWidth"] = round(max(4.0, new_x2 - new_x), 2)
             cur["pdfHeight"] = round(max(4.0, new_y2 - new_y), 2)
             cur["fontSize"] = max(cur["fontSize"], blk["fontSize"])
+            cur["bold"] = bool(cur.get("bold")) and bool(blk.get("bold"))
+            cur["italic"] = bool(cur.get("italic")) and bool(blk.get("italic"))
             cur_lines += 1
         else:
             merged.append(cur)
@@ -357,7 +412,16 @@ def _cell_value_from_page(page: fitz.Page, cell_rect: fitz.Rect) -> tuple[str, l
             if joined:
                 line_texts.append(joined)
     if all_spans:
-        return _strip_stray_edges(" ".join(line_texts)), all_spans
+        # Ngắt dòng thật trước bullet/đầu mục; còn lại nối bằng space (soft-wrap).
+        parts: list[str] = []
+        for lt in line_texts:
+            if parts and BULLET_LINE_RE.match(lt):
+                parts.append('\n' + lt)
+            elif parts:
+                parts.append(' ' + lt)
+            else:
+                parts.append(lt)
+        return _strip_stray_edges(''.join(parts)), all_spans
 
     plain = (page.get_text("text", clip=cell_rect) or "").strip()
     if plain:
@@ -419,6 +483,7 @@ def _collect_table_blocks(
                 continue
 
             fs = round(max(6.0, min(72.0, max(float(s.get("size", 10)) for s in spans))), 1)
+            cell_bold, cell_italic = _spans_style(spans)
             blocks.append({
                 "pageNumber": page_no,
                 "text": cell_text,
@@ -428,6 +493,8 @@ def _collect_table_blocks(
                 "pdfHeight": round(max(4.0, float(cy1 - cy0)), 2),
                 "fontSize": fs,
                 "fontFamily": "Helvetica",
+                "bold": cell_bold,
+                "italic": cell_italic,
                 "label": "table_cell",
             })
 

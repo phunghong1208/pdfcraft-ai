@@ -40,6 +40,16 @@ DEFAULT_FONT = "NotoSans-Regular.ttf"
 RTL_LANGS = frozenset({"ar", "he"})
 DUAL_FONT_LANGS = frozenset({"ar", "he"})
 
+# Các biến thể đậm/nghiêng có sẵn cho NotoSans (Latin/VN/Cyrillic/Greek...).
+_LATIN_VARIANTS: dict[tuple[bool, bool], str] = {
+    (False, False): "NotoSans-Regular.ttf",
+    (True, False): "NotoSans-Bold.ttf",
+    (False, True): "NotoSans-Italic.ttf",
+    (True, True): "NotoSans-BoldItalic.ttf",
+}
+
+_FONT_CACHE: dict[str, fitz.Font] = {}
+
 
 def _font_path(target_lang: str) -> str:
     name = FONT_MAP.get(target_lang, DEFAULT_FONT)
@@ -52,7 +62,59 @@ def _font_path(target_lang: str) -> str:
     return ""
 
 
-def _latin_font_path() -> str:
+def _styled_font_path(target_lang: str, bold: bool, italic: bool) -> str:
+    """Trả về file font theo style. NotoSans có đủ Bold/Italic/BoldItalic;
+    script khác thử <stem>-BoldItalic/Bold/Italic.ttf, không có thì về Regular."""
+    if not (bold or italic):
+        return _font_path(target_lang)
+    base = FONT_MAP.get(target_lang, DEFAULT_FONT)
+    if base == DEFAULT_FONT:
+        cand = FONTS_DIR / _LATIN_VARIANTS[(bool(bold), bool(italic))]
+        if cand.exists():
+            return str(cand)
+    else:
+        stem = base.rsplit("-", 1)[0]
+        ext = base.rsplit(".", 1)[-1]
+        # Thử lần lượt — nhiều script (vd Arabic) không có Italic/BoldItalic,
+        # ưu tiên Bold để vẫn giữ được nét đậm.
+        suffixes: list[str] = []
+        if bold and italic:
+            suffixes = ["BoldItalic", "Bold", "Italic"]
+        elif bold:
+            suffixes = ["Bold"]
+        else:
+            suffixes = ["Italic"]
+        for suffix in suffixes:
+            cand = FONTS_DIR / f"{stem}-{suffix}.{ext}"
+            if cand.exists():
+                return str(cand)
+    return _font_path(target_lang)
+
+
+def _get_font(fontfile: str) -> fitz.Font | None:
+    if not fontfile:
+        return None
+    cached = _FONT_CACHE.get(fontfile)
+    if cached is not None:
+        return cached
+    try:
+        font = fitz.Font(fontfile=fontfile)
+    except Exception as exc:
+        logger.warning("font load failed (%s): %s", fontfile, exc)
+        return None
+    _FONT_CACHE[fontfile] = font
+    return font
+
+
+def _fontname_for(fontfile: str) -> str:
+    return ("f-" + Path(fontfile).stem[:14]) if fontfile else "helv"
+
+
+def _latin_font_path(bold: bool = False, italic: bool = False) -> str:
+    if bold or italic:
+        cand = FONTS_DIR / _LATIN_VARIANTS[(bool(bold), bool(italic))]
+        if cand.exists():
+            return str(cand)
     path = FONTS_DIR / DEFAULT_FONT
     return str(path) if path.exists() else ""
 
@@ -216,12 +278,14 @@ def _insert_rtl_mixed(
     script_font: str,
     size: float,
     allow_overflow: bool = False,
+    bold: bool = False,
+    italic: bool = False,
 ) -> bool:
     """Ả Rập/Hebrew: wrap theo logical order → bidi từng dòng → neo mép phải.
 
     Mixed font: NotoSansArabic cho script, NotoSans cho Latin/số/URL.
     """
-    latin_font = _latin_font_path()
+    latin_font = _latin_font_path(bold, italic)
     if not script_font or not latin_font:
         return False
     try:
@@ -276,6 +340,8 @@ def _draw_textbox(
     fontname: str,
     size: float,
     min_size: float,
+    bold: bool = False,
+    italic: bool = False,
 ) -> bool:
     """Vẽ textbox — RTL mixed dùng TextWriter, còn lại insert_textbox."""
     # Guard: rect phải hữu hạn và không rỗng (PyMuPDF raise nếu x1<=x0 / y1<=y0).
@@ -292,13 +358,16 @@ def _draw_textbox(
     if target_lang in DUAL_FONT_LANGS and _latin_font_path():
         s = size
         while s >= min_size:
-            if _insert_rtl_mixed(page, rect, text, target_lang, fontfile, s):
+            if _insert_rtl_mixed(
+                page, rect, text, target_lang, fontfile, s, bold=bold, italic=italic
+            ):
                 return True
             s -= 0.4
         # Vẫn không vừa: render ở min_size, neo phải, cho tràn xuống —
         # tránh insert_textbox (re-wrap chuỗi đã bidi → đảo thứ tự RTL).
         if _insert_rtl_mixed(
-            page, rect, text, target_lang, fontfile, min_size, allow_overflow=True
+            page, rect, text, target_lang, fontfile, min_size,
+            allow_overflow=True, bold=bold, italic=italic,
         ):
             return True
 
@@ -431,6 +500,8 @@ def _insert_text(
     max_y1: float | None = None,
     page_width: float | None = None,
     target_lang: str = "en",
+    bold: bool = False,
+    italic: bool = False,
 ) -> None:
     """Insert translated text — table cell giữ logic cũ, prose fit trong bbox gốc."""
     text = "\n".join(line for line in text.split("\n") if line.strip())
@@ -450,17 +521,17 @@ def _insert_text(
         size = min(base_size * 0.80, 72.0)
         min_size = 4.0
     else:
-        if page_width and base.width < page_width * 0.45:
-            if target_lang in RTL_LANGS:
-                # RTL mọc về trái: giữ mép phải gốc làm điểm neo, nới sang trái.
-                new_x0 = min(base.x0, max(12.0, base.x1 - (page_width - 24)))
-                base = fitz.Rect(new_x0, base.y0, base.x1, base.y1)
-                if base.width < page_width * 0.45:
-                    base = fitz.Rect(12.0, base.y0, base.x1, base.y1)
-            else:
-                # Giữ mép phải gốc làm sàn để không tạo rect âm khi block sát lề phải.
-                new_x1 = max(base.x1, page_width - 12)
-                base = fitz.Rect(base.x0, base.y0, new_x1, base.y1)
+        if target_lang in RTL_LANGS and page_width:
+            # RTL: neo mọi đoạn về MỘT lề phải chung của trang để thẳng hàng đều
+            # (mỗi block neo mép phải gốc của nó → block ngắn bị tụt vào, lệch).
+            # Chỉ áp cho đoạn bắt đầu từ nửa trái (list/đoạn văn) — tránh cột/căn giữa.
+            if base.x0 < page_width * 0.5:
+                right = max(base.x1, page_width - 12)
+                base = fitz.Rect(max(12.0, base.x0), base.y0, right, base.y1)
+        elif page_width and base.width < page_width * 0.45:
+            # Giữ mép phải gốc làm sàn để không tạo rect âm khi block sát lề phải.
+            new_x1 = max(base.x1, page_width - 12)
+            base = fitz.Rect(base.x0, base.y0, new_x1, base.y1)
         font = font_obj or (fitz.Font(fontfile=fontfile) if fontfile else None)
         if font is None:
             rect, size, min_size = base, min(base_size, 11.0), 5.0
@@ -471,6 +542,7 @@ def _insert_text(
 
     if not _draw_textbox(
         page, rect, text, target_lang, fontfile, fontname, size, min_size,
+        bold=bold, italic=italic,
     ):
         logger.warning(
             "textbox overflow lang=%s len=%d rect=%s",
@@ -603,12 +675,21 @@ def render_translated_pdf(
             for i, block, translated in ordered:
                 if not translated:
                     continue
+                bold = bool(block.get("bold"))
+                italic = bool(block.get("italic"))
+                if bold or italic:
+                    b_file = _styled_font_path(target_lang, bold, italic)
+                    b_obj = _get_font(b_file) or font_obj
+                    b_name = _fontname_for(b_file)
+                else:
+                    b_file, b_obj, b_name = fontfile, font_obj, fontname
                 _insert_text(
-                    page, translated, block, page_h, fontfile,
-                    fontname=fontname, font_obj=font_obj,
+                    page, translated, block, page_h, b_file,
+                    fontname=b_name, font_obj=b_obj,
                     max_y1=ceilings.get(i),
                     page_width=float(page.rect.width),
                     target_lang=target_lang,
+                    bold=bold, italic=italic,
                 )
                 if debug_ocr:
                     _debug_block(page, block, page_h, i)

@@ -9,5 +9,7 @@ export type LayoutTextBlock = {
   pdfHeight: number;
   fontSize: number;
   fontFamily: string;
+  bold?: boolean;
+  italic?: boolean;
   label?: string;
 };

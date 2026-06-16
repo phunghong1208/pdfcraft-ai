@@ -1,4 +1,4 @@
-import { chatCompletion, getDefaultTranslateModel } from '@/lib/translate/openai-client';
+import { chatCompletion, getDefaultTranslateModel, logTotalCost } from '@/lib/translate/openai-client';
 import { languageDisplayName } from '@/lib/translate/language';
 import type { TokenUsage } from '@/lib/translate/types';
 import { buildSegmentBatches, runSegmentBatches } from '@/lib/translate/segment-batches';
@@ -223,6 +223,7 @@ export async function translateSegmentsLightweight(options: {
   const results = new Array<string>(segments.length).fill('');
   const statuses = new Array<string>(segments.length).fill('');
   let tokenUsage = emptyUsage();
+  let callCount = 0;
   let doneCount = 0;
   const batches = buildSegmentBatches(segments);
 
@@ -240,6 +241,7 @@ export async function translateSegmentsLightweight(options: {
   for (const usage of batchResults) {
     tokenUsage = mergeUsage(tokenUsage, usage);
   }
+  callCount += batchResults.length;
 
   // Validator: output trùng input + status không phải "unchanged" + có thể dịch → nghi miss
   const suspectIdx: number[] = [];
@@ -278,7 +280,10 @@ export async function translateSegmentsLightweight(options: {
     for (const usage of retryUsages) {
       tokenUsage = mergeUsage(tokenUsage, usage);
     }
+    callCount += retryUsages.length;
   }
+
+  logTotalCost(model, tokenUsage, callCount);
 
   return { translations: results, tokenUsage };
 }

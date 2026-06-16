@@ -12,12 +12,18 @@ RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 # ── font stage ────────────────────────────────────────────────
 FROM python:3.12-slim AS fonts
 # Bump this value to force re-download all fonts
-ARG FONT_VERSION=3
+ARG FONT_VERSION=5
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /fonts && \
     curl -fsSL -o /fonts/NotoSans-Regular.ttf \
       "https://github.com/notofonts/notofonts.github.io/raw/main/fonts/NotoSans/hinted/ttf/NotoSans-Regular.ttf" && \
+    curl -fsSL -o /fonts/NotoSans-Bold.ttf \
+      "https://github.com/notofonts/notofonts.github.io/raw/main/fonts/NotoSans/hinted/ttf/NotoSans-Bold.ttf" && \
+    curl -fsSL -o /fonts/NotoSans-Italic.ttf \
+      "https://github.com/notofonts/notofonts.github.io/raw/main/fonts/NotoSans/hinted/ttf/NotoSans-Italic.ttf" && \
+    curl -fsSL -o /fonts/NotoSans-BoldItalic.ttf \
+      "https://github.com/notofonts/notofonts.github.io/raw/main/fonts/NotoSans/hinted/ttf/NotoSans-BoldItalic.ttf" && \
     curl -fsSL -o /fonts/NotoSansCJKsc-Regular.otf \
       "https://github.com/notofonts/noto-cjk/raw/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf" && \
     curl -fsSL -o /fonts/NotoSansCJKtc-Regular.otf \
@@ -28,6 +34,10 @@ RUN mkdir -p /fonts && \
       "https://github.com/notofonts/noto-cjk/raw/main/Sans/OTF/Korean/NotoSansCJKkr-Regular.otf" && \
     curl -fsSL -o /fonts/NotoSansArabic-Regular.ttf \
       "https://github.com/notofonts/notofonts.github.io/raw/main/fonts/NotoSansArabic/hinted/ttf/NotoSansArabic-Regular.ttf" && \
+    curl -fsSL -o /fonts/NotoSansArabic-Bold.ttf \
+      "https://github.com/notofonts/notofonts.github.io/raw/main/fonts/NotoSansArabic/hinted/ttf/NotoSansArabic-Bold.ttf" && \
+    curl -fsSL -o /fonts/NotoSansHebrew-Bold.ttf \
+      "https://github.com/notofonts/notofonts.github.io/raw/main/fonts/NotoSansHebrew/hinted/ttf/NotoSansHebrew-Bold.ttf" && \
     curl -fsSL -o /fonts/NotoSansThai-Regular.ttf \
       "https://github.com/notofonts/notofonts.github.io/raw/main/fonts/NotoSansThai/hinted/ttf/NotoSansThai-Regular.ttf" && \
     curl -fsSL -o /fonts/NotoSansDevanagari-Regular.ttf \
