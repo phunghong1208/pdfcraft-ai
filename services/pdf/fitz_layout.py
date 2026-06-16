@@ -10,7 +10,8 @@ from typing import Any
 import fitz
 
 LIST_MARKER_RE = re.compile(r"^\d{1,3}\.?$")
-LIST_START_RE = re.compile(r"^\d{1,3}\.\s")
+# Đầu mục "1." / "1. text" / "1.Text" — nhưng KHÔNG bắt số thập phân ("3.5", "1.1")
+LIST_START_RE = re.compile(r"^\d{1,3}\.(?!\d)")
 BULLET_MARKER_RE = re.compile(r"^[\u2022\u2023\u25E6\u2043\-–—]\.?$")
 NOISE_LINE_RE = re.compile(
     r"^(page\s+\d+(\s+of\s+\d+)?|trang\s+\d+(\s+trang\s+\d+)?|document\s+created)",
@@ -117,6 +118,57 @@ def _line_block(
         "fontFamily": "Helvetica",
         "label": label,
     }
+
+
+# Gộp ngang khi gap <= factor * fontSize (đủ để nối stt + text, không nuốt sang cột khác)
+SAME_LINE_GAP_FACTOR = 3.0
+
+
+def _merge_same_line(blocks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Gộp các mảnh CÙNG MỘT DÒNG (cùng baseline) thành 1 block, trái→phải.
+
+    Sửa lỗi: cùng 1 dòng bị tách 2 block/2 id, và stt ('1.') rời khỏi text.
+    """
+    if not blocks:
+        return blocks
+
+    ordered = sorted(
+        blocks,
+        key=lambda b: (b["pageNumber"], -(b["pdfY"] + b["pdfHeight"]), b["pdfX"]),
+    )
+    out: list[dict[str, Any]] = []
+    cur: dict[str, Any] | None = None
+
+    for blk in ordered:
+        if cur is not None and blk["pageNumber"] == cur["pageNumber"]:
+            cy0 = max(cur["pdfY"], blk["pdfY"])
+            cy1 = min(cur["pdfY"] + cur["pdfHeight"], blk["pdfY"] + blk["pdfHeight"])
+            overlap = cy1 - cy0
+            min_h = min(cur["pdfHeight"], blk["pdfHeight"])
+            same_line = min_h > 0 and overlap / min_h >= 0.5
+            gap = blk["pdfX"] - (cur["pdfX"] + cur["pdfWidth"])
+            max_gap = max(cur["fontSize"], blk["fontSize"]) * SAME_LINE_GAP_FACTOR
+
+            if same_line and -2.0 <= gap <= max_gap:
+                x0 = min(cur["pdfX"], blk["pdfX"])
+                x1 = max(cur["pdfX"] + cur["pdfWidth"], blk["pdfX"] + blk["pdfWidth"])
+                y0 = min(cur["pdfY"], blk["pdfY"])
+                y1 = max(cur["pdfY"] + cur["pdfHeight"], blk["pdfY"] + blk["pdfHeight"])
+                cur["text"] = f"{cur['text'].rstrip()} {blk['text'].lstrip()}".strip()
+                cur["pdfX"] = round(x0, 2)
+                cur["pdfY"] = round(y0, 2)
+                cur["pdfWidth"] = round(max(4.0, x1 - x0), 2)
+                cur["pdfHeight"] = round(max(4.0, y1 - y0), 2)
+                cur["fontSize"] = round(max(cur["fontSize"], blk["fontSize"]), 1)
+                continue
+
+        if cur is not None:
+            out.append(cur)
+        cur = {**blk}
+
+    if cur is not None:
+        out.append(cur)
+    return out
 
 
 def _merge_marker_with_next(blocks: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -329,12 +381,24 @@ def _collect_table_blocks(
     blocks: list[dict[str, Any]] = []
     table_rects: list[fitz.Rect] = []
 
-    try:
-        finder = page.find_tables(strategy="lines")
-    except Exception:
-        return [], []
+    def _valid(tab: Any) -> bool:
+        valid_cells = [c for c in tab.cells if c is not None]
+        return len(valid_cells) >= 4 and tab.row_count >= 2 and tab.col_count >= 2
 
-    for tab in finder.tables:
+    # Chỉ dùng strategy theo ĐƯỜNG KẺ (viền thật). KHÔNG dùng "text" vì nó cắt
+    # vụn ô nhiều dòng thành hàng/cột giả (gây vỡ layout).
+    tables: list[Any] = []
+    for strat in ("lines_strict", "lines"):
+        try:
+            finder = page.find_tables(strategy=strat)
+        except Exception:
+            continue
+        found = [t for t in finder.tables if _valid(t)]
+        if found:
+            tables = found
+            break
+
+    for tab in tables:
         valid_cells = [c for c in tab.cells if c is not None]
         if len(valid_cells) < 4 or tab.row_count < 2 or tab.col_count < 2:
             continue
@@ -521,7 +585,7 @@ def extract_fitz_line_blocks(pdf_path: Path) -> list[dict[str, Any]]:
     try:
         for page_index, page in enumerate(doc):
             table_blocks, table_rects = _collect_table_blocks(page_index, page)
-            page_lines = _collect_page_lines(page_index, page, table_rects)
+            page_lines = _merge_same_line(_collect_page_lines(page_index, page, table_rects))
             merged = _merge_list_items(_merge_marker_with_next(page_lines))
             merged = _merge_nearby_blocks(merged, gap_factor=0.55)
             blocks.extend(_dedup_blocks(table_blocks + merged))
