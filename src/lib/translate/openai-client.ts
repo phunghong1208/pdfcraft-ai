@@ -29,13 +29,11 @@ export function getDefaultTranslateModel(): string {
 
 function isReasoningModel(model: string): boolean {
   const m = model.toLowerCase();
+  // GPT-5 family (kể cả gpt-5-nano/mini) hỗ trợ reasoning_effort, gồm cả 'minimal'.
+  if (m.includes('gpt-5')) return true;
+  // gpt-4.1 nano/mini KHÔNG hỗ trợ reasoning_effort.
   if (m.includes('nano') || m.includes('mini')) return false;
-  return (
-    m.startsWith('o1') ||
-    m.startsWith('o3') ||
-    m.startsWith('o4') ||
-    m.includes('gpt-5')
-  );
+  return m.startsWith('o1') || m.startsWith('o3') || m.startsWith('o4');
 }
 
 function parseUsage(raw: unknown): TokenUsage | undefined {
@@ -52,7 +50,8 @@ export async function chatCompletion(options: {
   model?: string;
   maxCompletionTokens?: number;
   timeoutMs?: number;
-  reasoningEffort?: 'low' | 'medium' | 'high';
+  reasoningEffort?: 'minimal' | 'low' | 'medium' | 'high';
+  responseFormat?: Record<string, unknown>;
 }): Promise<{ content: string; usage?: TokenUsage }> {
   const model = options.model || getDefaultTranslateModel();
   const apiKey = getOpenAiApiKey();
@@ -66,8 +65,18 @@ export async function chatCompletion(options: {
     body.max_completion_tokens = options.maxCompletionTokens;
   }
 
+  if (options.responseFormat) {
+    body.response_format = options.responseFormat;
+  }
+
   if (isReasoningModel(model)) {
-    const effort = options.reasoningEffort ?? (process.env.TRANSLATE_REASONING_EFFORT as 'low' | 'medium' | 'high' | undefined);
+    const effort =
+      (process.env.TRANSLATE_REASONING_EFFORT as
+        | 'minimal'
+        | 'low'
+        | 'medium'
+        | 'high'
+        | undefined) ?? options.reasoningEffort;
     if (effort) body.reasoning_effort = effort;
   }
 

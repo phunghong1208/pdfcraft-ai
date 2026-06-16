@@ -17,6 +17,33 @@ function mergeUsage(a: TokenUsage, b: TokenUsage): TokenUsage {
   };
 }
 
+const TRANSLATION_SCHEMA: Record<string, unknown> = {
+  type: 'json_schema',
+  json_schema: {
+    name: 'translations',
+    strict: true,
+    schema: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        translations: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              id: { type: 'integer' },
+              text: { type: 'string' },
+            },
+            required: ['id', 'text'],
+          },
+        },
+      },
+      required: ['translations'],
+    },
+  },
+};
+
 function buildSystemPrompt(sourceLang: string, targetLang: string): string {
   const source = languageDisplayName(sourceLang);
   const target = languageDisplayName(targetLang);
@@ -26,7 +53,7 @@ function buildSystemPrompt(sourceLang: string, targetLang: string): string {
     'Translate every "text" value. Do NOT include original text. Translate ALL segments.',
     'Preserve numbers, URLs, email addresses, domain names, file paths exactly as-is.',
     'Preserve leading list markers (e.g. 3., 4.).',
-    'Return ONLY valid JSON array: [{"id":1,"text":"translated"},...]',
+    'Return ONLY JSON: {"translations":[{"id":1,"text":"translated"},...]}',
     'Keep every id. Same count as input. Do not merge, split, or reorder.',
   ].join(' ');
 }
@@ -50,29 +77,32 @@ function parseTranslationsById(
     parsed = JSON.parse(repaired);
   }
 
-  // Support both formats: [{id,text}] array or {translations:[]} legacy
-  if (!Array.isArray(parsed)) {
+  // Chấp nhận cả [{id,text}] lẫn {translations:[...]} (structured outputs)
+  let arr: unknown[];
+  if (Array.isArray(parsed)) {
+    arr = parsed;
+  } else {
     const obj = parsed as { translations?: unknown };
-    if (Array.isArray(obj.translations)) {
-      const out = new Array<string>(expectedCount).fill('');
-      for (let i = 0; i < expectedCount; i++) {
-        const v = obj.translations[i];
-        out[i] = typeof v === 'string' ? v.trim() : '';
-      }
-      return out;
+    if (!Array.isArray(obj.translations)) {
+      throw new Error('[translate] response is not an array');
     }
-    throw new Error('[translate] response is not an array');
+    arr = obj.translations;
   }
 
   const result = new Array<string>(expectedCount).fill('');
-  for (const item of parsed) {
-    if (item && typeof item === 'object' && typeof item.id === 'number') {
-      const idx = item.id - 1;
+  arr.forEach((item, i) => {
+    if (typeof item === 'string') {
+      if (i < expectedCount) result[i] = item.trim();
+      return;
+    }
+    if (item && typeof item === 'object') {
+      const obj = item as { id?: unknown; text?: unknown };
+      const idx = typeof obj.id === 'number' ? obj.id - 1 : i;
       if (idx >= 0 && idx < expectedCount) {
-        result[idx] = typeof item.text === 'string' ? item.text.trim() : '';
+        result[idx] = typeof obj.text === 'string' ? obj.text.trim() : '';
       }
     }
-  }
+  });
   return result;
 }
 
@@ -96,6 +126,7 @@ async function translateBatch(
         ],
         maxCompletionTokens: Math.min(16384, 512 + segments.join('').length * 6),
         reasoningEffort: 'low',
+        responseFormat: TRANSLATION_SCHEMA,
       });
 
       const translations = parseTranslationsById(content, segments.length);

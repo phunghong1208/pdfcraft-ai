@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +31,33 @@ def _fix_glyphs(text: str) -> str:
     return text.translate(_GLYPH_TABLE)
 
 
+def _is_glyph_noise(tok: str) -> bool:
+    """1 ký tự lẻ trông như glyph decode sai (icon/symbol/ToUnicode hỏng)."""
+    if len(tok) != 1 or tok.isascii():
+        return False
+    cat = unicodedata.category(tok)
+    # Symbol / private-use / unassigned → gần như chắc là rác
+    if cat in ("Co", "Cn", "So", "Sk", "Sm", "Sc"):
+        return True
+    # Chữ Latin-extended lẻ (vd 'Ế' = U+1EBE) đứng một mình → rác.
+    # Giữ nguyên chữ lẻ của CJK/Arabic/Thai... vì có thể có nghĩa.
+    if cat.startswith("L"):
+        return unicodedata.name(tok, "").startswith("LATIN")
+    return False
+
+
+def _strip_stray_edges(text: str) -> str:
+    """Bỏ ký tự rác lẻ ở đầu/cuối dòng (vd 'Ế Tổng điểm' → 'Tổng điểm')."""
+    toks = text.split(" ")
+    if len(toks) < 2:
+        return text
+    while len(toks) >= 2 and _is_glyph_noise(toks[0]):
+        toks.pop(0)
+    while len(toks) >= 2 and _is_glyph_noise(toks[-1]):
+        toks.pop()
+    return " ".join(toks)
+
+
 
 def _join_spans(spans: list[dict]) -> str:
     parts: list[str] = []
@@ -45,7 +73,7 @@ def _join_spans(spans: list[dict]) -> str:
             if gap > max(size * 0.18, 1.0):
                 parts.append(" ")
         parts.append(text)
-    return _fix_glyphs("".join(parts).strip())
+    return _strip_stray_edges(_fix_glyphs("".join(parts).strip()))
 
 
 def _line_block(
@@ -58,7 +86,7 @@ def _line_block(
         return None
 
     text = _join_spans(spans)
-    if not text:
+    if not text or _is_glyph_noise(text):
         return None
 
     x0 = min(float(s["bbox"][0]) for s in spans)
@@ -271,11 +299,11 @@ def _cell_value_from_page(page: fitz.Page, cell_rect: fitz.Rect) -> tuple[str, l
         if (s.get("text") or "").strip()
     ]
     if spans:
-        return _fix_glyphs(" ".join(s["text"].strip() for s in spans)), spans
+        return _strip_stray_edges(_fix_glyphs(" ".join(s["text"].strip() for s in spans))), spans
 
     plain = (page.get_text("text", clip=cell_rect) or "").strip()
     if plain:
-        return _fix_glyphs(re.sub(r"\s+", " ", plain)), [{"size": 10}]
+        return _strip_stray_edges(_fix_glyphs(re.sub(r"\s+", " ", plain))), [{"size": 10}]
 
     for widget in page.widgets() or []:
         val = (widget.field_value or "").strip()

@@ -278,6 +278,17 @@ def _draw_textbox(
     min_size: float,
 ) -> bool:
     """Vẽ textbox — RTL mixed dùng TextWriter, còn lại insert_textbox."""
+    # Guard: rect phải hữu hạn và không rỗng (PyMuPDF raise nếu x1<=x0 / y1<=y0).
+    if (
+        not rect.is_valid
+        or rect.is_empty
+        or rect.is_infinite
+        or rect.width < 1
+        or rect.height < 1
+    ):
+        logger.warning("skip degenerate rect=%s lang=%s", rect, target_lang)
+        return False
+
     if target_lang in DUAL_FONT_LANGS and _latin_font_path():
         s = size
         while s >= min_size:
@@ -329,6 +340,8 @@ def _wipe_rect(
     fitz_y1 = page_h - y + pad_y
     # Never expand left — only right+vertical, to avoid covering adjacent columns
     rect = fitz.Rect(x, fitz_y0, x + w + pad_x, fitz_y1)
+    if rect.is_empty or not rect.is_valid or rect.is_infinite:
+        return
     page.add_redact_annot(rect, fill=(1, 1, 1))
 
 
@@ -432,6 +445,8 @@ def _insert_text(
     is_cell = block.get("label") == "table_cell"
     if is_cell:
         rect = fitz.Rect(base.x0 + 2, base.y0 + 2, base.x1 - 2, base.y1 - 2)
+        if rect.is_empty or rect.width < 2 or rect.height < 2:
+            return
         size = min(base_size * 0.80, 72.0)
         min_size = 4.0
     else:
@@ -443,7 +458,9 @@ def _insert_text(
                 if base.width < page_width * 0.45:
                     base = fitz.Rect(12.0, base.y0, base.x1, base.y1)
             else:
-                base = fitz.Rect(base.x0, base.y0, page_width - 12, base.y1)
+                # Giữ mép phải gốc làm sàn để không tạo rect âm khi block sát lề phải.
+                new_x1 = max(base.x1, page_width - 12)
+                base = fitz.Rect(base.x0, base.y0, new_x1, base.y1)
         font = font_obj or (fitz.Font(fontfile=fontfile) if fontfile else None)
         if font is None:
             rect, size, min_size = base, min(base_size, 11.0), 5.0
@@ -548,10 +565,12 @@ def render_translated_pdf(
             for i, block, translated in page_blocks:
                 is_cell = block.get("label") == "table_cell"
                 if is_cell:
-                    _wipe_rect(page,
-                               float(block["pdfX"]) + 2, float(block["pdfY"]) + 2,
-                               float(block["pdfWidth"]) - 4, float(block["pdfHeight"]) - 4,
-                               page_h, pad_x=0, pad_y=0)
+                    cw = float(block["pdfWidth"]) - 4
+                    ch = float(block["pdfHeight"]) - 4
+                    if cw > 1 and ch > 1:
+                        _wipe_rect(page,
+                                   float(block["pdfX"]) + 2, float(block["pdfY"]) + 2,
+                                   cw, ch, page_h, pad_x=0, pad_y=0)
                 else:
                     fs = float(block.get("fontSize", 11))
                     # Prose đã gom mục — wipe thêm vùng dưới để tránh sót chữ gốc
