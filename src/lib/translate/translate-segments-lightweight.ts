@@ -17,6 +17,8 @@ function mergeUsage(a: TokenUsage, b: TokenUsage): TokenUsage {
   };
 }
 
+type TranslatedItem = { text: string; status: string };
+
 const TRANSLATION_SCHEMA: Record<string, unknown> = {
   type: 'json_schema',
   json_schema: {
@@ -34,8 +36,12 @@ const TRANSLATION_SCHEMA: Record<string, unknown> = {
             properties: {
               id: { type: 'integer' },
               text: { type: 'string' },
+              status: {
+                type: 'string',
+                enum: ['translated', 'unchanged', 'uncertain'],
+              },
             },
-            required: ['id', 'text'],
+            required: ['id', 'text', 'status'],
           },
         },
       },
@@ -44,28 +50,62 @@ const TRANSLATION_SCHEMA: Record<string, unknown> = {
   },
 };
 
-function buildSystemPrompt(sourceLang: string, targetLang: string): string {
-  const source = languageDisplayName(sourceLang);
+function buildSystemPrompt(targetLang: string): string {
   const target = languageDisplayName(targetLang);
   return [
-    `You are a professional translator (${source} → ${target}).`,
-    'Input: JSON array of objects with "id" and "text".',
-    'Translate every "text" value. Do NOT include original text. Translate ALL segments.',
-    'Preserve numbers, URLs, email addresses, domain names, file paths exactly as-is.',
-    'Preserve leading list markers (e.g. 3., 4.).',
-    'Return ONLY JSON: {"translations":[{"id":1,"text":"translated"},...]}',
-    'Keep every id. Same count as input. Do not merge, split, or reorder.',
-  ].join(' ');
+    'You are a multilingual document translator.',
+    `TARGET LANGUAGE: ${target}`,
+    'Input is a JSON array of text segments from one document page. Use the full page as context.',
+    'Translate every translatable text into the target language.',
+    'Rules:',
+    '- Return one result for every input item.',
+    '- Preserve id, order and item count. Never omit, duplicate, merge or split items.',
+    '- Do not summarize, explain or invent content.',
+    '- Fix obvious extraction errors only when confident.',
+    '- Preserve numbers, URLs, emails, paths, codes, formulas, tags and placeholders.',
+    '- Keep text already in the target language unchanged with status "unchanged".',
+    '- If text is unreadable or ambiguous, keep it unchanged with status "uncertain".',
+    '- Otherwise set status "translated".',
+    '- Return JSON only.',
+    'Output: {"translations":[{"id":1,"text":"...","status":"translated"}]}',
+  ].join('\n');
 }
 
-function parseTranslationsById(
+/** Chuẩn hoá để so sánh output có giống input không (NFKC + gộp khoảng trắng). */
+function normalizeText(value: string): string {
+  return value.normalize('NFKC').replace(/\s+/g, ' ').trim();
+}
+
+const URL_RE = /^(https?:\/\/|www\.)\S+$/i;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Item không cần dịch (URL/email/số/mã) → giống input là bình thường, đừng retry. */
+function looksUntranslatable(text: string): boolean {
+  const t = text.trim();
+  if (!t) return true;
+  if (URL_RE.test(t) || EMAIL_RE.test(t)) return true;
+  // Không có chữ cái nào (chỉ số/dấu) → number/code/punct
+  if (!/\p{L}/u.test(t)) return true;
+  // Mã ngắn kiểu A1B2/ID toàn HOA + số, không khoảng trắng
+  if (t.length <= 12 && /^[A-Z0-9][A-Z0-9._/-]*$/.test(t)) return true;
+  return false;
+}
+
+function parseTranslationItems(
   content: string,
   expectedCount: number,
-): string[] {
+): TranslatedItem[] {
   const trimmed = content.trim();
   const start = trimmed.indexOf('[');
   const end = trimmed.lastIndexOf(']');
-  let jsonText = start >= 0 && end > start ? trimmed.slice(start, end + 1) : trimmed;
+  const objStart = trimmed.indexOf('{');
+  // Ưu tiên object {translations:[...]}, fallback mảng [...]
+  let jsonText = trimmed;
+  if (objStart >= 0 && (objStart < start || start < 0)) {
+    jsonText = trimmed.slice(objStart, trimmed.lastIndexOf('}') + 1);
+  } else if (start >= 0 && end > start) {
+    jsonText = trimmed.slice(start, end + 1);
+  }
 
   let parsed: unknown;
   try {
@@ -77,7 +117,6 @@ function parseTranslationsById(
     parsed = JSON.parse(repaired);
   }
 
-  // Chấp nhận cả [{id,text}] lẫn {translations:[...]} (structured outputs)
   let arr: unknown[];
   if (Array.isArray(parsed)) {
     arr = parsed;
@@ -89,17 +128,23 @@ function parseTranslationsById(
     arr = obj.translations;
   }
 
-  const result = new Array<string>(expectedCount).fill('');
+  const result: TranslatedItem[] = Array.from({ length: expectedCount }, () => ({
+    text: '',
+    status: '',
+  }));
   arr.forEach((item, i) => {
     if (typeof item === 'string') {
-      if (i < expectedCount) result[i] = item.trim();
+      if (i < expectedCount) result[i] = { text: item.trim(), status: 'translated' };
       return;
     }
     if (item && typeof item === 'object') {
-      const obj = item as { id?: unknown; text?: unknown };
+      const obj = item as { id?: unknown; text?: unknown; status?: unknown };
       const idx = typeof obj.id === 'number' ? obj.id - 1 : i;
       if (idx >= 0 && idx < expectedCount) {
-        result[idx] = typeof obj.text === 'string' ? obj.text.trim() : '';
+        result[idx] = {
+          text: typeof obj.text === 'string' ? obj.text.trim() : '',
+          status: typeof obj.status === 'string' ? obj.status : 'translated',
+        };
       }
     }
   });
@@ -108,11 +153,10 @@ function parseTranslationsById(
 
 async function translateBatch(
   segments: string[],
-  sourceLang: string,
   targetLang: string,
   model: string,
   _depth = 0,
-): Promise<{ translations: string[]; usage: TokenUsage }> {
+): Promise<{ translations: TranslatedItem[]; usage: TokenUsage }> {
   const idPayload = segments.map((text, i) => ({ id: i + 1, text }));
   const payload = JSON.stringify(idPayload);
 
@@ -121,7 +165,7 @@ async function translateBatch(
       const { content, usage } = await chatCompletion({
         model,
         messages: [
-          { role: 'system', content: buildSystemPrompt(sourceLang, targetLang) },
+          { role: 'system', content: buildSystemPrompt(targetLang) },
           { role: 'user', content: payload },
         ],
         maxCompletionTokens: Math.min(16384, 512 + segments.join('').length * 6),
@@ -129,7 +173,7 @@ async function translateBatch(
         responseFormat: TRANSLATION_SCHEMA,
       });
 
-      const translations = parseTranslationsById(content, segments.length);
+      const translations = parseTranslationItems(content, segments.length);
       return { translations, usage: usage ?? emptyUsage() };
     } catch (err) {
       console.error(
@@ -148,7 +192,7 @@ async function translateBatch(
       chunks.push(segments.slice(i, i + chunkSize));
     }
     const results = await Promise.all(
-      chunks.map((chunk) => translateBatch(chunk, sourceLang, targetLang, model, 1)),
+      chunks.map((chunk) => translateBatch(chunk, targetLang, model, 1)),
     );
     return {
       translations: results.flatMap((r) => r.translations),
@@ -159,7 +203,7 @@ async function translateBatch(
   console.warn(
     `[translate] ${segments.length} segment(s) untranslatable, skipping`,
   );
-  return { translations: segments.map(() => ''), usage: emptyUsage() };
+  return { translations: segments.map(() => ({ text: '', status: '' })), usage: emptyUsage() };
 }
 
 export async function translateSegmentsLightweight(options: {
@@ -169,7 +213,7 @@ export async function translateSegmentsLightweight(options: {
   model?: string;
   onProgress?: (done: number, total: number) => void;
 }): Promise<{ translations: string[]; tokenUsage: TokenUsage }> {
-  const { segments, sourceLang, targetLang, onProgress } = options;
+  const { segments, targetLang, onProgress } = options;
   const model = options.model || getDefaultTranslateModel();
 
   if (!segments.length) {
@@ -177,22 +221,63 @@ export async function translateSegmentsLightweight(options: {
   }
 
   const results = new Array<string>(segments.length).fill('');
+  const statuses = new Array<string>(segments.length).fill('');
   let tokenUsage = emptyUsage();
   let doneCount = 0;
   const batches = buildSegmentBatches(segments);
 
+  // Pass 1: dịch toàn bộ
   const batchResults = await runSegmentBatches(batches, async ({ offset, segments: batch }) => {
-    const { translations, usage } = await translateBatch(batch, sourceLang, targetLang, model);
+    const { translations, usage } = await translateBatch(batch, targetLang, model);
     for (let j = 0; j < batch.length; j += 1) {
-      results[offset + j] = translations[j]?.trim() || '';
+      results[offset + j] = translations[j]?.text?.trim() || '';
+      statuses[offset + j] = translations[j]?.status || '';
     }
     doneCount += batch.length;
     onProgress?.(doneCount, segments.length);
     return usage;
   });
-
   for (const usage of batchResults) {
     tokenUsage = mergeUsage(tokenUsage, usage);
+  }
+
+  // Validator: output trùng input + status không phải "unchanged" + có thể dịch → nghi miss
+  const suspectIdx: number[] = [];
+  for (let i = 0; i < segments.length; i += 1) {
+    const src = segments[i];
+    const out = results[i];
+    if (!src.trim()) continue;
+    const missing = !out;
+    const identical = !!out && normalizeText(out) === normalizeText(src);
+    const intentional = statuses[i] === 'unchanged';
+    if ((missing || (identical && !intentional)) && !looksUntranslatable(src)) {
+      suspectIdx.push(i);
+    }
+  }
+
+  // Pass 2: retry riêng các segment nghi miss (một lượt)
+  if (suspectIdx.length) {
+    console.warn(`[translate] retrying ${suspectIdx.length} possibly-missed segment(s)`);
+    const subSegments = suspectIdx.map((i) => segments[i]);
+    const subBatches = buildSegmentBatches(subSegments);
+    const retryUsages = await runSegmentBatches(subBatches, async ({ offset, segments: batch }) => {
+      const { translations, usage } = await translateBatch(batch, targetLang, model);
+      for (let j = 0; j < batch.length; j += 1) {
+        const gi = suspectIdx[offset + j];
+        const t = translations[j]?.text?.trim() || '';
+        // Chỉ thay khi có kết quả mới khác input (tránh ghi đè bằng output trùng)
+        if (t && normalizeText(t) !== normalizeText(segments[gi])) {
+          results[gi] = t;
+          statuses[gi] = translations[j]?.status || statuses[gi];
+        } else if (t && !results[gi]) {
+          results[gi] = t;
+        }
+      }
+      return usage;
+    });
+    for (const usage of retryUsages) {
+      tokenUsage = mergeUsage(tokenUsage, usage);
+    }
   }
 
   return { translations: results, tokenUsage };

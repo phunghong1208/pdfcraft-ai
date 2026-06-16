@@ -291,15 +291,21 @@ def _widget_in_cell(widget: Any, cell_rect: fitz.Rect) -> bool:
 def _cell_value_from_page(page: fitz.Page, cell_rect: fitz.Rect) -> tuple[str, list[dict]]:
     """Trích text trong ô — spans, plain text, rồi form widget."""
     text_dict = page.get_text("dict", clip=cell_rect, flags=fitz.TEXT_PRESERVE_WHITESPACE)
-    spans = [
-        s
-        for blk in text_dict.get("blocks", [])
-        for line in blk.get("lines", [])
-        for s in line.get("spans", [])
-        if (s.get("text") or "").strip()
-    ]
-    if spans:
-        return _strip_stray_edges(_fix_glyphs(" ".join(s["text"].strip() for s in spans))), spans
+    # Gom theo dòng + dùng _join_spans (gap-aware) để KHÔNG chèn space giữa từng
+    # glyph — PDF tiếng Việt hay tách mỗi ký tự có dấu thành 1 span.
+    line_texts: list[str] = []
+    all_spans: list[dict] = []
+    for blk in text_dict.get("blocks", []):
+        for line in blk.get("lines", []):
+            lspans = [s for s in line.get("spans", []) if (s.get("text") or "").strip()]
+            if not lspans:
+                continue
+            all_spans.extend(lspans)
+            joined = _join_spans(lspans)
+            if joined:
+                line_texts.append(joined)
+    if all_spans:
+        return _strip_stray_edges(" ".join(line_texts)), all_spans
 
     plain = (page.get_text("text", clip=cell_rect) or "").strip()
     if plain:
