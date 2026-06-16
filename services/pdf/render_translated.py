@@ -490,6 +490,67 @@ def _fit_prose_rect(
     return min_size, fitz.Rect(base.x0, base.y0, base.x1, max(y1, base.y0 + min_size))
 
 
+def _insert_vertical_text(
+    page: fitz.Page,
+    text: str,
+    block: dict[str, Any],
+    page_h: float,
+    fontfile: str,
+    fontname: str = "noto",
+    font_obj: fitz.Font | None = None,
+    target_lang: str = "en",
+    bold: bool = False,
+    italic: bool = False,
+) -> None:
+    """Vẽ chữ dọc — dùng rotation gốc từ extract (Generated on... lề trái)."""
+    text = " ".join(line for line in text.split("\n") if line.strip())
+    if not text:
+        return
+
+    base = _block_rect(block, page_h)
+    if base.is_empty or base.width < 2 or base.height < 2:
+        return
+
+    rotation = int(block.get("rotation", 90))
+    base_size = float(block.get("fontSize", 11))
+    min_size = 4.0
+    avail = max(base.height - 4, base_size * 0.8)
+    font = font_obj or (_get_font(fontfile) if fontfile else None)
+
+    size = min(base_size, 72.0)
+    while size >= min_size:
+        if font:
+            need = float(font.text_length(text, fontsize=size))
+        else:
+            need = len(text) * size * 0.5
+        if need <= avail:
+            break
+        size -= 0.4
+
+    shaped = _prepare_script_line(text, target_lang)
+    if rotation in (-90, 270):
+        point = (base.x0 + base.width * 0.55, base.y1 - 2)
+    elif rotation == 90:
+        point = (base.x0 + base.width * 0.55, base.y0 + size + 2)
+    else:
+        point = (base.x0 + 2, base.y0 + size + 2)
+
+    fname = fontname if fontfile else "helv"
+    ffile = fontfile if fontfile else None
+    try:
+        page.insert_text(
+            point,
+            shaped,
+            fontsize=size,
+            fontname=fname,
+            fontfile=ffile,
+            rotate=rotation,
+            color=(0, 0, 0),
+        )
+    except Exception as exc:
+        logger.warning("vertical text insert failed: %s", exc)
+
+
 def _insert_text(
     page: fitz.Page,
     text: str,
@@ -508,6 +569,13 @@ def _insert_text(
     """Insert translated text — table cell giữ logic cũ, prose fit trong bbox gốc."""
     text = "\n".join(line for line in text.split("\n") if line.strip())
     if not text:
+        return
+
+    if block.get("label") == "vertical":
+        _insert_vertical_text(
+            page, text, block, page_h, fontfile, fontname=fontname,
+            font_obj=font_obj, target_lang=target_lang, bold=bold, italic=italic,
+        )
         return
 
     base_size = float(block.get("fontSize", 11))
@@ -602,19 +670,10 @@ def render_translated_pdf(
     doc = fitz.open(pdf_path)
 
     try:
-        wipe_by_page: dict[int, list[dict[str, Any]]] = {}
-        if wipe_lines:
-            for wl in wipe_lines:
-                pn = int(wl.get("pageNumber", 0))
-                if pn > 0:
-                    wipe_by_page.setdefault(pn, []).append(wl)
-
         # Group ALL blocks by page (including empty translations for wiping)
         all_by_page: dict[int, list[tuple[int, dict[str, Any], str]]] = {}
         for i, block in enumerate(blocks):
             translated = (translations[i] if i < len(translations) else "").strip()
-            # Chống "mất chữ": dịch rỗng (lỗi batch / item bỏ qua) → vẽ lại text gốc
-            # (chữ gốc đã bị wipe xoá nên nếu không vẽ lại sẽ thành vùng trắng).
             if not translated:
                 translated = (block.get("text") or "").strip()
             page_no = int(block["pageNumber"])
@@ -626,21 +685,8 @@ def render_translated_pdf(
         for page_no, page_blocks in all_by_page.items():
             page = doc[page_no - 1]
             page_h = float(page.rect.height)
-            page_wipes = wipe_by_page.get(page_no, [])
 
-            # Pass 1: wipe ALL raw lines on page (complete original text removal)
-            table_on_page = [b for _, b, _ in page_blocks if b.get("label") == "table_cell"]
-            for wl in page_wipes:
-                wfs = float(wl.get("fontSize", 11))
-                wx = float(wl["pdfX"]) + float(wl["pdfWidth"]) / 2
-                wy = float(wl["pdfY"]) + float(wl["pdfHeight"]) / 2
-                in_table = any(_point_in_block(wx, wy, tb) for tb in table_on_page)
-                pad_x = 0.5 if in_table else max(1, wfs * 0.12)
-                pad_y = 0.5 if in_table else 1.0
-                _wipe_rect(page, float(wl["pdfX"]), float(wl["pdfY"]),
-                           float(wl["pdfWidth"]), float(wl["pdfHeight"]),
-                           page_h, pad_x=pad_x, pad_y=pad_y)
-            # Also wipe block rects (merged blocks may cover area between lines)
+            # Wipe CHỈ vùng block (giữ orphan text không bị extract)
             for i, block, translated in page_blocks:
                 is_cell = block.get("label") == "table_cell"
                 if is_cell:
@@ -652,12 +698,8 @@ def render_translated_pdf(
                                    cw, ch, page_h, pad_x=0, pad_y=0)
                 else:
                     fs = float(block.get("fontSize", 11))
-                    # Prose đã gom mục — wipe thêm vùng dưới để tránh sót chữ gốc
-                    wipe_h = float(block["pdfHeight"])
-                    if block.get("label") != "table_cell":
-                        wipe_h = max(wipe_h, fs * 3.5)
                     _wipe_rect(page, float(block["pdfX"]), float(block["pdfY"]),
-                               float(block["pdfWidth"]), wipe_h,
+                               float(block["pdfWidth"]), float(block["pdfHeight"]),
                                page_h, pad_x=max(1, fs * 0.08), pad_y=1.5)
 
             page.apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE)
@@ -665,7 +707,7 @@ def render_translated_pdf(
             # Trần mở rộng theo đoạn (không đẩy block xuống)
             prose_sorted: list[tuple[int, fitz.Rect]] = []
             for i, block, translated in page_blocks:
-                if translated and block.get("label") != "table_cell":
+                if translated and block.get("label") not in ("table_cell", "vertical"):
                     prose_sorted.append((i, _block_rect(block, page_h)))
             prose_sorted.sort(key=lambda x: x[1].y0)
 

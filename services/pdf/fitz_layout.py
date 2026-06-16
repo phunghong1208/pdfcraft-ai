@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 import unicodedata
 from pathlib import Path
@@ -105,6 +106,18 @@ def _spans_style(spans: list[dict]) -> tuple[bool, bool]:
     return (total > 0 and b >= total * 0.6, total > 0 and i >= total * 0.6)
 
 
+def _merge_block_style(a: dict, b: dict) -> tuple[bool, bool]:
+    """Majority-vote bold/italic khi merge 2 blocks (>=60% ký tự)."""
+    a_len = len((a.get("text") or "").strip())
+    b_len = len((b.get("text") or "").strip())
+    total = a_len + b_len
+    if total == 0:
+        return False, False
+    bold_chars = (a_len if a.get("bold") else 0) + (b_len if b.get("bold") else 0)
+    italic_chars = (a_len if a.get("italic") else 0) + (b_len if b.get("italic") else 0)
+    return bold_chars >= total * 0.6, italic_chars >= total * 0.6
+
+
 def _append_line(cur_text: str, new_text: str) -> str:
     """Nối dòng mới: soft-wrap → ' ' (cho câu liền mạch để dịch tốt),
     chỉ xuống dòng thật trước bullet/đầu mục."""
@@ -115,6 +128,44 @@ def _append_line(cur_text: str, new_text: str) -> str:
         return nt
     sep = "\n" if BULLET_LINE_RE.match(nt) else " "
     return f"{cur_text.rstrip()}{sep}{nt}".strip()
+
+
+def _line_rotation(dir_vec: tuple[float, float] | tuple[Any, ...]) -> int:
+    """Góc PyMuPDF insert_text (độ, ngược chiều kim đồng hồ)."""
+    dx, dy = float(dir_vec[0]), float(dir_vec[1])
+    return int(round(math.degrees(math.atan2(dy, dx))))
+
+
+def _join_spans_vertical(spans: list[dict], dir_vec: tuple[Any, ...]) -> str:
+    """Nối span chữ dọc theo hướng đọc (dir từ PyMuPDF)."""
+    if not spans:
+        return ""
+    dy = float(dir_vec[1])
+    if dy < -0.5:
+        ordered = sorted(spans, key=lambda s: float(s["bbox"][3]), reverse=True)
+    elif dy > 0.5:
+        ordered = sorted(spans, key=lambda s: float(s["bbox"][1]))
+    else:
+        ordered = sorted(spans, key=lambda s: float(s["bbox"][0]))
+
+    parts: list[str] = []
+    for i, span in enumerate(ordered):
+        text = span.get("text", "") or ""
+        if not text:
+            continue
+        if i > 0 and parts:
+            prev, cur = ordered[i - 1], span
+            size = max(float(prev.get("size", 11) or 11), float(cur.get("size", 11) or 11))
+            if dy < -0.5:
+                gap = float(prev["bbox"][1]) - float(cur["bbox"][3])
+            elif dy > 0.5:
+                gap = float(cur["bbox"][1]) - float(prev["bbox"][3])
+            else:
+                gap = float(cur["bbox"][0]) - float(prev["bbox"][2])
+            if gap > max(size * 0.18, 1.0):
+                parts.append(" ")
+        parts.append(text)
+    return _strip_stray_edges(_fix_glyphs("".join(parts).strip()))
 
 
 def _join_spans(spans: list[dict]) -> str:
@@ -139,11 +190,13 @@ def _line_block(
     page_h: float,
     spans: list[dict],
     label: str | None = None,
+    dir_vec: tuple[Any, ...] | None = None,
 ) -> dict[str, Any] | None:
     if not spans:
         return None
 
-    text = _join_spans(spans)
+    vertical = dir_vec is not None and _is_vertical_dir(dir_vec)
+    text = _join_spans_vertical(spans, dir_vec) if vertical else _join_spans(spans)
     if not text or _is_glyph_noise(text):
         return None
 
@@ -151,6 +204,26 @@ def _line_block(
     x1 = max(float(s["bbox"][2]) for s in spans)
     font_size = max(float(s.get("size", 11) or 11) for s in spans)
     bold, italic = _spans_style(spans)
+
+    if vertical:
+        y0 = min(float(s["bbox"][1]) for s in spans)
+        y1 = max(float(s["bbox"][3]) for s in spans)
+        # Bbox hẹp theo font — tránh strip dọc nuốt vùng ngang bên cạnh
+        strip_w = min(max(4.0, x1 - x0), font_size * 1.6)
+        return {
+            "pageNumber": page_no,
+            "text": text,
+            "pdfX": round(x0, 2),
+            "pdfY": round(page_h - y1, 2),
+            "pdfWidth": round(strip_w, 2),
+            "pdfHeight": round(max(4.0, y1 - y0), 2),
+            "fontSize": round(max(6.0, min(72.0, font_size)), 1),
+            "fontFamily": "Helvetica",
+            "bold": bold,
+            "italic": italic,
+            "label": label or "vertical",
+            "rotation": _line_rotation(dir_vec),
+        }
 
     # Use baseline (span origin) to compute glyph region — bbox includes line spacing
     # fitz origin = (x, baseline_y) in top-left coords
@@ -202,6 +275,14 @@ def _split_spans_by_column_gap(spans: list[dict]) -> list[list[dict]]:
 
 # Gộp ngang khi gap <= factor * fontSize (đủ để nối stt + text, không nuốt sang cột khác)
 SAME_LINE_GAP_FACTOR = 3.0
+# Chỉ coi là chữ dọc khi dir gần vuông góc — tránh nhầm text ngang hơi nghiêng
+VERTICAL_DIR_X_MAX = 0.1
+VERTICAL_DIR_Y_MIN = 0.9
+
+
+def _is_vertical_dir(dir_vec: tuple[Any, ...]) -> bool:
+    dx, dy = float(dir_vec[0]), float(dir_vec[1])
+    return abs(dx) < VERTICAL_DIR_X_MAX and abs(dy) > VERTICAL_DIR_Y_MIN
 
 
 def _merge_same_line(blocks: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -240,8 +321,7 @@ def _merge_same_line(blocks: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 cur["pdfWidth"] = round(max(4.0, x1 - x0), 2)
                 cur["pdfHeight"] = round(max(4.0, y1 - y0), 2)
                 cur["fontSize"] = round(max(cur["fontSize"], blk["fontSize"]), 1)
-                cur["bold"] = bool(cur.get("bold")) and bool(blk.get("bold"))
-                cur["italic"] = bool(cur.get("italic")) and bool(blk.get("italic"))
+                cur["bold"], cur["italic"] = _merge_block_style(cur, blk)
                 continue
 
         if cur is not None:
@@ -283,8 +363,8 @@ def _merge_marker_with_next(blocks: list[dict[str, Any]]) -> list[dict[str, Any]
                     "pdfWidth": round(max(4.0, x1 - x0), 2),
                     "pdfHeight": round(max(4.0, y1 - y0), 2),
                     "fontSize": round(max(cur["fontSize"], nxt["fontSize"]), 1),
-                    "bold": bool(cur.get("bold")) and bool(nxt.get("bold")),
-                    "italic": bool(cur.get("italic")) and bool(nxt.get("italic")),
+                    "bold": _merge_block_style(cur, nxt)[0],
+                    "italic": _merge_block_style(cur, nxt)[1],
                 })
                 i += 2
                 continue
@@ -321,7 +401,15 @@ def _merge_list_items(blocks: list[dict[str, Any]]) -> list[dict[str, Any]]:
             continue
 
         if cur is not None and blk["pageNumber"] == cur["pageNumber"]:
-            cur_top = max(cur["pdfY"] + cur["pdfHeight"], blk["pdfY"] + blk["pdfHeight"])
+            blk_top = blk["pdfY"] + blk["pdfHeight"]
+            gap = cur["pdfY"] - blk_top
+            max_fs = max(cur["fontSize"], blk["fontSize"])
+            if gap > max_fs * 0.55:
+                out.append(cur)
+                cur = None
+                out.append(blk)
+                continue
+            cur_top = max(cur["pdfY"] + cur["pdfHeight"], blk_top)
             x0 = min(cur["pdfX"], blk["pdfX"])
             x1 = max(cur["pdfX"] + cur["pdfWidth"], blk["pdfX"] + blk["pdfWidth"])
             y0 = min(cur["pdfY"], blk["pdfY"])
@@ -331,8 +419,7 @@ def _merge_list_items(blocks: list[dict[str, Any]]) -> list[dict[str, Any]]:
             cur["pdfWidth"] = round(max(4.0, x1 - x0), 2)
             cur["pdfHeight"] = round(max(4.0, cur_top - y0), 2)
             cur["fontSize"] = max(cur["fontSize"], blk["fontSize"])
-            cur["bold"] = bool(cur.get("bold")) and bool(blk.get("bold"))
-            cur["italic"] = bool(cur.get("italic")) and bool(blk.get("italic"))
+            cur["bold"], cur["italic"] = _merge_block_style(cur, blk)
             continue
 
         if cur is not None:
@@ -403,8 +490,7 @@ def _merge_nearby_blocks(
             cur["pdfWidth"] = round(max(4.0, new_x2 - new_x), 2)
             cur["pdfHeight"] = round(max(4.0, new_y2 - new_y), 2)
             cur["fontSize"] = max(cur["fontSize"], blk["fontSize"])
-            cur["bold"] = bool(cur.get("bold")) and bool(blk.get("bold"))
-            cur["italic"] = bool(cur.get("italic")) and bool(blk.get("italic"))
+            cur["bold"], cur["italic"] = _merge_block_style(cur, blk)
             cur_lines += 1
         else:
             merged.append(cur)
@@ -531,12 +617,12 @@ def _collect_table_blocks(
                 continue
 
             cell_rect = fitz.Rect(cx0, cy0, cx1, cy1)
-            cell_filter_rects.append(cell_rect)
             cell_text, spans = _cell_value_from_page(page, cell_rect)
 
             if not cell_text:
                 continue
 
+            cell_filter_rects.append(cell_rect)
             fs = round(max(6.0, min(72.0, max(float(s.get("size", 10)) for s in spans))), 1)
             cell_bold, cell_italic = _spans_style(spans)
             blocks.append({
@@ -582,20 +668,24 @@ def _collect_page_lines(
     page_lines: list[dict[str, Any]] = []
     tr = cell_filter_rects or []
 
-    # Regular text blocks — skip rotated/vertical text and table spans
+    # Regular text blocks — chữ dọc qua dir_vec; table spans lọc riêng
     for block in page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE).get("blocks", []):
         if block.get("type") != 0:
             continue
         for line in block.get("lines", []):
-            dir_vec = line.get("dir", (1, 0))
-            if abs(dir_vec[0]) < 0.9:
-                continue
+            dir_vec = tuple(line.get("dir", (1, 0)))
+            vertical = _is_vertical_dir(dir_vec)
             spans = [
                 s for s in line.get("spans", [])
                 if (s.get("text") or "").strip()
                 and not _is_barcode_span(s)
                 and not _span_in_table(s.get("bbox", [0, 0, 0, 0]), tr)
             ]
+            if vertical:
+                row = _line_block(page_no, page_h, spans, label="vertical", dir_vec=dir_vec)
+                if row and not _is_noise_line(row.get("text", "")):
+                    page_lines.append(row)
+                continue
             for run in _split_spans_by_column_gap(spans):
                 row = _line_block(page_no, page_h, run, label="line")
                 if row and not _is_noise_line(row.get("text", "")):
@@ -700,8 +790,10 @@ def _dedup_blocks(blocks: list[dict[str, Any]], iou_thresh: float = 0.4) -> list
             if area > 0 and inter / area >= 0.12:
                 dominated = True
                 break
-            if len(b_text) > 2 and (
-                _text_overlap(b_text, k.get("text", "")) > 0.35
+            y_dist = abs((by + bh / 2) - (ky + kh / 2))
+            near = y_dist < max(bh, kh) * 3
+            if near and len(b_text) > 2 and (
+                _text_overlap(b_text, k.get("text", "")) > 0.7
                 or b_text.strip() in (k.get("text") or "")
             ):
                 dominated = True
@@ -710,6 +802,9 @@ def _dedup_blocks(blocks: list[dict[str, Any]], iou_thresh: float = 0.4) -> list
             continue
         for k in kept:
             if k["pageNumber"] != blk["pageNumber"] or k.get("label") == "table_cell":
+                continue
+            # Chữ dọc lề trái không được dedup nuốt block ngang cạnh bên
+            if blk.get("label") == "vertical" or k.get("label") == "vertical":
                 continue
             bx, by = blk["pdfX"], blk["pdfY"]
             bw, bh = blk["pdfWidth"], blk["pdfHeight"]
@@ -722,7 +817,9 @@ def _dedup_blocks(blocks: list[dict[str, Any]], iou_thresh: float = 0.4) -> list
             if area > 0 and inter / area >= iou_thresh:
                 dominated = True
                 break
-            if len(b_text) > 3 and _text_overlap(b_text, k.get("text", "")) > 0.6:
+            y_dist2 = abs((by + bh / 2) - (ky + kh / 2))
+            near2 = y_dist2 < max(bh, kh) * 1.5
+            if near2 and len(b_text) > 3 and _text_overlap(b_text, k.get("text", "")) > 0.8:
                 dominated = True
                 break
         if not dominated:
@@ -736,11 +833,13 @@ def extract_fitz_line_blocks(pdf_path: Path) -> list[dict[str, Any]]:
     try:
         for page_index, page in enumerate(doc):
             table_blocks, _, cell_filter_rects = _collect_table_blocks(page_index, page)
-            page_lines = _merge_same_line(
-                _collect_page_lines(page_index, page, cell_filter_rects)
-            )
+            raw_lines = _collect_page_lines(page_index, page, cell_filter_rects)
+            vertical_lines = [b for b in raw_lines if b.get("label") == "vertical"]
+            horizontal_lines = [b for b in raw_lines if b.get("label") != "vertical"]
+            page_lines = _merge_same_line(horizontal_lines)
             merged = _merge_list_items(_merge_marker_with_next(page_lines))
             merged = _merge_nearby_blocks(merged, gap_factor=0.55)
+            merged.extend(vertical_lines)
             page_blocks = _dedup_blocks(table_blocks + merged)
             page_blocks.sort(
                 key=lambda b: (b["pageNumber"], -(b["pdfY"] + b["pdfHeight"]), b["pdfX"])
