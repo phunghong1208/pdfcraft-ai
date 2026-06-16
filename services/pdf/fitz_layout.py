@@ -12,6 +12,8 @@ import fitz
 LIST_MARKER_RE = re.compile(r"^\d{1,3}\.?$")
 # Đầu mục "1." / "1. text" / "1.Text" — nhưng KHÔNG bắt số thập phân ("3.5", "1.1")
 LIST_START_RE = re.compile(r"^\d{1,3}\.(?!\d)")
+# Tiêu đề mục La Mã: II. ĐÁP ÁN — không gộp vào đoạn trước
+ROMAN_HEADING_RE = re.compile(r"^\s*[IVXLCDM]{1,8}[.)]\s+\S")
 # Dòng bắt đầu bằng bullet/đầu mục → cần ngắt dòng thật (không phải soft-wrap)
 BULLET_LINE_RE = re.compile(r"^\s*([-+*•▪◦‣·–—]\s|\d{1,3}[.)](?!\d)\s?)")
 BULLET_MARKER_RE = re.compile(r"^[\u2022\u2023\u25E6\u2043\-–—]\.?$")
@@ -363,6 +365,13 @@ def _merge_nearby_blocks(
         blk_text = (blk.get("text") or "").strip()
         new_list_item = bool(LIST_START_RE.match(blk_text))
 
+        # II. ĐÁP ÁN — tách khỏi đoạn hướng dẫn phía trên
+        if ROMAN_HEADING_RE.match(blk_text):
+            merged.append(cur)
+            cur = {**blk}
+            cur_lines = 1
+            continue
+
         if 0 <= gap < max_gap and aligned and cur_lines < MAX_MERGE_LINES and not new_list_item:
             new_x = min(cur["pdfX"], blk["pdfX"])
             new_y = min(cur["pdfY"], blk["pdfY"])
@@ -452,16 +461,24 @@ def _cell_value_from_page(page: fitz.Page, cell_rect: fitz.Rect) -> tuple[str, l
 
 def _collect_table_blocks(
     page_index: int, page: fitz.Page
-) -> tuple[list[dict[str, Any]], list[fitz.Rect]]:
-    """Detect tables via find_tables(). Returns (cell_blocks, table_rects)."""
+) -> tuple[list[dict[str, Any]], list[fitz.Rect], list[fitz.Rect]]:
+    """Detect tables via find_tables().
+
+    Returns (cell_blocks, table_rects, cell_filter_rects).
+    cell_filter_rects: bbox từng ô — line extractor không đọc lại vùng đã có table_cell.
+    """
     page_no = page_index + 1
     page_h = float(page.rect.height)
     blocks: list[dict[str, Any]] = []
     table_rects: list[fitz.Rect] = []
+    cell_filter_rects: list[fitz.Rect] = []
 
     def _valid(tab: Any) -> bool:
         valid_cells = [c for c in tab.cells if c is not None]
-        return len(valid_cells) >= 4 and tab.row_count >= 2 and tab.col_count >= 2
+        if tab.col_count < 2 or len(valid_cells) < tab.col_count:
+            return False
+        # Bảng 1 hàng header (Phần|Câu|Nội dung|Điểm) — >=3 cột vẫn nhận
+        return tab.row_count >= 2 or (tab.row_count >= 1 and tab.col_count >= 3)
 
     # Chỉ dùng strategy theo ĐƯỜNG KẺ (viền thật). KHÔNG dùng "text" vì nó cắt
     # vụn ô nhiều dòng thành hàng/cột giả (gây vỡ layout).
@@ -477,8 +494,7 @@ def _collect_table_blocks(
             break
 
     for tab in tables:
-        valid_cells = [c for c in tab.cells if c is not None]
-        if len(valid_cells) < 4 or tab.row_count < 2 or tab.col_count < 2:
+        if not _valid(tab):
             continue
         b = tab.bbox
         table_rects.append(fitz.Rect(b[0], b[1], b[2], b[3]))
@@ -491,6 +507,7 @@ def _collect_table_blocks(
                 continue
 
             cell_rect = fitz.Rect(cx0, cy0, cx1, cy1)
+            cell_filter_rects.append(cell_rect)
             cell_text, spans = _cell_value_from_page(page, cell_rect)
 
             if not cell_text:
@@ -512,30 +529,34 @@ def _collect_table_blocks(
                 "label": "table_cell",
             })
 
-    return blocks, table_rects
+    return blocks, table_rects, cell_filter_rects
 
 
-def _span_in_table(bbox: list, table_rects: list[fitz.Rect]) -> bool:
-    """True if span bbox overlaps >50% with any table region."""
-    if not table_rects:
+def _span_in_table(bbox: list, cell_rects: list[fitz.Rect]) -> bool:
+    """True nếu span nằm trong ô bảng (tâm hoặc overlap >=25%)."""
+    if not cell_rects:
         return False
     sx0, sy0, sx1, sy1 = float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3])
+    cx, cy = (sx0 + sx1) / 2, (sy0 + sy1) / 2
+    for tr in cell_rects:
+        if tr.x0 <= cx <= tr.x1 and tr.y0 <= cy <= tr.y1:
+            return True
     span_area = max((sx1 - sx0) * (sy1 - sy0), 1.0)
-    for tr in table_rects:
+    for tr in cell_rects:
         ix = max(0.0, min(sx1, tr.x1) - max(sx0, tr.x0))
         iy = max(0.0, min(sy1, tr.y1) - max(sy0, tr.y0))
-        if ix * iy / span_area > 0.5:
+        if ix * iy / span_area >= 0.25:
             return True
     return False
 
 
 def _collect_page_lines(
-    page_index: int, page: fitz.Page, table_rects: list[fitz.Rect] | None = None
+    page_index: int, page: fitz.Page, cell_filter_rects: list[fitz.Rect] | None = None
 ) -> list[dict[str, Any]]:
     page_no = page_index + 1
     page_h = float(page.rect.height)
     page_lines: list[dict[str, Any]] = []
-    tr = table_rects or []
+    tr = cell_filter_rects or []
 
     # Regular text blocks — skip rotated/vertical text and table spans
     for block in page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE).get("blocks", []):
@@ -630,33 +651,53 @@ def _text_overlap(a: str, b: str) -> float:
 
 
 def _dedup_blocks(blocks: list[dict[str, Any]], iou_thresh: float = 0.4) -> list[dict[str, Any]]:
-    """Remove overlap duplicates — ưu tiên giữ table_cell."""
-    kept: list[dict[str, Any]] = []
-    for blk in blocks:
-        bx, by = blk["pdfX"], blk["pdfY"]
-        bw, bh = blk["pdfWidth"], blk["pdfHeight"]
+    """Remove overlap duplicates — table_cell luôn thắng line trùng vùng/text."""
+    cells = [b for b in blocks if b.get("label") == "table_cell"]
+    others = [b for b in blocks if b.get("label") != "table_cell"]
+    kept: list[dict[str, Any]] = list(cells)
+
+    for blk in others:
         b_text = blk.get("text", "")
-        is_cell = blk.get("label") == "table_cell"
         dominated = False
-        for ki, k in enumerate(kept):
+        for k in kept:
             if k["pageNumber"] != blk["pageNumber"]:
                 continue
+            if k.get("label") != "table_cell":
+                continue
+            bx, by = blk["pdfX"], blk["pdfY"]
+            bw, bh = blk["pdfWidth"], blk["pdfHeight"]
             kx, ky = k["pdfX"], k["pdfY"]
             kw, kh = k["pdfWidth"], k["pdfHeight"]
-            ix = max(0, min(bx + bw, kx + kw) - max(bx, kx))
-            iy = max(0, min(by + bh, ky + kh) - max(by, ky))
+            ix = max(0.0, min(bx + bw, kx + kw) - max(bx, kx))
+            iy = max(0.0, min(by + bh, ky + kh) - max(by, ky))
             inter = ix * iy
             area = bw * bh
-            k_cell = k.get("label") == "table_cell"
-            if area > 0 and inter / area >= iou_thresh:
-                if is_cell and not k_cell:
-                    kept[ki] = blk
+            if area > 0 and inter / area >= 0.12:
                 dominated = True
                 break
-            both_cells = is_cell and k_cell
-            if not both_cells and len(b_text) > 3 and _text_overlap(b_text, k.get("text", "")) > 0.6:
-                if is_cell and not k_cell:
-                    kept[ki] = blk
+            if len(b_text) > 2 and (
+                _text_overlap(b_text, k.get("text", "")) > 0.35
+                or b_text.strip() in (k.get("text") or "")
+            ):
+                dominated = True
+                break
+        if dominated:
+            continue
+        for k in kept:
+            if k["pageNumber"] != blk["pageNumber"] or k.get("label") == "table_cell":
+                continue
+            bx, by = blk["pdfX"], blk["pdfY"]
+            bw, bh = blk["pdfWidth"], blk["pdfHeight"]
+            kx, ky = k["pdfX"], k["pdfY"]
+            kw, kh = k["pdfWidth"], k["pdfHeight"]
+            ix = max(0.0, min(bx + bw, kx + kw) - max(bx, kx))
+            iy = max(0.0, min(by + bh, ky + kh) - max(by, ky))
+            inter = ix * iy
+            area = bw * bh
+            if area > 0 and inter / area >= iou_thresh:
+                dominated = True
+                break
+            if len(b_text) > 3 and _text_overlap(b_text, k.get("text", "")) > 0.6:
                 dominated = True
                 break
         if not dominated:
@@ -669,8 +710,10 @@ def extract_fitz_line_blocks(pdf_path: Path) -> list[dict[str, Any]]:
     doc = fitz.open(pdf_path)
     try:
         for page_index, page in enumerate(doc):
-            table_blocks, table_rects = _collect_table_blocks(page_index, page)
-            page_lines = _merge_same_line(_collect_page_lines(page_index, page, table_rects))
+            table_blocks, _, cell_filter_rects = _collect_table_blocks(page_index, page)
+            page_lines = _merge_same_line(
+                _collect_page_lines(page_index, page, cell_filter_rects)
+            )
             merged = _merge_list_items(_merge_marker_with_next(page_lines))
             merged = _merge_nearby_blocks(merged, gap_factor=0.55)
             blocks.extend(_dedup_blocks(table_blocks + merged))
