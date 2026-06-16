@@ -324,7 +324,8 @@
     "exportPdf": "PDFをダウンロード",
     "exportPdfFailed": "翻訳から PDF を作成できませんでした。",
     "placeholder": "ファイルを選択し、「翻訳」をクリックして翻訳を取得します。",
-    "processingHint": "翻訳には 1 ～ 2 分かかる場合があります。このタブを開いたままにしてください。"
+    "processingHint": "翻訳には 1 ～ 2 分かかる場合があります。このタブを開いたままにしてください。",
+    "targetLanguageLabel": "翻訳先"
   },
   "aiChatPage": {
     "uploadSubtitle": "一度アップロードして、書類を準備して、あとは何でも聞いてください",

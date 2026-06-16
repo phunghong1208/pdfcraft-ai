@@ -3099,7 +3099,8 @@
       "exportPdf": "Descargar PDF",
       "exportPdfFailed": "No se pudo crear PDF a partir de la traducción.",
       "placeholder": "Seleccione un archivo y haga clic en Traducir para obtener la traducción.",
-      "processingHint": "La traducción puede tardar entre 1 y 2 minutos. Mantenga esta pestaña abierta."
+      "processingHint": "La traducción puede tardar entre 1 y 2 minutos. Mantenga esta pestaña abierta.",
+      "targetLanguageLabel": "Traducir a"
     },
     "aiChatPage": {
       "uploadSubtitle": "Sube una vez, prepara el documento y luego pregunta cualquier cosa.",

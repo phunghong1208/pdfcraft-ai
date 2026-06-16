@@ -13,7 +13,6 @@ import {
   Check,
   User,
   FileText,
-  ArrowLeftRight,
   Languages,
   ScanLine,
   AlignLeft,
@@ -238,8 +237,13 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef,
   const [answerLanguage, setAnswerLanguage] = useState(() => loadWorkspaceAiAnswerLanguage(locale));
   const [copyDone, setCopyDone] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
-  const [sourceLang, setSourceLang] = useState(defaultLangPair.source);
+  // Nguồn auto-detect (LLM tự nhận) — UI chỉ chọn ngôn ngữ đích.
+  const [sourceLang] = useState('auto');
   const [targetLang, setTargetLang] = useState(defaultLangPair.target);
+  const translateLangItems = useMemo(
+    () => TRANSLATE_LANGUAGE_OPTIONS.map((l) => ({ apiName: l.code, nativeName: l.nativeName })),
+    [],
+  );
   const [isTranslating, setIsTranslating] = useState(false);
   const [translateProgress, setTranslateProgress] = useState<TranslatePipelineProgress | null>(null);
   const [translatedText, setTranslatedText] = useState<string | null>(null);
@@ -1047,54 +1051,14 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef,
         {aiTab === 'translate' && (
           <div className="flex-1 min-h-0 flex flex-col gap-2.5">
             <div className={`shrink-0 rounded-2xl border px-4 py-4 space-y-3 ${panelCardTone}`}>
-              <div className="flex items-end gap-2">
-                <div className="flex-1 min-w-0">
-                  <label className={`text-[11px] font-medium ${panelTextMain}`}>
-                    {t('aiTranslatePage.fromLabel')}
-                  </label>
-                  <select
-                    value={sourceLang}
-                    disabled={isTranslating}
-                    onChange={(e) => setSourceLang(e.target.value)}
-                    className={`mt-1 w-full rounded-lg border px-2.5 py-2 text-[12px] ${inputTone}`}
-                  >
-                    {TRANSLATE_LANGUAGE_OPTIONS.map((lang) => (
-                      <option key={`from-${lang.code}`} value={lang.code}>
-                        {lang.nativeName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <button
-                  type="button"
-                  disabled={isTranslating}
-                  onClick={() => {
-                    setSourceLang(targetLang);
-                    setTargetLang(sourceLang);
-                  }}
-                  className={`mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-colors disabled:opacity-40 ${inputTone}`}
-                  aria-label={t('aiTranslatePage.swapLanguages')}
-                >
-                  <ArrowLeftRight className="h-4 w-4" />
-                </button>
-                <div className="flex-1 min-w-0">
-                  <label className={`text-[11px] font-medium ${panelTextMain}`}>
-                    {t('aiTranslatePage.toLabel')}
-                  </label>
-                  <select
-                    value={targetLang}
-                    disabled={isTranslating}
-                    onChange={(e) => setTargetLang(e.target.value)}
-                    className={`mt-1 w-full rounded-lg border px-2.5 py-2 text-[12px] ${inputTone}`}
-                  >
-                    {TRANSLATE_LANGUAGE_OPTIONS.map((lang) => (
-                      <option key={`to-${lang.code}`} value={lang.code}>
-                        {lang.nativeName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+              <WorkspaceAiLanguageSelect
+                variant={isDarkTheme ? 'dark' : 'light'}
+                label={t('aiTranslatePage.targetLanguageLabel')}
+                value={targetLang}
+                onChange={setTargetLang}
+                disabled={isTranslating}
+                items={translateLangItems}
+              />
               <TranslatePipelineTiles
                 progress={translateProgress}
                 isTranslating={isTranslating}

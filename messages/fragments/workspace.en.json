@@ -191,9 +191,15 @@
     "exportFailed": "PDF export failed.",
     "summaryDetail": {
       "label": "Detail level",
-      "light": { "title": "Short" },
-      "balanced": { "title": "Medium" },
-      "deep": { "title": "Detailed" }
+      "light": {
+        "title": "Short"
+      },
+      "balanced": {
+        "title": "Medium"
+      },
+      "deep": {
+        "title": "Detailed"
+      }
     },
     "sessionTier": {
       "label": "Level",
@@ -201,9 +207,15 @@
     },
     "chatContext": {
       "label": "Chat depth",
-      "light": { "title": "Light" },
-      "balanced": { "title": "Mid" },
-      "deep": { "title": "Deep" }
+      "light": {
+        "title": "Light"
+      },
+      "balanced": {
+        "title": "Mid"
+      },
+      "deep": {
+        "title": "Deep"
+      }
     },
     "generateSummary": "Generate summary",
     "refreshSummary": "Update summary",
@@ -328,7 +340,8 @@
     "exportPdf": "Download PDF",
     "exportPdfFailed": "Could not create PDF from translation.",
     "placeholder": "Select a file and click Translate to get the translation.",
-    "processingHint": "Translation may take 1–2 minutes. Keep this tab open."
+    "processingHint": "Translation may take 1–2 minutes. Keep this tab open.",
+    "targetLanguageLabel": "Translate to"
   },
   "aiChatPage": {
     "uploadSubtitle": "Upload once, prepare the document, then ask anything",

@@ -323,7 +323,8 @@
     "exportPdf": "Descărcați PDF",
     "exportPdfFailed": "Nu s-a putut crea PDF din traducere.",
     "placeholder": "Selectați un fișier și faceți clic pe Traducere pentru a obține traducerea.",
-    "processingHint": "Traducerea poate dura 1-2 minute. Păstrați această filă deschisă."
+    "processingHint": "Traducerea poate dura 1-2 minute. Păstrați această filă deschisă.",
+    "targetLanguageLabel": "Tradu în"
   },
   "aiChatPage": {
     "uploadSubtitle": "Încărcați o dată, pregătiți documentul, apoi întrebați orice",

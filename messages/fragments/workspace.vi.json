@@ -374,6 +374,7 @@
     "exportPdf": "Tải xuống bản PDF",
     "exportPdfFailed": "Không thể tạo PDF từ bản dịch.",
     "placeholder": "Chọn file và nhấn Translate để nhận bản dịch.",
-    "processingHint": "Quá trình dịch có thể mất 1–2 phút. Giữ tab này mở."
+    "processingHint": "Quá trình dịch có thể mất 1–2 phút. Giữ tab này mở.",
+    "targetLanguageLabel": "Dịch sang"
   }
 }

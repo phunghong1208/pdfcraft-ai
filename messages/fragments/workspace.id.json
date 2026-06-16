@@ -322,7 +322,8 @@
     "exportPdf": "Unduh PDF",
     "exportPdfFailed": "Tidak dapat membuat PDF dari terjemahan.",
     "placeholder": "Pilih file dan klik Terjemahkan untuk mendapatkan terjemahannya.",
-    "processingHint": "Terjemahan mungkin memerlukan waktu 1–2 menit. Biarkan tab ini tetap terbuka."
+    "processingHint": "Terjemahan mungkin memerlukan waktu 1–2 menit. Biarkan tab ini tetap terbuka.",
+    "targetLanguageLabel": "Terjemahkan ke"
   },
   "aiChatPage": {
     "uploadSubtitle": "Upload sekali, siapkan dokumennya, lalu tanyakan apa saja",

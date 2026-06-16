@@ -124,21 +124,22 @@ def _text_align(target_lang: str) -> int:
 
 
 def _prepare_script_line(line: str, target_lang: str, script_font: str = "") -> str:
-    """Reshape Arabic / bidi RTL trước khi vẽ."""
+    """Reshape Arabic / bidi RTL trước khi vẽ. Ép base_dir='R' để số/Latin
+    đầu dòng không bị hiểu là LTR (mục '2.'/'e-Visa' nhảy sai chỗ)."""
     if target_lang == "ar":
         try:
             import arabic_reshaper
             from bidi.algorithm import get_display
 
             shaped = arabic_reshaper.reshape(line)
-            return get_display(shaped)
+            return get_display(shaped, base_dir="R")
         except Exception as exc:
             logger.warning("arabic reshape failed: %s", exc)
     if target_lang == "he":
         try:
             from bidi.algorithm import get_display
 
-            return get_display(line)
+            return get_display(line, base_dir="R")
         except Exception as exc:
             logger.warning("hebrew bidi failed: %s", exc)
     return line
@@ -502,6 +503,7 @@ def _insert_text(
     target_lang: str = "en",
     bold: bool = False,
     italic: bool = False,
+    rtl_right: float | None = None,
 ) -> None:
     """Insert translated text — table cell giữ logic cũ, prose fit trong bbox gốc."""
     text = "\n".join(line for line in text.split("\n") if line.strip())
@@ -522,11 +524,12 @@ def _insert_text(
         min_size = 4.0
     else:
         if target_lang in RTL_LANGS and page_width:
-            # RTL: neo mọi đoạn về MỘT lề phải chung của trang để thẳng hàng đều
-            # (mỗi block neo mép phải gốc của nó → block ngắn bị tụt vào, lệch).
+            # RTL: neo mọi đoạn về MỘT lề phải chung trong trang để thẳng hàng đều
+            # và KHÔNG tràn ra ngoài (clamp cứng <= page_width - 12).
             # Chỉ áp cho đoạn bắt đầu từ nửa trái (list/đoạn văn) — tránh cột/căn giữa.
             if base.x0 < page_width * 0.5:
-                right = max(base.x1, page_width - 12)
+                right = rtl_right if rtl_right is not None else (page_width - 12)
+                right = max(base.x1, min(right, page_width - 12))
                 base = fitz.Rect(max(12.0, base.x0), base.y0, right, base.y1)
         elif page_width and base.width < page_width * 0.45:
             # Giữ mép phải gốc làm sàn để không tạo rect âm khi block sát lề phải.
@@ -610,6 +613,10 @@ def render_translated_pdf(
         all_by_page: dict[int, list[tuple[int, dict[str, Any], str]]] = {}
         for i, block in enumerate(blocks):
             translated = (translations[i] if i < len(translations) else "").strip()
+            # Chống "mất chữ": dịch rỗng (lỗi batch / item bỏ qua) → vẽ lại text gốc
+            # (chữ gốc đã bị wipe xoá nên nếu không vẽ lại sẽ thành vùng trắng).
+            if not translated:
+                translated = (block.get("text") or "").strip()
             page_no = int(block["pageNumber"])
             page_idx = page_no - 1
             if page_idx < 0 or page_idx >= len(doc):
@@ -667,6 +674,24 @@ def render_translated_pdf(
                 following = [r for _, r in prose_sorted[idx + 1:]]
                 ceilings[i] = _find_ceiling(rect, following, float(page.rect.height))
 
+            # RTL: giới hạn mép phải để KHÔNG nới sang phải đè lên block bên phải
+            # (sửa lỗi 2 ô cạnh nhau chồng chữ lên nhau).
+            right_limits: dict[int, float] = {}
+            if target_lang in RTL_LANGS:
+                page_w = float(page.rect.width)
+                rect_by_i = {i: _block_rect(b, page_h) for i, b, t in page_blocks if t}
+                for i, r in rect_by_i.items():
+                    limit = page_w - 12
+                    for j, o in rect_by_i.items():
+                        if j == i:
+                            continue
+                        vov = min(r.y1, o.y1) - max(r.y0, o.y0)
+                        if vov <= 1:
+                            continue
+                        if o.x0 >= r.x1 - 1:  # block o nằm bên phải r
+                            limit = min(limit, o.x0 - 4)
+                    right_limits[i] = max(r.x1, limit)
+
             # Vẽ từ trên xuống — block sau không bị block trước che
             ordered = sorted(
                 page_blocks,
@@ -690,6 +715,7 @@ def render_translated_pdf(
                     page_width=float(page.rect.width),
                     target_lang=target_lang,
                     bold=bold, italic=italic,
+                    rtl_right=right_limits.get(i),
                 )
                 if debug_ocr:
                     _debug_block(page, block, page_h, i)

@@ -3092,7 +3092,8 @@
       "exportPdf": "Download PDF",
       "exportPdfFailed": "Could not create PDF from translation.",
       "placeholder": "Select a file and click Translate to get the translation.",
-      "processingHint": "Translation may take 1–2 minutes. Keep this tab open."
+      "processingHint": "Translation may take 1–2 minutes. Keep this tab open.",
+      "targetLanguageLabel": "Translate to"
     },
     "aiChatPage": {
       "uploadSubtitle": "Upload once, prepare the document, then ask anything",

@@ -3108,7 +3108,8 @@
       "exportPdf": "Scarica PDF",
       "exportPdfFailed": "Impossibile creare PDF dalla traduzione.",
       "placeholder": "Seleziona un file e fai clic su Traduci per ottenere la traduzione.",
-      "processingHint": "La traduzione potrebbe richiedere 1–2 minuti. Tieni aperta questa scheda."
+      "processingHint": "La traduzione potrebbe richiedere 1–2 minuti. Tieni aperta questa scheda.",
+      "targetLanguageLabel": "Traduci in"
     },
     "aiChatPage": {
       "uploadSubtitle": "Carica una volta, prepara il documento, quindi chiedi qualsiasi cosa",

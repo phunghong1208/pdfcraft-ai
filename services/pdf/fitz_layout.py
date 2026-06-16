@@ -19,6 +19,17 @@ NOISE_LINE_RE = re.compile(
     r"^(page\s+\d+(\s+of\s+\d+)?|trang\s+\d+(\s+trang\s+\d+)?|document\s+created)",
     re.I,
 )
+# Font barcode (Code128/39, EAN/UPC, IDAutomation, Libre Barcode...) — KHÔNG dịch,
+# KHÔNG xoá: dịch/redraw bằng font thường sẽ làm hỏng mã vạch.
+_BARCODE_FONT_RE = re.compile(
+    r"barcode|code\s?128|code\s?39|idautomation|libre\s*barcode|"
+    r"3\s?of\s?9|3of9|\bc39\b|\bcode128\b|\bcode39\b",
+    re.I,
+)
+
+
+def _is_barcode_span(span: dict) -> bool:
+    return bool(_BARCODE_FONT_RE.search(span.get("font") or ""))
 
 # Map special Unicode bullets/symbols -> ASCII so NotoSans renders them
 _GLYPH_FIXES: dict[str, str] = {
@@ -404,7 +415,10 @@ def _cell_value_from_page(page: fitz.Page, cell_rect: fitz.Rect) -> tuple[str, l
     all_spans: list[dict] = []
     for blk in text_dict.get("blocks", []):
         for line in blk.get("lines", []):
-            lspans = [s for s in line.get("spans", []) if (s.get("text") or "").strip()]
+            lspans = [
+                s for s in line.get("spans", [])
+                if (s.get("text") or "").strip() and not _is_barcode_span(s)
+            ]
             if not lspans:
                 continue
             all_spans.extend(lspans)
@@ -534,6 +548,7 @@ def _collect_page_lines(
             spans = [
                 s for s in line.get("spans", [])
                 if (s.get("text") or "").strip()
+                and not _is_barcode_span(s)
                 and not _span_in_table(s.get("bbox", [0, 0, 0, 0]), tr)
             ]
             row = _line_block(page_no, page_h, spans, label="line")
@@ -581,7 +596,10 @@ def extract_fitz_wipe_lines(pdf_path: Path) -> list[dict[str, Any]]:
                 if block.get("type") != 0:
                     continue
                 for line in block.get("lines", []):
-                    spans = [s for s in line.get("spans", []) if (s.get("text") or "").strip()]
+                    spans = [
+                        s for s in line.get("spans", [])
+                        if (s.get("text") or "").strip() and not _is_barcode_span(s)
+                    ]
                     if not spans:
                         continue
                     x0 = min(float(s["bbox"][0]) for s in spans)

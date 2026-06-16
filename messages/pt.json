@@ -3317,7 +3317,8 @@
       "exportPdf": "Baixar PDF",
       "exportPdfFailed": "Não foi possível criar o PDF a partir da tradução.",
       "placeholder": "Selecione um arquivo e clique em Traduzir para obter a tradução.",
-      "processingHint": "A tradução pode levar de 1 a 2 minutos. Mantenha esta aba aberta."
+      "processingHint": "A tradução pode levar de 1 a 2 minutos. Mantenha esta aba aberta.",
+      "targetLanguageLabel": "Traduzir para"
     },
     "aiChatPage": {
       "uploadSubtitle": "Faça upload uma vez, prepare o documento e pergunte qualquer coisa",

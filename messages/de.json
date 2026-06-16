@@ -3099,7 +3099,8 @@
       "exportPdf": "PDF herunterladen",
       "exportPdfFailed": "Aus der Übersetzung konnte kein PDF erstellt werden.",
       "placeholder": "Wählen Sie eine Datei aus und klicken Sie auf Übersetzen, um die Übersetzung zu erhalten.",
-      "processingHint": "Die Übersetzung kann 1–2 Minuten dauern. Lassen Sie diese Registerkarte geöffnet."
+      "processingHint": "Die Übersetzung kann 1–2 Minuten dauern. Lassen Sie diese Registerkarte geöffnet.",
+      "targetLanguageLabel": "Übersetzen in"
     },
     "aiChatPage": {
       "uploadSubtitle": "Einmal hochladen, das Dokument vorbereiten und dann alles fragen",

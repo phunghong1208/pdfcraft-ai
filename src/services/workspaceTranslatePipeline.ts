@@ -68,6 +68,10 @@ function emit(
 }
 
 function ocrLanguagesForSource(sourceLang: string): OCRLanguage[] {
+  // 'auto' (UI chỉ chọn đích): không biết nguồn → OCR phủ tiếng Việt + Anh.
+  if (sourceLang === 'auto') {
+    return parseOcrLanguageCodes('vie+eng');
+  }
   const primary = OCR_LANG_MAP[sourceLang] ?? 'eng';
   const langs = primary === 'eng' ? ['eng'] : [primary, 'eng'];
   return parseOcrLanguageCodes(langs.join('+'));

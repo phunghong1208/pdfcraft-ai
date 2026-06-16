@@ -3099,7 +3099,8 @@
       "exportPdf": "下载PDF",
       "exportPdfFailed": "无法从翻译创建 PDF。",
       "placeholder": "选择一个文件并单击翻译以获取翻译。",
-      "processingHint": "翻译可能需要 1-2 分钟。保持此选项卡打开。"
+      "processingHint": "翻译可能需要 1-2 分钟。保持此选项卡打开。",
+      "targetLanguageLabel": "翻译为"
     },
     "aiChatPage": {
       "uploadSubtitle": "上传一次，准备好文件，然后提问",

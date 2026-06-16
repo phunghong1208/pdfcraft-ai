@@ -323,7 +323,8 @@
     "exportPdf": "下載PDF",
     "exportPdfFailed": "無法從翻譯建立 PDF。",
     "placeholder": "選擇一個檔案並點擊翻譯以取得翻譯。",
-    "processingHint": "翻譯可能需要 1-2 分鐘。保持此選項卡打開。"
+    "processingHint": "翻譯可能需要 1-2 分鐘。保持此選項卡打開。",
+    "targetLanguageLabel": "翻譯為"
   },
   "aiChatPage": {
     "uploadSubtitle": "上傳一次，準備好文件，然後提問",
