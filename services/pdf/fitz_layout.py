@@ -106,6 +106,18 @@ def _spans_style(spans: list[dict]) -> tuple[bool, bool]:
     return (total > 0 and b >= total * 0.6, total > 0 and i >= total * 0.6)
 
 
+def _is_section_heading(block: dict[str, Any]) -> bool:
+    """Tiêu đề mục form (vd 'Personal Information') — không gộp với field bên dưới."""
+    text = (block.get("text") or "").strip()
+    if not text or len(text) > 55 or len(text.split()) > 7:
+        return False
+    if not block.get("bold"):
+        return False
+    if not text[0].isupper():
+        return False
+    return text.rstrip()[-1] not in ".:;,"
+
+
 def _merge_block_style(a: dict, b: dict) -> tuple[bool, bool]:
     """Majority-vote bold/italic khi merge 2 blocks (>=60% ký tự)."""
     a_len = len((a.get("text") or "").strip())
@@ -225,6 +237,9 @@ def _line_block(
             "rotation": _line_rotation(dir_vec),
         }
 
+    span_y0 = min(float(s["bbox"][1]) for s in spans)
+    span_y1 = max(float(s["bbox"][3]) for s in spans)
+
     # Use baseline (span origin) to compute glyph region — bbox includes line spacing
     # fitz origin = (x, baseline_y) in top-left coords
     baselines = [float(s["origin"][1]) for s in spans if s.get("origin")]
@@ -233,10 +248,14 @@ def _line_block(
         # Glyph ascent ~80% above baseline, descent ~25% below
         glyph_top = baseline - font_size * 0.80
         glyph_bot = baseline + font_size * 0.25
+        # Form PDF (e-Visa, passport…) hay có origin lệch → khung cam không khớp chữ
+        if (
+            abs(glyph_top - span_y0) > font_size * 0.45
+            or abs(glyph_bot - span_y1) > font_size * 0.45
+        ):
+            glyph_top, glyph_bot = span_y0, span_y1
     else:
-        # Fallback to bbox if no origin available
-        glyph_top = min(float(s["bbox"][1]) for s in spans)
-        glyph_bot = max(float(s["bbox"][3]) for s in spans)
+        glyph_top, glyph_bot = span_y0, span_y1
 
     return {
         "pageNumber": page_no,
@@ -244,7 +263,7 @@ def _line_block(
         "pdfX": round(x0, 2),
         "pdfY": round(page_h - glyph_bot, 2),
         "pdfWidth": round(max(4.0, x1 - x0), 2),
-        "pdfHeight": round(max(4.0, glyph_bot - glyph_top), 2),
+        "pdfHeight": round(max(4.0, glyph_bot - glyph_top, font_size * 1.05), 2),
         "fontSize": round(max(6.0, min(72.0, font_size)), 1),
         "fontFamily": "Helvetica",
         "bold": bold,
@@ -474,6 +493,13 @@ def _merge_nearby_blocks(
 
         # II. ĐÁP ÁN — tách khỏi đoạn hướng dẫn phía trên
         if ROMAN_HEADING_RE.match(blk_text):
+            merged.append(cur)
+            cur = {**blk}
+            cur_lines = 1
+            continue
+
+        # Tiêu đề mục form — không gộp với Passport Number / Name bên dưới
+        if _is_section_heading(cur):
             merged.append(cur)
             cur = {**blk}
             cur_lines = 1
@@ -788,8 +814,15 @@ def _dedup_blocks(blocks: list[dict[str, Any]], iou_thresh: float = 0.4) -> list
             inter = ix * iy
             area = bw * bh
             if area > 0 and inter / area >= 0.12:
-                dominated = True
-                break
+                k_text = (k.get("text") or "").strip()
+                bt = b_text.strip()
+                if k_text and bt and (
+                    _text_overlap(bt, k_text) > 0.3
+                    or bt in k_text
+                    or k_text in bt
+                ):
+                    dominated = True
+                    break
             y_dist = abs((by + bh / 2) - (ky + kh / 2))
             near = y_dist < max(bh, kh) * 3
             if near and len(b_text) > 2 and (

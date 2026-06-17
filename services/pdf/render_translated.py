@@ -583,6 +583,10 @@ def _insert_text(
     if base.is_empty or base.width < 2 or base.height < 2:
         return
 
+    fs = float(block.get("fontSize", 11))
+    if base.height < fs * 0.85:
+        base = fitz.Rect(base.x0, base.y0, base.x1, base.y0 + max(base.height, fs * 1.15))
+
     is_cell = block.get("label") == "table_cell"
     if is_cell:
         rect = fitz.Rect(base.x0 + 2, base.y0 + 2, base.x1 - 2, base.y1 - 2)
@@ -615,6 +619,24 @@ def _insert_text(
         page, rect, text, target_lang, fontfile, fontname, size, min_size,
         bold=bold, italic=italic,
     ):
+        # Fallback: tiêu đề 1 dòng (Personal Information…) — textbox fail khi rect mỏng/rộng
+        if len(text.split()) <= 8 and "\n" not in text.strip():
+            shaped = text
+            if target_lang in RTL_LANGS:
+                shaped = _prepare_script_line(text, target_lang, fontfile)
+            point = (rect.x0 + 2, rect.y0 + size * 0.85)
+            try:
+                page.insert_text(
+                    point,
+                    shaped,
+                    fontsize=size,
+                    fontname=fontname if fontfile else "helv",
+                    fontfile=fontfile if fontfile else None,
+                    color=(0, 0, 0),
+                )
+                return
+            except Exception as exc:
+                logger.warning("insert_text fallback failed: %s", exc)
         logger.warning(
             "textbox overflow lang=%s len=%d rect=%s",
             target_lang, len(text), rect,
