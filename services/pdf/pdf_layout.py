@@ -516,17 +516,21 @@ def _trim_wipe_rect(block: dict[str, Any]) -> tuple[float, float, float, float]:
 
 
 def _adjust_block_for_render(block: dict[str, Any]) -> dict[str, Any]:
-    """Chỉnh bbox + text trước khi vẽ — bỏ phần chữ dọc lề trái."""
+    """Chỉnh bbox + text trước khi vẽ — bỏ phần chữ dọc lề trái.
+
+    Chỉ strip margin prefix khi block nằm ở lề trái (x < 48).
+    Tránh strip sai từ ngắn tiếng Việt ("Số", "hộ"...) ở block ngoài lề.
+    """
     b = {**block}
-    raw = (b.get("text") or "").strip()
-    text = _strip_margin_prefix(raw)
-    b["text"] = text
     x = float(b["pdfX"])
     w = float(b["pdfWidth"])
-    if x < 48 and (_leading_junk_word_count(raw) > 0 or w > 80):
-        bump = 32.0 if w > 200 else 26.0
-        b["pdfX"] = round(x + bump, 2)
-        b["pdfWidth"] = round(max(4.0, w - bump), 2)
+    if x < 48:
+        raw = (b.get("text") or "").strip()
+        if _leading_junk_word_count(raw) > 0 or w > 80:
+            b["text"] = _strip_margin_prefix(raw)
+            bump = 32.0 if w > 200 else 26.0
+            b["pdfX"] = round(x + bump, 2)
+            b["pdfWidth"] = round(max(4.0, w - bump), 2)
     return b
 
 
@@ -591,7 +595,9 @@ def _merge_nearby_blocks(
             cur_lines = 1
             continue
 
-        if 0 <= gap < max_gap and aligned and cur_lines < MAX_MERGE_LINES and not new_list_item:
+        # Cho phép overlap nhỏ (~1.5pt) — PDF rounding gây gap âm giữa dòng liền kề
+        min_gap = -(max(cur["fontSize"], blk["fontSize"]) * 0.15)
+        if min_gap <= gap < max_gap and aligned and cur_lines < MAX_MERGE_LINES and not new_list_item:
             new_x = min(cur["pdfX"], blk["pdfX"])
             new_y = min(cur["pdfY"], blk["pdfY"])
             new_x2 = max(cur["pdfX"] + cur["pdfWidth"], blk["pdfX"] + blk["pdfWidth"])

@@ -21,7 +21,7 @@ from pdf_overlay import (
 )
 
 # Re-use layout noise helpers
-from pdf_layout import _adjust_block_for_render, _is_sidebar_noise, _strip_margin_prefix
+from pdf_layout import _adjust_block_for_render, _is_sidebar_noise, _leading_junk_word_count
 
 _BIDI_MARK_RE = re.compile(r"[\u200e\u200f\u202a-\u202e\u2066-\u2069\ufeff]")
 _EXOTIC_SPACE_RE = re.compile(r"[\u00a0\u202f\u2007\u2060\u2009\u200a\u3000]+")
@@ -579,6 +579,7 @@ def _insert_text(
     bold: bool = False,
     italic: bool = False,
     rtl_right: float | None = None,
+    max_right: float | None = None,
 ) -> None:
     text = "\n".join(line for line in text.split("\n") if line.strip())
     if not text:
@@ -612,7 +613,8 @@ def _insert_text(
             right = max(base.x1, min(right, page_width - 12))
             base = PdfRect(max(12.0, base.x0), base.y0, right, base.y1)
         elif page_width and base.width < page_width * 0.45:
-            new_x1 = max(base.x1, page_width - 12)
+            limit = max_right if max_right is not None else (page_width - 12)
+            new_x1 = max(base.x1, min(limit, page_width - 12))
             base = PdfRect(base.x0, base.y0, new_x1, base.y1)
         if not fontfile:
             rect, size, min_size = base, min(base_size, 11.0), 5.0
@@ -731,30 +733,44 @@ def render_translated_pdf(
                     following = [r for _, r in prose_sorted[idx + 1:]]
                     ceilings[i] = _find_ceiling(rect, following, page_h)
 
+                # Right limits — giới hạn mở rộng width theo block bên phải cùng hàng
+                rect_by_i = {i: _block_rect(b, page_h) for i, b, t in page_blocks if t}
                 right_limits: dict[int, float] = {}
-                if target_lang in RTL_LANGS:
-                    rect_by_i = {i: _block_rect(b, page_h) for i, b, t in page_blocks if t}
-                    for i, r in rect_by_i.items():
-                        limit = w - 12
-                        for j, o in rect_by_i.items():
-                            if j == i:
-                                continue
-                            vov = min(r.y1, o.y1) - max(r.y0, o.y0)
-                            if vov <= 1:
-                                continue
-                            if o.x0 >= r.x1 - 1:
-                                limit = min(limit, o.x0 - 4)
-                        right_limits[i] = max(r.x1, limit)
+                for i, r in rect_by_i.items():
+                    limit = w - 12
+                    for j, o in rect_by_i.items():
+                        if j == i:
+                            continue
+                        vov = min(r.y1, o.y1) - max(r.y0, o.y0)
+                        if vov <= 1:
+                            continue
+                        if o.x0 >= r.x1 - 1:
+                            limit = min(limit, o.x0 - 4)
+                    right_limits[i] = max(r.x1, limit)
 
                 ordered = sorted(page_blocks, key=lambda x: _block_rect(x[1], page_h).y0)
                 for i, block, translated in ordered:
                     if not translated or _is_sidebar_noise(block):
                         continue
-                    translated = _strip_margin_prefix(translated)
+                    # Bbox adjust dùng ORIGINAL text — giữ nguyên translated text
+                    draw_block = _adjust_block_for_render({**block})
+                    # Strip junk prefix từ translated text CHỈ cho blocks lề trái,
+                    # dùng số junk words từ original text (tránh strip sai tiếng Việt)
+                    x_orig = float(block["pdfX"])
+                    if x_orig < 48:
+                        orig_junk = _leading_junk_word_count(
+                            (block.get("text") or "").strip()
+                        )
+                        if orig_junk > 0:
+                            trans_junk = _leading_junk_word_count(translated)
+                            strip_n = min(orig_junk, trans_junk)
+                            if strip_n > 0:
+                                tw = translated.split()
+                                if strip_n < len(tw):
+                                    translated = " ".join(tw[strip_n:])
+                    draw_block["text"] = translated
                     if not translated.strip():
                         continue
-                    draw_block = _adjust_block_for_render({**block, "text": translated})
-                    translated = draw_block.get("text", translated)
                     bold = bool(block.get("bold"))
                     italic = bool(block.get("italic"))
                     b_file = _styled_font_path(target_lang, bold, italic) if (bold or italic) else fontfile
@@ -767,7 +783,8 @@ def render_translated_pdf(
                         target_lang=target_lang,
                         bold=bold,
                         italic=italic,
-                        rtl_right=right_limits.get(i),
+                        rtl_right=right_limits.get(i) if target_lang in RTL_LANGS else None,
+                        max_right=right_limits.get(i),
                     )
                     if debug_ocr:
                         r = _block_rect(draw_block, page_h)

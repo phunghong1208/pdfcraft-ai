@@ -756,7 +756,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef,
       setIsTranslating(false);
       setTranslateProgress(null);
     }
-  }, [file, sourceLang, targetLang, t]);
+  }, [file, sourceLang, targetLang, translateOutputFormat, t]);
 
   const handleCopyTranslated = useCallback(async () => {
     if (!translatedText?.trim()) return;
@@ -1166,7 +1166,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef,
                         <FileDown className="h-3.5 w-3.5" />
                         {translatedPdfName?.endsWith('.docx') ? 'Export DOCX' : t('aiTranslatePage.exportPdf')}
                       </button>
-                      {onTranslatedFile && (
+                      {onTranslatedFile && !translatedPdfName?.endsWith('.docx') && (
                         <button
                           type="button"
                           onClick={handleApplyTranslatedToWorkspace}

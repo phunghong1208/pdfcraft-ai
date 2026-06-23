@@ -18,7 +18,7 @@ from docx.enum.section import WD_SECTION
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
-from docx.shared import Emu, Inches, Pt
+from docx.shared import Emu, Inches, Pt, RGBColor
 from pdf2image import convert_from_path
 from pypdf import PdfReader, PdfWriter
 
@@ -43,6 +43,31 @@ class StyledRun:
     italic: bool = False
     size: float = 11.0
     fontname: str = ""
+    color_rgb: tuple[int, int, int] | None = None
+
+
+def _color_to_rgb(color: Any) -> tuple[int, int, int] | None:
+    """Convert pdfplumber non_stroking_color → (R,G,B) 0-255, None if black/default."""
+    if color is None:
+        return None
+    if not isinstance(color, (list, tuple)) or not color:
+        return None
+    try:
+        if len(color) == 1:
+            v = int(float(color[0]) * 255)
+            return None if v < 15 else (v, v, v)
+        if len(color) == 3:
+            r, g, b = (int(float(c) * 255) for c in color)
+            return None if (r < 15 and g < 15 and b < 15) else (r, g, b)
+        if len(color) == 4:
+            c, m, y, k = (float(x) for x in color)
+            r = int(255 * (1 - c) * (1 - k))
+            g = int(255 * (1 - m) * (1 - k))
+            b = int(255 * (1 - y) * (1 - k))
+            return None if (r < 15 and g < 15 and b < 15) else (r, g, b)
+    except (TypeError, ValueError):
+        pass
+    return None
 
 
 @dataclass
@@ -238,12 +263,13 @@ def _line_to_text_block(group: list[dict[str, Any]], page_w: float) -> TextBlock
         fontname = str(word.get("fontname") or "")
         size = float(word.get("size") or 11)
         bold, italic = _font_flags(fontname)
+        rgb = _color_to_rgb(word.get("non_stroking_color"))
         if i > 0 and runs:
             prev = group[i - 1]
             gap = float(word["x0"]) - float(prev["x1"])
             if gap > max(size * 0.15, 1.5) and runs[-1].text and not runs[-1].text.endswith(" "):
                 runs.append(StyledRun(" ", size=size))
-        runs.append(StyledRun(text, bold=bold, italic=italic, size=size, fontname=fontname))
+        runs.append(StyledRun(text, bold=bold, italic=italic, size=size, fontname=fontname, color_rgb=rgb))
     if not runs:
         return None
     x0 = min(float(w["x0"]) for w in group)
@@ -515,7 +541,7 @@ def _extract_page(page: pdfplumber.page.Page, pdf_path: Path, image_map: dict[in
         x_tolerance=1.5,
         y_tolerance=2,
         keep_blank_chars=False,
-        extra_attrs=["fontname", "size"],
+        extra_attrs=["fontname", "size", "non_stroking_color"],
     ) or []
 
     filtered: list[dict[str, Any]] = []
@@ -561,6 +587,19 @@ def _extract_page(page: pdfplumber.page.Page, pdf_path: Path, image_map: dict[in
     return content
 
 
+def _apply_run_style(run, run_data: StyledRun) -> None:
+    """Apply bold/italic/size/font/color from StyledRun to DOCX Run."""
+    run.bold = run_data.bold
+    run.italic = run_data.italic
+    if run_data.size > 0:
+        run.font.size = Pt(max(6, round(run_data.size)))
+    mapped = _map_font_name(run_data.fontname)
+    if mapped:
+        run.font.name = mapped
+    if run_data.color_rgb:
+        run.font.color.rgb = RGBColor(*run_data.color_rgb)
+
+
 def _add_text_block(
     doc: Document,
     block: TextBlock,
@@ -579,13 +618,7 @@ def _add_text_block(
         if not run_data.text:
             continue
         run = para.add_run(run_data.text)
-        run.bold = run_data.bold
-        run.italic = run_data.italic
-        if run_data.size > 0:
-            run.font.size = Pt(max(6, round(run_data.size)))
-        mapped = _map_font_name(run_data.fontname)
-        if mapped:
-            run.font.name = mapped
+        _apply_run_style(run, run_data)
 
 
 def _set_table_borders(table, sz: int = 4, color: str = "000000") -> None:
@@ -895,7 +928,8 @@ def _add_framed_text_block(doc: Document, block: TextBlock) -> None:
     if not block.text.strip():
         return
 
-    width_pt = max(12.0, block.x1 - block.x0)
+    raw_w = block.x1 - block.x0
+    width_pt = max(12.0, raw_w + max(6.0, raw_w * 0.10))
     height_pt = max(8.0, block.bottom - block.top)
 
     para = doc.add_paragraph()
@@ -919,10 +953,7 @@ def _add_framed_text_block(doc: Document, block: TextBlock) -> None:
         if not run_data.text:
             continue
         run = para.add_run(run_data.text)
-        run.bold = run_data.bold
-        run.italic = run_data.italic
-        if run_data.size > 0:
-            run.font.size = Pt(max(6, round(run_data.size)))
+        _apply_run_style(run, run_data)
 
 
 def _extract_positioned_page_blocks(
@@ -949,7 +980,7 @@ def _extract_positioned_page_blocks(
         x_tolerance=1.5,
         y_tolerance=2,
         keep_blank_chars=False,
-        extra_attrs=["fontname", "size"],
+        extra_attrs=["fontname", "size", "non_stroking_color"],
     ) or []
 
     filtered: list[dict[str, Any]] = []
@@ -1003,10 +1034,35 @@ def _add_anchored_image(doc: Document, block: ImageBlock) -> None:
         logger.warning("anchored image insert failed: %s", exc)
 
 
+def _cell_formatting(page: Any, cell_bbox: tuple) -> tuple[bool, bool, tuple[int, int, int] | None]:
+    """Detect bold/italic/color from chars within a table cell bbox."""
+    if page is None or cell_bbox is None:
+        return False, False, None
+    try:
+        x0, top, x1, bottom = cell_bbox
+        cropped = page.crop((x0 + 0.5, top + 0.5, x1 - 0.5, bottom - 0.5))
+        chars = cropped.chars or []
+        if not chars:
+            return False, False, None
+        text_chars = [c for c in chars if (c.get("text") or "").strip()]
+        if not text_chars:
+            return False, False, None
+        bold_count = sum(1 for c in text_chars if _font_flags(c.get("fontname") or "")[0])
+        italic_count = sum(1 for c in text_chars if _font_flags(c.get("fontname") or "")[1])
+        total = len(text_chars)
+        is_bold = bold_count > total * 0.6
+        is_italic = italic_count > total * 0.6
+        first_color = _color_to_rgb(text_chars[0].get("non_stroking_color"))
+        return is_bold, is_italic, first_color
+    except Exception:
+        return False, False, None
+
+
 def _add_positioned_table(
     doc: Document,
     table_obj: Any,
     page_w: float,
+    page: Any = None,
 ) -> None:
     """Render pdfplumber table as positioned DOCX table with borders."""
     data = table_obj.extract() or []
@@ -1080,6 +1136,17 @@ def _add_positioned_table(
     except Exception:
         pass
 
+    # Get per-cell bboxes for formatting extraction
+    row_cell_bboxes: list[list[tuple | None]] = []
+    try:
+        for row_obj in table_obj.rows:
+            row_cells = list(row_obj.cells) if row_obj.cells else [None] * cols
+            if non_empty and len(row_cells) > cols:
+                row_cells = [row_cells[j] if j < len(row_cells) else None for j in non_empty]
+            row_cell_bboxes.append(row_cells)
+    except Exception:
+        row_cell_bboxes = [[None] * cols for _ in cleaned]
+
     for i, row in enumerate(cleaned):
         for j in range(cols):
             cell_text = row[j] if j < len(row) else ""
@@ -1093,11 +1160,20 @@ def _add_positioned_table(
             for old in tc_pr.findall(qn("w:tcW")):
                 tc_pr.remove(old)
             tc_pr.append(tc_w)
+            # Apply formatting from PDF chars
+            cell_bbox = row_cell_bboxes[i][j] if i < len(row_cell_bboxes) and j < len(row_cell_bboxes[i]) else None
+            is_bold, is_italic, cell_color = _cell_formatting(page, cell_bbox)
             for para in cell.paragraphs:
                 para.paragraph_format.space_before = Pt(1)
                 para.paragraph_format.space_after = Pt(1)
                 for run in para.runs:
                     run.font.size = Pt(8)
+                    if is_bold:
+                        run.bold = True
+                    if is_italic:
+                        run.italic = True
+                    if cell_color:
+                        run.font.color.rgb = RGBColor(*cell_color)
 
 
 def _build_fixed_layout_docx(pdf_path: Path, output_path: Path) -> None:
@@ -1157,7 +1233,7 @@ def _build_fixed_layout_docx(pdf_path: Path, output_path: Path) -> None:
                 _add_framed_text_block(doc, block)
 
             for table in tables:
-                _add_positioned_table(doc, table, page_w)
+                _add_positioned_table(doc, table, page_w, page=page)
 
             raw_imgs = _match_page_images(page, page_idx, image_map, table_rects)
             for img_block in raw_imgs:
