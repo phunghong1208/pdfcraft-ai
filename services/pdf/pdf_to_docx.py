@@ -225,6 +225,10 @@ def _is_real_table(table: Any, page_w: float, page: Any | None = None) -> bool:
         return False
     # Dải ngang mỏng (chỉ là đường kẻ / rule)
     if rows == 1 and h < 24:
+        row0 = [str(c).strip().lower() for c in (table.extract() or [[]])[0] if c and str(c).strip()]
+        header_hits = sum(1 for t in row0 if t in {"phần", "câu", "nội dung", "điểm"})
+        if header_hits >= 3:
+            return True
         return False
     # Text 1 dòng bị pdfplumber cắt thành nhiều cột nhỏ (vd. "Câu 2 (4.0 điểm)")
     if rows == 1 and cols >= 4:
@@ -794,27 +798,14 @@ def _extract_page(page: pdfplumber.page.Page, pdf_path: Path, image_map: dict[in
 
     table_rects: list[tuple[float, float, float, float]] = []
     table_blocks: list[TableBlock] = []
-    overflow_blocks: list[TextBlock] = []
-
     try:
         for table in _find_visible_tables(page):
             cleaned, overflow, bbox = _split_table_rows(table)
-            full_bbox = tuple(float(x) for x in table.bbox)
-            for oi, text in enumerate(overflow):
-                y_top = float(full_bbox[1]) - (len(overflow) - oi) * 14
-                overflow_blocks.append(
-                    TextBlock(
-                        runs=[StyledRun(text, bold=True)],
-                        top=y_top,
-                        x0=float(full_bbox[0]),
-                        x1=float(full_bbox[2]),
-                        bottom=y_top + 12,
-                        align=WD_ALIGN_PARAGRAPH.LEFT,
-                    )
-                )
+            _ = overflow
             if not cleaned or not any(any(cell for cell in row) for row in cleaned):
                 continue
-            table_rects.append(full_bbox)
+            # Dùng bbox đã trim để text hàng tiêu đề (I./II.) vẫn giữ đúng vị trí ngoài bảng.
+            table_rects.append(bbox)
             table_blocks.append(TableBlock(rows=cleaned, top=float(bbox[1])))
     except Exception as exc:
         logger.warning("table extract failed page %d: %s", page_idx + 1, exc)
@@ -858,7 +849,6 @@ def _extract_page(page: pdfplumber.page.Page, pdf_path: Path, image_map: dict[in
         ]
 
     text_blocks = _merge_lines_to_paragraphs(text_blocks, page_w)
-    text_blocks = overflow_blocks + text_blocks
 
     ordered: list[TextBlock | TableBlock | ImageBlock | HLineBlock] = []
     ordered.extend(text_blocks)
@@ -955,10 +945,26 @@ def _add_table_block(doc: Document, block: TableBlock) -> None:
     cols = max(len(row) for row in block.rows)
     if cols < 1:
         return
-    table = doc.add_table(rows=len(block.rows), cols=cols)
+    non_empty_cols = [
+        j for j in range(cols)
+        if any((row[j] if j < len(row) else "").strip() for row in block.rows)
+    ]
+    if non_empty_cols and len(non_empty_cols) < cols:
+        compact_rows = [
+            [(row[j] if j < len(row) else "") for j in non_empty_cols]
+            for row in block.rows
+        ]
+    else:
+        compact_rows = block.rows
+
+    cols = max(len(row) for row in compact_rows)
+    if cols < 1:
+        return
+
+    table = doc.add_table(rows=len(compact_rows), cols=cols)
     table.style = "Table Grid"
     _set_table_borders(table)
-    for i, row in enumerate(block.rows):
+    for i, row in enumerate(compact_rows):
         for j in range(cols):
             cell_text = row[j] if j < len(row) else ""
             cell = table.rows[i].cells[j]
@@ -1164,26 +1170,41 @@ def _estimate_column_count(page: pdfplumber.page.Page) -> int:
     if len(words) < 12:
         return 1
     page_w = float(page.width or 612)
-    lines = _group_words_to_lines(words)
-    if len(lines) < 8:
-        return 1
-    left_lines = 0
-    right_lines = 0
-    mid_lines = 0
-    for group in lines:
-        x0 = min(float(w["x0"]) for w in group)
-        x1 = max(float(w["x1"]) for w in group)
-        width = x1 - x0
-        if width < page_w * 0.12:
+    left_words = 0
+    right_words = 0
+    center_words = 0
+    valid_words = 0
+
+    for w in words:
+        text = (w.get("text") or "").strip()
+        if len(text) <= 1:
             continue
-        cx = (x0 + x1) / 2
-        if cx < page_w * 0.40:
-            left_lines += 1
-        elif cx > page_w * 0.60:
-            right_lines += 1
+        x0 = float(w.get("x0") or 0)
+        x1 = float(w.get("x1") or x0)
+        ww = x1 - x0
+        if ww < 4:
+            continue
+        valid_words += 1
+        # Chạm dải giữa trang => text một cột hoặc tiêu đề toàn trang
+        if x0 < page_w * 0.52 and x1 > page_w * 0.48:
+            center_words += 1
+            continue
+        if x1 <= page_w * 0.48:
+            left_words += 1
+        elif x0 >= page_w * 0.52:
+            right_words += 1
         else:
-            mid_lines += 1
-    if left_lines >= 6 and right_lines >= 6 and mid_lines <= max(left_lines, right_lines):
+            center_words += 1
+
+    if valid_words < 60:
+        return 1
+
+    # Hai cột thật: cả hai bên đều dày chữ và phần giữa ít.
+    if (
+        left_words >= 80
+        and right_words >= 80
+        and center_words <= min(left_words, right_words) * 0.22
+    ):
         return 2
     return 1
 
