@@ -29,6 +29,8 @@ _EXOTIC_SPACE_RE = re.compile(r"[\u00a0\u202f\u2007\u2060\u2009\u200a\u3000]+")
 logger = logging.getLogger("pdfcraft.pdf.render")
 
 FONTS_DIR = Path("/app/fonts")
+# Vùng lề trái giữ watermark dọc gốc — chữ dịch không được vẽ vào đây
+LEFT_MARGIN_GUARD = 42.0
 
 # ReportLab CID fonts — TrueType outlines sẵn có, không cần OTF CJK (postscript outlines)
 CID_FONT_MAP: dict[str, str] = {
@@ -269,6 +271,14 @@ def _block_rect(block: dict[str, Any], page_h: float) -> PdfRect:
     y0 = page_h - (pdf_y + pdf_h)
     y1 = page_h - pdf_y
     return PdfRect(pdf_x, y0, pdf_x + pdf_w, y1)
+
+
+def _clear_of_left_margin(rect: PdfRect) -> PdfRect:
+    """Đẩy bbox chữ dịch ra khỏi lề trái (watermark dọc)."""
+    if rect.x0 >= LEFT_MARGIN_GUARD:
+        return rect
+    dx = LEFT_MARGIN_GUARD - rect.x0
+    return PdfRect(LEFT_MARGIN_GUARD, rect.y0, rect.x1 + dx, rect.y1)
 
 
 def _wrap_line_count(text: str, width: float, fontfile: str, size: float) -> int:
@@ -602,16 +612,17 @@ def _insert_text(
 
     is_cell = block.get("label") == "table_cell"
     if is_cell:
-        rect = PdfRect(base.x0 + 2, base.y0 + 2, base.x1 - 2, base.y1 - 2)
+        rect = _clear_of_left_margin(PdfRect(base.x0 + 1.2, base.y0 + 1.6, base.x1 - 1.2, base.y1 - 1.6))
         if rect.is_empty or rect.width < 2 or rect.height < 2:
             return
         size = min(base_size * 0.80, 72.0)
         min_size = 4.0
     else:
+        base = _clear_of_left_margin(base)
         if target_lang in RTL_LANGS and page_width and base.x0 < page_width * 0.5:
             right = rtl_right if rtl_right is not None else (page_width - 12)
             right = max(base.x1, min(right, page_width - 12))
-            base = PdfRect(max(12.0, base.x0), base.y0, right, base.y1)
+            base = PdfRect(max(LEFT_MARGIN_GUARD, base.x0), base.y0, right, base.y1)
         elif page_width and base.width < page_width * 0.45:
             limit = max_right if max_right is not None else (page_width - 12)
             new_x1 = max(base.x1, min(limit, page_width - 12))
@@ -622,6 +633,18 @@ def _insert_text(
             ceiling = max_y1 if max_y1 is not None else base.y1 + 120
             size, rect = _fit_prose_rect(text, base, ceiling, fontfile, base_size)
             min_size = 4.5
+        rect = _clear_of_left_margin(rect)
+
+    if is_cell and fontfile and "\n" not in text.strip():
+        while size >= min_size:
+            if string_width(fontfile, text, size) <= rect.width - 4:
+                break
+            size -= 0.4
+        shaped = _prepare_script_line(text, target_lang, fontfile) if target_lang in RTL_LANGS else text
+        center_tl = (rect.y0 + rect.y1) * 0.5
+        y_bl = page_h - center_tl - size * 0.35
+        draw_string_bl(c, rect.x0 + 2, y_bl, shaped, fontfile, size)
+        return
 
     if not _draw_textbox(
         c, rect, text, target_lang, fontfile, size, min_size, page_h, bold=bold, italic=italic,
@@ -634,20 +657,34 @@ def _insert_text(
             logger.warning("textbox overflow lang=%s len=%d", target_lang, len(text))
 
 
-def _is_sidebar_wipe_line(line: dict[str, Any]) -> bool:
-    """Giữ chữ dọc lề trái — không wipe (tránh vệt trắng trên watermark)."""
-    x = float(line.get("pdfX", 0))
-    w = float(line.get("pdfWidth", 0))
-    return x < 35 and w < 24
+def _wipe_margin_sidebar(c: canvas.Canvas, block: dict[str, Any]) -> None:
+    """Xóa chữ dọc / mảnh rác lề trái — không dịch lại."""
+    x = float(block["pdfX"])
+    w = float(block["pdfWidth"])
+    if x >= LEFT_MARGIN_GUARD or w < 2:
+        return
+    y = float(block["pdfY"])
+    h = float(block["pdfHeight"])
+    fs = float(block.get("fontSize", 11))
+    wipe_rect_bl(c, x, y, w, h, pad_x=max(1.5, fs * 0.12), pad_y=max(2.0, fs * 0.14))
 
 
 def _wipe_line(c: canvas.Canvas, line: dict[str, Any]) -> None:
     fs = float(line.get("fontSize", 11))
+    x = float(line["pdfX"])
+    w = float(line["pdfWidth"])
+    # Luôn wipe mảnh chữ lề trái (trước đây bỏ qua → watermark dọc chồng nội dung)
+    if x < LEFT_MARGIN_GUARD and w < 32:
+        wipe_rect_bl(
+            c, x, float(line["pdfY"]), w, float(line["pdfHeight"]),
+            pad_x=max(1.5, fs * 0.15), pad_y=max(2.0, fs * 0.14),
+        )
+        return
     wipe_rect_bl(
         c,
-        float(line["pdfX"]),
+        x,
         float(line["pdfY"]),
-        float(line["pdfWidth"]),
+        w,
         float(line["pdfHeight"]),
         pad_x=max(2.0, fs * 0.2),
         pad_y=max(2.0, fs * 0.16),
@@ -655,7 +692,11 @@ def _wipe_line(c: canvas.Canvas, line: dict[str, Any]) -> None:
 
 
 def _wipe_block(c: canvas.Canvas, block: dict[str, Any]) -> None:
+    if block.get("label") == "vertical":
+        _wipe_margin_sidebar(c, block)
+        return
     if _is_sidebar_noise(block):
+        _wipe_margin_sidebar(c, block)
         return
     fs = float(block.get("fontSize", 11))
     x = float(block["pdfX"])
@@ -663,9 +704,9 @@ def _wipe_block(c: canvas.Canvas, block: dict[str, Any]) -> None:
     w = float(block["pdfWidth"])
     h = float(block["pdfHeight"])
     if block.get("label") == "table_cell":
-        wipe_rect_bl(c, x + 1, y + 1, max(2.0, w - 2), max(2.0, h - 2), pad_x=2.0, pad_y=1.5)
+        # Table text: wipe just enough to clear old glyphs, avoid eating grid lines.
+        wipe_rect_bl(c, x, y, w, h, pad_x=0.8, pad_y=1.0)
     else:
-        # Wipe full bbox — không trim lề (trim chỉ áp dụng khi vẽ)
         wipe_rect_bl(c, x, y, w, h, pad_x=max(2.0, fs * 0.15), pad_y=max(2.0, fs * 0.12))
 
 
@@ -715,8 +756,6 @@ def render_translated_pdf(
             def _draw_page(c: canvas.Canvas, w: float, h: float) -> None:
                 # 1) Xóa toàn bộ dòng gốc từ layout extract (bbox từng span/line)
                 for line in wipe_by_page.get(page_no, []):
-                    if _is_sidebar_wipe_line(line):
-                        continue
                     _wipe_line(c, line)
 
                 # 2) Bổ sung wipe theo block dịch (phòng wipe_lines thiếu)

@@ -6,6 +6,7 @@ import logging
 import re
 import shutil
 import tempfile
+import unicodedata
 from dataclasses import dataclass, field
 from io import BytesIO
 from pathlib import Path
@@ -31,6 +32,9 @@ DocxMode = Literal["auto", "preserve_layout", "fixed_layout", "editable"]
 PRESERVE_LAYOUT_DPI_DEFAULT = 220
 PRESERVE_LAYOUT_DPI_MIN = 150
 PRESERVE_LAYOUT_DPI_MAX = 250
+
+# Tiêu đề mục La Mã — không nên nằm trong ô bảng
+_ROMAN_HEADING_RE = re.compile(r"^\s*[IVXLCDM]{1,8}[.)]\s+\S")
 
 # Giữ tương thích import cũ
 ENGINE_NAME = ENGINE_EDITABLE
@@ -68,6 +72,231 @@ def _color_to_rgb(color: Any) -> tuple[int, int, int] | None:
     except (TypeError, ValueError):
         pass
     return None
+
+
+def _is_white_color(color: Any) -> bool:
+    if color is None:
+        return False
+    if not isinstance(color, (list, tuple)) or not color:
+        return False
+    try:
+        return all(float(c) > 0.95 for c in color)
+    except (TypeError, ValueError):
+        return False
+
+
+def _find_visible_tables(page: Any) -> list[Any]:
+    """find_tables() theo đường kẻ thật + lọc bảng giả (line ngang, text bị tách cột)."""
+    settings = {
+        "vertical_strategy": "lines",
+        "horizontal_strategy": "lines",
+        "snap_tolerance": 3,
+        "join_tolerance": 3,
+    }
+    try:
+        raw = page.find_tables(table_settings=settings)
+    except Exception:
+        raw = page.find_tables()
+    if isinstance(raw, list):
+        all_tables = raw
+    else:
+        all_tables = list(getattr(raw, "tables", None) or page.find_tables() or [])
+
+    page_w = float(getattr(page, "width", None) or 612)
+    page_rects = page.rects or []
+    page_lines = page.lines or []
+    result: list[Any] = []
+    for t in all_tables:
+        if not _is_real_table(t, page_w, page):
+            continue
+        bx0, by0, bx1, by1 = t.bbox
+        has_visible = False
+        for r in page_rects:
+            stroke = r.get("stroking_color")
+            fill = r.get("non_stroking_color")
+            if _is_white_color(stroke) and _is_white_color(fill):
+                continue
+            rx0 = float(r.get("x0", 0))
+            ry0 = float(r.get("top", 0))
+            rx1 = float(r.get("x1", 0))
+            ry1 = float(r.get("bottom", 0))
+            if rx0 < bx1 + 2 and rx1 > bx0 - 2 and ry0 < by1 + 2 and ry1 > by0 - 2:
+                has_visible = True
+                break
+        if not has_visible:
+            for line in page_lines:
+                lx0 = float(line.get("x0", 0))
+                ly0 = float(line.get("top", 0))
+                lx1 = float(line.get("x1", 0))
+                ly1 = float(line.get("bottom", 0))
+                if lx0 < bx1 + 2 and lx1 > bx0 - 2 and ly0 < by1 + 2 and ly1 > by0 - 2:
+                    has_visible = True
+                    break
+        if has_visible:
+            result.append(t)
+    # Fallback: không có rect/line rõ nhưng table candidate vẫn hợp lý.
+    # Tránh mất bảng thật ở PDF vẽ grid kiểu đặc thù.
+    if not result:
+        result = [t for t in all_tables if _is_real_table(t, page_w, page)]
+    return result
+
+
+def _table_fill_stats(table: Any) -> tuple[int, int, int, int, float, float]:
+    data = table.extract() or []
+    rows = len(data)
+    cols = max((len(r) for r in data), default=0)
+    total = sum(len(r) for r in data)
+    filled = sum(1 for r in data for c in r if c and str(c).strip())
+    bbox = table.bbox
+    w = float(bbox[2]) - float(bbox[0])
+    h = float(bbox[3]) - float(bbox[1])
+    ratio = filled / total if total else 0.0
+    return rows, cols, total, filled, w, h, ratio
+
+
+def _table_has_cell_rects(page: Any, bbox: tuple[float, ...], min_count: int = 4) -> bool:
+    """PDF vẽ bảng bằng ô rect (không phải line) — đếm rect trong vùng."""
+    x0, y0, x1, y1 = bbox
+    count = 0
+    for rect in page.rects or []:
+        rx0 = float(rect.get("x0", 0))
+        ry0 = float(rect.get("top", 0))
+        rx1 = float(rect.get("x1", 0))
+        ry1 = float(rect.get("bottom", 0))
+        rw, rh = rx1 - rx0, ry1 - ry0
+        if rw < 10 or rh < 8:
+            continue
+        cx, cy = (rx0 + rx1) / 2, (ry0 + ry1) / 2
+        if x0 <= cx <= x1 and y0 <= cy <= y1:
+            count += 1
+    return count >= min_count
+
+
+def _table_has_grid_lines(page: Any, bbox: tuple[float, ...]) -> bool:
+    """Bảng thật cần có cả đường ngang lẫn dọc trong vùng bbox."""
+    x0, y0, x1, y1 = bbox
+    span_w = max(1.0, x1 - x0)
+    span_h = max(1.0, y1 - y0)
+    h_count = 0
+    v_count = 0
+
+    def _scan_line(lx0: float, lt: float, lx1: float, lb: float) -> None:
+        nonlocal h_count, v_count
+        if lt < y0 - 3 or lb > y1 + 3:
+            return
+        lw = abs(lx1 - lx0)
+        lh = abs(lb - lt)
+        if lh <= 3 and lw >= span_w * 0.2:
+            h_count += 1
+        elif lw <= 3 and lh >= span_h * 0.12:
+            v_count += 1
+
+    for line in page.lines or []:
+        _scan_line(
+            float(line.get("x0", 0)),
+            float(line.get("top", 0)),
+            float(line.get("x1", 0)),
+            float(line.get("bottom", 0)),
+        )
+    for rect in page.rects or []:
+        rx0 = float(rect.get("x0", 0))
+        ry0 = float(rect.get("top", 0))
+        rx1 = float(rect.get("x1", 0))
+        ry1 = float(rect.get("bottom", 0))
+        rw, rh = rx1 - rx0, ry1 - ry0
+        if rw < 1 or rh < 1:
+            continue
+        if rh <= 4 and rw >= span_w * 0.2:
+            h_count += 1
+        elif rw <= 4 and rh >= span_h * 0.12:
+            v_count += 1
+
+    return h_count >= 2 and v_count >= 1
+
+
+def _table_has_visible_structure(page: Any, bbox: tuple[float, ...]) -> bool:
+    return _table_has_grid_lines(page, bbox) or _table_has_cell_rects(page, bbox)
+
+
+def _is_real_table(table: Any, page_w: float, page: Any | None = None) -> bool:
+    """Loại bảng giả: 1 dòng mỏng, text prose bị tách thành nhiều cột."""
+    rows, cols, _total, filled, w, h, ratio = _table_fill_stats(table)
+    if rows < 1 or cols < 2 or filled == 0:
+        return False
+    # Dải ngang mỏng (chỉ là đường kẻ / rule)
+    if rows == 1 and h < 24:
+        return False
+    # Text 1 dòng bị pdfplumber cắt thành nhiều cột nhỏ (vd. "Câu 2 (4.0 điểm)")
+    if rows == 1 and cols >= 4:
+        texts = [str(c).strip() for row in (table.extract() or []) for c in row if c and str(c).strip()]
+        if texts and all(len(t) < 14 for t in texts) and filled <= cols:
+            return False
+    # Header đề thi 2 cột (không cần grid đầy đủ)
+    if rows == 1 and cols == 2 and ratio >= 0.45 and w > page_w * 0.55:
+        return True
+    # Header đáp án nhiều dòng (ĐỀ CHÍNH THỨC | GỢI Ý ĐÁP ÁN)
+    if rows <= 3 and h < 110 and cols >= 2:
+        row0 = (table.extract() or [[]])[0]
+        row0_text = [str(c).strip() for c in row0 if c and str(c).strip()]
+        if len(row0_text) >= 2:
+            return True
+    # Bảng danh sách nhiều dòng (hospital list, phụ lục, v.v.)
+    if rows >= 8 and cols >= 3 and w > page_w * 0.55:
+        return True
+    # Bảng chấm điểm / rubric
+    if rows >= 3 and cols >= 2 and ratio >= 0.08:
+        if page is not None and not _table_has_visible_structure(page, table.bbox):
+            return False
+        return True
+    if rows >= 2 and ratio >= 0.18 and cols >= 3:
+        if page is not None and not _table_has_visible_structure(page, table.bbox):
+            return False
+        return True
+    return False
+
+
+def _split_table_rows(
+    table: Any,
+) -> tuple[list[list[str]], list[str], tuple[float, float, float, float]]:
+    """Giữ hàng grid thật; đẩy tiêu đề mục (I. LƯU Ý...) ra ngoài bảng."""
+    data = table.extract() or []
+    cleaned = [
+        [unicodedata.normalize("NFC", str(c or "")).strip() for c in row]
+        for row in data if row
+    ]
+    kept: list[list[str]] = []
+    overflow: list[str] = []
+    kept_row_indices: list[int] = []
+
+    for ri, row in enumerate(cleaned):
+        parts = [c for c in row if c]
+        joined = re.sub(r"\s+", " ", " ".join(parts)).strip()
+        if not joined:
+            continue
+        compact = joined.replace(" . ", ". ").replace(" .", ".")
+        if _ROMAN_HEADING_RE.match(compact) and len(compact) < 80:
+            overflow.append(compact)
+            continue
+        kept.append(row)
+        kept_row_indices.append(ri)
+
+    bbox = tuple(float(x) for x in table.bbox)
+    if kept_row_indices and len(kept_row_indices) < len(cleaned):
+        try:
+            tops: list[float] = []
+            bots: list[float] = []
+            for ri in kept_row_indices:
+                if ri < len(table.rows):
+                    for cell in table.rows[ri].cells or []:
+                        if cell:
+                            tops.append(float(cell[1]))
+                            bots.append(float(cell[3]))
+            if tops and bots:
+                bbox = (bbox[0], min(tops), bbox[2], max(bots))
+        except Exception:
+            pass
+
+    return kept, overflow, bbox
 
 
 @dataclass
@@ -123,6 +352,10 @@ def _font_flags(font_name: str) -> tuple[bool, bool]:
         bold = True
     if not italic and re.search(r"(^|[^a-z])it([^a-z]|$)", f):
         italic = True
+    if not bold:
+        m = re.search(r"(\d{3})wght", f)
+        if m and int(m.group(1)) >= 600:
+            bold = True
     return bold, italic
 
 
@@ -159,12 +392,16 @@ def _map_font_name(pdf_fontname: str) -> str | None:
 
 
 def _align_from_bbox(x0: float, x1: float, page_w: float) -> WD_ALIGN_PARAGRAPH:
+    """Prefer LEFT by default; only center short heading-like lines."""
     cx = (x0 + x1) / 2
-    if cx <= page_w * 0.38:
-        return WD_ALIGN_PARAGRAPH.LEFT
-    if cx >= page_w * 0.62:
+    width = max(1.0, x1 - x0)
+    # Chỉ center khi dòng tương đối ngắn và nằm gần giữa trang.
+    if width < page_w * 0.45 and page_w * 0.30 <= cx <= page_w * 0.70:
+        if x0 > page_w * 0.10 and x1 < page_w * 0.90:
+            return WD_ALIGN_PARAGRAPH.CENTER
+    if cx >= page_w * 0.80 and width < page_w * 0.45:
         return WD_ALIGN_PARAGRAPH.RIGHT
-    return WD_ALIGN_PARAGRAPH.CENTER
+    return WD_ALIGN_PARAGRAPH.LEFT
 
 
 def _char_is_rotated(char: dict[str, Any]) -> bool:
@@ -177,7 +414,7 @@ def _char_is_rotated(char: dict[str, Any]) -> bool:
     w = float(char.get("width") or 0)
     h = float(char.get("height") or 0)
     text = (char.get("text") or "").strip()
-    if text and w > 0 and h > w * 2.5:
+    if text and w > 5 and h > w * 3.5:
         return True
     return False
 
@@ -211,13 +448,14 @@ def _find_rotated_columns(page: Any) -> list[float]:
 def _is_rotated_fragment(word: dict[str, Any], rotated_cols: list[float]) -> bool:
     """Check if word is part of rotated margin text."""
     x0 = float(word["x0"])
+    x1 = float(word["x1"])
     w = float(word["x1"]) - x0
     text = (word.get("text") or "").strip()
     if rotated_cols and w < 18 and len(text) <= 3:
         if any(abs(x0 - col) < 8 for col in rotated_cols):
             return True
-    if w < 5 and len(text) == 1:
-        return True
+    # Không loại ký tự đơn trong thân bài để tránh rụng dấu tiếng Việt.
+    # Chỉ dựa vào cột xoay thật sự ở lề trang.
     return False
 
 
@@ -255,21 +493,30 @@ def _group_words_to_lines(words: list[dict[str, Any]]) -> list[list[dict[str, An
 
 
 def _line_to_text_block(group: list[dict[str, Any]], page_w: float) -> TextBlock | None:
-    runs: list[StyledRun] = []
+    raw_runs: list[StyledRun] = []
     for i, word in enumerate(group):
-        text = word.get("text") or ""
+        text = unicodedata.normalize("NFC", word.get("text") or "")
         if not text:
             continue
         fontname = str(word.get("fontname") or "")
         size = float(word.get("size") or 11)
         bold, italic = _font_flags(fontname)
         rgb = _color_to_rgb(word.get("non_stroking_color"))
-        if i > 0 and runs:
+        if i > 0 and raw_runs:
             prev = group[i - 1]
             gap = float(word["x0"]) - float(prev["x1"])
-            if gap > max(size * 0.15, 1.5) and runs[-1].text and not runs[-1].text.endswith(" "):
-                runs.append(StyledRun(" ", size=size))
-        runs.append(StyledRun(text, bold=bold, italic=italic, size=size, fontname=fontname, color_rgb=rgb))
+            if gap > max(size * 0.05, 0.5) and raw_runs[-1].text and not raw_runs[-1].text.endswith(" "):
+                raw_runs.append(StyledRun(" ", size=size, bold=bold, italic=italic, fontname=fontname, color_rgb=rgb))
+        raw_runs.append(StyledRun(text, bold=bold, italic=italic, size=size, fontname=fontname, color_rgb=rgb))
+    if not raw_runs:
+        return None
+    runs: list[StyledRun] = [raw_runs[0]]
+    for r in raw_runs[1:]:
+        prev = runs[-1]
+        if prev.bold == r.bold and prev.italic == r.italic and prev.color_rgb == r.color_rgb and abs(prev.size - r.size) < 0.5:
+            prev.text += r.text
+        else:
+            runs.append(r)
     if not runs:
         return None
     x0 = min(float(w["x0"]) for w in group)
@@ -413,6 +660,8 @@ def _extract_hlines(
     table_rects: list[tuple[float, float, float, float]],
 ) -> list[HLineBlock]:
     """Extract horizontal separator lines from PDF page."""
+    page_w = float(page.width or 612)
+    min_span = page_w * 0.35
     blocks: list[HLineBlock] = []
 
     for line in page.lines or []:
@@ -420,7 +669,7 @@ def _extract_hlines(
         x1, y1 = float(line["x1"]), float(line["bottom"])
         if abs(y1 - y0) > 3:
             continue
-        if (x1 - x0) < 30:
+        if (x1 - x0) < min_span:
             continue
         lw = float(line.get("linewidth", 1) or 1)
         cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
@@ -432,7 +681,7 @@ def _extract_hlines(
         x0, y0 = float(rect["x0"]), float(rect["top"])
         x1, y1 = float(rect["x1"]), float(rect["bottom"])
         w, h = x1 - x0, y1 - y0
-        if h > 4 or w < 30:
+        if h > 4 or w < min_span:
             continue
         cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
         if any(_point_in_rect(cx, cy, tr) for tr in table_rects):
@@ -442,7 +691,18 @@ def _extract_hlines(
     return blocks
 
 
-def _should_merge_lines(current: TextBlock, next_block: TextBlock) -> bool:
+def _is_decorative_hline(hline: HLineBlock, text_blocks: list[TextBlock]) -> bool:
+    """Bỏ đường kẻ ngang giữa các dòng thơ / đoạn văn — không phải viền bảng."""
+    for tb in text_blocks:
+        if hline.x0 < tb.x1 - 4 and hline.x1 > tb.x0 + 4:
+            if abs(hline.top - tb.top) < 18 or abs(hline.top - tb.bottom) < 18:
+                return True
+            if tb.top < hline.top < tb.bottom:
+                return True
+    return False
+
+
+def _should_merge_lines(current: TextBlock, next_block: TextBlock, page_w: float = 0) -> bool:
     cur_sizes = [r.size for r in current.runs if r.text.strip()]
     next_sizes = [r.size for r in next_block.runs if r.text.strip()]
     if not cur_sizes or not next_sizes:
@@ -459,6 +719,18 @@ def _should_merge_lines(current: TextBlock, next_block: TextBlock) -> bool:
     cur_all_bold = all(r.bold for r in current.runs if r.text.strip())
     if cur_all_bold and len(current.text.strip()) < 80:
         return False
+    next_all_bold = all(r.bold for r in next_block.runs if r.text.strip())
+    if next_all_bold and len(next_block.text.strip()) < 120:
+        return False
+    if page_w > 0 and current.x1 < page_w * 0.72:
+        return False
+    next_text = next_block.text.strip()
+    if re.match(r"^(Câu|câu|Bài|bài)\s+\d", next_text):
+        return False
+    if re.match(r"^[IVX]+\.\s", next_text):
+        return False
+    if re.match(r"^\d+\.\s", next_text):
+        return False
     return True
 
 
@@ -470,7 +742,7 @@ def _merge_lines_to_paragraphs(text_blocks: list[TextBlock], page_w: float) -> l
     current = text_blocks[0]
     for i in range(1, len(text_blocks)):
         nb = text_blocks[i]
-        if _should_merge_lines(current, nb):
+        if _should_merge_lines(current, nb, page_w):
             cur_size = sum(r.size for r in current.runs if r.text.strip()) / max(1, sum(1 for r in current.runs if r.text.strip()))
             current.runs.append(StyledRun(" ", size=cur_size))
             current.runs.extend(nb.runs)
@@ -522,15 +794,27 @@ def _extract_page(page: pdfplumber.page.Page, pdf_path: Path, image_map: dict[in
 
     table_rects: list[tuple[float, float, float, float]] = []
     table_blocks: list[TableBlock] = []
+    overflow_blocks: list[TextBlock] = []
 
     try:
-        for table in page.find_tables() or []:
-            data = table.extract() or []
-            cleaned = [[str(c or "").strip() for c in row] for row in data if row]
+        for table in _find_visible_tables(page):
+            cleaned, overflow, bbox = _split_table_rows(table)
+            full_bbox = tuple(float(x) for x in table.bbox)
+            for oi, text in enumerate(overflow):
+                y_top = float(full_bbox[1]) - (len(overflow) - oi) * 14
+                overflow_blocks.append(
+                    TextBlock(
+                        runs=[StyledRun(text, bold=True)],
+                        top=y_top,
+                        x0=float(full_bbox[0]),
+                        x1=float(full_bbox[2]),
+                        bottom=y_top + 12,
+                        align=WD_ALIGN_PARAGRAPH.LEFT,
+                    )
+                )
             if not cleaned or not any(any(cell for cell in row) for row in cleaned):
                 continue
-            bbox = table.bbox
-            table_rects.append(bbox)
+            table_rects.append(full_bbox)
             table_blocks.append(TableBlock(rows=cleaned, top=float(bbox[1])))
     except Exception as exc:
         logger.warning("table extract failed page %d: %s", page_idx + 1, exc)
@@ -574,15 +858,23 @@ def _extract_page(page: pdfplumber.page.Page, pdf_path: Path, image_map: dict[in
         ]
 
     text_blocks = _merge_lines_to_paragraphs(text_blocks, page_w)
-
-    hline_blocks = _extract_hlines(page, table_rects)
+    text_blocks = overflow_blocks + text_blocks
 
     ordered: list[TextBlock | TableBlock | ImageBlock | HLineBlock] = []
     ordered.extend(text_blocks)
     ordered.extend(table_blocks)
     ordered.extend(img_blocks)
-    ordered.extend(hline_blocks)
-    ordered.sort(key=lambda b: b.top)
+    def _block_priority(block: TextBlock | TableBlock | ImageBlock | HLineBlock) -> int:
+        # Khi cùng top, text (đặc biệt I./II.) phải đứng trước table.
+        if isinstance(block, TextBlock):
+            return 0
+        if isinstance(block, TableBlock):
+            return 1
+        if isinstance(block, ImageBlock):
+            return 2
+        return 3
+
+    ordered.sort(key=lambda b: (b.top, _block_priority(b)))
     content.blocks = ordered
     return content
 
@@ -600,6 +892,22 @@ def _apply_run_style(run, run_data: StyledRun) -> None:
         run.font.color.rgb = RGBColor(*run_data.color_rgb)
 
 
+def _paragraph_space_before(gap: float, block: TextBlock, prev_kind: str) -> float:
+    """Khoảng cách Word tối thiểu — không copy gap tọa độ PDF (gây phình trang)."""
+    if prev_kind == "table":
+        return 6.0
+    if gap <= 0:
+        return 0.0
+    text = block.text.strip()
+    if _ROMAN_HEADING_RE.match(text):
+        return 12.0
+    sizes = [r.size for r in block.runs if r.text.strip()]
+    fs = sum(sizes) / len(sizes) if sizes else 11.0
+    if gap > fs * 1.75:
+        return 6.0
+    return 0.0
+
+
 def _add_text_block(
     doc: Document,
     block: TextBlock,
@@ -612,8 +920,10 @@ def _add_text_block(
     else:
         para = doc.add_paragraph()
     para.alignment = block.align
-    if space_before_pt > 2:
-        para.paragraph_format.space_before = Pt(min(space_before_pt, 24))
+    para.paragraph_format.space_after = Pt(0)
+    para.paragraph_format.line_spacing = 1.05
+    if space_before_pt > 0:
+        para.paragraph_format.space_before = Pt(min(space_before_pt, 12))
     for run_data in block.runs:
         if not run_data.text:
             continue
@@ -651,7 +961,14 @@ def _add_table_block(doc: Document, block: TableBlock) -> None:
     for i, row in enumerate(block.rows):
         for j in range(cols):
             cell_text = row[j] if j < len(row) else ""
-            table.rows[i].cells[j].text = cell_text
+            cell = table.rows[i].cells[j]
+            cell.text = cell_text
+            for para in cell.paragraphs:
+                para.paragraph_format.space_before = Pt(1)
+                para.paragraph_format.space_after = Pt(1)
+                para.paragraph_format.line_spacing = 1.0
+                for run in para.runs:
+                    run.font.size = Pt(9)
 
 
 def _add_image_block(doc: Document, block: ImageBlock, page_width_pt: float) -> None:
@@ -690,28 +1007,36 @@ def _add_hline_block(doc: Document, block: HLineBlock) -> None:
 
 def _build_docx(pages: list[PageContent], output_path: Path) -> None:
     doc = Document()
-    all_text_blocks = [b for p in pages for b in p.blocks if isinstance(b, TextBlock)]
-    median_sz = _median_font_size(all_text_blocks)
+    # Margin mặc định Word — text chảy tự nhiên, không ép spacing theo PDF
+    for section in doc.sections:
+        section.top_margin = Inches(0.75)
+        section.bottom_margin = Inches(0.75)
+        section.left_margin = Inches(0.75)
+        section.right_margin = Inches(0.75)
 
     for page_idx, page in enumerate(pages):
         if page_idx > 0:
             doc.add_page_break()
         prev_bottom = 0.0
+        prev_kind = ""
         for block in page.blocks:
             if isinstance(block, TextBlock):
                 gap = max(0.0, block.top - prev_bottom) if prev_bottom > 0 else 0.0
-                hlevel = _detect_heading_level(block, median_sz)
-                _add_text_block(doc, block, heading_level=hlevel, space_before_pt=gap)
+                spacing = _paragraph_space_before(gap, block, prev_kind)
+                _add_text_block(doc, block, heading_level=0, space_before_pt=spacing)
                 prev_bottom = block.bottom
+                prev_kind = "text"
             elif isinstance(block, TableBlock):
+                if prev_kind:
+                    spacer = doc.add_paragraph()
+                    spacer.paragraph_format.space_before = Pt(6)
                 _add_table_block(doc, block)
                 prev_bottom = block.top + 20
+                prev_kind = "table"
             elif isinstance(block, ImageBlock):
                 _add_image_block(doc, block, page.width)
                 prev_bottom = block.bottom
-            elif isinstance(block, HLineBlock):
-                _add_hline_block(doc, block)
-                prev_bottom = block.top + 2
+                prev_kind = "image"
     if not doc.paragraphs and not doc.tables:
         doc.add_paragraph("")
     doc.save(str(output_path))
@@ -840,19 +1165,25 @@ def _estimate_column_count(page: pdfplumber.page.Page) -> int:
         return 1
     page_w = float(page.width or 612)
     lines = _group_words_to_lines(words)
-    if len(lines) < 4:
+    if len(lines) < 8:
         return 1
-    x_centers: list[float] = []
+    left_lines = 0
+    right_lines = 0
+    mid_lines = 0
     for group in lines:
         x0 = min(float(w["x0"]) for w in group)
         x1 = max(float(w["x1"]) for w in group)
-        x_centers.append((x0 + x1) / 2)
-    x_centers.sort()
-    max_gap = max(
-        (x_centers[i + 1] - x_centers[i] for i in range(len(x_centers) - 1)),
-        default=0.0,
-    )
-    if max_gap > page_w * 0.25:
+        width = x1 - x0
+        if width < page_w * 0.12:
+            continue
+        cx = (x0 + x1) / 2
+        if cx < page_w * 0.40:
+            left_lines += 1
+        elif cx > page_w * 0.60:
+            right_lines += 1
+        else:
+            mid_lines += 1
+    if left_lines >= 6 and right_lines >= 6 and mid_lines <= max(left_lines, right_lines):
         return 2
     return 1
 
@@ -880,7 +1211,7 @@ def _analyze_page_layout(page: pdfplumber.page.Page) -> PdfLayoutInfo:
         info.has_rotated_text = False
 
     try:
-        tables = page.find_tables() or []
+        tables = _find_visible_tables(page)
         for table in tables:
             data = table.extract() or []
             rows = len(data)
@@ -948,6 +1279,8 @@ def _add_framed_text_block(doc: Document, block: TextBlock) -> None:
     para.paragraph_format.space_before = Pt(0)
     para.paragraph_format.space_after = Pt(0)
     para.paragraph_format.line_spacing = 1
+    if block.align is not None:
+        para.alignment = block.align
 
     for run_data in block.runs:
         if not run_data.text:
@@ -969,7 +1302,7 @@ def _extract_positioned_page_blocks(
     if table_rects is None:
         table_rects = []
         try:
-            for table in page.find_tables() or []:
+            for table in _find_visible_tables(page):
                 table_rects.append(table.bbox)
         except Exception:
             pass
@@ -1066,7 +1399,7 @@ def _add_positioned_table(
 ) -> None:
     """Render pdfplumber table as positioned DOCX table with borders."""
     data = table_obj.extract() or []
-    cleaned = [[str(c or "").strip() for c in row] for row in data if row]
+    cleaned = [[unicodedata.normalize("NFC", str(c or "")).strip() for c in row] for row in data if row]
     if not cleaned or not any(any(cell for cell in row) for row in cleaned):
         return
 
@@ -1196,24 +1529,24 @@ def _build_fixed_layout_docx(pdf_path: Path, output_path: Path) -> None:
             tables: list[Any] = []
             try:
                 cands: list[tuple[Any, tuple[float, float, float, float]]] = []
-                for table in page.find_tables() or []:
-                    tbl_bbox = table.bbox
-                    tbl_h = float(tbl_bbox[3]) - float(tbl_bbox[1])
-                    data = table.extract() or []
-                    cleaned = [[str(c or "").strip() for c in row] for row in data if row]
+                for table in _find_visible_tables(page):
+                    cleaned, _overflow, bbox = _split_table_rows(table)
+                    if not cleaned or not any(any(cell for cell in row) for row in cleaned):
+                        continue
+                    tbl_h = float(bbox[3]) - float(bbox[1])
                     if len(cleaned) <= 1 and tbl_h < 25:
                         continue
                     total = sum(len(row) for row in cleaned)
                     filled = sum(1 for row in cleaned for c in row if c)
                     if total > 0 and filled / total > 0.15:
                         capped = (
-                            float(tbl_bbox[0]),
-                            float(tbl_bbox[1]),
-                            float(tbl_bbox[2]),
-                            min(float(tbl_bbox[3]), page_h),
+                            float(bbox[0]),
+                            float(bbox[1]),
+                            float(bbox[2]),
+                            min(float(bbox[3]), page_h),
                         )
-                        cands.append((table, capped))
-                for ci, (tbl, rect) in enumerate(cands):
+                        cands.append((table, capped, cleaned))
+                for ci, (tbl, rect, cleaned_rows) in enumerate(cands):
                     nested = any(
                         cj != ci
                         and cands[cj][1][0] <= rect[0]
@@ -1244,14 +1577,12 @@ def _build_fixed_layout_docx(pdf_path: Path, output_path: Path) -> None:
 
 
 def choose_docx_mode(info: PdfLayoutInfo) -> DocxMode:
-    """Routing: tài liệu phức tạp → fixed_layout (text tại tọa độ), đơn giản → editable."""
-    if (
-        info.image_count > 0
-        or info.vector_line_count > 20
-        or info.has_rotated_text
-        or info.has_complex_tables
-        or info.column_count > 1
-    ):
+    """Auto mode: multi-column/complex layout ưu tiên fixed_layout."""
+    if info.has_rotated_text:
+        return "fixed_layout"
+    if info.column_count > 1 and info.page_count > 0:
+        return "fixed_layout"
+    if info.image_count > 0 and info.vector_line_count > 120:
         return "fixed_layout"
     return "editable"
 

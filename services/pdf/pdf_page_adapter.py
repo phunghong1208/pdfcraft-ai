@@ -135,7 +135,13 @@ class PdfPlumberPage:
             settings["snap_tolerance"] = 3
             settings["join_tolerance"] = 3
         tables = self._page.find_tables(table_settings=settings)
-        return SimpleNamespace(tables=tables.tables if tables else [])
+        if tables is None:
+            found: list[Any] = []
+        elif isinstance(tables, list):
+            found = tables
+        else:
+            found = list(getattr(tables, "tables", []) or [])
+        return SimpleNamespace(tables=found)
 
     def widgets(self) -> list[PdfWidget]:
         return self._widgets

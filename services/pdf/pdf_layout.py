@@ -531,6 +531,10 @@ def _adjust_block_for_render(block: dict[str, Any]) -> dict[str, Any]:
             bump = 32.0 if w > 200 else 26.0
             b["pdfX"] = round(x + bump, 2)
             b["pdfWidth"] = round(max(4.0, w - bump), 2)
+    if float(b["pdfX"]) < 42.0:
+        dx = 42.0 - float(b["pdfX"])
+        b["pdfX"] = 42.0
+        b["pdfWidth"] = round(max(4.0, float(b["pdfWidth"]) - dx), 2)
     return b
 
 
@@ -693,6 +697,7 @@ def _collect_table_blocks(
     """
     page_no = page_index + 1
     page_h = float(page.rect.height)
+    page_w = float(page.rect.width)
     blocks: list[dict[str, Any]] = []
     table_rects: list[PdfRect] = []
     cell_filter_rects: list[PdfRect] = []
@@ -734,7 +739,16 @@ def _collect_table_blocks(
             if cell_bbox is None:
                 continue
             cx0, cy0, cx1, cy1 = cell_bbox
-            if cx0 is None or cx1 <= cx0 or cy1 <= cy0:
+            if cx0 is None or cx1 is None or cy0 is None or cy1 is None:
+                continue
+            cx0, cy0, cx1, cy1 = float(cx0), float(cy0), float(cx1), float(cy1)
+            if cy0 > cy1:
+                cy0, cy1 = cy1, cy0
+            cx0 = max(0.0, min(cx0, page_w - 1.0))
+            cx1 = max(cx0 + 1.0, min(cx1, page_w))
+            cy0 = max(0.0, min(cy0, page_h - 1.0))
+            cy1 = max(cy0 + 1.0, min(cy1, page_h))
+            if cx1 <= cx0 or cy1 <= cy0:
                 continue
 
             cell_rect = PdfRect(cx0, cy0, cx1, cy1)
@@ -746,13 +760,26 @@ def _collect_table_blocks(
             cell_filter_rects.append(cell_rect)
             fs = round(max(6.0, min(72.0, max(float(s.get("size", 10)) for s in spans))), 1)
             cell_bold, cell_italic = _spans_style(spans)
+            sx0 = min(float(s.get("bbox", [cx0, cy0, cx1, cy1])[0]) for s in spans)
+            sy0 = min(float(s.get("bbox", [cx0, cy0, cx1, cy1])[1]) for s in spans)
+            sx1 = max(float(s.get("bbox", [cx0, cy0, cx1, cy1])[2]) for s in spans)
+            sy1 = max(float(s.get("bbox", [cx0, cy0, cx1, cy1])[3]) for s in spans)
+            pad_x = max(0.8, fs * 0.22)
+            pad_y = max(0.8, fs * 0.34)
+            tx0 = max(float(cx0) + 0.8, sx0 - pad_x)
+            tx1 = min(float(cx1) - 0.8, sx1 + pad_x)
+            ty0 = max(float(cy0) + 0.8, sy0 - pad_y)
+            ty1 = min(float(cy1) - 0.8, sy1 + pad_y)
+            if tx1 <= tx0 or ty1 <= ty0:
+                tx0, ty0, tx1, ty1 = float(cx0), float(cy0), float(cx1), float(cy1)
+
             blocks.append({
                 "pageNumber": page_no,
                 "text": cell_text,
-                "pdfX": round(float(cx0), 2),
-                "pdfY": round(page_h - float(cy1), 2),
-                "pdfWidth": round(max(4.0, float(cx1 - cx0)), 2),
-                "pdfHeight": round(max(4.0, float(cy1 - cy0)), 2),
+                "pdfX": round(tx0, 2),
+                "pdfY": round(page_h - ty1, 2),
+                "pdfWidth": round(max(4.0, tx1 - tx0), 2),
+                "pdfHeight": round(max(4.0, ty1 - ty0), 2),
                 "fontSize": fs,
                 "fontFamily": "Helvetica",
                 "bold": cell_bold,
@@ -886,6 +913,50 @@ def _text_overlap(a: str, b: str) -> float:
     return len(wa & wb) / len(wa)
 
 
+def _x_overlap_ratio(a: dict[str, Any], b: dict[str, Any]) -> float:
+    """Horizontal overlap ratio over the smaller width."""
+    ax0, aw = float(a["pdfX"]), float(a["pdfWidth"])
+    bx0, bw = float(b["pdfX"]), float(b["pdfWidth"])
+    inter = max(0.0, min(ax0 + aw, bx0 + bw) - max(ax0, bx0))
+    base = max(1.0, min(aw, bw))
+    return inter / base
+
+
+def _y_overlap_ratio(a: dict[str, Any], b: dict[str, Any]) -> float:
+    """Vertical overlap ratio over the smaller height."""
+    ay0, ah = float(a["pdfY"]), float(a["pdfHeight"])
+    by0, bh = float(b["pdfY"]), float(b["pdfHeight"])
+    inter = max(0.0, min(ay0 + ah, by0 + bh) - max(ay0, by0))
+    base = max(1.0, min(ah, bh))
+    return inter / base
+
+
+def _block_area(block: dict[str, Any]) -> float:
+    return max(1.0, float(block["pdfWidth"]) * float(block["pdfHeight"]))
+
+
+def _is_contained_line_duplicate(inner: dict[str, Any], outer: dict[str, Any]) -> bool:
+    """Block nhỏ nằm gọn trong block lớn cùng vùng — tránh vẽ đè (header 2 cột)."""
+    if inner.get("label") == "table_cell" or outer.get("label") == "table_cell":
+        return False
+    if inner.get("label") == "vertical" or outer.get("label") == "vertical":
+        return False
+    if _block_area(inner) >= _block_area(outer) * 0.92:
+        return False
+    if _y_overlap_ratio(inner, outer) < 0.72 or _x_overlap_ratio(inner, outer) < 0.35:
+        return False
+    it = (inner.get("text") or "").strip()
+    ot = (outer.get("text") or "").strip()
+    if not it or not ot:
+        return False
+    if it in ot or _text_overlap(it, ot) > 0.65:
+        return True
+    # Cùng x0, block nhỏ nằm trong band dọc của block lớn (merge dọc sai)
+    if abs(float(inner["pdfX"]) - float(outer["pdfX"])) < 4.0:
+        return float(inner["pdfHeight"]) <= float(outer["pdfHeight"]) * 0.55
+    return False
+
+
 def _dedup_blocks(blocks: list[dict[str, Any]], iou_thresh: float = 0.4) -> list[dict[str, Any]]:
     """Remove overlap duplicates — table_cell luôn thắng line trùng vùng/text."""
     cells = [b for b in blocks if b.get("label") == "table_cell"]
@@ -908,7 +979,7 @@ def _dedup_blocks(blocks: list[dict[str, Any]], iou_thresh: float = 0.4) -> list
             iy = max(0.0, min(by + bh, ky + kh) - max(by, ky))
             inter = ix * iy
             area = bw * bh
-            if area > 0 and inter / area >= 0.12:
+            if area > 0 and inter / area >= 0.04:
                 k_text = (k.get("text") or "").strip()
                 bt = b_text.strip()
                 if k_text and bt and (
@@ -919,10 +990,13 @@ def _dedup_blocks(blocks: list[dict[str, Any]], iou_thresh: float = 0.4) -> list
                     dominated = True
                     break
             y_dist = abs((by + bh / 2) - (ky + kh / 2))
-            near = y_dist < max(bh, kh) * 3
-            if near and len(b_text) > 2 and (
-                _text_overlap(b_text, k.get("text", "")) > 0.7
-                or b_text.strip() in (k.get("text") or "")
+            near = y_dist < max(bh, kh) * 3.8
+            xov = _x_overlap_ratio(blk, k)
+            k_text = (k.get("text") or "")
+            if near and xov > 0.45 and len(b_text) > 2 and (
+                _text_overlap(b_text, k_text) > 0.55
+                or b_text.strip() in k_text
+                or k_text.strip() in b_text
             ):
                 dominated = True
                 break
@@ -943,6 +1017,9 @@ def _dedup_blocks(blocks: list[dict[str, Any]], iou_thresh: float = 0.4) -> list
             inter = ix * iy
             area = bw * bh
             if area > 0 and inter / area >= iou_thresh:
+                dominated = True
+                break
+            if _is_contained_line_duplicate(blk, k):
                 dominated = True
                 break
             y_dist2 = abs((by + bh / 2) - (ky + kh / 2))
