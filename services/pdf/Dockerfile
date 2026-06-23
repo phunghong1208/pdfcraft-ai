@@ -14,26 +14,10 @@ COPY requirements.txt .
 RUN pip install --prefix=/install -r requirements.txt
 
 
-# ── CJK ReportLab fonts ────────────────────────────────────────
+# ── CJK fonts (optional — DOCX; render dùng ReportLab CID) ─────
+# Bỏ curl OTF: ReportLab không hỗ trợ PostScript outlines.
 FROM python:3.12-slim-bookworm AS fonts-cjk
-
-# Tag ổn định noto-cjk (Sans2.004) — không dùng main để build reproducible
-ARG NOTO_CJK_COMMIT=Sans2.004
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN mkdir -p /fonts && \
-    curl -fsSL -o /fonts/NotoSansCJKsc-Regular.otf \
-      "https://raw.githubusercontent.com/notofonts/noto-cjk/${NOTO_CJK_COMMIT}/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf" && \
-    curl -fsSL -o /fonts/NotoSansCJKtc-Regular.otf \
-      "https://raw.githubusercontent.com/notofonts/noto-cjk/${NOTO_CJK_COMMIT}/Sans/OTF/TraditionalChinese/NotoSansCJKtc-Regular.otf" && \
-    curl -fsSL -o /fonts/NotoSansCJKjp-Regular.otf \
-      "https://raw.githubusercontent.com/notofonts/noto-cjk/${NOTO_CJK_COMMIT}/Sans/OTF/Japanese/NotoSansCJKjp-Regular.otf" && \
-    curl -fsSL -o /fonts/NotoSansCJKkr-Regular.otf \
-      "https://raw.githubusercontent.com/notofonts/noto-cjk/${NOTO_CJK_COMMIT}/Sans/OTF/Korean/NotoSansCJKkr-Regular.otf"
+RUN mkdir -p /fonts
 
 
 # ── runtime ────────────────────────────────────────────────────

@@ -37,6 +37,7 @@ export type WorkspaceTranslateResult = {
   ocrMethod?: string;
   blockCount?: number;
   layoutEngine?: LayoutEngine;
+  outputFormat?: 'pdf' | 'docx';
 };
 
 const MIN_EXTRACTABLE_CHARS = 64;
@@ -255,5 +256,110 @@ export async function runWorkspaceTranslatePipeline(
     ocrMethod,
     blockCount: blocks.length,
     layoutEngine,
+  };
+}
+
+
+// ---------------------------------------------------------------------------
+// DOCX-based translation pipeline: PDF → DOCX → translate → DOCX
+// ---------------------------------------------------------------------------
+
+function buildTranslatedDocxName(originalName: string, targetLang: string): string {
+  const base = originalName.replace(/\.[^.]+$/, '') || 'document';
+  return `${base}-translated-${targetLang}.docx`;
+}
+
+export async function runWorkspaceTranslateDocxPipeline(
+  opts: RunWorkspaceTranslateOptions,
+): Promise<WorkspaceTranslateResult> {
+  const { file, sourceLang, targetLang, onProgress, passthroughTranslation } = opts;
+
+  emit(onProgress, 'blocks', 10, 'Đang chuyển PDF sang DOCX…');
+
+  const extractForm = new FormData();
+  extractForm.append('file', file);
+  extractForm.append('mode', 'auto');
+
+  const extractRes = await fetch('/api/docx-extract-texts', {
+    method: 'POST',
+    body: extractForm,
+    signal: AbortSignal.timeout(RENDER_TIMEOUT_MS),
+  });
+
+  if (!extractRes.ok) {
+    let detail = 'Chuyển đổi DOCX thất bại.';
+    try {
+      const j = await extractRes.json();
+      detail = j.detail || detail;
+    } catch { /* ignore */ }
+    throw new Error(detail);
+  }
+
+  const { docx_id, texts } = (await extractRes.json()) as {
+    docx_id: string;
+    texts: { id: number; text: string }[];
+  };
+
+  emit(onProgress, 'blocks', 40, `Trích xong ${texts.length} đoạn từ DOCX.`);
+
+  if (!texts.length) {
+    throw new Error('Không trích được text từ DOCX.');
+  }
+
+  let translatedTexts: string[];
+  if (passthroughTranslation) {
+    translatedTexts = texts.map((t) => t.text);
+  } else {
+    emit(onProgress, 'translate', 45, `Đang dịch ${texts.length} đoạn…`);
+    translatedTexts = await translateBlockTexts(
+      texts.map((t) => t.text),
+      sourceLang,
+      targetLang,
+      (done, total) => {
+        const pct = 45 + Math.round((done / total) * 40);
+        emit(onProgress, 'translate', pct, `Đang dịch ${done}/${total}…`);
+      },
+    );
+  }
+
+  emit(onProgress, 'pdf', 88, 'Đang áp dụng bản dịch vào DOCX…');
+
+  const translations = texts.map((t, i) => ({
+    id: t.id,
+    translated: translatedTexts[i] || t.text,
+  }));
+
+  const applyForm = new FormData();
+  applyForm.append('docx_id', docx_id);
+  applyForm.append('translations_json', JSON.stringify(translations));
+  applyForm.append('filename', buildTranslatedDocxName(file.name, targetLang));
+
+  const applyRes = await fetch('/api/docx-apply-translations', {
+    method: 'POST',
+    body: applyForm,
+    signal: AbortSignal.timeout(RENDER_TIMEOUT_MS),
+  });
+
+  if (!applyRes.ok) {
+    let detail = 'Áp dụng bản dịch DOCX thất bại.';
+    try {
+      const j = await applyRes.json();
+      detail = j.detail || detail;
+    } catch { /* ignore */ }
+    throw new Error(detail);
+  }
+
+  const docxBlob = await applyRes.blob();
+  const translatedText = translatedTexts.filter(Boolean).join('\n\n').trim();
+
+  emit(onProgress, 'done', 100, 'Hoàn tất.');
+
+  return {
+    translatedText,
+    pdfBlob: docxBlob,
+    pdfFileName: buildTranslatedDocxName(file.name, targetLang),
+    ocrApplied: false,
+    blockCount: texts.length,
+    outputFormat: 'docx',
   };
 }

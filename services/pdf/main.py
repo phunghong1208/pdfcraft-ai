@@ -533,3 +533,85 @@ async def convert_pdf_to_docx_endpoint(
     except Exception as exc:
         logger.exception("PDF to DOCX failed")
         raise HTTPException(status_code=500, detail=f"PDF to DOCX failed: {exc}") from exc
+
+
+# ---------------------------------------------------------------------------
+# DOCX-based translation: extract texts → translate (frontend) → apply
+# ---------------------------------------------------------------------------
+
+_DOCX_TEMP_STORE: dict[str, Path] = {}
+
+
+@app.post("/docx-extract-texts")
+async def docx_extract_texts_endpoint(
+    file: UploadFile = File(...),
+    mode: str = Form("auto"),
+):
+    """Convert PDF to DOCX, return text entries for translation."""
+    import uuid
+    from pdf_to_docx import convert_pdf_to_docx, extract_docx_texts
+
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files accepted.")
+
+    docx_id = str(uuid.uuid4())
+    tmpdir = Path(tempfile.mkdtemp(prefix=f"docx-tr-{docx_id[:8]}-"))
+    input_path = tmpdir / "input.pdf"
+    docx_path = tmpdir / "converted.docx"
+
+    try:
+        with open(input_path, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+
+        convert_pdf_to_docx(input_path, docx_path, mode=mode)
+
+        if not docx_path.exists():
+            raise HTTPException(status_code=422, detail="DOCX conversion failed.")
+
+        texts = extract_docx_texts(docx_path)
+        _DOCX_TEMP_STORE[docx_id] = docx_path
+
+        logger.info("docx-extract-texts: %s → %d text entries, docx_id=%s", file.filename, len(texts), docx_id)
+        return JSONResponse({"docx_id": docx_id, "texts": texts})
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("docx-extract-texts failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/docx-apply-translations")
+async def docx_apply_translations_endpoint(
+    docx_id: str = Form(...),
+    translations_json: str = Form(...),
+    filename: str = Form("translated.docx"),
+):
+    """Apply translations to previously extracted DOCX, return translated file."""
+    from pdf_to_docx import apply_docx_translations
+
+    docx_path = _DOCX_TEMP_STORE.get(docx_id)
+    if not docx_path or not docx_path.exists():
+        raise HTTPException(status_code=404, detail="DOCX session expired. Please re-extract.")
+
+    try:
+        raw = json.loads(translations_json)
+        trans_map: dict[int, str] = {int(t["id"]): t["translated"] for t in raw}
+    except (json.JSONDecodeError, KeyError) as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid translations JSON: {exc}") from exc
+
+    output_path = docx_path.parent / "translated.docx"
+    try:
+        apply_docx_translations(docx_path, trans_map, output_path)
+        del _DOCX_TEMP_STORE[docx_id]
+
+        logger.info("docx-apply-translations: %s → %d translations applied", docx_id, len(trans_map))
+        return FileResponse(
+            output_path,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            filename=filename,
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("docx-apply-translations failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc

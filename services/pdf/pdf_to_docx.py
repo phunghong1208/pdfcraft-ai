@@ -42,6 +42,7 @@ class StyledRun:
     bold: bool = False
     italic: bool = False
     size: float = 11.0
+    fontname: str = ""
 
 
 @dataclass
@@ -100,6 +101,38 @@ def _font_flags(font_name: str) -> tuple[bool, bool]:
     return bold, italic
 
 
+_FONT_MAP: dict[str, str] = {
+    "arial": "Arial",
+    "helvetica": "Arial",
+    "timesnewroman": "Times New Roman",
+    "times": "Times New Roman",
+    "courier": "Courier New",
+    "couriernew": "Courier New",
+    "georgia": "Georgia",
+    "verdana": "Verdana",
+    "calibri": "Calibri",
+    "cambria": "Cambria",
+    "tahoma": "Tahoma",
+    "trebuchet": "Trebuchet MS",
+    "garamond": "Garamond",
+    "palatino": "Palatino Linotype",
+    "bookantiqua": "Book Antiqua",
+}
+
+
+def _map_font_name(pdf_fontname: str) -> str | None:
+    clean = re.sub(r"[-_,.]", "", (pdf_fontname or "").lower())
+    clean = re.sub(
+        r"(bold|italic|oblique|regular|mt|psmt|ps|it|bd|lt|bk|med|semi|extra|heavy|black|light|thin|condensed|narrow|roman|cyr)",
+        "",
+        clean,
+    ).strip()
+    for key, val in _FONT_MAP.items():
+        if key in clean:
+            return val
+    return None
+
+
 def _align_from_bbox(x0: float, x1: float, page_w: float) -> WD_ALIGN_PARAGRAPH:
     cx = (x0 + x1) / 2
     if cx <= page_w * 0.38:
@@ -109,17 +142,67 @@ def _align_from_bbox(x0: float, x1: float, page_w: float) -> WD_ALIGN_PARAGRAPH:
     return WD_ALIGN_PARAGRAPH.CENTER
 
 
-def _is_sidebar_fragment(word: dict[str, Any]) -> bool:
-    """Detect fragments of vertical/rotated text in left margin."""
+def _char_is_rotated(char: dict[str, Any]) -> bool:
+    if char.get("upright") is False:
+        return True
+    matrix = char.get("matrix")
+    if matrix and len(matrix) >= 4:
+        if abs(float(matrix[1])) > 0.05 or abs(float(matrix[2])) > 0.05:
+            return True
+    w = float(char.get("width") or 0)
+    h = float(char.get("height") or 0)
+    text = (char.get("text") or "").strip()
+    if text and w > 0 and h > w * 2.5:
+        return True
+    return False
+
+
+def _find_rotated_columns(page: Any) -> list[float]:
+    """Scan page.chars for rotated characters in margin areas only."""
+    page_w = float(page.width or 612)
+    margin = 55
+    x_vals: list[float] = []
+    for char in page.chars or []:
+        x0 = float(char.get("x0", 0))
+        if x0 > margin and x0 < page_w - margin:
+            continue
+        if char.get("upright") is False:
+            x_vals.append(x0)
+            continue
+        matrix = char.get("matrix")
+        if matrix and len(matrix) >= 4:
+            if abs(float(matrix[1])) > 0.05 or abs(float(matrix[2])) > 0.05:
+                x_vals.append(x0)
+    if not x_vals:
+        return []
+    x_vals.sort()
+    columns = [x_vals[0]]
+    for x in x_vals[1:]:
+        if x - columns[-1] > 15:
+            columns.append(x)
+    return columns
+
+
+def _is_rotated_fragment(word: dict[str, Any], rotated_cols: list[float]) -> bool:
+    """Check if word is part of rotated margin text."""
     x0 = float(word["x0"])
     w = float(word["x1"]) - x0
     text = (word.get("text") or "").strip()
-    return x0 < 35 and w < 20 and len(text) <= 2
+    if rotated_cols and w < 18 and len(text) <= 3:
+        if any(abs(x0 - col) < 8 for col in rotated_cols):
+            return True
+    if w < 5 and len(text) == 1:
+        return True
+    return False
 
 
 def _point_in_rect(px: float, py: float, rect: tuple[float, ...]) -> bool:
     x0, top, x1, bottom = rect
     return x0 <= px <= x1 and top <= py <= bottom
+
+
+def _rects_overlap(a: tuple[float, ...], b: tuple[float, ...]) -> bool:
+    return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
 
 
 def _group_words_to_lines(words: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
@@ -158,9 +241,9 @@ def _line_to_text_block(group: list[dict[str, Any]], page_w: float) -> TextBlock
         if i > 0 and runs:
             prev = group[i - 1]
             gap = float(word["x0"]) - float(prev["x1"])
-            if gap > max(size * 0.22, 1.5) and runs[-1].text and not runs[-1].text.endswith(" "):
+            if gap > max(size * 0.15, 1.5) and runs[-1].text and not runs[-1].text.endswith(" "):
                 runs.append(StyledRun(" ", size=size))
-        runs.append(StyledRun(text, bold=bold, italic=italic, size=size))
+        runs.append(StyledRun(text, bold=bold, italic=italic, size=size, fontname=fontname))
     if not runs:
         return None
     x0 = min(float(w["x0"]) for w in group)
@@ -269,6 +352,36 @@ def _match_page_images(
     return blocks
 
 
+def _is_watermark_image(
+    img: ImageBlock,
+    text_blocks: list[TextBlock],
+    page_w: float,
+    page_h: float,
+    table_rects: list[tuple[float, float, float, float]] | None = None,
+) -> bool:
+    img_area = (img.x1 - img.x0) * (img.bottom - img.top)
+    page_area = page_w * page_h
+    if page_area <= 0:
+        return False
+    ratio = img_area / page_area
+    if ratio > 0.15:
+        return True
+    if ratio > 0.02:
+        img_rect = (img.x0, img.top, img.x1, img.bottom)
+        overlap = sum(
+            1
+            for tb in text_blocks
+            if _rects_overlap((tb.x0, tb.top, tb.x1, tb.bottom), img_rect)
+        )
+        if table_rects:
+            overlap += sum(
+                1 for tr in table_rects if _rects_overlap(tr, img_rect)
+            )
+        if overlap > 1:
+            return True
+    return False
+
+
 def _extract_hlines(
     page: pdfplumber.page.Page,
     table_rects: list[tuple[float, float, float, float]],
@@ -303,6 +416,78 @@ def _extract_hlines(
     return blocks
 
 
+def _should_merge_lines(current: TextBlock, next_block: TextBlock) -> bool:
+    cur_sizes = [r.size for r in current.runs if r.text.strip()]
+    next_sizes = [r.size for r in next_block.runs if r.text.strip()]
+    if not cur_sizes or not next_sizes:
+        return False
+    cur_size = sum(cur_sizes) / len(cur_sizes)
+    next_size = sum(next_sizes) / len(next_sizes)
+    if abs(cur_size - next_size) > 1.5:
+        return False
+    gap = next_block.top - current.bottom
+    if gap < -2 or gap > cur_size * 1.5:
+        return False
+    if abs(next_block.x0 - current.x0) > cur_size * 4:
+        return False
+    cur_all_bold = all(r.bold for r in current.runs if r.text.strip())
+    if cur_all_bold and len(current.text.strip()) < 80:
+        return False
+    return True
+
+
+def _merge_lines_to_paragraphs(text_blocks: list[TextBlock], page_w: float) -> list[TextBlock]:
+    if len(text_blocks) <= 1:
+        return text_blocks
+    text_blocks.sort(key=lambda b: b.top)
+    merged: list[TextBlock] = []
+    current = text_blocks[0]
+    for i in range(1, len(text_blocks)):
+        nb = text_blocks[i]
+        if _should_merge_lines(current, nb):
+            cur_size = sum(r.size for r in current.runs if r.text.strip()) / max(1, sum(1 for r in current.runs if r.text.strip()))
+            current.runs.append(StyledRun(" ", size=cur_size))
+            current.runs.extend(nb.runs)
+            current.bottom = nb.bottom
+            current.x1 = max(current.x1, nb.x1)
+        else:
+            merged.append(current)
+            current = nb
+    merged.append(current)
+    for block in merged:
+        block.align = _align_from_bbox(block.x0, block.x1, page_w)
+    return merged
+
+
+def _median_font_size(blocks: list[TextBlock]) -> float:
+    sizes: list[float] = []
+    for b in blocks:
+        for r in b.runs:
+            if r.text.strip() and r.size > 0:
+                sizes.append(r.size)
+    if not sizes:
+        return 11.0
+    sizes.sort()
+    mid = len(sizes) // 2
+    return sizes[mid]
+
+
+def _detect_heading_level(block: TextBlock, median_size: float) -> int:
+    """0 = not heading, 1-3 = heading level."""
+    avg_size = sum(r.size for r in block.runs if r.text.strip()) / max(1, sum(1 for r in block.runs if r.text.strip()))
+    is_bold = all(r.bold for r in block.runs if r.text.strip())
+    text = block.text.strip()
+    if len(text) > 200 or not text:
+        return 0
+    if avg_size >= median_size * 1.6:
+        return 1
+    if avg_size >= median_size * 1.3:
+        return 2
+    if is_bold and avg_size >= median_size * 1.05 and len(text) < 120:
+        return 3
+    return 0
+
+
 def _extract_page(page: pdfplumber.page.Page, pdf_path: Path, image_map: dict[int, dict[str, tuple[bytes, str]]] | None = None) -> PageContent:
     page_w = float(page.width or 612)
     page_h = float(page.height or 792)
@@ -324,8 +509,10 @@ def _extract_page(page: pdfplumber.page.Page, pdf_path: Path, image_map: dict[in
     except Exception as exc:
         logger.warning("table extract failed page %d: %s", page_idx + 1, exc)
 
+    rotated_cols = _find_rotated_columns(page)
+
     words = page.extract_words(
-        x_tolerance=2,
+        x_tolerance=1.5,
         y_tolerance=2,
         keep_blank_chars=False,
         extra_attrs=["fontname", "size"],
@@ -339,7 +526,7 @@ def _extract_page(page: pdfplumber.page.Page, pdf_path: Path, image_map: dict[in
         cy = (float(word["top"]) + float(word["bottom"])) / 2
         if any(_point_in_rect(cx, cy, rect) for rect in table_rects):
             continue
-        if _is_sidebar_fragment(word):
+        if _is_rotated_fragment(word, rotated_cols):
             continue
         filtered.append(word)
 
@@ -354,7 +541,13 @@ def _extract_page(page: pdfplumber.page.Page, pdf_path: Path, image_map: dict[in
 
     img_blocks: list[ImageBlock] = []
     if image_map is not None:
-        img_blocks = _match_page_images(page, page_idx, image_map, table_rects)
+        raw_imgs = _match_page_images(page, page_idx, image_map, table_rects)
+        img_blocks = [
+            img for img in raw_imgs
+            if not _is_watermark_image(img, text_blocks, page_w, page_h, table_rects)
+        ]
+
+    text_blocks = _merge_lines_to_paragraphs(text_blocks, page_w)
 
     hline_blocks = _extract_hlines(page, table_rects)
 
@@ -368,9 +561,20 @@ def _extract_page(page: pdfplumber.page.Page, pdf_path: Path, image_map: dict[in
     return content
 
 
-def _add_text_block(doc: Document, block: TextBlock) -> None:
-    para = doc.add_paragraph()
+def _add_text_block(
+    doc: Document,
+    block: TextBlock,
+    heading_level: int = 0,
+    space_before_pt: float = 0,
+) -> None:
+    if heading_level and 1 <= heading_level <= 3:
+        para = doc.add_heading(level=heading_level)
+        para.clear()
+    else:
+        para = doc.add_paragraph()
     para.alignment = block.align
+    if space_before_pt > 2:
+        para.paragraph_format.space_before = Pt(min(space_before_pt, 24))
     for run_data in block.runs:
         if not run_data.text:
             continue
@@ -379,6 +583,9 @@ def _add_text_block(doc: Document, block: TextBlock) -> None:
         run.italic = run_data.italic
         if run_data.size > 0:
             run.font.size = Pt(max(6, round(run_data.size)))
+        mapped = _map_font_name(run_data.fontname)
+        if mapped:
+            run.font.name = mapped
 
 
 def _set_table_borders(table, sz: int = 4, color: str = "000000") -> None:
@@ -450,19 +657,28 @@ def _add_hline_block(doc: Document, block: HLineBlock) -> None:
 
 def _build_docx(pages: list[PageContent], output_path: Path) -> None:
     doc = Document()
+    all_text_blocks = [b for p in pages for b in p.blocks if isinstance(b, TextBlock)]
+    median_sz = _median_font_size(all_text_blocks)
+
     for page_idx, page in enumerate(pages):
         if page_idx > 0:
             doc.add_page_break()
+        prev_bottom = 0.0
         for block in page.blocks:
             if isinstance(block, TextBlock):
-                _add_text_block(doc, block)
+                gap = max(0.0, block.top - prev_bottom) if prev_bottom > 0 else 0.0
+                hlevel = _detect_heading_level(block, median_sz)
+                _add_text_block(doc, block, heading_level=hlevel, space_before_pt=gap)
+                prev_bottom = block.bottom
             elif isinstance(block, TableBlock):
                 _add_table_block(doc, block)
-                doc.add_paragraph()
+                prev_bottom = block.top + 20
             elif isinstance(block, ImageBlock):
                 _add_image_block(doc, block, page.width)
+                prev_bottom = block.bottom
             elif isinstance(block, HLineBlock):
                 _add_hline_block(doc, block)
+                prev_bottom = block.top + 2
     if not doc.paragraphs and not doc.tables:
         doc.add_paragraph("")
     doc.save(str(output_path))
@@ -583,22 +799,6 @@ def _pt_to_emu(pt: float) -> int:
 
 def _clamp_preserve_dpi(dpi: int) -> int:
     return max(PRESERVE_LAYOUT_DPI_MIN, min(PRESERVE_LAYOUT_DPI_MAX, dpi))
-
-
-def _char_is_rotated(char: dict[str, Any]) -> bool:
-    if char.get("upright") is False:
-        return True
-    matrix = char.get("matrix")
-    if matrix and len(matrix) >= 4:
-        # ma trận affine: [a b c d e f] — b,c != 0 ⇒ xoay
-        if abs(float(matrix[1])) > 0.05 or abs(float(matrix[2])) > 0.05:
-            return True
-    w = float(char.get("width") or 0)
-    h = float(char.get("height") or 0)
-    text = (char.get("text") or "").strip()
-    if text and w > 0 and h > w * 2.5:
-        return True
-    return False
 
 
 def _estimate_column_count(page: pdfplumber.page.Page) -> int:
@@ -743,8 +943,10 @@ def _extract_positioned_page_blocks(
         except Exception:
             pass
 
+    rotated_cols = _find_rotated_columns(page)
+
     words = page.extract_words(
-        x_tolerance=2,
+        x_tolerance=1.5,
         y_tolerance=2,
         keep_blank_chars=False,
         extra_attrs=["fontname", "size"],
@@ -758,7 +960,7 @@ def _extract_positioned_page_blocks(
         cy = (float(word["top"]) + float(word["bottom"])) / 2
         if any(_point_in_rect(cx, cy, rect) for rect in table_rects):
             continue
-        if _is_sidebar_fragment(word):
+        if _is_rotated_fragment(word, rotated_cols):
             continue
         filtered.append(word)
 
@@ -767,7 +969,7 @@ def _extract_positioned_page_blocks(
         if block:
             blocks.append(block)
 
-    if not blocks:
+    if not blocks and not table_rects:
         blocks = _pypdf_page_fallback(pdf_path, page_idx)
 
     blocks.sort(key=lambda b: (b.top, b.x0))
@@ -816,6 +1018,11 @@ def _add_positioned_table(
     if cols < 1:
         return
 
+    non_empty = [j for j in range(cols) if any((row[j] if j < len(row) else "") for row in cleaned)]
+    if 0 < len(non_empty) < cols:
+        cleaned = [[(row[j] if j < len(row) else "") for j in non_empty] for row in cleaned]
+        cols = len(non_empty)
+
     bbox = table_obj.bbox
     tbl_x0 = float(bbox[0])
     tbl_top = float(bbox[1])
@@ -836,21 +1043,61 @@ def _add_positioned_table(
     tbl_p.set(qn("w:tblpY"), str(_pt_to_twips(tbl_top)))
     tbl_pr.append(tbl_p)
 
+    max_tbl_w = page_w * 0.92
+    actual_w = min(tbl_w, max_tbl_w)
     tbl_w_el = OxmlElement("w:tblW")
-    tbl_w_el.set(qn("w:w"), str(_pt_to_twips(tbl_w)))
+    tbl_w_el.set(qn("w:w"), str(_pt_to_twips(actual_w)))
     tbl_w_el.set(qn("w:type"), "dxa")
     for old in tbl_pr.findall(qn("w:tblW")):
         tbl_pr.remove(old)
     tbl_pr.append(tbl_w_el)
+
+    tbl_cell_mar = OxmlElement("w:tblCellMar")
+    for side in ("top", "left", "bottom", "right"):
+        el = OxmlElement(f"w:{side}")
+        el.set(qn("w:w"), "28")
+        el.set(qn("w:type"), "dxa")
+        tbl_cell_mar.append(el)
+    tbl_pr.append(tbl_cell_mar)
+
+    col_widths_pt = [actual_w / cols] * cols
+    try:
+        cells = getattr(table_obj, "cells", None) or []
+        if cells:
+            x_edges = sorted(set(float(c[0]) for c in cells) | set(float(c[2]) for c in cells))
+            if len(x_edges) == cols + 1:
+                col_widths_pt = [x_edges[i + 1] - x_edges[i] for i in range(cols)]
+            else:
+                max_lens = [0] * cols
+                for row in cleaned:
+                    for j in range(min(len(row), cols)):
+                        max_lens[j] = max(max_lens[j], len(row[j]))
+                total_len = sum(max_lens) or 1
+                min_w = actual_w * 0.06
+                col_widths_pt = [max(actual_w * ml / total_len, min_w) for ml in max_lens]
+                scale = actual_w / sum(col_widths_pt)
+                col_widths_pt = [w * scale for w in col_widths_pt]
+    except Exception:
+        pass
 
     for i, row in enumerate(cleaned):
         for j in range(cols):
             cell_text = row[j] if j < len(row) else ""
             cell = table.rows[i].cells[j]
             cell.text = cell_text
+            tc_pr = cell._tc.get_or_add_tcPr()
+            tc_w = OxmlElement("w:tcW")
+            w_val = _pt_to_twips(col_widths_pt[j]) if j < len(col_widths_pt) else _pt_to_twips(actual_w / cols)
+            tc_w.set(qn("w:w"), str(w_val))
+            tc_w.set(qn("w:type"), "dxa")
+            for old in tc_pr.findall(qn("w:tcW")):
+                tc_pr.remove(old)
+            tc_pr.append(tc_w)
             for para in cell.paragraphs:
+                para.paragraph_format.space_before = Pt(1)
+                para.paragraph_format.space_after = Pt(1)
                 for run in para.runs:
-                    run.font.size = Pt(9)
+                    run.font.size = Pt(8)
 
 
 def _build_fixed_layout_docx(pdf_path: Path, output_path: Path) -> None:
@@ -872,20 +1119,50 @@ def _build_fixed_layout_docx(pdf_path: Path, output_path: Path) -> None:
             table_rects: list[tuple[float, float, float, float]] = []
             tables: list[Any] = []
             try:
+                cands: list[tuple[Any, tuple[float, float, float, float]]] = []
                 for table in page.find_tables() or []:
-                    table_rects.append(table.bbox)
-                    tables.append(table)
+                    tbl_bbox = table.bbox
+                    tbl_h = float(tbl_bbox[3]) - float(tbl_bbox[1])
+                    data = table.extract() or []
+                    cleaned = [[str(c or "").strip() for c in row] for row in data if row]
+                    if len(cleaned) <= 1 and tbl_h < 25:
+                        continue
+                    total = sum(len(row) for row in cleaned)
+                    filled = sum(1 for row in cleaned for c in row if c)
+                    if total > 0 and filled / total > 0.15:
+                        capped = (
+                            float(tbl_bbox[0]),
+                            float(tbl_bbox[1]),
+                            float(tbl_bbox[2]),
+                            min(float(tbl_bbox[3]), page_h),
+                        )
+                        cands.append((table, capped))
+                for ci, (tbl, rect) in enumerate(cands):
+                    nested = any(
+                        cj != ci
+                        and cands[cj][1][0] <= rect[0]
+                        and cands[cj][1][1] <= rect[1]
+                        and cands[cj][1][2] >= rect[2]
+                        and cands[cj][1][3] >= rect[3]
+                        for cj in range(len(cands))
+                    )
+                    if not nested:
+                        table_rects.append(rect)
+                        tables.append(tbl)
             except Exception:
                 pass
 
-            for block in _extract_positioned_page_blocks(page, pdf_path, table_rects):
+            text_blocks = _extract_positioned_page_blocks(page, pdf_path, table_rects)
+            for block in text_blocks:
                 _add_framed_text_block(doc, block)
 
             for table in tables:
                 _add_positioned_table(doc, table, page_w)
 
-            for img_block in _match_page_images(page, page_idx, image_map, table_rects):
-                _add_anchored_image(doc, img_block)
+            raw_imgs = _match_page_images(page, page_idx, image_map, table_rects)
+            for img_block in raw_imgs:
+                if not _is_watermark_image(img_block, text_blocks, page_w, page_h, table_rects):
+                    _add_anchored_image(doc, img_block)
 
     doc.save(str(output_path))
 
@@ -1035,3 +1312,75 @@ def convert_pdf_to_docx(
 
     _build_editable_docx(input_path, output_path)
     return ENGINE_EDITABLE, resolved_mode, layout
+
+
+# ---------------------------------------------------------------------------
+# DOCX text extraction & translation replacement
+# ---------------------------------------------------------------------------
+
+
+def extract_docx_texts(docx_path: Path) -> list[dict[str, Any]]:
+    """Extract text entries from DOCX paragraphs and table cells for translation."""
+    doc = Document(str(docx_path))
+    entries: list[dict[str, Any]] = []
+    idx = 0
+
+    for para in doc.paragraphs:
+        text = para.text.strip()
+        if text:
+            entries.append({"id": idx, "text": text})
+            idx += 1
+
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                text = cell.text.strip()
+                if text:
+                    entries.append({"id": idx, "text": text})
+                    idx += 1
+
+    return entries
+
+
+def apply_docx_translations(
+    docx_path: Path,
+    translations: dict[int, str],
+    output_path: Path,
+) -> None:
+    """Replace text in DOCX with translations, preserving formatting."""
+    doc = Document(str(docx_path))
+    idx = 0
+
+    for para in doc.paragraphs:
+        text = para.text.strip()
+        if not text:
+            continue
+        translated = translations.get(idx)
+        if translated:
+            for run in para.runs:
+                run.text = ""
+            if para.runs:
+                para.runs[0].text = translated
+            else:
+                para.add_run(translated)
+        idx += 1
+
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                text = cell.text.strip()
+                if not text:
+                    continue
+                translated = translations.get(idx)
+                if translated:
+                    for p in cell.paragraphs:
+                        for r in p.runs:
+                            r.text = ""
+                    first_p = cell.paragraphs[0]
+                    if first_p.runs:
+                        first_p.runs[0].text = translated
+                    else:
+                        first_p.add_run(translated)
+                idx += 1
+
+    doc.save(str(output_path))

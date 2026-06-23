@@ -16,10 +16,27 @@ _FONT_NAMES: dict[str, str] = {}
 def register_font(fontfile: str) -> str:
     if not fontfile:
         return "Helvetica"
+    if fontfile.startswith("cid:"):
+        cid_name = fontfile[4:]
+        cached = _FONT_NAMES.get(fontfile)
+        if cached:
+            return cached
+        from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+
+        pdfmetrics.registerFont(UnicodeCIDFont(cid_name))
+        _FONT_NAMES[fontfile] = cid_name
+        return cid_name
+
+    path = Path(fontfile)
+    if not path.exists() and path.suffix.lower() == ".otf":
+        alt = path.with_suffix(".ttf")
+        if alt.exists():
+            path = alt
+            fontfile = str(alt)
     cached = _FONT_NAMES.get(fontfile)
     if cached:
         return cached
-    name = "f-" + Path(fontfile).stem[:14]
+    name = "f-" + path.stem[:14]
     pdfmetrics.registerFont(TTFont(name, fontfile))
     _FONT_NAMES[fontfile] = name
     return name
@@ -58,10 +75,10 @@ def wipe_rect_bl(
     pad_x: float = 0.0,
     pad_y: float = 0.0,
 ) -> None:
-    """x,y = góc dưới-trái (PDF bottom-left)."""
+    """x,y = góc dưới-trái (PDF bottom-left). pad mở rộng đều 4 phía."""
     c.setFillColorRGB(1, 1, 1)
     c.setStrokeColorRGB(1, 1, 1)
-    c.rect(x, y - pad_y, w + pad_x, h + pad_y * 2, fill=1, stroke=0)
+    c.rect(x - pad_x, y - pad_y, w + 2 * pad_x, h + 2 * pad_y, fill=1, stroke=0)
 
 
 def draw_string_bl(

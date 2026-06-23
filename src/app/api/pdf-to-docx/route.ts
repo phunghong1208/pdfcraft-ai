@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { copyProxyResponseHeaders } from '@/lib/http/content-disposition';
 import { pdfServerUpstream } from '@/lib/pdf-server-upstream';
 
 const UPSTREAM = pdfServerUpstream();
@@ -36,15 +37,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ detail }, { status: upstream.status });
     }
 
-    const responseHeaders = new Headers();
-    upstream.headers.forEach((value, key) => {
-      if (key.toLowerCase() === 'transfer-encoding') return;
-      try {
-        responseHeaders.set(key, value);
-      } catch {
-        // skip malformed headers
-      }
-    });
+    const responseHeaders = copyProxyResponseHeaders(upstream);
 
     return new NextResponse(upstream.body, {
       status: upstream.status,

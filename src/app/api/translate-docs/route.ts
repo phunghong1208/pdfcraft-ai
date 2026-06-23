@@ -5,6 +5,7 @@ import {
   translatePdfKeepLayout,
   translatePdfTextOnly,
 } from '@/lib/translate/server-document-translate';
+import { contentDispositionAttachment } from '@/lib/http/content-disposition';
 
 type TranslateOutputType = 'keep_layout' | 'text_only';
 
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${fileName}"`,
+        'Content-Disposition': contentDispositionAttachment(fileName),
       },
     });
   } catch (err) {

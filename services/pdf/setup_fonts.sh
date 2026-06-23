@@ -36,21 +36,7 @@ copy_first NotoSansKannada-Regular.ttf
 copy_first NotoSansGujarati-Regular.ttf
 copy_first NotoSansGurmukhi-Regular.ttf
 
-# CJK OTF (fonts stage hoặc curl) — giữ tên file reportlab đang dùng
-for pair in \
-  "NotoSansCJKsc-Regular.otf:NotoSansCJKsc-Regular.otf" \
-  "NotoSansCJKtc-Regular.otf:NotoSansCJKtc-Regular.otf" \
-  "NotoSansCJKjp-Regular.otf:NotoSansCJKjp-Regular.otf" \
-  "NotoSansCJKkr-Regular.otf:NotoSansCJKkr-Regular.otf"
-do
-  dest_name="${pair#*:}"
-  if [ ! -f "/app/fonts/$dest_name" ]; then
-    src_name="${pair%%:*}"
-    src=$(find /app/fonts /usr/share/fonts -name "$src_name" 2>/dev/null | head -1)
-    if [ -n "$src" ] && [ "$src" != "/app/fonts/$dest_name" ]; then
-      cp "$src" "/app/fonts/$dest_name"
-    fi
-  fi
-done
+# CJK: fonts-noto-cjk (.ttc) cho DOCX / fc-cache — render PDF dùng CID ReportLab
+copy_first NotoSansCJK-Regular.ttc
 
 fc-cache -f -v >/dev/null 2>&1 || true

@@ -21,7 +21,7 @@ from pdf_overlay import (
 )
 
 # Re-use layout noise helpers
-from pdf_layout import _adjust_block_for_render, _is_sidebar_noise, _strip_margin_prefix, _trim_wipe_rect
+from pdf_layout import _adjust_block_for_render, _is_sidebar_noise, _strip_margin_prefix
 
 _BIDI_MARK_RE = re.compile(r"[\u200e\u200f\u202a-\u202e\u2066-\u2069\ufeff]")
 _EXOTIC_SPACE_RE = re.compile(r"[\u00a0\u202f\u2007\u2060\u2009\u200a\u3000]+")
@@ -29,6 +29,14 @@ _EXOTIC_SPACE_RE = re.compile(r"[\u00a0\u202f\u2007\u2060\u2009\u200a\u3000]+")
 logger = logging.getLogger("pdfcraft.pdf.render")
 
 FONTS_DIR = Path("/app/fonts")
+
+# ReportLab CID fonts — TrueType outlines sẵn có, không cần OTF CJK (postscript outlines)
+CID_FONT_MAP: dict[str, str] = {
+    "ja": "HeiseiKakuGo-W5",
+    "ko": "HYSMyeongJo-Medium",
+    "zh": "STSong-Light",
+    "zh-TW": "MSung-Light",
+}
 
 FONT_MAP: dict[str, str] = {
     "vi": "NotoSans-Regular.ttf",
@@ -50,10 +58,6 @@ FONT_MAP: dict[str, str] = {
     "ru": "NotoSans-Regular.ttf",
     "uk": "NotoSans-Regular.ttf",
     "el": "NotoSans-Regular.ttf",
-    "ja": "NotoSansCJKjp-Regular.otf",
-    "ko": "NotoSansCJKkr-Regular.otf",
-    "zh": "NotoSansCJKsc-Regular.otf",
-    "zh-TW": "NotoSansCJKtc-Regular.otf",
     "ar": "NotoSansArabic-Regular.ttf",
     "th": "NotoSansThai-Regular.ttf",
     "hi": "NotoSansDevanagari-Regular.ttf",
@@ -80,6 +84,9 @@ _LATIN_VARIANTS: dict[tuple[bool, bool], str] = {
 
 
 def _font_path(target_lang: str) -> str:
+    cid = CID_FONT_MAP.get(target_lang)
+    if cid:
+        return f"cid:{cid}"
     name = FONT_MAP.get(target_lang, DEFAULT_FONT)
     path = FONTS_DIR / name
     if path.exists():
@@ -89,6 +96,8 @@ def _font_path(target_lang: str) -> str:
 
 
 def _styled_font_path(target_lang: str, bold: bool, italic: bool) -> str:
+    if target_lang in CID_FONT_MAP:
+        return _font_path(target_lang)
     if not (bold or italic):
         return _font_path(target_lang)
     base = FONT_MAP.get(target_lang, DEFAULT_FONT)
@@ -623,6 +632,41 @@ def _insert_text(
             logger.warning("textbox overflow lang=%s len=%d", target_lang, len(text))
 
 
+def _is_sidebar_wipe_line(line: dict[str, Any]) -> bool:
+    """Giữ chữ dọc lề trái — không wipe (tránh vệt trắng trên watermark)."""
+    x = float(line.get("pdfX", 0))
+    w = float(line.get("pdfWidth", 0))
+    return x < 35 and w < 24
+
+
+def _wipe_line(c: canvas.Canvas, line: dict[str, Any]) -> None:
+    fs = float(line.get("fontSize", 11))
+    wipe_rect_bl(
+        c,
+        float(line["pdfX"]),
+        float(line["pdfY"]),
+        float(line["pdfWidth"]),
+        float(line["pdfHeight"]),
+        pad_x=max(2.0, fs * 0.2),
+        pad_y=max(2.0, fs * 0.16),
+    )
+
+
+def _wipe_block(c: canvas.Canvas, block: dict[str, Any]) -> None:
+    if _is_sidebar_noise(block):
+        return
+    fs = float(block.get("fontSize", 11))
+    x = float(block["pdfX"])
+    y = float(block["pdfY"])
+    w = float(block["pdfWidth"])
+    h = float(block["pdfHeight"])
+    if block.get("label") == "table_cell":
+        wipe_rect_bl(c, x + 1, y + 1, max(2.0, w - 2), max(2.0, h - 2), pad_x=2.0, pad_y=1.5)
+    else:
+        # Wipe full bbox — không trim lề (trim chỉ áp dụng khi vẽ)
+        wipe_rect_bl(c, x, y, w, h, pad_x=max(2.0, fs * 0.15), pad_y=max(2.0, fs * 0.12))
+
+
 def render_translated_pdf(
     pdf_path: Path,
     blocks: list[dict[str, Any]],
@@ -648,6 +692,12 @@ def render_translated_pdf(
         page_no = int(block["pageNumber"])
         all_by_page.setdefault(page_no, []).append((i, block, translated))
 
+    wipe_by_page: dict[int, list[dict[str, Any]]] = {}
+    for line in wipe_lines or []:
+        pn = int(line.get("pageNumber", 0))
+        if pn > 0:
+            wipe_by_page.setdefault(pn, []).append(line)
+
     with pikepdf.open(pdf_path) as pdf:
         page_count = len(pdf.pages)
         for page_no, page_blocks in all_by_page.items():
@@ -661,24 +711,15 @@ def render_translated_pdf(
             page_h = height
 
             def _draw_page(c: canvas.Canvas, w: float, h: float) -> None:
-                for _i, block, _translated in page_blocks:
-                    if _is_sidebar_noise(block):
+                # 1) Xóa toàn bộ dòng gốc từ layout extract (bbox từng span/line)
+                for line in wipe_by_page.get(page_no, []):
+                    if _is_sidebar_wipe_line(line):
                         continue
-                    is_cell = block.get("label") == "table_cell"
-                    if is_cell:
-                        cw = float(block["pdfWidth"]) - 4
-                        ch = float(block["pdfHeight"]) - 4
-                        if cw > 1 and ch > 1:
-                            wipe_rect_bl(
-                                c,
-                                float(block["pdfX"]) + 2,
-                                float(block["pdfY"]) + 2,
-                                cw, ch,
-                            )
-                    else:
-                        fs = float(block.get("fontSize", 11))
-                        wx, wy, ww, wh = _trim_wipe_rect(block)
-                        wipe_rect_bl(c, wx, wy, ww, wh, pad_x=max(1, fs * 0.08), pad_y=1.5)
+                    _wipe_line(c, line)
+
+                # 2) Bổ sung wipe theo block dịch (phòng wipe_lines thiếu)
+                for _i, block, _translated in page_blocks:
+                    _wipe_block(c, block)
 
                 prose_sorted: list[tuple[int, PdfRect]] = []
                 for i, block, translated in page_blocks:

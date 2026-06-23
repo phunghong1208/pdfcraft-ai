@@ -66,6 +66,7 @@ import { getDefaultTranslateLanguagePair } from '@/services/translateDocsApi';
 import { isTranslatePassthroughClient } from '@/lib/translate/passthrough';
 import {
   runWorkspaceTranslatePipeline,
+  runWorkspaceTranslateDocxPipeline,
   type TranslatePipelineProgress,
 } from '@/services/workspaceTranslatePipeline';
 
@@ -244,6 +245,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef,
   const [translatedPdfBlob, setTranslatedPdfBlob] = useState<Blob | null>(null);
   const [translatedPdfName, setTranslatedPdfName] = useState<string | null>(null);
   const [translateCopyDone, setTranslateCopyDone] = useState(false);
+  const [translateOutputFormat, setTranslateOutputFormat] = useState<'pdf' | 'docx'>('pdf');
   const [isDarkTheme, setIsDarkTheme] = useState(() => {
     if (typeof document === 'undefined' || typeof window === 'undefined') return true;
     try {
@@ -732,13 +734,16 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef,
     try {
       const passthroughTranslation = isTranslatePassthroughClient();
       const sourceFile = originalFileRef.current ?? file;
-      const result = await runWorkspaceTranslatePipeline({
+      const pipelineOpts = {
         file: sourceFile,
         sourceLang,
         targetLang,
         onProgress: setTranslateProgress,
         passthroughTranslation,
-      });
+      };
+      const result = translateOutputFormat === 'docx'
+        ? await runWorkspaceTranslateDocxPipeline(pipelineOpts)
+        : await runWorkspaceTranslatePipeline(pipelineOpts);
       setTranslatedText(result.translatedText);
       setTranslatedPdfBlob(result.pdfBlob);
       setTranslatedPdfName(result.pdfFileName);
@@ -1052,6 +1057,32 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef,
                 onChange={setTargetLang}
                 disabled={isTranslating}
               />
+              <div className="flex gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setTranslateOutputFormat('pdf')}
+                  disabled={isTranslating}
+                  className={`flex-1 py-1.5 text-[10px] font-medium rounded-lg border transition-all ${
+                    translateOutputFormat === 'pdf'
+                      ? 'border-[hsl(var(--color-primary))] bg-[hsl(var(--color-primary)/0.1)] text-[hsl(var(--color-primary))]'
+                      : `${inputTone} opacity-60`
+                  }`}
+                >
+                  PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTranslateOutputFormat('docx')}
+                  disabled={isTranslating}
+                  className={`flex-1 py-1.5 text-[10px] font-medium rounded-lg border transition-all ${
+                    translateOutputFormat === 'docx'
+                      ? 'border-[hsl(var(--color-primary))] bg-[hsl(var(--color-primary)/0.1)] text-[hsl(var(--color-primary))]'
+                      : `${inputTone} opacity-60`
+                  }`}
+                >
+                  DOCX
+                </button>
+              </div>
               <TranslatePipelineTiles
                 progress={translateProgress}
                 isTranslating={isTranslating}
@@ -1133,7 +1164,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef,
                         className={`flex-1 min-w-[88px] inline-flex items-center justify-center gap-1.5 rounded-lg border py-2 text-[11px] font-medium hover:border-[hsl(var(--color-primary)/0.35)] transition-all disabled:opacity-50 ${inputTone}`}
                       >
                         <FileDown className="h-3.5 w-3.5" />
-                        {t('aiTranslatePage.exportPdf')}
+                        {translatedPdfName?.endsWith('.docx') ? 'Export DOCX' : t('aiTranslatePage.exportPdf')}
                       </button>
                       {onTranslatedFile && (
                         <button
