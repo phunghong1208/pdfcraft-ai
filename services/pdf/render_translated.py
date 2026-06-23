@@ -1,13 +1,30 @@
-"""Render translated text onto PDF using PyMuPDF — replaces client-side pdf-lib."""
-
 from __future__ import annotations
 
-import json
 import logging
+import re
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 
-import fitz
+import pikepdf
+from reportlab.pdfgen import canvas
+
+from pdf_geom import PdfRect
+from pdf_overlay import (
+    draw_debug_rect_tl,
+    draw_rotated_bl,
+    draw_string_bl,
+    make_overlay,
+    register_font,
+    string_width,
+    wipe_rect_bl,
+)
+
+# Re-use layout noise helpers
+from pdf_layout import _adjust_block_for_render, _is_sidebar_noise, _strip_margin_prefix, _trim_wipe_rect
+
+_BIDI_MARK_RE = re.compile(r"[\u200e\u200f\u202a-\u202e\u2066-\u2069\ufeff]")
+_EXOTIC_SPACE_RE = re.compile(r"[\u00a0\u202f\u2007\u2060\u2009\u200a\u3000]+")
 
 logger = logging.getLogger("pdfcraft.pdf.render")
 
@@ -16,6 +33,23 @@ FONTS_DIR = Path("/app/fonts")
 FONT_MAP: dict[str, str] = {
     "vi": "NotoSans-Regular.ttf",
     "en": "NotoSans-Regular.ttf",
+    "es": "NotoSans-Regular.ttf",
+    "fr": "NotoSans-Regular.ttf",
+    "de": "NotoSans-Regular.ttf",
+    "it": "NotoSans-Regular.ttf",
+    "pt": "NotoSans-Regular.ttf",
+    "pl": "NotoSans-Regular.ttf",
+    "sv": "NotoSans-Regular.ttf",
+    "tr": "NotoSans-Regular.ttf",
+    "nl": "NotoSans-Regular.ttf",
+    "ca": "NotoSans-Regular.ttf",
+    "id": "NotoSans-Regular.ttf",
+    "ms": "NotoSans-Regular.ttf",
+    "sw": "NotoSans-Regular.ttf",
+    "bg": "NotoSans-Regular.ttf",
+    "ru": "NotoSans-Regular.ttf",
+    "uk": "NotoSans-Regular.ttf",
+    "el": "NotoSans-Regular.ttf",
     "ja": "NotoSansCJKjp-Regular.otf",
     "ko": "NotoSansCJKkr-Regular.otf",
     "zh": "NotoSansCJKsc-Regular.otf",
@@ -31,24 +65,18 @@ FONT_MAP: dict[str, str] = {
     "gu": "NotoSansGujarati-Regular.ttf",
     "pa": "NotoSansGurmukhi-Regular.ttf",
     "he": "NotoSansHebrew-Regular.ttf",
-    "ru": "NotoSans-Regular.ttf",
-    "uk": "NotoSans-Regular.ttf",
-    "el": "NotoSans-Regular.ttf",
 }
 
 DEFAULT_FONT = "NotoSans-Regular.ttf"
 RTL_LANGS = frozenset({"ar", "he"})
 DUAL_FONT_LANGS = frozenset({"ar", "he"})
 
-# Các biến thể đậm/nghiêng có sẵn cho NotoSans (Latin/VN/Cyrillic/Greek...).
 _LATIN_VARIANTS: dict[tuple[bool, bool], str] = {
     (False, False): "NotoSans-Regular.ttf",
     (True, False): "NotoSans-Bold.ttf",
     (False, True): "NotoSans-Italic.ttf",
     (True, True): "NotoSans-BoldItalic.ttf",
 }
-
-_FONT_CACHE: dict[str, fitz.Font] = {}
 
 
 def _font_path(target_lang: str) -> str:
@@ -57,14 +85,10 @@ def _font_path(target_lang: str) -> str:
     if path.exists():
         return str(path)
     fallback = FONTS_DIR / DEFAULT_FONT
-    if fallback.exists():
-        return str(fallback)
-    return ""
+    return str(fallback) if fallback.exists() else ""
 
 
 def _styled_font_path(target_lang: str, bold: bool, italic: bool) -> str:
-    """Trả về file font theo style. NotoSans có đủ Bold/Italic/BoldItalic;
-    script khác thử <stem>-BoldItalic/Bold/Italic.ttf, không có thì về Regular."""
     if not (bold or italic):
         return _font_path(target_lang)
     base = FONT_MAP.get(target_lang, DEFAULT_FONT)
@@ -75,8 +99,6 @@ def _styled_font_path(target_lang: str, bold: bool, italic: bool) -> str:
     else:
         stem = base.rsplit("-", 1)[0]
         ext = base.rsplit(".", 1)[-1]
-        # Thử lần lượt — nhiều script (vd Arabic) không có Italic/BoldItalic,
-        # ưu tiên Bold để vẫn giữ được nét đậm.
         suffixes: list[str] = []
         if bold and italic:
             suffixes = ["BoldItalic", "Bold", "Italic"]
@@ -91,25 +113,6 @@ def _styled_font_path(target_lang: str, bold: bool, italic: bool) -> str:
     return _font_path(target_lang)
 
 
-def _get_font(fontfile: str) -> fitz.Font | None:
-    if not fontfile:
-        return None
-    cached = _FONT_CACHE.get(fontfile)
-    if cached is not None:
-        return cached
-    try:
-        font = fitz.Font(fontfile=fontfile)
-    except Exception as exc:
-        logger.warning("font load failed (%s): %s", fontfile, exc)
-        return None
-    _FONT_CACHE[fontfile] = font
-    return font
-
-
-def _fontname_for(fontfile: str) -> str:
-    return ("f-" + Path(fontfile).stem[:14]) if fontfile else "helv"
-
-
 def _latin_font_path(bold: bool = False, italic: bool = False) -> str:
     if bold or italic:
         cand = FONTS_DIR / _LATIN_VARIANTS[(bool(bold), bool(italic))]
@@ -119,34 +122,45 @@ def _latin_font_path(bold: bool = False, italic: bool = False) -> str:
     return str(path) if path.exists() else ""
 
 
-def _text_align(target_lang: str) -> int:
-    return fitz.TEXT_ALIGN_RIGHT if target_lang in RTL_LANGS else fitz.TEXT_ALIGN_LEFT
+def _normalize_mixed_spaces(text: str) -> str:
+    return _EXOTIC_SPACE_RE.sub(" ", text)
+
+
+def _strip_bidi_marks(text: str) -> str:
+    return _BIDI_MARK_RE.sub("", text)
+
+
+def _sanitize_mixed_script_text(text: str) -> str:
+    return _strip_bidi_marks(_normalize_mixed_spaces(text))
+
+
+def _uses_latin_font(ch: str) -> bool:
+    if ch.isspace():
+        return True
+    return ch.isascii() and ord(ch) < 0x0250
 
 
 def _prepare_script_line(line: str, target_lang: str, script_font: str = "") -> str:
-    """Reshape Arabic / bidi RTL trước khi vẽ. Ép base_dir='R' để số/Latin
-    đầu dòng không bị hiểu là LTR (mục '2.'/'e-Visa' nhảy sai chỗ)."""
     if target_lang == "ar":
         try:
             import arabic_reshaper
             from bidi.algorithm import get_display
 
             shaped = arabic_reshaper.reshape(line)
-            return get_display(shaped, base_dir="R")
+            return _sanitize_mixed_script_text(get_display(shaped, base_dir="R"))
         except Exception as exc:
             logger.warning("arabic reshape failed: %s", exc)
     if target_lang == "he":
         try:
             from bidi.algorithm import get_display
 
-            return get_display(line, base_dir="R")
+            return _sanitize_mixed_script_text(get_display(line, base_dir="R"))
         except Exception as exc:
             logger.warning("hebrew bidi failed: %s", exc)
-    return line
+    return _sanitize_mixed_script_text(line)
 
 
 def _is_latin_word(word: str) -> bool:
-    """Từ thuộc Latin/số (URL, năm, ngoặc) hay script RTL?"""
     letters = [c for c in word if c.isalnum()]
     if not letters:
         return any(c.isascii() for c in word)
@@ -158,48 +172,37 @@ def _reshape_word(word: str, target_lang: str) -> str:
     if target_lang == "ar":
         try:
             import arabic_reshaper
-
             return arabic_reshaper.reshape(word)
         except Exception:
             return word
     return word
 
 
-def _safe_len(font: fitz.Font, seg: str, size: float) -> float:
-    try:
-        return float(font.text_length(seg, fontsize=size))
-    except Exception:
-        return len(seg) * size * 0.5
-
-
 def _word_width(
-    word: str, ar_font: fitz.Font, lat_font: fitz.Font, size: float, target_lang: str
+    word: str, script_font: str, latin_font: str, size: float, target_lang: str
 ) -> float:
     if _is_latin_word(word):
-        return _safe_len(lat_font, word, size)
-    return _safe_len(ar_font, _reshape_word(word, target_lang), size)
+        return string_width(latin_font, word, size)
+    return string_width(script_font, _reshape_word(word, target_lang), size)
 
 
 def _wrap_logical_lines(
     text_line: str,
     max_w: float,
-    ar_font: fitz.Font,
-    lat_font: fitz.Font,
+    script_font: str,
+    latin_font: str,
     size: float,
     target_lang: str,
 ) -> list[str]:
-    """Wrap theo LOGICAL order (trước bidi) — tránh đảo thứ tự dòng RTL."""
     words = [w for w in text_line.split(" ") if w]
     if not words:
         return []
-
-    space_w = _safe_len(lat_font, " ", size)
+    space_w = string_width(latin_font, " ", size)
     lines: list[str] = []
     cur: list[str] = []
     cur_w = 0.0
-
     for w in words:
-        ww = _word_width(w, ar_font, lat_font, size, target_lang)
+        ww = _word_width(w, script_font, latin_font, size, target_lang)
         add = ww + (space_w if cur else 0.0)
         if cur and cur_w + add > max_w:
             lines.append(" ".join(cur))
@@ -207,14 +210,12 @@ def _wrap_logical_lines(
         else:
             cur.append(w)
             cur_w += add
-
     if cur:
         lines.append(" ".join(cur))
     return lines
 
 
 def _split_latin_runs(text: str) -> list[tuple[str, bool]]:
-    """Tách đoạn Latin (URL, số) vs script — bool True = dùng NotoSans."""
     runs: list[tuple[str, bool]] = []
     i = 0
     n = len(text)
@@ -224,17 +225,16 @@ def _split_latin_runs(text: str) -> list[tuple[str, bool]]:
             j = i + 1
             while j < n and text[j].isspace():
                 j += 1
-            runs.append((text[i:j], False))
+            runs.append((text[i:j], True))
             i = j
             continue
-        is_latin = ch.isascii() and ord(ch) < 0x0250
+        is_latin = _uses_latin_font(ch)
         j = i + 1
         while j < n:
             cj = text[j]
             if cj.isspace():
                 break
-            lj = cj.isascii() and ord(cj) < 0x0250
-            if lj != is_latin:
+            if _uses_latin_font(cj) != is_latin:
                 break
             j += 1
         runs.append((text[i:j], is_latin))
@@ -242,194 +242,29 @@ def _split_latin_runs(text: str) -> list[tuple[str, bool]]:
     return runs
 
 
-def _run_width(seg: str, is_latin: bool, ar_font: fitz.Font, lat_font: fitz.Font, size: float) -> float:
-    font = lat_font if is_latin else ar_font
-    try:
-        return float(font.text_length(seg, fontsize=size))
-    except Exception:
-        return len(seg) * size * 0.48
+def _run_width(seg: str, is_latin: bool, script_font: str, latin_font: str, size: float) -> float:
+    return string_width(latin_font if is_latin else script_font, seg, size)
 
 
-def _runs_width(runs: list[tuple[str, bool]], ar_font: fitz.Font, lat_font: fitz.Font, size: float) -> float:
-    return sum(_run_width(s, lat, ar_font, lat_font, size) for s, lat in runs)
+def _runs_width(
+    runs: list[tuple[str, bool]], script_font: str, latin_font: str, size: float
+) -> float:
+    return sum(_run_width(s, lat, script_font, latin_font, size) for s, lat in runs)
 
 
-def _count_rtl_lines(
-    text: str,
-    max_w: float,
-    ar_font: fitz.Font,
-    lat_font: fitz.Font,
-    size: float,
-    target_lang: str,
-) -> int:
-    total = 0
-    for raw in text.split("\n"):
-        raw = raw.strip()
-        if not raw:
-            continue
-        total += len(_wrap_logical_lines(raw, max_w, ar_font, lat_font, size, target_lang))
-    return max(1, total)
-
-
-def _insert_rtl_mixed(
-    page: fitz.Page,
-    rect: fitz.Rect,
-    text: str,
-    target_lang: str,
-    script_font: str,
-    size: float,
-    allow_overflow: bool = False,
-    bold: bool = False,
-    italic: bool = False,
-) -> bool:
-    """Ả Rập/Hebrew: wrap theo logical order → bidi từng dòng → neo mép phải.
-
-    Mixed font: NotoSansArabic cho script, NotoSans cho Latin/số/URL.
-    """
-    latin_font = _latin_font_path(bold, italic)
-    if not script_font or not latin_font:
-        return False
-    try:
-        ar_font = fitz.Font(fontfile=script_font)
-        lat_font = fitz.Font(fontfile=latin_font)
-    except Exception as exc:
-        logger.warning("rtl font load failed: %s", exc)
-        return False
-
-    max_w = max(rect.width - 4, 20.0)
-    line_h = size * 1.35
-    n_lines = _count_rtl_lines(text, max_w, ar_font, lat_font, size, target_lang)
-    if not allow_overflow and n_lines * line_h > rect.height + 2:
-        return False
-
-    tw = fitz.TextWriter(page.rect, color=(0, 0, 0))
-    y = rect.y0 + size * 0.92
-    bottom = rect.y1 - 1
-
-    for raw in text.split("\n"):
-        raw = raw.strip()
-        if not raw:
-            continue
-        # 1) wrap khi text còn ở logical order
-        for logical_line in _wrap_logical_lines(raw, max_w, ar_font, lat_font, size, target_lang):
-            if y > bottom and not allow_overflow:
-                return False
-            # 2) reshape + bidi cho riêng dòng visual này
-            prepared = _prepare_script_line(logical_line, target_lang, script_font)
-            runs = _split_latin_runs(prepared)
-            # 3) neo vào mép phải của block
-            total_w = _runs_width(runs, ar_font, lat_font, size)
-            x = rect.x1 - 2 - total_w
-            for seg, is_lat in runs:
-                if not seg:
-                    continue
-                font = lat_font if is_lat else ar_font
-                tw.append((x, y), seg, font=font, fontsize=size)
-                x += _run_width(seg, is_lat, ar_font, lat_font, size)
-            y += line_h
-
-    tw.write_text(page)
-    return True
-
-
-def _draw_textbox(
-    page: fitz.Page,
-    rect: fitz.Rect,
-    text: str,
-    target_lang: str,
-    fontfile: str,
-    fontname: str,
-    size: float,
-    min_size: float,
-    bold: bool = False,
-    italic: bool = False,
-) -> bool:
-    """Vẽ textbox — RTL mixed dùng TextWriter, còn lại insert_textbox."""
-    # Guard: rect phải hữu hạn và không rỗng (PyMuPDF raise nếu x1<=x0 / y1<=y0).
-    if (
-        not rect.is_valid
-        or rect.is_empty
-        or rect.is_infinite
-        or rect.width < 1
-        or rect.height < 1
-    ):
-        logger.warning("skip degenerate rect=%s lang=%s", rect, target_lang)
-        return False
-
-    if target_lang in DUAL_FONT_LANGS and _latin_font_path():
-        s = size
-        while s >= min_size:
-            if _insert_rtl_mixed(
-                page, rect, text, target_lang, fontfile, s, bold=bold, italic=italic
-            ):
-                return True
-            s -= 0.4
-        # Vẫn không vừa: render ở min_size, neo phải, cho tràn xuống —
-        # tránh insert_textbox (re-wrap chuỗi đã bidi → đảo thứ tự RTL).
-        if _insert_rtl_mixed(
-            page, rect, text, target_lang, fontfile, min_size,
-            allow_overflow=True, bold=bold, italic=italic,
-        ):
-            return True
-
-    shaped = text
-    if target_lang in RTL_LANGS:
-        shaped = "\n".join(
-            _prepare_script_line(ln, target_lang, fontfile)
-            for ln in text.split("\n")
-            if ln.strip()
-        )
-    fname = fontname if fontfile else "helv"
-    ffile = fontfile if fontfile else None
-    align = _text_align(target_lang)
-    s = size
-    while s >= min_size:
-        rc = page.insert_textbox(
-            rect, shaped, fontsize=s,
-            fontname=fname, fontfile=ffile,
-            color=(0, 0, 0), align=align,
-        )
-        if rc >= 0:
-            return True
-        s -= 0.4
-    return False
-
-
-def _wipe_rect(
-    page: fitz.Page,
-    x: float,
-    y: float,
-    w: float,
-    h: float,
-    page_h: float,
-    pad_x: float = 1.0,
-    pad_y: float = 1.0,
-) -> None:
-    """Redact (permanently remove) text from PDF layer + fill white. Coords in PDF bottom-left."""
-    fitz_y0 = page_h - (y + h) - pad_y
-    fitz_y1 = page_h - y + pad_y
-    # Never expand left — only right+vertical, to avoid covering adjacent columns
-    rect = fitz.Rect(x, fitz_y0, x + w + pad_x, fitz_y1)
-    if rect.is_empty or not rect.is_valid or rect.is_infinite:
-        return
-    page.add_redact_annot(rect, fill=(1, 1, 1))
-
-
-def _block_rect(block: dict[str, Any], page_h: float) -> fitz.Rect:
+def _block_rect(block: dict[str, Any], page_h: float) -> PdfRect:
     pdf_x = float(block["pdfX"])
     pdf_y = float(block["pdfY"])
     pdf_w = float(block["pdfWidth"])
     pdf_h = float(block["pdfHeight"])
-    fitz_y0 = page_h - (pdf_y + pdf_h)
-    fitz_y1 = page_h - pdf_y
-    return fitz.Rect(pdf_x, fitz_y0, pdf_x + pdf_w, fitz_y1)
+    y0 = page_h - (pdf_y + pdf_h)
+    y1 = page_h - pdf_y
+    return PdfRect(pdf_x, y0, pdf_x + pdf_w, y1)
 
 
-def _wrap_line_count(text: str, width: float, font: fitz.Font, size: float) -> int:
-    """Ước lượng số dòng sau wrap theo chiều rộng."""
+def _wrap_line_count(text: str, width: float, fontfile: str, size: float) -> int:
     if width < 8:
         return max(1, text.count("\n") + 1)
-
     lines = 0
     for paragraph in text.split("\n"):
         words = paragraph.split()
@@ -439,10 +274,7 @@ def _wrap_line_count(text: str, width: float, font: fitz.Font, size: float) -> i
         current = ""
         for word in words:
             candidate = f"{current} {word}".strip()
-            try:
-                fits = font.text_length(candidate, fontsize=size) <= width - 4
-            except Exception:
-                fits = len(candidate) * size * 0.48 <= width
+            fits = string_width(fontfile, candidate, size) <= width - 4
             if fits:
                 current = candidate
             else:
@@ -454,8 +286,7 @@ def _wrap_line_count(text: str, width: float, font: fitz.Font, size: float) -> i
     return max(1, lines)
 
 
-def _find_ceiling(base: fitz.Rect, following: list[fitz.Rect], page_h: float) -> float:
-    """Prose: luôn dừng trước block kế (mỗi mục đã gom ở extract)."""
+def _find_ceiling(base: PdfRect, following: list[PdfRect], page_h: float) -> float:
     default = min(base.y1 + 48, page_h - 12)
     for nxt in following:
         if nxt.y0 <= base.y0 + 1:
@@ -466,99 +297,273 @@ def _find_ceiling(base: fitz.Rect, following: list[fitz.Rect], page_h: float) ->
 
 def _fit_prose_rect(
     text: str,
-    base: fitz.Rect,
+    base: PdfRect,
     max_y1: float,
-    font: fitz.Font,
+    fontfile: str,
     base_size: float,
-) -> tuple[float, fitz.Rect]:
-    """Giữ y0 gốc, auto-shrink font cho vừa tới max_y1."""
+) -> tuple[float, PdfRect]:
     width = max(base.width, 40.0)
     min_size = 4.5
     start = min(base_size * 0.88, 10.5)
     avail_h = max(max_y1 - base.y0, base.height)
-
     size = start
     while size >= min_size:
-        lines = _wrap_line_count(text, width, font, size)
+        lines = _wrap_line_count(text, width, fontfile, size)
         need_h = lines * size * 1.28 + 3
         y1 = min(base.y0 + need_h, max_y1)
         if y1 - base.y0 >= min(size * 0.85, avail_h * 0.5):
-            return size, fitz.Rect(base.x0, base.y0, base.x1, y1)
+            return size, PdfRect(base.x0, base.y0, base.x1, y1)
         size -= 0.4
-
     y1 = min(base.y0 + min_size * 2.5, max_y1)
-    return min_size, fitz.Rect(base.x0, base.y0, base.x1, max(y1, base.y0 + min_size))
+    return min_size, PdfRect(base.x0, base.y0, base.x1, max(y1, base.y0 + min_size))
+
+
+def _draw_wrapped_ltr(
+    c: canvas.Canvas,
+    rect: PdfRect,
+    text: str,
+    fontfile: str,
+    size: float,
+    page_h: float,
+    min_size: float,
+) -> bool:
+    width = max(rect.width - 4, 20.0)
+    s = size
+    while s >= min_size:
+        lines: list[str] = []
+        for para in text.split("\n"):
+            para = para.strip()
+            if not para:
+                continue
+            lines.extend(_wrap_logical_lines(para, width, fontfile, _latin_font_path(), s, "en"))
+        if not lines:
+            return False
+        line_h = s * 1.35
+        need_h = len(lines) * line_h
+        if need_h > rect.height + 2 and s > min_size:
+            s -= 0.4
+            continue
+        y_bl = page_h - rect.y0 - s * 0.85
+        for line in lines:
+            if y_bl < page_h - rect.y1:
+                break
+            draw_string_bl(c, rect.x0 + 2, y_bl, line, fontfile, s)
+            y_bl -= line_h
+        return True
+    return False
+
+
+def _draw_rtl_mixed(
+    c: canvas.Canvas,
+    rect: PdfRect,
+    text: str,
+    target_lang: str,
+    script_font: str,
+    latin_font: str,
+    size: float,
+    page_h: float,
+    *,
+    allow_overflow: bool = False,
+) -> bool:
+    max_w = max(rect.width - 4, 20.0)
+    line_h = size * 1.35
+    n_lines = sum(
+        len(_wrap_logical_lines(raw.strip(), max_w, script_font, latin_font, size, target_lang))
+        for raw in text.split("\n")
+        if raw.strip()
+    )
+    n_lines = max(1, n_lines)
+    if not allow_overflow and n_lines * line_h > rect.height + 2:
+        return False
+
+    y_tl = rect.y0 + size * 0.15
+    bottom_tl = rect.y1 - 1
+    for raw in text.split("\n"):
+        raw = raw.strip()
+        if not raw:
+            continue
+        for logical_line in _wrap_logical_lines(raw, max_w, script_font, latin_font, size, target_lang):
+            if y_tl > bottom_tl and not allow_overflow:
+                return False
+            prepared = _prepare_script_line(logical_line, target_lang, script_font)
+            runs = _split_latin_runs(prepared)
+            total_w = _runs_width(runs, script_font, latin_font, size)
+            x = rect.x1 - 2 - total_w
+            y_bl = page_h - y_tl - size * 0.85
+            for seg, is_lat in runs:
+                if not seg:
+                    continue
+                ffile = latin_font if is_lat else script_font
+                draw_string_bl(c, x, y_bl, seg, ffile, size)
+                x += _run_width(seg, is_lat, script_font, latin_font, size)
+            y_tl += line_h
+    return True
+
+
+def _draw_textbox(
+    c: canvas.Canvas,
+    rect: PdfRect,
+    text: str,
+    target_lang: str,
+    fontfile: str,
+    size: float,
+    min_size: float,
+    page_h: float,
+    *,
+    bold: bool = False,
+    italic: bool = False,
+) -> bool:
+    if rect.is_empty or rect.width < 1 or rect.height < 1:
+        return False
+
+    if target_lang in DUAL_FONT_LANGS and _latin_font_path(bold, italic):
+        latin_font = _latin_font_path(bold, italic)
+        s = size
+        while s >= min_size:
+            if _draw_rtl_mixed(c, rect, text, target_lang, fontfile, latin_font, s, page_h):
+                return True
+            s -= 0.4
+        return _draw_rtl_mixed(
+            c, rect, text, target_lang, fontfile, latin_font, min_size, page_h, allow_overflow=True,
+        )
+
+    shaped = text
+    if target_lang in RTL_LANGS:
+        shaped = "\n".join(
+            _prepare_script_line(ln, target_lang, fontfile)
+            for ln in text.split("\n")
+            if ln.strip()
+        )
+    s = size
+    while s >= min_size:
+        if _draw_wrapped_ltr(c, rect, shaped, fontfile, s, page_h, min_size):
+            return True
+        s -= 0.4
+    return False
+
+
+def _fit_vertical_size(
+    text: str,
+    avail: float,
+    base_size: float,
+    script_font: str,
+    latin_font: str,
+    target_lang: str,
+    min_size: float = 4.0,
+) -> float:
+    size = min(base_size, 72.0)
+    while size >= min_size:
+        prepared = _prepare_script_line(text, target_lang)
+        runs = _split_latin_runs(prepared)
+        total = sum(_run_width(s, lat, script_font, latin_font, size) for s, lat in runs)
+        if total <= avail:
+            return size
+        size -= 0.4
+    return min_size
+
+
+def _insert_vertical_mixed(
+    c: canvas.Canvas,
+    text: str,
+    block: dict[str, Any],
+    page_h: float,
+    script_font: str,
+    target_lang: str,
+    *,
+    bold: bool = False,
+    italic: bool = False,
+) -> None:
+    latin_path = _latin_font_path(bold, italic)
+    if not script_font or not latin_path:
+        return
+    base = _block_rect(block, page_h)
+    if base.is_empty or base.width < 2 or base.height < 2:
+        return
+    rotation = int(block.get("rotation", 90))
+    base_size = float(block.get("fontSize", 11))
+    avail = max(base.height - 4, base_size * 0.8)
+    size = _fit_vertical_size(text, avail, base_size, script_font, latin_path, target_lang)
+    prepared = _prepare_script_line(text, target_lang, script_font)
+    runs = _split_latin_runs(prepared)
+    if rotation in (-90, 270):
+        start_x, start_y_tl = base.x0 + base.width * 0.55, base.y1 - 2
+        rot = -90
+        step = -1
+    elif rotation == 90:
+        start_x, start_y_tl = base.x0 + base.width * 0.55, base.y0 + size + 2
+        rot = 90
+        step = 1
+    else:
+        start_x, start_y_tl = base.x0 + 2, base.y0 + size + 2
+        rot = 0
+        step = 1
+    offset = 0.0
+    for seg, is_lat in runs:
+        if not seg:
+            continue
+        ffile = latin_path if is_lat else script_font
+        if rot == 0:
+            x = start_x + offset
+            y_bl = page_h - start_y_tl - size * 0.85
+            draw_string_bl(c, x, y_bl, seg, ffile, size)
+        else:
+            y_bl = page_h - start_y_tl
+            draw_rotated_bl(c, start_x, y_bl, seg, ffile, size, rot)
+        offset += _run_width(seg, is_lat, script_font, latin_path, size) * step
 
 
 def _insert_vertical_text(
-    page: fitz.Page,
+    c: canvas.Canvas,
     text: str,
     block: dict[str, Any],
     page_h: float,
     fontfile: str,
-    fontname: str = "noto",
-    font_obj: fitz.Font | None = None,
     target_lang: str = "en",
+    *,
     bold: bool = False,
     italic: bool = False,
 ) -> None:
-    """Vẽ chữ dọc — dùng rotation gốc từ extract (Generated on... lề trái)."""
     text = " ".join(line for line in text.split("\n") if line.strip())
     if not text:
         return
-
-    base = _block_rect(block, page_h)
-    if base.is_empty or base.width < 2 or base.height < 2:
+    if target_lang in DUAL_FONT_LANGS and _latin_font_path(bold, italic):
+        _insert_vertical_mixed(
+            c, text, block, page_h, fontfile, target_lang, bold=bold, italic=italic,
+        )
         return
-
+    base = _block_rect(block, page_h)
+    if base.is_empty:
+        return
     rotation = int(block.get("rotation", 90))
     base_size = float(block.get("fontSize", 11))
     min_size = 4.0
     avail = max(base.height - 4, base_size * 0.8)
-    font = font_obj or (_get_font(fontfile) if fontfile else None)
-
     size = min(base_size, 72.0)
     while size >= min_size:
-        if font:
-            need = float(font.text_length(text, fontsize=size))
-        else:
-            need = len(text) * size * 0.5
-        if need <= avail:
+        if string_width(fontfile, text, size) <= avail:
             break
         size -= 0.4
-
     shaped = _prepare_script_line(text, target_lang)
     if rotation in (-90, 270):
-        point = (base.x0 + base.width * 0.55, base.y1 - 2)
+        x, y_tl, rot = base.x0 + base.width * 0.55, base.y1 - 2, -90
     elif rotation == 90:
-        point = (base.x0 + base.width * 0.55, base.y0 + size + 2)
+        x, y_tl, rot = base.x0 + base.width * 0.55, base.y0 + size + 2, 90
     else:
-        point = (base.x0 + 2, base.y0 + size + 2)
-
-    fname = fontname if fontfile else "helv"
-    ffile = fontfile if fontfile else None
-    try:
-        page.insert_text(
-            point,
-            shaped,
-            fontsize=size,
-            fontname=fname,
-            fontfile=ffile,
-            rotate=rotation,
-            color=(0, 0, 0),
-        )
-    except Exception as exc:
-        logger.warning("vertical text insert failed: %s", exc)
+        x, y_tl, rot = base.x0 + 2, base.y0 + size + 2, 0
+    y_bl = page_h - y_tl - size * 0.85
+    if rot == 0:
+        draw_string_bl(c, x, y_bl, shaped, fontfile, size)
+    else:
+        draw_rotated_bl(c, x, page_h - y_tl, shaped, fontfile, size, rot)
 
 
 def _insert_text(
-    page: fitz.Page,
+    c: canvas.Canvas,
     text: str,
     block: dict[str, Any],
     page_h: float,
     fontfile: str,
-    fontname: str = "noto",
-    font_obj: fitz.Font | None = None,
+    *,
     max_y1: float | None = None,
     page_width: float | None = None,
     target_lang: str = "en",
@@ -566,15 +571,13 @@ def _insert_text(
     italic: bool = False,
     rtl_right: float | None = None,
 ) -> None:
-    """Insert translated text — table cell giữ logic cũ, prose fit trong bbox gốc."""
     text = "\n".join(line for line in text.split("\n") if line.strip())
     if not text:
         return
 
     if block.get("label") == "vertical":
         _insert_vertical_text(
-            page, text, block, page_h, fontfile, fontname=fontname,
-            font_obj=font_obj, target_lang=target_lang, bold=bold, italic=italic,
+            c, text, block, page_h, fontfile, target_lang=target_lang, bold=bold, italic=italic,
         )
         return
 
@@ -585,87 +588,39 @@ def _insert_text(
 
     fs = float(block.get("fontSize", 11))
     if base.height < fs * 0.85:
-        base = fitz.Rect(base.x0, base.y0, base.x1, base.y0 + max(base.height, fs * 1.15))
+        base = PdfRect(base.x0, base.y0, base.x1, base.y0 + max(base.height, fs * 1.15))
 
     is_cell = block.get("label") == "table_cell"
     if is_cell:
-        rect = fitz.Rect(base.x0 + 2, base.y0 + 2, base.x1 - 2, base.y1 - 2)
+        rect = PdfRect(base.x0 + 2, base.y0 + 2, base.x1 - 2, base.y1 - 2)
         if rect.is_empty or rect.width < 2 or rect.height < 2:
             return
         size = min(base_size * 0.80, 72.0)
         min_size = 4.0
     else:
-        if target_lang in RTL_LANGS and page_width:
-            # RTL: neo mọi đoạn về MỘT lề phải chung trong trang để thẳng hàng đều
-            # và KHÔNG tràn ra ngoài (clamp cứng <= page_width - 12).
-            # Chỉ áp cho đoạn bắt đầu từ nửa trái (list/đoạn văn) — tránh cột/căn giữa.
-            if base.x0 < page_width * 0.5:
-                right = rtl_right if rtl_right is not None else (page_width - 12)
-                right = max(base.x1, min(right, page_width - 12))
-                base = fitz.Rect(max(12.0, base.x0), base.y0, right, base.y1)
+        if target_lang in RTL_LANGS and page_width and base.x0 < page_width * 0.5:
+            right = rtl_right if rtl_right is not None else (page_width - 12)
+            right = max(base.x1, min(right, page_width - 12))
+            base = PdfRect(max(12.0, base.x0), base.y0, right, base.y1)
         elif page_width and base.width < page_width * 0.45:
-            # Giữ mép phải gốc làm sàn để không tạo rect âm khi block sát lề phải.
             new_x1 = max(base.x1, page_width - 12)
-            base = fitz.Rect(base.x0, base.y0, new_x1, base.y1)
-        font = font_obj or (fitz.Font(fontfile=fontfile) if fontfile else None)
-        if font is None:
+            base = PdfRect(base.x0, base.y0, new_x1, base.y1)
+        if not fontfile:
             rect, size, min_size = base, min(base_size, 11.0), 5.0
         else:
             ceiling = max_y1 if max_y1 is not None else base.y1 + 120
-            size, rect = _fit_prose_rect(text, base, ceiling, font, base_size)
+            size, rect = _fit_prose_rect(text, base, ceiling, fontfile, base_size)
             min_size = 4.5
 
     if not _draw_textbox(
-        page, rect, text, target_lang, fontfile, fontname, size, min_size,
-        bold=bold, italic=italic,
+        c, rect, text, target_lang, fontfile, size, min_size, page_h, bold=bold, italic=italic,
     ):
-        # Fallback: tiêu đề 1 dòng (Personal Information…) — textbox fail khi rect mỏng/rộng
         if len(text.split()) <= 8 and "\n" not in text.strip():
-            shaped = text
-            if target_lang in RTL_LANGS:
-                shaped = _prepare_script_line(text, target_lang, fontfile)
-            point = (rect.x0 + 2, rect.y0 + size * 0.85)
-            try:
-                page.insert_text(
-                    point,
-                    shaped,
-                    fontsize=size,
-                    fontname=fontname if fontfile else "helv",
-                    fontfile=fontfile if fontfile else None,
-                    color=(0, 0, 0),
-                )
-                return
-            except Exception as exc:
-                logger.warning("insert_text fallback failed: %s", exc)
-        logger.warning(
-            "textbox overflow lang=%s len=%d rect=%s",
-            target_lang, len(text), rect,
-        )
-
-
-def _debug_block(page: fitz.Page, block: dict[str, Any], page_h: float, index: int) -> None:
-    """Draw colored border + index number around block for OCR quality inspection."""
-    pdf_x = float(block["pdfX"])
-    pdf_y = float(block["pdfY"])
-    pdf_w = float(block["pdfWidth"])
-    pdf_h = float(block["pdfHeight"])
-    fitz_y0 = page_h - (pdf_y + pdf_h)
-    fitz_y1 = page_h - pdf_y
-    rect = fitz.Rect(pdf_x, fitz_y0, pdf_x + pdf_w, fitz_y1)
-    page.draw_rect(rect, color=(1, 0.4, 0), width=0.8)
-    page.insert_text(
-        (pdf_x + 1, fitz_y0 + 7),
-        str(index),
-        fontsize=5,
-        color=(1, 0.4, 0),
-    )
-
-
-def _point_in_block(px: float, py: float, block: dict[str, Any]) -> bool:
-    return (
-        block["pdfX"] <= px <= block["pdfX"] + block["pdfWidth"]
-        and block["pdfY"] <= py <= block["pdfY"] + block["pdfHeight"]
-    )
+            shaped = _prepare_script_line(text, target_lang, fontfile) if target_lang in RTL_LANGS else text
+            y_bl = page_h - rect.y0 - size * 0.85
+            draw_string_bl(c, rect.x0 + 2, y_bl, shaped, fontfile, size)
+        else:
+            logger.warning("textbox overflow lang=%s len=%d", target_lang, len(text))
 
 
 def render_translated_pdf(
@@ -682,110 +637,105 @@ def render_translated_pdf(
         output_path = pdf_path.parent / "translated.pdf"
 
     fontfile = _font_path(target_lang)
-    fontname = "f-" + Path(fontfile).stem[:12] if fontfile else "helv"
-    font_obj: fitz.Font | None = None
     if fontfile:
-        try:
-            font_obj = fitz.Font(fontfile=fontfile)
-        except Exception as exc:
-            logger.warning("font load failed: %s", exc)
-    doc = fitz.open(pdf_path)
+        register_font(fontfile)
 
-    try:
-        # Group ALL blocks by page (including empty translations for wiping)
-        all_by_page: dict[int, list[tuple[int, dict[str, Any], str]]] = {}
-        for i, block in enumerate(blocks):
-            translated = (translations[i] if i < len(translations) else "").strip()
-            if not translated:
-                translated = (block.get("text") or "").strip()
-            page_no = int(block["pageNumber"])
-            page_idx = page_no - 1
-            if page_idx < 0 or page_idx >= len(doc):
-                continue
-            all_by_page.setdefault(page_no, []).append((i, block, translated))
+    all_by_page: dict[int, list[tuple[int, dict[str, Any], str]]] = {}
+    for i, block in enumerate(blocks):
+        translated = (translations[i] if i < len(translations) else "").strip()
+        if not translated:
+            translated = (block.get("text") or "").strip()
+        page_no = int(block["pageNumber"])
+        all_by_page.setdefault(page_no, []).append((i, block, translated))
 
+    with pikepdf.open(pdf_path) as pdf:
+        page_count = len(pdf.pages)
         for page_no, page_blocks in all_by_page.items():
-            page = doc[page_no - 1]
-            page_h = float(page.rect.height)
+            page_idx = page_no - 1
+            if page_idx < 0 or page_idx >= page_count:
+                continue
+            page = pdf.pages[page_idx]
+            mb = page.mediabox
+            width = float(mb[2] - mb[0])
+            height = float(mb[3] - mb[1])
+            page_h = height
 
-            # Wipe CHỈ vùng block (giữ orphan text không bị extract)
-            for i, block, translated in page_blocks:
-                is_cell = block.get("label") == "table_cell"
-                if is_cell:
-                    cw = float(block["pdfWidth"]) - 4
-                    ch = float(block["pdfHeight"]) - 4
-                    if cw > 1 and ch > 1:
-                        _wipe_rect(page,
-                                   float(block["pdfX"]) + 2, float(block["pdfY"]) + 2,
-                                   cw, ch, page_h, pad_x=0, pad_y=0)
-                else:
-                    fs = float(block.get("fontSize", 11))
-                    _wipe_rect(page, float(block["pdfX"]), float(block["pdfY"]),
-                               float(block["pdfWidth"]), float(block["pdfHeight"]),
-                               page_h, pad_x=max(1, fs * 0.08), pad_y=1.5)
+            def _draw_page(c: canvas.Canvas, w: float, h: float) -> None:
+                for _i, block, _translated in page_blocks:
+                    if _is_sidebar_noise(block):
+                        continue
+                    is_cell = block.get("label") == "table_cell"
+                    if is_cell:
+                        cw = float(block["pdfWidth"]) - 4
+                        ch = float(block["pdfHeight"]) - 4
+                        if cw > 1 and ch > 1:
+                            wipe_rect_bl(
+                                c,
+                                float(block["pdfX"]) + 2,
+                                float(block["pdfY"]) + 2,
+                                cw, ch,
+                            )
+                    else:
+                        fs = float(block.get("fontSize", 11))
+                        wx, wy, ww, wh = _trim_wipe_rect(block)
+                        wipe_rect_bl(c, wx, wy, ww, wh, pad_x=max(1, fs * 0.08), pad_y=1.5)
 
-            page.apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE)
+                prose_sorted: list[tuple[int, PdfRect]] = []
+                for i, block, translated in page_blocks:
+                    if translated and block.get("label") not in ("table_cell", "vertical"):
+                        prose_sorted.append((i, _block_rect(block, page_h)))
+                prose_sorted.sort(key=lambda x: x[1].y0)
+                ceilings: dict[int, float] = {}
+                for idx, (i, rect) in enumerate(prose_sorted):
+                    following = [r for _, r in prose_sorted[idx + 1:]]
+                    ceilings[i] = _find_ceiling(rect, following, page_h)
 
-            # Trần mở rộng theo đoạn (không đẩy block xuống)
-            prose_sorted: list[tuple[int, fitz.Rect]] = []
-            for i, block, translated in page_blocks:
-                if translated and block.get("label") not in ("table_cell", "vertical"):
-                    prose_sorted.append((i, _block_rect(block, page_h)))
-            prose_sorted.sort(key=lambda x: x[1].y0)
+                right_limits: dict[int, float] = {}
+                if target_lang in RTL_LANGS:
+                    rect_by_i = {i: _block_rect(b, page_h) for i, b, t in page_blocks if t}
+                    for i, r in rect_by_i.items():
+                        limit = w - 12
+                        for j, o in rect_by_i.items():
+                            if j == i:
+                                continue
+                            vov = min(r.y1, o.y1) - max(r.y0, o.y0)
+                            if vov <= 1:
+                                continue
+                            if o.x0 >= r.x1 - 1:
+                                limit = min(limit, o.x0 - 4)
+                        right_limits[i] = max(r.x1, limit)
 
-            ceilings: dict[int, float] = {}
-            for idx, (i, rect) in enumerate(prose_sorted):
-                following = [r for _, r in prose_sorted[idx + 1:]]
-                ceilings[i] = _find_ceiling(rect, following, float(page.rect.height))
+                ordered = sorted(page_blocks, key=lambda x: _block_rect(x[1], page_h).y0)
+                for i, block, translated in ordered:
+                    if not translated or _is_sidebar_noise(block):
+                        continue
+                    translated = _strip_margin_prefix(translated)
+                    if not translated.strip():
+                        continue
+                    draw_block = _adjust_block_for_render({**block, "text": translated})
+                    translated = draw_block.get("text", translated)
+                    bold = bool(block.get("bold"))
+                    italic = bool(block.get("italic"))
+                    b_file = _styled_font_path(target_lang, bold, italic) if (bold or italic) else fontfile
+                    if b_file:
+                        register_font(b_file)
+                    _insert_text(
+                        c, translated, draw_block, page_h, b_file,
+                        max_y1=ceilings.get(i),
+                        page_width=w,
+                        target_lang=target_lang,
+                        bold=bold,
+                        italic=italic,
+                        rtl_right=right_limits.get(i),
+                    )
+                    if debug_ocr:
+                        r = _block_rect(draw_block, page_h)
+                        draw_debug_rect_tl(c, r.x0, r.y0, r.width, r.height, page_h, str(i))
 
-            # RTL: giới hạn mép phải để KHÔNG nới sang phải đè lên block bên phải
-            # (sửa lỗi 2 ô cạnh nhau chồng chữ lên nhau).
-            right_limits: dict[int, float] = {}
-            if target_lang in RTL_LANGS:
-                page_w = float(page.rect.width)
-                rect_by_i = {i: _block_rect(b, page_h) for i, b, t in page_blocks if t}
-                for i, r in rect_by_i.items():
-                    limit = page_w - 12
-                    for j, o in rect_by_i.items():
-                        if j == i:
-                            continue
-                        vov = min(r.y1, o.y1) - max(r.y0, o.y0)
-                        if vov <= 1:
-                            continue
-                        if o.x0 >= r.x1 - 1:  # block o nằm bên phải r
-                            limit = min(limit, o.x0 - 4)
-                    right_limits[i] = max(r.x1, limit)
+            overlay_buf = make_overlay(width, height, _draw_page)
+            with pikepdf.open(overlay_buf) as overlay_pdf:
+                page.add_overlay(overlay_pdf.pages[0])
 
-            # Vẽ từ trên xuống — block sau không bị block trước che
-            ordered = sorted(
-                page_blocks,
-                key=lambda x: _block_rect(x[1], page_h).y0,
-            )
-            for i, block, translated in ordered:
-                if not translated:
-                    continue
-                bold = bool(block.get("bold"))
-                italic = bool(block.get("italic"))
-                if bold or italic:
-                    b_file = _styled_font_path(target_lang, bold, italic)
-                    b_obj = _get_font(b_file) or font_obj
-                    b_name = _fontname_for(b_file)
-                else:
-                    b_file, b_obj, b_name = fontfile, font_obj, fontname
-                _insert_text(
-                    page, translated, block, page_h, b_file,
-                    fontname=b_name, font_obj=b_obj,
-                    max_y1=ceilings.get(i),
-                    page_width=float(page.rect.width),
-                    target_lang=target_lang,
-                    bold=bold, italic=italic,
-                    rtl_right=right_limits.get(i),
-                )
-                if debug_ocr:
-                    _debug_block(page, block, page_h, i)
-
-        doc.save(str(output_path), garbage=4, deflate=True)
-    finally:
-        doc.close()
+        pdf.save(str(output_path))
 
     return output_path

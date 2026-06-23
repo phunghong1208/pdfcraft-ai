@@ -2896,7 +2896,26 @@
       "editText": "Chỉnh sửa văn bản",
       "editImages": "Chỉnh sửa hình ảnh",
       "addLink": "Thêm liên kết",
-      "smartOcr": "OCR thông minh"
+      "smartOcr": "OCR thông minh",
+      "ocrPdf": {
+        "language": "Ngôn ngữ OCR",
+        "outputFormat": "Định dạng đầu ra",
+        "formatPdf": "PDF có thể tìm kiếm",
+        "formatText": "Trích xuất văn bản",
+        "result": "Kết quả OCR",
+        "downloadPdf": "Tải PDF có thể tìm kiếm",
+        "progressAnalyzing": "Đang phân tích tài liệu…",
+        "progressRecognizing": "Đang nhận dạng chữ…",
+        "progressStillWorking": "Đang xử lý — file scan lớn có thể mất thêm thời gian…",
+        "progressFinalizing": "Đang hoàn tất…",
+        "progressDone": "Xong",
+        "extractedText": "Văn bản đã trích",
+        "searchablePdf": "PDF có thể tìm kiếm",
+        "readyToOcr": "Sẵn sàng OCR",
+        "noFileSelected": "Chưa chọn file",
+        "readyDesc": "Chọn định dạng đầu ra rồi chạy Smart OCR.",
+        "noFileDesc": "Tải lên PDF scan để bắt đầu."
+      }
     },
     "textStyle": {
       "label": "Kiểu chữ",

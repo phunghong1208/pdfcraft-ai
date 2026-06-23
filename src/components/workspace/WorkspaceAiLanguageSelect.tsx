@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, ChevronRight, Languages } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, Languages } from 'lucide-react';
 import { WORKSPACE_AI_RESPONSE_LANGUAGES } from '@/services/workspaceAiApi';
 
 export interface LanguageItem {
@@ -20,6 +20,8 @@ export interface WorkspaceAiLanguageSelectProps {
   compact?: boolean;
   /** Custom language list — defaults to WORKSPACE_AI_RESPONSE_LANGUAGES */
   items?: LanguageItem[];
+  /** pill: viền đỏ, rounded-full — thống nhất workspace + dịch file */
+  appearance?: 'default' | 'pill';
 }
 
 export function WorkspaceAiLanguageSelect({
@@ -31,6 +33,7 @@ export function WorkspaceAiLanguageSelect({
   variant = 'dark',
   compact = false,
   items,
+  appearance = 'pill',
 }: WorkspaceAiLanguageSelectProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -43,6 +46,7 @@ export function WorkspaceAiLanguageSelect({
   );
 
   const isDark = variant === 'dark';
+  const isPill = appearance === 'pill';
 
   useEffect(() => {
     if (!open) return;
@@ -60,26 +64,46 @@ export function WorkspaceAiLanguageSelect({
     };
   }, [open]);
 
-  const triggerClass = isDark
-    ? [
-        'group w-full flex items-center gap-2 rounded-lg border text-left transition-all',
-        'border-[#30363D] bg-[#0D1117] hover:border-white/20 hover:bg-[#161B22]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-primary)/0.35)]',
-        'disabled:opacity-45 disabled:cursor-not-allowed disabled:pointer-events-none',
-        compact ? 'px-3 py-2 min-h-[36px]' : 'px-2.5 py-2 min-h-[36px]',
-      ].join(' ')
-    : [
-        'group w-full flex items-center gap-2 rounded-lg border text-left transition-all',
-        'border-[hsl(var(--color-border))] bg-[hsl(var(--color-background))]',
-        'hover:border-[hsl(var(--color-primary)/0.35)]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-primary)/0.25)]',
-        'disabled:opacity-45 disabled:cursor-not-allowed',
-        compact ? 'px-2 py-1.5' : 'px-2.5 py-2',
-      ].join(' ');
+  const triggerClass = isPill
+    ? isDark
+      ? [
+          'group w-full flex items-center justify-between gap-2 rounded-full border text-left transition-all',
+          open
+            ? 'border-[#EF4444] bg-[#21262D] ring-2 ring-[#EF4444]/25'
+            : 'border-[#EF4444] bg-[#21262D] hover:bg-[#161B22]',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#EF4444]/30',
+          'disabled:opacity-45 disabled:cursor-not-allowed disabled:pointer-events-none',
+          compact ? 'px-3 py-2 min-h-[36px]' : 'px-4 py-2.5 min-h-[40px]',
+        ].join(' ')
+      : [
+          'group w-full flex items-center justify-between gap-2 rounded-full border text-left transition-all',
+          open
+            ? 'border-[hsl(var(--color-primary))] bg-[hsl(var(--color-background))] ring-2 ring-[hsl(var(--color-primary)/0.2)]'
+            : 'border-[hsl(var(--color-border))] bg-[hsl(var(--color-background))] hover:border-[hsl(var(--color-primary)/0.45)]',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-primary)/0.25)]',
+          'disabled:opacity-45 disabled:cursor-not-allowed',
+          compact ? 'px-3 py-2 min-h-[36px]' : 'px-4 py-2.5 min-h-[40px]',
+        ].join(' ')
+    : isDark
+      ? [
+          'group w-full flex items-center gap-2 rounded-lg border text-left transition-all',
+          'border-[#30363D] bg-[#0D1117] hover:border-white/20 hover:bg-[#161B22]',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-primary)/0.35)]',
+          'disabled:opacity-45 disabled:cursor-not-allowed disabled:pointer-events-none',
+          compact ? 'px-3 py-2 min-h-[36px]' : 'px-2.5 py-2 min-h-[36px]',
+        ].join(' ')
+      : [
+          'group w-full flex items-center gap-2 rounded-lg border text-left transition-all',
+          'border-[hsl(var(--color-border))] bg-[hsl(var(--color-background))]',
+          'hover:border-[hsl(var(--color-primary)/0.35)]',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-primary)/0.25)]',
+          'disabled:opacity-45 disabled:cursor-not-allowed',
+          compact ? 'px-2 py-1.5' : 'px-2.5 py-2',
+        ].join(' ');
 
   const menuClass = isDark
-    ? 'absolute left-0 right-0 top-[calc(100%+4px)] z-[80] max-h-56 overflow-y-auto rounded-lg border border-[#30363D] bg-[#161B22] py-1 shadow-[0_12px_40px_rgba(0,0,0,0.55)] scrollbar-thin'
-    : 'absolute left-0 right-0 top-[calc(100%+4px)] z-[80] max-h-56 overflow-y-auto rounded-lg border border-[hsl(var(--color-border))] bg-[hsl(var(--color-card))] py-1 shadow-lg';
+    ? 'absolute left-0 right-0 top-[calc(100%+6px)] z-[80] max-h-56 overflow-y-auto rounded-xl border border-[#30363D] bg-[#161B22] py-1 shadow-[0_12px_40px_rgba(0,0,0,0.55)] scrollbar-thin'
+    : 'absolute left-0 right-0 top-[calc(100%+6px)] z-[80] max-h-56 overflow-y-auto rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-card))] py-1 shadow-lg';
 
   const itemClass = (active: boolean) =>
     isDark
@@ -92,9 +116,17 @@ export function WorkspaceAiLanguageSelect({
             : 'text-[hsl(var(--color-foreground))] hover:bg-[hsl(var(--color-muted))]'
         }`;
 
+  const labelClass = isDark
+    ? 'text-[11px] font-medium text-white/85'
+    : 'text-[11px] font-medium text-[hsl(var(--color-foreground))]';
+
   return (
-    <div ref={rootRef} className={`relative min-w-0 ${compact ? '' : 'space-y-1'}`}>
-      {!compact && hint ? (
+    <div ref={rootRef} className={`relative min-w-0 ${isPill ? 'space-y-1.5' : compact ? '' : 'space-y-1'}`}>
+      {isPill ? (
+        <p className={labelClass}>{label}</p>
+      ) : null}
+
+      {!isPill && !compact && hint ? (
         <p className={isDark ? 'text-[10px] text-white/35 px-0.5' : 'text-[11px] text-[hsl(var(--color-muted-foreground))]'}>
           {hint}
         </p>
@@ -105,31 +137,52 @@ export function WorkspaceAiLanguageSelect({
         disabled={disabled}
         aria-expanded={open}
         aria-haspopup="listbox"
+        aria-label={isPill ? label : undefined}
         onClick={() => setOpen((o) => !o)}
         className={triggerClass}
       >
-        <Languages
-          className={`shrink-0 ${isDark ? 'h-3.5 w-3.5 text-red-300/90' : 'h-4 w-4 text-[hsl(var(--color-primary))]'}`}
-          aria-hidden
-        />
-        <span className="min-w-0 flex-1">
-          <span
-            className={`block truncate ${isDark ? 'text-[10px] text-white/40' : 'text-[10px] text-[hsl(var(--color-muted-foreground))]'}`}
-          >
-            {label}
-          </span>
-          <span
-            className={`block truncate font-medium ${isDark ? 'text-[12px] text-white/90' : 'text-sm text-[hsl(var(--color-foreground))]'}`}
-          >
-            {selected?.nativeName ?? value}
-          </span>
-        </span>
-        <ChevronRight
-          className={`shrink-0 transition-transform ${open ? 'rotate-90' : ''} ${
-            isDark ? 'h-3.5 w-3.5 text-white/35' : 'h-4 w-4 text-[hsl(var(--color-muted-foreground))]'
-          }`}
-          aria-hidden
-        />
+        {isPill ? (
+          <>
+            <span
+              className={`truncate font-medium ${
+                isDark ? 'text-[13px] text-white/90' : 'text-[13px] text-[hsl(var(--color-foreground))]'
+              }`}
+            >
+              {selected?.nativeName ?? value}
+            </span>
+            <ChevronDown
+              className={`shrink-0 transition-transform ${open ? 'rotate-180' : ''} ${
+                isDark ? 'h-4 w-4 text-white/70' : 'h-4 w-4 text-[hsl(var(--color-muted-foreground))]'
+              }`}
+              aria-hidden
+            />
+          </>
+        ) : (
+          <>
+            <Languages
+              className={`shrink-0 ${isDark ? 'h-3.5 w-3.5 text-red-300/90' : 'h-4 w-4 text-[hsl(var(--color-primary))]'}`}
+              aria-hidden
+            />
+            <span className="min-w-0 flex-1">
+              <span
+                className={`block truncate ${isDark ? 'text-[10px] text-white/40' : 'text-[10px] text-[hsl(var(--color-muted-foreground))]'}`}
+              >
+                {label}
+              </span>
+              <span
+                className={`block truncate font-medium ${isDark ? 'text-[12px] text-white/90' : 'text-sm text-[hsl(var(--color-foreground))]'}`}
+              >
+                {selected?.nativeName ?? value}
+              </span>
+            </span>
+            <ChevronRight
+              className={`shrink-0 transition-transform ${open ? 'rotate-90' : ''} ${
+                isDark ? 'h-3.5 w-3.5 text-white/35' : 'h-4 w-4 text-[hsl(var(--color-muted-foreground))]'
+              }`}
+              aria-hidden
+            />
+          </>
+        )}
       </button>
 
       {open ? (

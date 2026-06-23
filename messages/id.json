@@ -2931,7 +2931,26 @@
       "editText": "Sunting Teks",
       "editImages": "Sunting Gambar",
       "addLink": "Tambahkan Tautan",
-      "smartOcr": "OCR Cerdas"
+      "smartOcr": "OCR Cerdas",
+      "ocrPdf": {
+        "language": "OCR languages",
+        "outputFormat": "Output format",
+        "formatPdf": "Searchable PDF",
+        "formatText": "Extract text",
+        "result": "OCR result",
+        "downloadPdf": "Download searchable PDF",
+        "progressAnalyzing": "Analyzing document…",
+        "progressRecognizing": "Recognizing text…",
+        "progressStillWorking": "Still working — large scans may take a while…",
+        "progressFinalizing": "Finalizing…",
+        "progressDone": "Done",
+        "extractedText": "Extracted text",
+        "searchablePdf": "Searchable PDF",
+        "readyToOcr": "Ready for OCR",
+        "noFileSelected": "No file selected",
+        "readyDesc": "Choose output format and run Smart OCR.",
+        "noFileDesc": "Upload a scanned PDF to get started."
+      }
     },
     "textStyle": {
       "label": "Gaya teks",

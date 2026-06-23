@@ -1,7 +1,7 @@
 import type { TextLineRect } from '@/lib/pdf/extract-layout-blocks';
 import type { LayoutTextBlock } from '@/lib/pdf/layout-blocks';
 
-export type LayoutEngine = 'fitz' | 'pdfjs';
+export type LayoutEngine = 'fitz' | 'pdfplumber' | 'pdfjs';
 
 export type LayoutExtractResult = {
   blocks: LayoutTextBlock[];
@@ -45,7 +45,7 @@ function groupWipeLinesByPage(
   return byPage;
 }
 
-const VALID_ENGINES: Set<string> = new Set(['fitz', 'pdfjs']);
+const VALID_ENGINES: Set<string> = new Set(['fitz', 'pdfplumber', 'pdfjs']);
 
 export async function extractDocumentLayoutBlocks(
   file: File,
@@ -88,7 +88,7 @@ export async function extractDocumentLayoutBlocks(
   const wipeLines = (data.wipeLines ?? []).filter(isWipeLine);
   const engine: LayoutEngine = VALID_ENGINES.has(data.engine ?? '')
     ? (data.engine as LayoutEngine)
-    : 'fitz';
+    : 'pdfplumber';
 
   return {
     blocks: data.blocks,

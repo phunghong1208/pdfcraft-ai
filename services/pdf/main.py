@@ -1,4 +1,4 @@
-"""PDF microservice — OCR (RapidOCR), layout (fitz), render (PyMuPDF), pdf-to-docx."""
+"""PDF microservice — OCR (RapidOCR), layout (pdfplumber), render (reportlab), pdf-to-docx."""
 
 from __future__ import annotations
 
@@ -11,35 +11,40 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-import fitz
 import numpy as np
+import pdfplumber
+import pikepdf
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
+from pdf2image import convert_from_path
+from pypdf import PdfReader
 
-from fitz_layout import extract_fitz_line_blocks, extract_fitz_wipe_lines
+from pdf_layout import extract_pdf_line_blocks, extract_pdf_wipe_lines
+from pdf_overlay import draw_invisible_string_bl, make_overlay
+from product_languages import (
+    MAX_OCR_LANGS_PER_REQUEST,
+    PRODUCT_TESSERACT_LANGS,
+    RAPID_OCR_LANGS,
+)
 from render_translated import render_translated_pdf
 
 app = FastAPI(title="PDFCraft PDF Service")
 logging.basicConfig(level=logging.INFO)
+logging.getLogger("pdfminer").setLevel(logging.ERROR)
 logger = logging.getLogger("pdfcraft.pdf")
 
-# All Tesseract language codes supported by tesseract-ocr-all
-LANG_ALLOWLIST = frozenset([
-    "afr","amh","ara","asm","aze","aze_cyrl","bel","ben","bod","bos","bre",
-    "bul","cat","ceb","ces","chi_sim","chi_sim_vert","chi_tra","chi_tra_vert",
-    "chr","cos","cym","dan","deu","div","dzo","ell","eng","enm","epo","est",
-    "eus","fao","fas","fil","fin","fra","frk","frm","fry","gla","gle","glg",
-    "grc","guj","hat","heb","hin","hrv","hun","hye","iku","ind","isl","ita",
-    "ita_old","jav","jpn","jpn_vert","kan","kat","kat_old","kaz","khm","kir",
-    "kmr","kor","kor_vert","lao","lat","lav","lit","ltz","mal","mar","mkd",
-    "mlt","mon","mri","msa","mya","nep","nld","nor","oci","ori","osd","pan",
-    "pol","por","pus","que","ron","rus","san","sin","slk","slv","snd","spa",
-    "spa_old","sqi","srp","srp_latn","sun","swa","swe","syr","tam","tat","tel",
-    "tgk","tha","tir","ton","tur","uig","ukr","urd","uzb","uzb_cyrl","vie",
-    "yid","yor",
-])
+# Chỉ validate ngôn ngữ đã cài Tesseract pack trong Docker (26 product langs)
+LANG_ALLOWLIST = PRODUCT_TESSERACT_LANGS | RAPID_OCR_LANGS
 
 _rapid_ocr = None
+
+
+def _normalize_ocr_langs(langs: list[str]) -> list[str]:
+    """Tối đa 1–2 model OCR — không load eng+spa+fra+... cùng lúc."""
+    valid = [lang for lang in langs if lang in LANG_ALLOWLIST]
+    if not valid:
+        valid = ["eng"]
+    return valid[:MAX_OCR_LANGS_PER_REQUEST]
 
 
 def _get_rapid_ocr():
@@ -53,7 +58,6 @@ def _get_rapid_ocr():
 # ── helpers ───────────────────────────────────────────────────
 
 def _is_tagged_pdf(pdf_path: Path) -> bool:
-    import pikepdf
     with pikepdf.open(pdf_path) as pdf:
         root = pdf.Root
         mark_info = root.get("/MarkInfo")
@@ -69,11 +73,7 @@ def _is_tagged_pdf(pdf_path: Path) -> bool:
 
 
 def _page_count(pdf_path: Path) -> int:
-    doc = fitz.open(pdf_path)
-    try:
-        return len(doc)
-    finally:
-        doc.close()
+    return len(PdfReader(str(pdf_path)).pages)
 
 
 def _extract_text_from_pdf(pdf_path: Path) -> str:
@@ -92,14 +92,11 @@ def _extract_text_from_pdf(pdf_path: Path) -> str:
     if best.strip():
         return best
 
-    doc = fitz.open(pdf_path)
-    try:
-        parts = []
-        for i, page in enumerate(doc, 1):
-            parts.append(f"--- Page {i} ---\n{page.get_text()}")
-        return "\n\n".join(parts)
-    finally:
-        doc.close()
+    parts: list[str] = []
+    with pdfplumber.open(pdf_path) as pdf:
+        for i, page in enumerate(pdf.pages, 1):
+            parts.append(f"--- Page {i} ---\n{(page.extract_text() or '')}")
+    return "\n\n".join(parts)
 
 
 def _pdf_has_extractable_text(pdf_path: Path) -> tuple[bool, str]:
@@ -117,71 +114,129 @@ def _should_fast_extract(pdf_path: Path, force_ocr: bool) -> tuple[bool, str]:
     return _pdf_has_extractable_text(pdf_path)
 
 
+OCR_RASTER_DPI_DEFAULT = int(os.environ.get("OCR_RASTER_DPI", "200"))
+OCR_RASTER_DPI_MAX = 300
+
+
+def _clamp_raster_dpi(dpi: int) -> int:
+    return max(120, min(OCR_RASTER_DPI_MAX, dpi))
+
+
+def _page_sizes(pdf_path: Path) -> list[tuple[float, float]]:
+    with pikepdf.open(pdf_path) as pdf:
+        sizes: list[tuple[float, float]] = []
+        for page in pdf.pages:
+            mb = page.mediabox
+            sizes.append((float(mb[2] - mb[0]), float(mb[3] - mb[1])))
+        return sizes
+
+
+def _rasterize_page(pdf_path: Path, page_idx: int, dpi: int, scratch_dir: Path) -> np.ndarray:
+    """Rasterize một trang — ghi JPEG ra disk, không giữ toàn bộ PDF trong RAM."""
+    from PIL import Image
+
+    dpi = _clamp_raster_dpi(dpi)
+    page_no = page_idx + 1
+    paths = convert_from_path(
+        str(pdf_path),
+        dpi=dpi,
+        first_page=page_no,
+        last_page=page_no,
+        fmt="jpeg",
+        jpegopt={"quality": 90},
+        output_folder=str(scratch_dir),
+        paths_only=True,
+        thread_count=1,
+    )
+    if not paths:
+        raise RuntimeError(f"pdf2image failed for page {page_no}")
+    try:
+        with Image.open(paths[0]) as im:
+            return np.asarray(im.convert("RGB"), dtype=np.uint8)
+    finally:
+        try:
+            Path(paths[0]).unlink(missing_ok=True)
+        except OSError:
+            pass
+
+
 # ── RapidOCR ──────────────────────────────────────────────────
 
-def _ocr_page_rapid(page: fitz.Page) -> list[tuple[list, str, float]]:
-    """OCR one page → list of (box, text, confidence)."""
-    pix = page.get_pixmap(dpi=300)
-    img = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.h, pix.w, pix.n)
-    if pix.n == 4:
-        img = img[:, :, :3]
-
+def _ocr_page_rapid(
+    pdf_path: Path, page_idx: int, dpi: int, scratch_dir: Path,
+) -> tuple[list[tuple[list, str, float]], np.ndarray]:
+    """OCR one page → (boxes, raster RGB)."""
+    img = _rasterize_page(pdf_path, page_idx, dpi, scratch_dir)
     ocr = _get_rapid_ocr()
     result, _ = ocr(img)
-
     if not result:
-        return []
-    return [(r[0], r[1], r[2]) for r in result if r[1] and r[1].strip()]
+        return [], img
+    return [(r[0], r[1], r[2]) for r in result if r[1] and r[1].strip()], img
 
 
 def _run_rapid_ocr(
     pdf_path: Path,
     output_path: Path,
     output_format: str,
+    dpi: int,
 ) -> tuple[str, str]:
-    """Run RapidOCR. Returns (text, method)."""
-    doc = fitz.open(pdf_path)
+    """Run RapidOCR — từng trang, không load cả PDF ảnh vào RAM."""
+    page_sizes = _page_sizes(pdf_path)
+    page_count = len(page_sizes)
     all_text: list[str] = []
+    raster_dpi = _clamp_raster_dpi(dpi)
 
+    scratch = Path(tempfile.mkdtemp(prefix="pdfcraft-raster-"))
     try:
-        for page_idx, page in enumerate(doc):
-            page_h = page.rect.height
-            page_w = page.rect.width
-            pix = page.get_pixmap(dpi=300)
-            scale_x = page_w / pix.w
-            scale_y = page_h / pix.h
-
-            results = _ocr_page_rapid(page)
-            page_lines: list[str] = []
-
-            for box, txt, _conf in results:
-                page_lines.append(txt)
-
-                if output_format == "pdf":
-                    x0 = min(p[0] for p in box) * scale_x
-                    y0 = min(p[1] for p in box) * scale_y
-                    x1 = max(p[0] for p in box) * scale_x
-                    y1 = max(p[1] for p in box) * scale_y
-                    rect = fitz.Rect(x0, y0, x1, y1)
-                    fs = max(6, min(72, (y1 - y0) * 0.7))
-                    page.insert_textbox(
-                        rect, txt, fontsize=fs,
-                        fontname="helv",
-                        color=(1, 1, 1), render_mode=3,
-                    )
-
-            all_text.append(f"--- Page {page_idx + 1} ---\n" + "\n".join(page_lines))
-
         if output_format == "pdf":
-            doc.save(str(output_path), garbage=4, deflate=True)
+            with pikepdf.open(pdf_path) as pdf:
+                for page_idx in range(page_count):
+                    page_w, page_h = page_sizes[page_idx]
+                    results, img = _ocr_page_rapid(pdf_path, page_idx, raster_dpi, scratch)
+                    page_lines = [txt for _box, txt, _conf in results]
+                    scale_x = page_w / img.shape[1]
+                    scale_y = page_h / img.shape[0]
+                    del img
+
+                    def _draw_ocr(
+                        c, w, h,
+                        _results=results,
+                        _scale_x=scale_x,
+                        _scale_y=scale_y,
+                        _page_h=page_h,
+                    ):
+                        for box, txt, _conf in _results:
+                            x0 = min(p[0] for p in box) * _scale_x
+                            y1 = max(p[1] for p in box) * _scale_y
+                            fs = max(
+                                6,
+                                min(
+                                    72,
+                                    (max(p[1] for p in box) - min(p[1] for p in box)) * _scale_y * 0.7,
+                                ),
+                            )
+                            y_bl = _page_h - y1
+                            draw_invisible_string_bl(c, x0, y_bl, txt, "", fs)
+
+                    overlay_buf = make_overlay(page_w, page_h, _draw_ocr)
+                    with pikepdf.open(overlay_buf) as overlay_pdf:
+                        pdf.pages[page_idx].add_overlay(overlay_pdf.pages[0])
+                    all_text.append(f"--- Page {page_idx + 1} ---\n" + "\n".join(page_lines))
+                pdf.save(str(output_path))
+        else:
+            for page_idx in range(page_count):
+                results, img = _ocr_page_rapid(pdf_path, page_idx, raster_dpi, scratch)
+                del img
+                page_lines = [txt for _box, txt, _conf in results]
+                all_text.append(f"--- Page {page_idx + 1} ---\n" + "\n".join(page_lines))
     finally:
-        doc.close()
+        shutil.rmtree(scratch, ignore_errors=True)
 
     return "\n\n".join(all_text), "ocr"
 
 
 # RapidOCR handles Chinese + English well and is much faster than Tesseract
-_RAPID_OCR_LANGS = frozenset(["chi_sim", "chi_sim_vert", "chi_tra", "chi_tra_vert", "eng"])
+_RAPID_OCR_LANGS = RAPID_OCR_LANGS
 
 
 def _run_tesseract_ocr(
@@ -192,7 +247,6 @@ def _run_tesseract_ocr(
 ) -> tuple[str, str]:
     """Run ocrmypdf (Tesseract) for multilingual support. Returns (text, method)."""
     import ocrmypdf
-    import os
 
     tess_lang = "+".join(langs) if langs else "eng"
     jobs = min(4, os.cpu_count() or 2)
@@ -201,24 +255,16 @@ def _run_tesseract_ocr(
         str(pdf_path),
         str(output_path),
         language=tess_lang,
-        deskew=False,       # skip deskew — slow, rarely needed
-        skip_text=True,     # skip pages already having text layer
+        deskew=False,
+        skip_text=True,
         output_type="pdf",
         progress_bar=False,
-        jobs=jobs,          # parallel pages
-        optimize=0,         # skip PDF optimization — saves time
+        jobs=jobs,
+        optimize=0,
     )
 
     if output_format == "text":
-        # Extract text from ocr'd pdf
-        doc = fitz.open(str(output_path) if output_path.exists() else str(pdf_path))
-        pages = []
-        try:
-            for i, page in enumerate(doc):
-                pages.append(f"--- Page {i + 1} ---\n{page.get_text()}")
-        finally:
-            doc.close()
-        return "\n\n".join(pages), "tesseract"
+        return _extract_text_from_pdf(output_path if output_path.exists() else pdf_path), "tesseract"
 
     return "", "tesseract"
 
@@ -228,10 +274,11 @@ def _run_ocr(
     output_path: Path,
     langs: list[str],
     output_format: str,
+    dpi: int,
 ) -> tuple[str, str]:
     """Route to RapidOCR (Chinese/EN) or Tesseract (everything else)."""
     if set(langs) <= _RAPID_OCR_LANGS:
-        return _run_rapid_ocr(pdf_path, output_path, output_format)
+        return _run_rapid_ocr(pdf_path, output_path, output_format, dpi)
     return _run_tesseract_ocr(pdf_path, output_path, langs, output_format)
 
 
@@ -239,7 +286,7 @@ def _run_ocr(
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "ocr": "rapidocr", "layout": "fitz", "render": "pymupdf"}
+    return {"status": "ok", "ocr": "rapidocr", "layout": "pdfplumber", "render": "reportlab"}
 
 
 @app.post("/extract")
@@ -257,9 +304,9 @@ async def extract_layout(
         with open(input_path, "wb") as f:
             shutil.copyfileobj(file.file, f)
 
-        logger.info("Layout extract (fitz): %s (lang=%s)", file.filename, lang)
+        logger.info("Layout extract (pdfplumber): %s (lang=%s)", file.filename, lang)
 
-        blocks = extract_fitz_line_blocks(input_path)
+        blocks = extract_pdf_line_blocks(input_path)
         by_page: dict[int, int] = {}
         for b in blocks:
             by_page[b["pageNumber"]] = by_page.get(b["pageNumber"], 0) + 1
@@ -273,11 +320,11 @@ async def extract_layout(
         for i, blk in enumerate(blocks):
             blk["id"] = f"p{blk['pageNumber']}-b{i}"
 
-        wipe_lines = extract_fitz_wipe_lines(input_path)
+        wipe_lines = extract_pdf_wipe_lines(input_path)
 
         return JSONResponse({
             "blocks": blocks,
-            "engine": "fitz",
+            "engine": "pdfplumber",
             "count": len(blocks),
             "wipeLines": wipe_lines,
         })
@@ -302,12 +349,12 @@ async def ocr_pdf(
     redo_ocr: bool = Form(False),
     optimize: int = Form(0),
     output_format: str = Form("pdf"),
-    oversample: int = Form(300),
+    oversample: int = Form(200),
 ):
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files accepted.")
 
-    langs = [l.strip() for l in languages.split("+") if l.strip()]
+    langs = _normalize_ocr_langs([l.strip() for l in languages.split("+") if l.strip()])
     for lang in langs:
         if lang not in LANG_ALLOWLIST:
             raise HTTPException(status_code=400, detail=f"Unsupported language: {lang}")
@@ -343,7 +390,9 @@ async def ocr_pdf(
                 },
             )
 
-        text, method = _run_ocr(input_path, output_path, langs, output_format)
+        text, method = _run_ocr(
+            input_path, output_path, langs, output_format, _clamp_raster_dpi(oversample),
+        )
 
         if output_format == "text":
             return JSONResponse({
@@ -432,7 +481,11 @@ async def render_pdf(
 
 
 @app.post("/pdf-to-docx")
-async def convert_pdf_to_docx(file: UploadFile = File(...)):
+async def convert_pdf_to_docx_endpoint(
+    file: UploadFile = File(...),
+    mode: str = Form("auto"),
+    dpi: int = Form(220),
+):
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files accepted.")
 
@@ -451,8 +504,8 @@ async def convert_pdf_to_docx(file: UploadFile = File(...)):
 
         from pdf_to_docx import convert_pdf_to_docx
 
-        logger.info("pdf-to-docx: %s (%s bytes)", file.filename, input_size)
-        engine = convert_pdf_to_docx(input_path, output_path)
+        logger.info("pdf-to-docx: %s (%s bytes) mode=%s dpi=%s", file.filename, input_size, mode, dpi)
+        engine, mode_used, layout = convert_pdf_to_docx(input_path, output_path, mode=mode, dpi=dpi)
 
         if not output_path.exists() or output_path.stat().st_size < 4096:
             raise HTTPException(
@@ -467,8 +520,12 @@ async def convert_pdf_to_docx(file: UploadFile = File(...)):
             filename=safe_name,
             headers={
                 "X-Engine": engine,
+                "X-Docx-Mode": mode_used,
                 "X-Input-Size": str(input_size),
                 "X-Output-Size": str(out_size),
+                "X-Layout-Images": str(layout.image_count),
+                "X-Layout-Vectors": str(layout.vector_line_count),
+                "X-Layout-Rotated": "1" if layout.has_rotated_text else "0",
             },
         )
     except HTTPException:

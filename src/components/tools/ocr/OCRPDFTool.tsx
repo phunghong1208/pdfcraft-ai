@@ -14,6 +14,7 @@ import {
   OCR_LANGUAGE_NAMES,
   type ServerOCROptions,
 } from '@/lib/pdf/processors/ocr';
+import { PRODUCT_TESSERACT_LANGS } from '@/lib/pdf/product-tesseract-langs';
 import { Select } from '@/components/ui/FormField';
 import type { UploadedFile, ProcessOutput } from '@/types/pdf';
 
@@ -238,7 +239,7 @@ export function OCRPDFTool({
   const isProcessing = status === 'processing' || status === 'uploading';
   const canProcess = file && !isProcessing;
 
-  const availableLanguages: OCRLanguage[] = ['eng', 'vie', 'chi_sim', 'chi_tra', 'jpn', 'kor', 'spa', 'fra', 'deu', 'por', 'ara', 'ita', 'ind', 'ron'];
+  const availableLanguages: OCRLanguage[] = [...PRODUCT_TESSERACT_LANGS];
 
   return (
     <div className={`space-y-6 ${className}`.trim()}>

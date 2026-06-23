@@ -5,6 +5,7 @@ import {
   runSmartOcr,
   type OCRLanguage,
 } from '@/lib/pdf/processors/ocr';
+import { APP_TO_TESSERACT } from '@/lib/pdf/product-tesseract-langs';
 import {
   extractDocumentLayoutBlocks,
   type LayoutEngine,
@@ -41,22 +42,7 @@ export type WorkspaceTranslateResult = {
 const MIN_EXTRACTABLE_CHARS = 64;
 const RENDER_TIMEOUT_MS = 300_000;
 
-const OCR_LANG_MAP: Record<string, OCRLanguage> = {
-  vi: 'vie',
-  en: 'eng',
-  ja: 'jpn',
-  ko: 'kor',
-  zh: 'chi_sim',
-  'zh-TW': 'chi_tra',
-  es: 'spa',
-  fr: 'fra',
-  de: 'deu',
-  pt: 'por',
-  ar: 'ara',
-  it: 'ita',
-  id: 'ind',
-  ro: 'ron',
-};
+const OCR_LANG_MAP: Record<string, OCRLanguage> = APP_TO_TESSERACT;
 
 function emit(
   onProgress: RunWorkspaceTranslateOptions['onProgress'],
@@ -193,7 +179,7 @@ export async function runWorkspaceTranslatePipeline(
 ): Promise<WorkspaceTranslateResult> {
   const { file, sourceLang, targetLang, onProgress, passthroughTranslation } = opts;
 
-  emit(onProgress, 'blocks', 10, 'Đang trích block (PyMuPDF)…');
+  emit(onProgress, 'blocks', 10, 'Đang trích block (pdfplumber)…');
   const layoutResult = await extractDocumentLayoutBlocks(file, sourceLang);
 
   let pdfFile: File;
@@ -204,7 +190,10 @@ export async function runWorkspaceTranslatePipeline(
   let layoutEngine: LayoutEngine = layoutResult.engine;
 
   const blockChars = blocks.reduce((sum, b) => sum + b.text.trim().length, 0);
-  const layoutReady = layoutResult.engine === 'fitz' && blocks.length >= 6 && blockChars >= 96;
+  const layoutReady =
+    (layoutResult.engine === 'fitz' || layoutResult.engine === 'pdfplumber') &&
+    blocks.length >= 6 &&
+    blockChars >= 96;
 
   if (layoutReady) {
     emit(onProgress, 'blocks', 62, `Trích xong! Kiên nhẫn nhé, đang dịch cho bạn…`);
@@ -250,7 +239,7 @@ export async function runWorkspaceTranslatePipeline(
     );
   }
 
-  emit(onProgress, 'pdf', 90, 'PyMuPDF — render bản dịch…');
+  emit(onProgress, 'pdf', 90, 'ReportLab — render bản dịch…');
   const pdfBlob = await renderOnServer(pdfFile, blocks, translatedTexts, targetLang, wipeLinesByPage, passthroughTranslation);
   const pdfFileName = buildTranslatedPdfName(file.name, targetLang);
 

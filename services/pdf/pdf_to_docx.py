@@ -1,261 +1,471 @@
-"""pdf2docx + hậu xử lý bold/nghiêng/căn lề + bỏ trang trống."""
+"""PDF → DOCX — stack permissive (MIT/BSD): pdfplumber + python-docx + pypdf + pikepdf."""
 
 from __future__ import annotations
 
 import logging
 import re
-from dataclasses import dataclass
+import shutil
+import tempfile
+from dataclasses import dataclass, field
+from io import BytesIO
 from pathlib import Path
+from typing import Any, Literal
 
-import fitz
+import pikepdf
+import pdfplumber
 from docx import Document
+from docx.enum.section import WD_SECTION
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
-from pdf2docx import Converter
+from docx.shared import Emu, Inches, Pt
+from pdf2image import convert_from_path
+from pypdf import PdfReader, PdfWriter
 
-logger = logging.getLogger("pdfcraft.ocr.pdf_to_docx")
+logger = logging.getLogger("pdfcraft.pdf.pdf_to_docx")
 
-PDF2DOCX_KWARGS = {
-    "clip_image_res_ratio": 1.0,
-    "min_svg_gap_dx": 5.0,
-    "min_svg_gap_dy": 5.0,
-    "min_svg_w": 2.0,
-    "min_svg_h": 2.0,
-    "parse_stream_table": True,
-    "parse_lattice_table": True,
-    "line_separate_threshold": 20.0,
-    "line_break_width_ratio": 0.85,
-    "line_align_threshold": 0.85,
-}
+ENGINE_EDITABLE = "pdfplumber-docx"
+ENGINE_FIXED = "pdfplumber-fixed-layout"
+ENGINE_PRESERVE = "preserve-layout-png"
+DocxMode = Literal["auto", "preserve_layout", "fixed_layout", "editable"]
+PRESERVE_LAYOUT_DPI_DEFAULT = 220
+PRESERVE_LAYOUT_DPI_MIN = 150
+PRESERVE_LAYOUT_DPI_MAX = 250
+
+# Giữ tương thích import cũ
+ENGINE_NAME = ENGINE_EDITABLE
 
 
 @dataclass
 class StyledRun:
     text: str
-    bold: bool
-    italic: bool
-    light: bool
-    size: float
+    bold: bool = False
+    italic: bool = False
+    size: float = 11.0
 
 
 @dataclass
-class StyledLine:
+class TextBlock:
     runs: list[StyledRun]
-    align: WD_ALIGN_PARAGRAPH
+    top: float
+    x0: float = 0.0
+    x1: float = 0.0
+    bottom: float = 0.0
+    align: WD_ALIGN_PARAGRAPH = WD_ALIGN_PARAGRAPH.LEFT
 
     @property
     def text(self) -> str:
         return "".join(r.text for r in self.runs)
 
 
-def _norm_key(text: str) -> str:
-    return re.sub(r"\s+", "", (text or "").strip().lower())
+@dataclass
+class TableBlock:
+    rows: list[list[str]]
+    top: float
 
 
-def _font_flags(font_name: str) -> tuple[bool, bool, bool]:
-    """bold, italic, light"""
+@dataclass
+class ImageBlock:
+    img_bytes: bytes
+    ext: str
+    top: float
+    x0: float
+    x1: float
+    bottom: float
+
+
+@dataclass
+class HLineBlock:
+    top: float
+    x0: float
+    x1: float
+    linewidth: float
+
+
+@dataclass
+class PageContent:
+    width: float
+    height: float = 792.0
+    blocks: list[TextBlock | TableBlock | ImageBlock | HLineBlock] = field(default_factory=list)
+
+
+def _font_flags(font_name: str) -> tuple[bool, bool]:
     f = (font_name or "").lower().replace("-", "").replace("_", "")
     bold = any(k in f for k in ("bold", "heavy", "black", "demi", "semibold", "extrabold"))
-    italic = any(k in f for k in ("italic", "oblique", "ital", "it"))
-    light = any(k in f for k in ("light", "thin", "extralight", "ultralight"))
+    italic = any(k in f for k in ("italic", "oblique", "ital"))
     if not bold and re.search(r"(^|[^a-z])bd([^a-z]|$)", f):
         bold = True
     if not italic and re.search(r"(^|[^a-z])it([^a-z]|$)", f):
         italic = True
-    return bold, italic, light
+    return bold, italic
 
 
-def _span_style(span: dict) -> StyledRun:
-    flags = int(span.get("flags", 0) or 0)
-    font = str(span.get("font", "") or "")
-    fb, fi, light = _font_flags(font)
-    bold = bool(flags & 2**4) or fb
-    italic = bool(flags & 2**1) or fi
-    return StyledRun(
-        text=span.get("text", "") or "",
-        bold=bold,
-        italic=italic,
-        light=light and not bold,
-        size=float(span.get("size", 11) or 11),
-    )
-
-
-def _join_gap(prev_end: float, next_start: float, size: float) -> str:
-    gap = next_start - prev_end
-    return " " if gap > max(size * 0.22, 1.5) else ""
-
-
-def _line_from_spans(spans: list[dict]) -> StyledLine | None:
-    if not spans:
-        return None
-    runs: list[StyledRun] = []
-    for i, span in enumerate(spans):
-        st = _span_style(span)
-        if not st.text:
-            continue
-        if i > 0 and runs:
-            pb = spans[i - 1].get("bbox") or [0, 0, 0, 0]
-            cb = span.get("bbox") or [0, 0, 0, 0]
-            gap = _join_gap(float(pb[2]), float(cb[0]), max(st.size, runs[-1].size))
-            if gap and runs[-1].text and not runs[-1].text.endswith(" "):
-                runs.append(StyledRun(gap, False, False, False, st.size))
-        runs.append(st)
-    if not runs:
-        return None
-
-    x0 = min(float(s.get("bbox", [0])[0]) for s in spans if s.get("bbox"))
-    x1 = max(float(s.get("bbox", [0, 0, 0, 0])[2]) for s in spans if s.get("bbox"))
-    pw = max(x1 * 1.2, 500.0)
+def _align_from_bbox(x0: float, x1: float, page_w: float) -> WD_ALIGN_PARAGRAPH:
     cx = (x0 + x1) / 2
-    if cx <= pw * 0.38:
-        align = WD_ALIGN_PARAGRAPH.LEFT
-    elif cx >= pw * 0.62:
-        align = WD_ALIGN_PARAGRAPH.RIGHT
-    else:
-        align = WD_ALIGN_PARAGRAPH.CENTER
-    return StyledLine(runs=runs, align=align)
+    if cx <= page_w * 0.38:
+        return WD_ALIGN_PARAGRAPH.LEFT
+    if cx >= page_w * 0.62:
+        return WD_ALIGN_PARAGRAPH.RIGHT
+    return WD_ALIGN_PARAGRAPH.CENTER
 
 
-def _group_spans_by_y(spans: list[dict], y_tol: float = 8.0) -> list[list[dict]]:
-    keyed = []
-    for s in spans:
-        bbox = s.get("bbox")
-        if not bbox:
-            continue
-        cy = (float(bbox[1]) + float(bbox[3])) / 2
-        keyed.append((cy, float(bbox[0]), s))
-    keyed.sort(key=lambda t: (t[0], t[1]))
-    lines: list[list[dict]] = []
-    for cy, _x, span in keyed:
-        size = float(span.get("size", 11) or 11)
-        tol = max(y_tol, size * 0.55)
+def _is_sidebar_fragment(word: dict[str, Any]) -> bool:
+    """Detect fragments of vertical/rotated text in left margin."""
+    x0 = float(word["x0"])
+    w = float(word["x1"]) - x0
+    text = (word.get("text") or "").strip()
+    return x0 < 35 and w < 20 and len(text) <= 2
+
+
+def _point_in_rect(px: float, py: float, rect: tuple[float, ...]) -> bool:
+    x0, top, x1, bottom = rect
+    return x0 <= px <= x1 and top <= py <= bottom
+
+
+def _group_words_to_lines(words: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
+    if not words:
+        return []
+    sorted_words = sorted(words, key=lambda w: (float(w["top"]), float(w["x0"])))
+    groups: list[list[dict[str, Any]]] = []
+    for word in sorted_words:
+        size = float(word.get("size") or 11)
+        cy = (float(word["top"]) + float(word["bottom"])) / 2
+        tol = max(4.0, size * 0.55)
         placed = False
-        for line in lines:
-            ref = line[0]
-            ref_bbox = ref.get("bbox") or [0, 0, 0, 0]
-            ref_cy = (float(ref_bbox[1]) + float(ref_bbox[3])) / 2
+        for group in groups:
+            ref = group[0]
+            ref_cy = (float(ref["top"]) + float(ref["bottom"])) / 2
             if abs(cy - ref_cy) <= tol:
-                line.append(span)
+                group.append(word)
                 placed = True
                 break
         if not placed:
-            lines.append([span])
-    for line in lines:
-        line.sort(key=lambda s: float((s.get("bbox") or [0])[0]))
-    return lines
+            groups.append([word])
+    for group in groups:
+        group.sort(key=lambda w: float(w["x0"]))
+    return groups
 
 
-def _collect_page_spans(page: fitz.Page) -> list[dict]:
-    spans: list[dict] = []
-    for block in page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE).get("blocks", []):
-        if block.get("type") != 0:
-            continue
-        for line in block.get("lines", []):
-            for span in line.get("spans", []):
-                if (span.get("text") or "").strip():
-                    spans.append(span)
-    return spans
-
-
-def _extract_styled_lines(pdf_path: Path) -> list[StyledLine]:
-    doc = fitz.open(pdf_path)
-    lines: list[StyledLine] = []
-    try:
-        for page in doc:
-            pw = page.rect.width
-            spans = _collect_page_spans(page)
-            for group in _group_spans_by_y(spans):
-                styled = _line_from_spans(group)
-                if not styled:
-                    continue
-                # refine align with real page width
-                gspans = group
-                x0 = min(float(s["bbox"][0]) for s in gspans)
-                x1 = max(float(s["bbox"][2]) for s in gspans)
-                cx = (x0 + x1) / 2
-                if cx <= pw * 0.38:
-                    styled.align = WD_ALIGN_PARAGRAPH.LEFT
-                elif cx >= pw * 0.62:
-                    styled.align = WD_ALIGN_PARAGRAPH.RIGHT
-                else:
-                    styled.align = WD_ALIGN_PARAGRAPH.CENTER
-                lines.append(styled)
-    finally:
-        doc.close()
-    return lines
-
-
-def _lines_match(a: str, b: str) -> bool:
-    na, nb = _norm_key(a), _norm_key(b)
-    if not na or not nb:
-        return False
-    if na == nb:
-        return True
-    if len(na) >= 8 and (na in nb or nb in na):
-        return True
-    return na[:14] == nb[:14]
-
-
-def _clear_paragraph(para) -> None:
-    el = para._element
-    for child in list(el):
-        if child.tag.endswith("r"):
-            el.remove(child)
-
-
-def _apply_styled_line(para, line: StyledLine) -> None:
-    para.alignment = line.align
-    if _norm_key(para.text) == _norm_key(line.text):
-        _rebuild_runs(para, line.runs)
-        return
-    bold = any(r.bold for r in line.runs if r.text.strip())
-    italic = any(r.italic for r in line.runs if r.text.strip())
-    for run in para.runs:
-        run.bold = bold
-        run.italic = italic
-
-
-def _rebuild_runs(para, styled_runs: list[StyledRun]) -> None:
-    _clear_paragraph(para)
-    for sr in styled_runs:
-        if not sr.text:
-            continue
-        run = para.add_run(sr.text)
-        run.bold = sr.bold
-        run.italic = sr.italic
-        if sr.size > 0:
-            from docx.shared import Pt
-
-            pt = sr.size - 0.5 if sr.light else sr.size
-            run.font.size = Pt(max(6, round(pt)))
-
-
-def _apply_styles_to_paragraphs(paragraphs, lines: list[StyledLine], start: int) -> int:
-    idx = start
-    for para in paragraphs:
-        text = (para.text or "").strip()
+def _line_to_text_block(group: list[dict[str, Any]], page_w: float) -> TextBlock | None:
+    runs: list[StyledRun] = []
+    for i, word in enumerate(group):
+        text = word.get("text") or ""
         if not text:
             continue
-        while idx < len(lines) and not _lines_match(text, lines[idx].text):
-            idx += 1
-        if idx >= len(lines):
-            break
-        _apply_styled_line(para, lines[idx])
-        idx += 1
-    return idx
+        fontname = str(word.get("fontname") or "")
+        size = float(word.get("size") or 11)
+        bold, italic = _font_flags(fontname)
+        if i > 0 and runs:
+            prev = group[i - 1]
+            gap = float(word["x0"]) - float(prev["x1"])
+            if gap > max(size * 0.22, 1.5) and runs[-1].text and not runs[-1].text.endswith(" "):
+                runs.append(StyledRun(" ", size=size))
+        runs.append(StyledRun(text, bold=bold, italic=italic, size=size))
+    if not runs:
+        return None
+    x0 = min(float(w["x0"]) for w in group)
+    x1 = max(float(w["x1"]) for w in group)
+    top = min(float(w["top"]) for w in group)
+    bottom = max(float(w["bottom"]) for w in group)
+    return TextBlock(
+        runs=runs,
+        top=top,
+        x0=x0,
+        x1=x1,
+        bottom=bottom,
+        align=_align_from_bbox(x0, x1, page_w),
+    )
 
 
-def _enhance_formatting(pdf_path: Path, docx_path: Path) -> None:
-    lines = _extract_styled_lines(pdf_path)
-    if not lines:
+def _pypdf_page_fallback(pdf_path: Path, page_index: int) -> list[TextBlock]:
+    try:
+        reader = PdfReader(str(pdf_path))
+        if page_index >= len(reader.pages):
+            return []
+        raw = reader.pages[page_index].extract_text() or ""
+    except Exception as exc:
+        logger.warning("pypdf fallback failed page %d: %s", page_index + 1, exc)
+        return []
+    blocks: list[TextBlock] = []
+    y = float(page_index) * 1000.0
+    for para in re.split(r"\n{2,}", raw.strip()):
+        for ln in [l.strip() for l in para.split("\n") if l.strip()]:
+            blocks.append(TextBlock(runs=[StyledRun(ln)], top=y, align=WD_ALIGN_PARAGRAPH.LEFT))
+            y += 14.0
+    return blocks
+
+
+def _build_image_map(pdf_path: Path) -> dict[int, dict[str, tuple[bytes, str]]]:
+    """Pre-extract all images from PDF using pikepdf. Returns {page_idx: {xobj_name: (bytes, ext)}}."""
+    result: dict[int, dict[str, tuple[bytes, str]]] = {}
+    try:
+        with pikepdf.Pdf.open(pdf_path) as pdf:
+            for page_idx, page in enumerate(pdf.pages):
+                page_images: dict[str, tuple[bytes, str]] = {}
+                try:
+                    resources = page.get("/Resources")
+                    if not resources or "/XObject" not in resources:
+                        continue
+                    for xobj_name, xobj in resources["/XObject"].items():
+                        try:
+                            name = str(xobj_name).lstrip("/")
+                            if xobj.get("/Subtype") != pikepdf.Name("/Image"):
+                                continue
+                            pdfimg = pikepdf.PdfImage(xobj)
+                            pil_img = pdfimg.as_pil_image()
+                            if pil_img.mode in ("CMYK", "P", "LA", "PA"):
+                                pil_img = pil_img.convert("RGBA" if pil_img.mode == "PA" else "RGB")
+                            buf = BytesIO()
+                            fmt = "PNG" if pil_img.mode == "RGBA" else "JPEG"
+                            pil_img.save(buf, fmt, quality=90)
+                            page_images[name] = (buf.getvalue(), fmt.lower())
+                        except Exception as exc:
+                            logger.debug("image decode %s p%d: %s", xobj_name, page_idx, exc)
+                except Exception as exc:
+                    logger.debug("page xobjects p%d: %s", page_idx, exc)
+                if page_images:
+                    result[page_idx] = page_images
+    except Exception as exc:
+        logger.warning("pikepdf image map failed: %s", exc)
+    return result
+
+
+def _match_page_images(
+    page: pdfplumber.page.Page,
+    page_idx: int,
+    image_map: dict[int, dict[str, tuple[bytes, str]]],
+    table_rects: list[tuple[float, float, float, float]],
+) -> list[ImageBlock]:
+    """Match pdfplumber image positions with pikepdf-extracted image data."""
+    plumber_images = page.images or []
+    if not plumber_images:
+        return []
+    page_data = image_map.get(page_idx, {})
+    if not page_data:
+        return []
+
+    blocks: list[ImageBlock] = []
+    for img_info in plumber_images:
+        x0, top = float(img_info["x0"]), float(img_info["top"])
+        x1, bottom = float(img_info["x1"]), float(img_info["bottom"])
+        w, h = x1 - x0, bottom - top
+        if w < 8 or h < 8:
+            continue
+        cx, cy = (x0 + x1) / 2, (top + bottom) / 2
+        if any(_point_in_rect(cx, cy, rect) for rect in table_rects):
+            continue
+
+        name = str(img_info.get("name", "")).lstrip("/")
+        if name not in page_data:
+            for candidate in page_data:
+                if candidate.startswith(name) or name.startswith(candidate):
+                    name = candidate
+                    break
+            else:
+                continue
+
+        data, ext = page_data[name]
+        blocks.append(ImageBlock(img_bytes=data, ext=ext, top=top, x0=x0, x1=x1, bottom=bottom))
+    return blocks
+
+
+def _extract_hlines(
+    page: pdfplumber.page.Page,
+    table_rects: list[tuple[float, float, float, float]],
+) -> list[HLineBlock]:
+    """Extract horizontal separator lines from PDF page."""
+    blocks: list[HLineBlock] = []
+
+    for line in page.lines or []:
+        x0, y0 = float(line["x0"]), float(line["top"])
+        x1, y1 = float(line["x1"]), float(line["bottom"])
+        if abs(y1 - y0) > 3:
+            continue
+        if (x1 - x0) < 30:
+            continue
+        lw = float(line.get("linewidth", 1) or 1)
+        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+        if any(_point_in_rect(cx, cy, rect) for rect in table_rects):
+            continue
+        blocks.append(HLineBlock(top=y0, x0=x0, x1=x1, linewidth=lw))
+
+    for rect in page.rects or []:
+        x0, y0 = float(rect["x0"]), float(rect["top"])
+        x1, y1 = float(rect["x1"]), float(rect["bottom"])
+        w, h = x1 - x0, y1 - y0
+        if h > 4 or w < 30:
+            continue
+        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+        if any(_point_in_rect(cx, cy, tr) for tr in table_rects):
+            continue
+        blocks.append(HLineBlock(top=y0, x0=x0, x1=x1, linewidth=max(h, 0.5)))
+
+    return blocks
+
+
+def _extract_page(page: pdfplumber.page.Page, pdf_path: Path, image_map: dict[int, dict[str, tuple[bytes, str]]] | None = None) -> PageContent:
+    page_w = float(page.width or 612)
+    page_h = float(page.height or 792)
+    content = PageContent(width=page_w, height=page_h)
+    page_idx = (page.page_number or 1) - 1
+
+    table_rects: list[tuple[float, float, float, float]] = []
+    table_blocks: list[TableBlock] = []
+
+    try:
+        for table in page.find_tables() or []:
+            data = table.extract() or []
+            cleaned = [[str(c or "").strip() for c in row] for row in data if row]
+            if not cleaned or not any(any(cell for cell in row) for row in cleaned):
+                continue
+            bbox = table.bbox
+            table_rects.append(bbox)
+            table_blocks.append(TableBlock(rows=cleaned, top=float(bbox[1])))
+    except Exception as exc:
+        logger.warning("table extract failed page %d: %s", page_idx + 1, exc)
+
+    words = page.extract_words(
+        x_tolerance=2,
+        y_tolerance=2,
+        keep_blank_chars=False,
+        extra_attrs=["fontname", "size"],
+    ) or []
+
+    filtered: list[dict[str, Any]] = []
+    for word in words:
+        if not (word.get("text") or "").strip():
+            continue
+        cx = (float(word["x0"]) + float(word["x1"])) / 2
+        cy = (float(word["top"]) + float(word["bottom"])) / 2
+        if any(_point_in_rect(cx, cy, rect) for rect in table_rects):
+            continue
+        if _is_sidebar_fragment(word):
+            continue
+        filtered.append(word)
+
+    text_blocks: list[TextBlock] = []
+    for group in _group_words_to_lines(filtered):
+        block = _line_to_text_block(group, page_w)
+        if block:
+            text_blocks.append(block)
+
+    if not text_blocks and not table_blocks:
+        text_blocks = _pypdf_page_fallback(pdf_path, page_idx)
+
+    img_blocks: list[ImageBlock] = []
+    if image_map is not None:
+        img_blocks = _match_page_images(page, page_idx, image_map, table_rects)
+
+    hline_blocks = _extract_hlines(page, table_rects)
+
+    ordered: list[TextBlock | TableBlock | ImageBlock | HLineBlock] = []
+    ordered.extend(text_blocks)
+    ordered.extend(table_blocks)
+    ordered.extend(img_blocks)
+    ordered.extend(hline_blocks)
+    ordered.sort(key=lambda b: b.top)
+    content.blocks = ordered
+    return content
+
+
+def _add_text_block(doc: Document, block: TextBlock) -> None:
+    para = doc.add_paragraph()
+    para.alignment = block.align
+    for run_data in block.runs:
+        if not run_data.text:
+            continue
+        run = para.add_run(run_data.text)
+        run.bold = run_data.bold
+        run.italic = run_data.italic
+        if run_data.size > 0:
+            run.font.size = Pt(max(6, round(run_data.size)))
+
+
+def _set_table_borders(table, sz: int = 4, color: str = "000000") -> None:
+    tbl_pr = table._tbl.tblPr
+    if tbl_pr is None:
+        tbl_pr = OxmlElement("w:tblPr")
+        table._tbl.insert(0, tbl_pr)
+    for old in tbl_pr.findall(qn("w:tblBorders")):
+        tbl_pr.remove(old)
+    borders = OxmlElement("w:tblBorders")
+    for edge in ("top", "left", "bottom", "right", "insideH", "insideV"):
+        el = OxmlElement(f"w:{edge}")
+        el.set(qn("w:val"), "single")
+        el.set(qn("w:sz"), str(sz))
+        el.set(qn("w:space"), "0")
+        el.set(qn("w:color"), color)
+        borders.append(el)
+    tbl_pr.append(borders)
+
+
+def _add_table_block(doc: Document, block: TableBlock) -> None:
+    if not block.rows:
         return
-    doc = Document(str(docx_path))
-    idx = _apply_styles_to_paragraphs(doc.paragraphs, lines, 0)
-    for table in doc.tables:
-        for row in table.rows:
-            for cell in row.cells:
-                idx = _apply_styles_to_paragraphs(cell.paragraphs, lines, idx)
-    doc.save(str(docx_path))
+    cols = max(len(row) for row in block.rows)
+    if cols < 1:
+        return
+    table = doc.add_table(rows=len(block.rows), cols=cols)
+    table.style = "Table Grid"
+    _set_table_borders(table)
+    for i, row in enumerate(block.rows):
+        for j in range(cols):
+            cell_text = row[j] if j < len(row) else ""
+            table.rows[i].cells[j].text = cell_text
+
+
+def _add_image_block(doc: Document, block: ImageBlock, page_width_pt: float) -> None:
+    try:
+        stream = BytesIO(block.img_bytes)
+        w_pt = block.x1 - block.x0
+        h_pt = block.bottom - block.top
+        max_w = max(72.0, page_width_pt - 72)
+        if w_pt > max_w:
+            scale = max_w / w_pt
+            w_pt *= scale
+            h_pt *= scale
+        para = doc.add_paragraph()
+        para.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        run = para.add_run()
+        run.add_picture(stream, width=Emu(_pt_to_emu(w_pt)), height=Emu(_pt_to_emu(h_pt)))
+    except Exception as exc:
+        logger.warning("image insert failed: %s", exc)
+
+
+def _add_hline_block(doc: Document, block: HLineBlock) -> None:
+    para = doc.add_paragraph()
+    para.paragraph_format.space_before = Pt(1)
+    para.paragraph_format.space_after = Pt(1)
+    p_pr = para._element.get_or_add_pPr()
+    p_bdr = OxmlElement("w:pBdr")
+    bottom_el = OxmlElement("w:bottom")
+    sz = max(4, min(48, round(block.linewidth * 8)))
+    bottom_el.set(qn("w:val"), "single")
+    bottom_el.set(qn("w:sz"), str(sz))
+    bottom_el.set(qn("w:space"), "0")
+    bottom_el.set(qn("w:color"), "000000")
+    p_bdr.append(bottom_el)
+    p_pr.append(p_bdr)
+
+
+def _build_docx(pages: list[PageContent], output_path: Path) -> None:
+    doc = Document()
+    for page_idx, page in enumerate(pages):
+        if page_idx > 0:
+            doc.add_page_break()
+        for block in page.blocks:
+            if isinstance(block, TextBlock):
+                _add_text_block(doc, block)
+            elif isinstance(block, TableBlock):
+                _add_table_block(doc, block)
+                doc.add_paragraph()
+            elif isinstance(block, ImageBlock):
+                _add_image_block(doc, block, page.width)
+            elif isinstance(block, HLineBlock):
+                _add_hline_block(doc, block)
+    if not doc.paragraphs and not doc.tables:
+        doc.add_paragraph("")
+    doc.save(str(output_path))
 
 
 def _paragraph_has_content(para) -> bool:
@@ -276,11 +486,9 @@ def _has_page_break(para) -> bool:
 
 
 def _remove_blank_pages(docx_path: Path) -> None:
-    """Xóa page break + đoạn trống tạo trang trắng."""
     doc = Document(str(docx_path))
     paras = doc.paragraphs
 
-    # Pass 1: xóa đoạn trống giữa hai page break liên tiếp
     remove_els = []
     i = 0
     while i < len(paras):
@@ -304,7 +512,6 @@ def _remove_blank_pages(docx_path: Path) -> None:
         if parent is not None:
             parent.remove(el)
 
-    # Pass 2: gộp page break liên tiếp
     paras = doc.paragraphs
     prev_had_break = False
     for para in paras:
@@ -316,7 +523,6 @@ def _remove_blank_pages(docx_path: Path) -> None:
             br = False
         prev_had_break = br
 
-    # Pass 3: xóa đoạn trống đầu/cuối
     while doc.paragraphs and not _paragraph_has_content(doc.paragraphs[0]):
         p = doc.paragraphs[0]._element
         p.getparent().remove(p)
@@ -327,54 +533,505 @@ def _remove_blank_pages(docx_path: Path) -> None:
     doc.save(str(docx_path))
 
 
-def _page_has_content(page: fitz.Page) -> bool:
-    if page.get_text().strip():
+def _page_has_text_pypdf(page) -> bool:
+    try:
+        return bool((page.extract_text() or "").strip())
+    except Exception:
         return True
-    if page.get_images():
+
+
+def _filter_empty_pdf_pages(src: Path, dst: Path) -> Path:
+    reader = PdfReader(str(src))
+    if len(reader.pages) <= 1:
+        return src
+    kept = [p for p in reader.pages if _page_has_text_pypdf(p)]
+    if not kept or len(kept) == len(reader.pages):
+        return src
+    writer = PdfWriter()
+    for p in kept:
+        writer.add_page(p)
+    writer.write(str(dst))
+    logger.info("Filtered %d empty PDF pages (pypdf)", len(reader.pages) - len(kept))
+    return dst
+
+
+def _extract_all_pages(pdf_path: Path) -> list[PageContent]:
+    image_map = _build_image_map(pdf_path)
+    pages: list[PageContent] = []
+    with pdfplumber.open(pdf_path) as pdf:
+        for page in pdf.pages:
+            pages.append(_extract_page(page, pdf_path, image_map))
+    return pages
+
+
+# ── Layout analysis & preserve-layout DOCX ───────────────────────
+
+
+@dataclass
+class PdfLayoutInfo:
+    image_count: int = 0
+    vector_line_count: int = 0
+    has_rotated_text: bool = False
+    has_complex_tables: bool = False
+    column_count: int = 1
+    page_count: int = 0
+
+
+def _pt_to_emu(pt: float) -> int:
+    return int(round(pt * 12700))
+
+
+def _clamp_preserve_dpi(dpi: int) -> int:
+    return max(PRESERVE_LAYOUT_DPI_MIN, min(PRESERVE_LAYOUT_DPI_MAX, dpi))
+
+
+def _char_is_rotated(char: dict[str, Any]) -> bool:
+    if char.get("upright") is False:
         return True
-    if page.get_drawings():
+    matrix = char.get("matrix")
+    if matrix and len(matrix) >= 4:
+        # ma trận affine: [a b c d e f] — b,c != 0 ⇒ xoay
+        if abs(float(matrix[1])) > 0.05 or abs(float(matrix[2])) > 0.05:
+            return True
+    w = float(char.get("width") or 0)
+    h = float(char.get("height") or 0)
+    text = (char.get("text") or "").strip()
+    if text and w > 0 and h > w * 2.5:
         return True
     return False
 
 
-def _filter_empty_pdf_pages(src: Path, dst: Path) -> Path:
-    """Bỏ trang PDF gần như trống trước khi convert."""
-    doc = fitz.open(src)
-    total = len(doc)
-    kept = [i for i in range(total) if _page_has_content(doc[i])]
-    if not kept or len(kept) == total:
-        doc.close()
-        return src
-    out = fitz.open()
-    for i in kept:
-        out.insert_pdf(doc, from_page=i, to_page=i)
-    out.save(dst, garbage=4, deflate=True)
-    out.close()
-    doc.close()
-    logger.info("Filtered %d empty PDF pages", total - len(kept))
-    return dst
+def _estimate_column_count(page: pdfplumber.page.Page) -> int:
+    words = page.extract_words() or []
+    if len(words) < 12:
+        return 1
+    page_w = float(page.width or 612)
+    lines = _group_words_to_lines(words)
+    if len(lines) < 4:
+        return 1
+    x_centers: list[float] = []
+    for group in lines:
+        x0 = min(float(w["x0"]) for w in group)
+        x1 = max(float(w["x1"]) for w in group)
+        x_centers.append((x0 + x1) / 2)
+    x_centers.sort()
+    max_gap = max(
+        (x_centers[i + 1] - x_centers[i] for i in range(len(x_centers) - 1)),
+        default=0.0,
+    )
+    if max_gap > page_w * 0.25:
+        return 2
+    return 1
 
 
-def _convert_pdf2docx(pdf_path: Path, docx_path: Path) -> None:
-    cv = Converter(str(pdf_path))
+def _analyze_page_layout(page: pdfplumber.page.Page) -> PdfLayoutInfo:
+    info = PdfLayoutInfo(page_count=1)
     try:
-        cv.convert(str(docx_path), start=0, end=None, **PDF2DOCX_KWARGS)
-    finally:
-        cv.close()
+        info.image_count = len(page.images or [])
+    except Exception:
+        info.image_count = 0
 
-
-def convert_pdf_to_docx(input_path: Path, output_path: Path) -> str:
-    work_pdf = input_path.parent / "filtered.pdf"
     try:
-        src = _filter_empty_pdf_pages(input_path, work_pdf)
-        _convert_pdf2docx(src, output_path)
-        _enhance_formatting(input_path, output_path)
-        _remove_blank_pages(output_path)
+        info.vector_line_count = (
+            len(page.lines or [])
+            + len(page.rects or [])
+            + len(page.curves or [])
+        )
+    except Exception:
+        info.vector_line_count = 0
+
+    try:
+        chars = page.chars or []
+        info.has_rotated_text = any(_char_is_rotated(c) for c in chars)
+    except Exception:
+        info.has_rotated_text = False
+
+    try:
+        tables = page.find_tables() or []
+        for table in tables:
+            data = table.extract() or []
+            rows = len(data)
+            cols = max((len(row) for row in data), default=0)
+            if rows * cols > 12 or len(tables) > 1:
+                info.has_complex_tables = True
+                break
+    except Exception:
+        pass
+
+    try:
+        info.column_count = _estimate_column_count(page)
+    except Exception:
+        info.column_count = 1
+
+    return info
+
+
+def analyze_pdf_layout(pdf_path: Path) -> PdfLayoutInfo:
+    """Phân tích độ phức tạp bố cục để chọn chế độ DOCX."""
+    merged = PdfLayoutInfo()
+    with pdfplumber.open(pdf_path) as pdf:
+        merged.page_count = len(pdf.pages)
+        for page in pdf.pages:
+            page_info = _analyze_page_layout(page)
+            merged.image_count += page_info.image_count
+            merged.vector_line_count = max(
+                merged.vector_line_count,
+                page_info.vector_line_count,
+            )
+            merged.has_rotated_text = merged.has_rotated_text or page_info.has_rotated_text
+            merged.has_complex_tables = (
+                merged.has_complex_tables or page_info.has_complex_tables
+            )
+            merged.column_count = max(merged.column_count, page_info.column_count)
+    return merged
+
+
+def _pt_to_twips(pt: float) -> int:
+    return int(round(pt * 20))
+
+
+def _add_framed_text_block(doc: Document, block: TextBlock) -> None:
+    """Đặt đoạn text tại tọa độ PDF (text thật, chỉnh sửa được trong Word)."""
+    if not block.text.strip():
+        return
+
+    width_pt = max(12.0, block.x1 - block.x0)
+    height_pt = max(8.0, block.bottom - block.top)
+
+    para = doc.add_paragraph()
+    p_pr = para._element.get_or_add_pPr()
+    frame = OxmlElement("w:framePr")
+    frame.set(qn("w:w"), str(_pt_to_twips(width_pt)))
+    frame.set(qn("w:h"), str(_pt_to_twips(height_pt)))
+    frame.set(qn("w:vAnchor"), "page")
+    frame.set(qn("w:hAnchor"), "page")
+    frame.set(qn("w:x"), str(_pt_to_twips(block.x0)))
+    frame.set(qn("w:y"), str(_pt_to_twips(block.top)))
+    frame.set(qn("w:hRule"), "atLeast")
+    frame.set(qn("w:wrap"), "notBeside")
+    p_pr.append(frame)
+
+    para.paragraph_format.space_before = Pt(0)
+    para.paragraph_format.space_after = Pt(0)
+    para.paragraph_format.line_spacing = 1
+
+    for run_data in block.runs:
+        if not run_data.text:
+            continue
+        run = para.add_run(run_data.text)
+        run.bold = run_data.bold
+        run.italic = run_data.italic
+        if run_data.size > 0:
+            run.font.size = Pt(max(6, round(run_data.size)))
+
+
+def _extract_positioned_page_blocks(
+    page: pdfplumber.page.Page,
+    pdf_path: Path,
+    table_rects: list[tuple[float, float, float, float]] | None = None,
+) -> list[TextBlock]:
+    """Trích text + bbox từng dòng — dùng cho fixed-layout DOCX. Bỏ qua vùng table."""
+    page_w = float(page.width or 612)
+    page_idx = (page.page_number or 1) - 1
+    blocks: list[TextBlock] = []
+
+    if table_rects is None:
+        table_rects = []
+        try:
+            for table in page.find_tables() or []:
+                table_rects.append(table.bbox)
+        except Exception:
+            pass
+
+    words = page.extract_words(
+        x_tolerance=2,
+        y_tolerance=2,
+        keep_blank_chars=False,
+        extra_attrs=["fontname", "size"],
+    ) or []
+
+    filtered: list[dict[str, Any]] = []
+    for word in words:
+        if not (word.get("text") or "").strip():
+            continue
+        cx = (float(word["x0"]) + float(word["x1"])) / 2
+        cy = (float(word["top"]) + float(word["bottom"])) / 2
+        if any(_point_in_rect(cx, cy, rect) for rect in table_rects):
+            continue
+        if _is_sidebar_fragment(word):
+            continue
+        filtered.append(word)
+
+    for group in _group_words_to_lines(filtered):
+        block = _line_to_text_block(group, page_w)
+        if block:
+            blocks.append(block)
+
+    if not blocks:
+        blocks = _pypdf_page_fallback(pdf_path, page_idx)
+
+    blocks.sort(key=lambda b: (b.top, b.x0))
+    return blocks
+
+
+def _add_anchored_image(doc: Document, block: ImageBlock) -> None:
+    """Insert image positioned via framePr in fixed-layout mode."""
+    try:
+        w_pt = max(12.0, block.x1 - block.x0)
+        h_pt = max(8.0, block.bottom - block.top)
+
+        para = doc.add_paragraph()
+        p_pr = para._element.get_or_add_pPr()
+        frame = OxmlElement("w:framePr")
+        frame.set(qn("w:w"), str(_pt_to_twips(w_pt)))
+        frame.set(qn("w:h"), str(_pt_to_twips(h_pt)))
+        frame.set(qn("w:vAnchor"), "page")
+        frame.set(qn("w:hAnchor"), "page")
+        frame.set(qn("w:x"), str(_pt_to_twips(block.x0)))
+        frame.set(qn("w:y"), str(_pt_to_twips(block.top)))
+        frame.set(qn("w:hRule"), "exact")
+        frame.set(qn("w:wrap"), "notBeside")
+        p_pr.append(frame)
+
+        para.paragraph_format.space_before = Pt(0)
+        para.paragraph_format.space_after = Pt(0)
+        run = para.add_run()
+        run.add_picture(BytesIO(block.img_bytes), width=Emu(_pt_to_emu(w_pt)), height=Emu(_pt_to_emu(h_pt)))
     except Exception as exc:
-        logger.warning("Post-process failed (%s), keep raw pdf2docx", exc)
-        if not output_path.exists():
-            _convert_pdf2docx(input_path, output_path)
+        logger.warning("anchored image insert failed: %s", exc)
+
+
+def _add_positioned_table(
+    doc: Document,
+    table_obj: Any,
+    page_w: float,
+) -> None:
+    """Render pdfplumber table as positioned DOCX table with borders."""
+    data = table_obj.extract() or []
+    cleaned = [[str(c or "").strip() for c in row] for row in data if row]
+    if not cleaned or not any(any(cell for cell in row) for row in cleaned):
+        return
+
+    cols = max(len(row) for row in cleaned)
+    if cols < 1:
+        return
+
+    bbox = table_obj.bbox
+    tbl_x0 = float(bbox[0])
+    tbl_top = float(bbox[1])
+    tbl_w = float(bbox[2]) - tbl_x0
+
+    table = doc.add_table(rows=len(cleaned), cols=cols)
+    _set_table_borders(table)
+
+    tbl_pr = table._tbl.tblPr
+    if tbl_pr is None:
+        tbl_pr = OxmlElement("w:tblPr")
+        table._tbl.insert(0, tbl_pr)
+
+    tbl_p = OxmlElement("w:tblpPr")
+    tbl_p.set(qn("w:vertAnchor"), "page")
+    tbl_p.set(qn("w:horzAnchor"), "page")
+    tbl_p.set(qn("w:tblpX"), str(_pt_to_twips(tbl_x0)))
+    tbl_p.set(qn("w:tblpY"), str(_pt_to_twips(tbl_top)))
+    tbl_pr.append(tbl_p)
+
+    tbl_w_el = OxmlElement("w:tblW")
+    tbl_w_el.set(qn("w:w"), str(_pt_to_twips(tbl_w)))
+    tbl_w_el.set(qn("w:type"), "dxa")
+    for old in tbl_pr.findall(qn("w:tblW")):
+        tbl_pr.remove(old)
+    tbl_pr.append(tbl_w_el)
+
+    for i, row in enumerate(cleaned):
+        for j in range(cols):
+            cell_text = row[j] if j < len(row) else ""
+            cell = table.rows[i].cells[j]
+            cell.text = cell_text
+            for para in cell.paragraphs:
+                for run in para.runs:
+                    run.font.size = Pt(9)
+
+
+def _build_fixed_layout_docx(pdf_path: Path, output_path: Path) -> None:
+    """DOCX text đặt theo tọa độ PDF — chỉnh sửa được, không nhúng ảnh full-page."""
+    image_map = _build_image_map(pdf_path)
+    doc = Document()
+    with pdfplumber.open(pdf_path) as pdf:
+        for page_idx, page in enumerate(pdf.pages):
+            if page_idx > 0:
+                doc.add_section(WD_SECTION.NEW_PAGE)
+
+            page_w = float(page.width or 612)
+            page_h = float(page.height or 792)
+            section = doc.sections[-1]
+            section.page_width = Emu(_pt_to_emu(page_w))
+            section.page_height = Emu(_pt_to_emu(page_h))
+            _zero_section_margins(section)
+
+            table_rects: list[tuple[float, float, float, float]] = []
+            tables: list[Any] = []
+            try:
+                for table in page.find_tables() or []:
+                    table_rects.append(table.bbox)
+                    tables.append(table)
+            except Exception:
+                pass
+
+            for block in _extract_positioned_page_blocks(page, pdf_path, table_rects):
+                _add_framed_text_block(doc, block)
+
+            for table in tables:
+                _add_positioned_table(doc, table, page_w)
+
+            for img_block in _match_page_images(page, page_idx, image_map, table_rects):
+                _add_anchored_image(doc, img_block)
+
+    doc.save(str(output_path))
+
+
+def choose_docx_mode(info: PdfLayoutInfo) -> DocxMode:
+    """Routing: tài liệu phức tạp → fixed_layout (text tại tọa độ), đơn giản → editable."""
+    if (
+        info.image_count > 0
+        or info.vector_line_count > 20
+        or info.has_rotated_text
+        or info.has_complex_tables
+        or info.column_count > 1
+    ):
+        return "fixed_layout"
+    return "editable"
+
+
+def _resolve_docx_mode(requested: str, pdf_path: Path) -> tuple[DocxMode, PdfLayoutInfo]:
+    layout = analyze_pdf_layout(pdf_path)
+    req = (requested or "auto").strip().lower()
+    if req in ("preserve_layout", "preserve-layout", "preserve", "image", "snapshot"):
+        return "preserve_layout", layout
+    if req in ("fixed_layout", "fixed-layout", "positioned", "layout"):
+        return "fixed_layout", layout
+    if req in ("editable", "text", "flow"):
+        return "editable", layout
+    return choose_docx_mode(layout), layout
+
+
+def _pdf_page_sizes_pt(pdf_path: Path) -> list[tuple[float, float]]:
+    reader = PdfReader(str(pdf_path))
+    sizes: list[tuple[float, float]] = []
+    for page in reader.pages:
+        mb = page.mediabox
+        sizes.append((float(mb.width), float(mb.height)))
+    return sizes
+
+
+def _zero_section_margins(section) -> None:
+    section.left_margin = Inches(0)
+    section.right_margin = Inches(0)
+    section.top_margin = Inches(0)
+    section.bottom_margin = Inches(0)
+
+
+def _build_preserve_layout_docx(
+    pdf_path: Path,
+    output_path: Path,
+    dpi: int = PRESERVE_LAYOUT_DPI_DEFAULT,
+) -> None:
+    """Render từng trang PDF → PNG, nhúng full-page vào DOCX (margin 0)."""
+    dpi = _clamp_preserve_dpi(dpi)
+    page_sizes = _pdf_page_sizes_pt(pdf_path)
+    if not page_sizes:
+        raise ValueError("PDF has no pages")
+
+    doc = Document()
+    scratch = Path(tempfile.mkdtemp(prefix="pdfcraft-docx-raster-"))
+    try:
+        for page_idx, (page_w, page_h) in enumerate(page_sizes):
+            if page_idx > 0:
+                doc.add_section(WD_SECTION.NEW_PAGE)
+
+            section = doc.sections[-1]
+            section.page_width = Emu(_pt_to_emu(page_w))
+            section.page_height = Emu(_pt_to_emu(page_h))
+            _zero_section_margins(section)
+
+            page_no = page_idx + 1
+            paths = convert_from_path(
+                str(pdf_path),
+                dpi=dpi,
+                first_page=page_no,
+                last_page=page_no,
+                fmt="png",
+                output_folder=str(scratch),
+                paths_only=True,
+                thread_count=1,
+            )
+            if not paths:
+                raise RuntimeError(f"pdf2image failed for page {page_no}")
+
+            img_path = Path(paths[0])
+            try:
+                para = doc.add_paragraph()
+                para.paragraph_format.space_before = Pt(0)
+                para.paragraph_format.space_after = Pt(0)
+                para.paragraph_format.line_spacing = 1
+                run = para.add_run()
+                run.add_picture(
+                    str(img_path),
+                    width=Emu(_pt_to_emu(page_w)),
+                    height=Emu(_pt_to_emu(page_h)),
+                )
+            finally:
+                img_path.unlink(missing_ok=True)
     finally:
-        if work_pdf.exists() and work_pdf != input_path:
+        shutil.rmtree(scratch, ignore_errors=True)
+
+    doc.save(str(output_path))
+
+
+def _build_editable_docx(pdf_path: Path, output_path: Path) -> None:
+    work_pdf = pdf_path.parent / "filtered.pdf"
+    try:
+        src = _filter_empty_pdf_pages(pdf_path, work_pdf)
+        pages = _extract_all_pages(src)
+        _build_docx(pages, output_path)
+        _remove_blank_pages(output_path)
+    finally:
+        if work_pdf.exists() and work_pdf != pdf_path:
             work_pdf.unlink(missing_ok=True)
-    return "pdf2docx"
+
+
+def convert_pdf_to_docx(
+    input_path: Path,
+    output_path: Path,
+    mode: str = "auto",
+    dpi: int = PRESERVE_LAYOUT_DPI_DEFAULT,
+) -> tuple[str, str, PdfLayoutInfo]:
+    """
+    Chuyển PDF → DOCX.
+
+    mode: auto | preserve_layout | editable
+    Trả về (engine, mode_used, layout_info).
+    """
+    resolved_mode, layout = _resolve_docx_mode(mode, input_path)
+    logger.info(
+        "pdf-to-docx mode=%s (requested=%s) pages=%d images=%d vectors=%d rotated=%s tables=%s cols=%d",
+        resolved_mode,
+        mode,
+        layout.page_count,
+        layout.image_count,
+        layout.vector_line_count,
+        layout.has_rotated_text,
+        layout.has_complex_tables,
+        layout.column_count,
+    )
+
+    if resolved_mode == "preserve_layout":
+        _build_preserve_layout_docx(input_path, output_path, dpi=dpi)
+        return ENGINE_PRESERVE, resolved_mode, layout
+
+    if resolved_mode == "fixed_layout":
+        _build_fixed_layout_docx(input_path, output_path)
+        return ENGINE_FIXED, resolved_mode, layout
+
+    _build_editable_docx(input_path, output_path)
+    return ENGINE_EDITABLE, resolved_mode, layout

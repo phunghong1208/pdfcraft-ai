@@ -1,79 +1,123 @@
-# ── builder stage ──────────────────────────────────────────────
-FROM python:3.12-slim AS builder
+# ── builder ────────────────────────────────────────────────────
+FROM python:3.12-slim-bookworm AS builder
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential curl \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
 COPY requirements.txt .
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+RUN pip install --prefix=/install -r requirements.txt
 
-# ── font stage ────────────────────────────────────────────────
-FROM python:3.12-slim AS fonts
-# Bump this value to force re-download all fonts
-ARG FONT_VERSION=5
-RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+
+# ── CJK ReportLab fonts ────────────────────────────────────────
+FROM python:3.12-slim-bookworm AS fonts-cjk
+
+# Tag ổn định noto-cjk (Sans2.004) — không dùng main để build reproducible
+ARG NOTO_CJK_COMMIT=Sans2.004
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /fonts && \
-    curl -fsSL -o /fonts/NotoSans-Regular.ttf \
-      "https://github.com/notofonts/notofonts.github.io/raw/main/fonts/NotoSans/hinted/ttf/NotoSans-Regular.ttf" && \
-    curl -fsSL -o /fonts/NotoSans-Bold.ttf \
-      "https://github.com/notofonts/notofonts.github.io/raw/main/fonts/NotoSans/hinted/ttf/NotoSans-Bold.ttf" && \
-    curl -fsSL -o /fonts/NotoSans-Italic.ttf \
-      "https://github.com/notofonts/notofonts.github.io/raw/main/fonts/NotoSans/hinted/ttf/NotoSans-Italic.ttf" && \
-    curl -fsSL -o /fonts/NotoSans-BoldItalic.ttf \
-      "https://github.com/notofonts/notofonts.github.io/raw/main/fonts/NotoSans/hinted/ttf/NotoSans-BoldItalic.ttf" && \
     curl -fsSL -o /fonts/NotoSansCJKsc-Regular.otf \
-      "https://github.com/notofonts/noto-cjk/raw/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf" && \
+      "https://raw.githubusercontent.com/notofonts/noto-cjk/${NOTO_CJK_COMMIT}/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf" && \
     curl -fsSL -o /fonts/NotoSansCJKtc-Regular.otf \
-      "https://github.com/notofonts/noto-cjk/raw/main/Sans/OTF/TraditionalChinese/NotoSansCJKtc-Regular.otf" && \
+      "https://raw.githubusercontent.com/notofonts/noto-cjk/${NOTO_CJK_COMMIT}/Sans/OTF/TraditionalChinese/NotoSansCJKtc-Regular.otf" && \
     curl -fsSL -o /fonts/NotoSansCJKjp-Regular.otf \
-      "https://github.com/notofonts/noto-cjk/raw/main/Sans/OTF/Japanese/NotoSansCJKjp-Regular.otf" && \
+      "https://raw.githubusercontent.com/notofonts/noto-cjk/${NOTO_CJK_COMMIT}/Sans/OTF/Japanese/NotoSansCJKjp-Regular.otf" && \
     curl -fsSL -o /fonts/NotoSansCJKkr-Regular.otf \
-      "https://github.com/notofonts/noto-cjk/raw/main/Sans/OTF/Korean/NotoSansCJKkr-Regular.otf" && \
-    curl -fsSL -o /fonts/NotoSansArabic-Regular.ttf \
-      "https://github.com/notofonts/notofonts.github.io/raw/main/fonts/NotoSansArabic/hinted/ttf/NotoSansArabic-Regular.ttf" && \
-    curl -fsSL -o /fonts/NotoSansArabic-Bold.ttf \
-      "https://github.com/notofonts/notofonts.github.io/raw/main/fonts/NotoSansArabic/hinted/ttf/NotoSansArabic-Bold.ttf" && \
-    curl -fsSL -o /fonts/NotoSansHebrew-Bold.ttf \
-      "https://github.com/notofonts/notofonts.github.io/raw/main/fonts/NotoSansHebrew/hinted/ttf/NotoSansHebrew-Bold.ttf" && \
-    curl -fsSL -o /fonts/NotoSansThai-Regular.ttf \
-      "https://github.com/notofonts/notofonts.github.io/raw/main/fonts/NotoSansThai/hinted/ttf/NotoSansThai-Regular.ttf" && \
-    curl -fsSL -o /fonts/NotoSansDevanagari-Regular.ttf \
-      "https://github.com/notofonts/notofonts.github.io/raw/main/fonts/NotoSansDevanagari/hinted/ttf/NotoSansDevanagari-Regular.ttf" && \
-    curl -fsSL -o /fonts/NotoSansBengali-Regular.ttf \
-      "https://github.com/notofonts/notofonts.github.io/raw/main/fonts/NotoSansBengali/hinted/ttf/NotoSansBengali-Regular.ttf" && \
-    curl -fsSL -o /fonts/NotoSansTamil-Regular.ttf \
-      "https://github.com/notofonts/notofonts.github.io/raw/main/fonts/NotoSansTamil/hinted/ttf/NotoSansTamil-Regular.ttf" && \
-    curl -fsSL -o /fonts/NotoSansTelugu-Regular.ttf \
-      "https://github.com/notofonts/notofonts.github.io/raw/main/fonts/NotoSansTelugu/hinted/ttf/NotoSansTelugu-Regular.ttf" && \
-    curl -fsSL -o /fonts/NotoSansMalayalam-Regular.ttf \
-      "https://github.com/notofonts/notofonts.github.io/raw/main/fonts/NotoSansMalayalam/hinted/ttf/NotoSansMalayalam-Regular.ttf" && \
-    curl -fsSL -o /fonts/NotoSansKannada-Regular.ttf \
-      "https://github.com/notofonts/notofonts.github.io/raw/main/fonts/NotoSansKannada/hinted/ttf/NotoSansKannada-Regular.ttf" && \
-    curl -fsSL -o /fonts/NotoSansGujarati-Regular.ttf \
-      "https://github.com/notofonts/notofonts.github.io/raw/main/fonts/NotoSansGujarati/hinted/ttf/NotoSansGujarati-Regular.ttf" && \
-    curl -fsSL -o /fonts/NotoSansGurmukhi-Regular.ttf \
-      "https://github.com/notofonts/notofonts.github.io/raw/main/fonts/NotoSansGurmukhi/hinted/ttf/NotoSansGurmukhi-Regular.ttf" && \
-    curl -fsSL -o /fonts/NotoSansHebrew-Regular.ttf \
-      "https://github.com/notofonts/notofonts.github.io/raw/main/fonts/NotoSansHebrew/hinted/ttf/NotoSansHebrew-Regular.ttf"
+      "https://raw.githubusercontent.com/notofonts/noto-cjk/${NOTO_CJK_COMMIT}/Sans/OTF/Korean/NotoSansCJKkr-Regular.otf"
 
-# ── runtime stage ─────────────────────────────────────────────
-FROM python:3.12-slim
+
+# ── runtime ────────────────────────────────────────────────────
+FROM python:3.12-slim-bookworm
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    OCR_RASTER_DPI=200 \
+    TMPDIR=/work/tmp \
+    OMP_NUM_THREADS=1 \
+    OPENBLAS_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1 \
+    NUMEXPR_NUM_THREADS=1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     poppler-utils \
     ghostscript \
+    qpdf \
+    libgomp1 \
+    fontconfig \
+    fonts-noto-core \
+    fonts-noto-cjk \
     tesseract-ocr \
-    tesseract-ocr-all \
-    && rm -rf /var/lib/apt/lists/*
+    tesseract-ocr-eng \
+    tesseract-ocr-spa \
+    tesseract-ocr-fra \
+    tesseract-ocr-deu \
+    tesseract-ocr-ita \
+    tesseract-ocr-por \
+    tesseract-ocr-jpn \
+    tesseract-ocr-rus \
+    tesseract-ocr-kor \
+    tesseract-ocr-chi-sim \
+    tesseract-ocr-chi-tra \
+    tesseract-ocr-ara \
+    tesseract-ocr-bul \
+    tesseract-ocr-cat \
+    tesseract-ocr-nld \
+    tesseract-ocr-ell \
+    tesseract-ocr-hin \
+    tesseract-ocr-ind \
+    tesseract-ocr-msa \
+    tesseract-ocr-pol \
+    tesseract-ocr-swe \
+    tesseract-ocr-tha \
+    tesseract-ocr-tur \
+    tesseract-ocr-ukr \
+    tesseract-ocr-vie \
+    tesseract-ocr-swa \
+    && rm -rf /var/lib/apt/lists/* /tmp/*
 
 COPY --from=builder /install /usr/local
-COPY --from=fonts /fonts /app/fonts
+COPY --from=fonts-cjk /fonts /app/fonts
+
+COPY setup_fonts.sh /tmp/setup_fonts.sh
+RUN chmod +x /tmp/setup_fonts.sh \
+    && /tmp/setup_fonts.sh \
+    && rm -f /tmp/setup_fonts.sh \
+    && fc-cache -f
+
+RUN groupadd --system app \
+    && useradd --system --gid app --create-home app \
+    && mkdir -p /work/tmp \
+    && chown -R app:app /app /work
 
 WORKDIR /app
-COPY main.py fitz_layout.py pdf_to_docx.py render_translated.py ./
+
+COPY --chown=app:app \
+    main.py \
+    product_languages.py \
+    pdf_layout.py \
+    pdf_geom.py \
+    pdf_page_adapter.py \
+    pdf_overlay.py \
+    pdf_to_docx.py \
+    render_translated.py \
+    ./
+
+USER app
 
 EXPOSE 8100
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8100"]
+
+CMD ["uvicorn", "main:app", \
+     "--host", "0.0.0.0", \
+     "--port", "8100", \
+     "--workers", "1"]

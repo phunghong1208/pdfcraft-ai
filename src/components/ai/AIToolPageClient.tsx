@@ -12,7 +12,6 @@ import {
   Play,
   Pause,
   Square,
-  ArrowLeftRight,
   Upload,
 } from 'lucide-react';
 import { AiCenteredSpinner } from '@/components/ai/AiCenteredSpinner';
@@ -35,6 +34,7 @@ import { markdownToPDF } from '@/lib/pdf/processors/markdown-to-pdf';
 import { useLocale, useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { TranslateTargetLanguageSelect } from '@/components/translate/TranslateTargetLanguageSelect';
 import { WorkspaceAiLanguageSelect, type LanguageItem } from '@/components/workspace/WorkspaceAiLanguageSelect';
 import {
   loadWorkspaceAiAnswerLanguage,
@@ -53,7 +53,6 @@ import {
 } from '@/services/workspaceAiApi';
 import { summarizePdf } from '@/services/aiApi';
 import {
-  TRANSLATE_LANGUAGE_OPTIONS,
   getDefaultTranslateLanguagePair,
   translateDocument,
   type TranslateOutputType,
@@ -290,7 +289,7 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
   const [voiceHint, setVoiceHint] = useState<string | null>(null);
   const [voiceRate, setVoiceRate] = useState(1);
   const defaultTranslatePair = getDefaultTranslateLanguagePair(locale);
-  const [sourceLang, setSourceLang] = useState(defaultTranslatePair.source);
+  const sourceLang = 'auto';
   const [targetLang, setTargetLang] = useState(defaultTranslatePair.target);
   const [translateOutputType, setTranslateOutputType] = useState<TranslateOutputType>('keep_layout');
   const [translatedBlob, setTranslatedBlob] = useState<Blob | null>(null);
@@ -1616,54 +1615,12 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                 )}
 
                 <div className="mt-3 rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-card))] p-3 space-y-3 shadow-sm">
-                  <div className="flex items-end gap-2">
-                    <div className="flex-1 min-w-0">
-                      <label className="text-[11px] font-medium text-[hsl(var(--color-foreground))]">
-                        {t('aiTranslatePage.fromLabel')}
-                      </label>
-                      <select
-                        value={sourceLang}
-                        disabled={loading}
-                        onChange={(e) => setSourceLang(e.target.value)}
-                        className="mt-1 w-full rounded-lg border border-[hsl(var(--color-border))] bg-[hsl(var(--color-background))] px-2.5 py-2 text-[12px]"
-                      >
-                        {TRANSLATE_LANGUAGE_OPTIONS.map((lang) => (
-                          <option key={`from-${lang.code}`} value={lang.code}>
-                            {lang.nativeName}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <button
-                      type="button"
-                      disabled={loading}
-                      onClick={() => {
-                        setSourceLang(targetLang);
-                        setTargetLang(sourceLang);
-                      }}
-                      className="mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[hsl(var(--color-border))] text-[hsl(var(--color-muted-foreground))] hover:bg-[hsl(var(--color-muted))]/50 disabled:opacity-40"
-                      aria-label={t('aiTranslatePage.swapLanguages')}
-                    >
-                      <ArrowLeftRight className="h-4 w-4" />
-                    </button>
-                    <div className="flex-1 min-w-0">
-                      <label className="text-[11px] font-medium text-[hsl(var(--color-foreground))]">
-                        {t('aiTranslatePage.toLabel')}
-                      </label>
-                      <select
-                        value={targetLang}
-                        disabled={loading}
-                        onChange={(e) => setTargetLang(e.target.value)}
-                        className="mt-1 w-full rounded-lg border border-[hsl(var(--color-border))] bg-[hsl(var(--color-background))] px-2.5 py-2 text-[12px]"
-                      >
-                        {TRANSLATE_LANGUAGE_OPTIONS.map((lang) => (
-                          <option key={`to-${lang.code}`} value={lang.code}>
-                            {lang.nativeName}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
+                  <TranslateTargetLanguageSelect
+                    label={t('aiTranslatePage.targetLanguageLabel')}
+                    value={targetLang}
+                    onChange={setTargetLang}
+                    disabled={loading}
+                  />
 
                   <div>
                     <p className="text-[11px] font-medium text-[hsl(var(--color-foreground))] mb-2">
@@ -1979,8 +1936,8 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                   <div>
                     <div className="flex gap-2">
                       {[
-                        { id: 'pdf' as const, label: '📄 Searchable PDF' },
-                        { id: 'text' as const, label: '📝 Extract Text' },
+                        { id: 'pdf' as const, label: t('tools.ocrPdf.formatPdf') },
+                        { id: 'text' as const, label: t('tools.ocrPdf.formatText') },
                       ].map((fmt) => (
                         <button
                           key={fmt.id}

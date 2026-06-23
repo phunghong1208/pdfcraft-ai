@@ -1,4 +1,4 @@
-"""Trích text theo dòng từ lớp PDF (PyMuPDF) — đủ số thứ tự, URL, văn bản Docling hay bỏ sót."""
+"""Trích text theo dòng từ lớp PDF (pdfplumber) — đủ số thứ tự, URL, văn bản Docling hay bỏ sót."""
 
 from __future__ import annotations
 
@@ -8,7 +8,8 @@ import unicodedata
 from pathlib import Path
 from typing import Any
 
-import fitz
+from pdf_geom import PdfRect
+from pdf_page_adapter import PdfPlumberPage, open_pdf
 
 LIST_MARKER_RE = re.compile(r"^\d{1,3}\.?$")
 # Đầu mục "1." / "1. text" / "1.Text" — nhưng KHÔNG bắt số thập phân ("3.5", "1.1")
@@ -77,7 +78,6 @@ def _strip_stray_edges(text: str) -> str:
 
 
 def _span_style(span: dict) -> tuple[bool, bool]:
-    """(bold, italic) cho 1 span — dựa vào flags PyMuPDF + tên font."""
     flags = int(span.get("flags", 0) or 0)
     italic = bool(flags & 2)        # bit 1
     bold = bool(flags & 16)         # bit 4
@@ -143,13 +143,11 @@ def _append_line(cur_text: str, new_text: str) -> str:
 
 
 def _line_rotation(dir_vec: tuple[float, float] | tuple[Any, ...]) -> int:
-    """Góc PyMuPDF insert_text (độ, ngược chiều kim đồng hồ)."""
     dx, dy = float(dir_vec[0]), float(dir_vec[1])
     return int(round(math.degrees(math.atan2(dy, dx))))
 
 
 def _join_spans_vertical(spans: list[dict], dir_vec: tuple[Any, ...]) -> str:
-    """Nối span chữ dọc theo hướng đọc (dir từ PyMuPDF)."""
     if not spans:
         return ""
     dy = float(dir_vec[1])
@@ -330,6 +328,11 @@ def _merge_same_line(blocks: list[dict[str, Any]]) -> list[dict[str, Any]]:
             max_gap = max(cur["fontSize"], blk["fontSize"]) * SAME_LINE_GAP_FACTOR
 
             if same_line and -2.0 <= gap <= max_gap:
+                if _is_narrow_sidebar(cur) != _is_narrow_sidebar(blk):
+                    if cur is not None:
+                        out.append(cur)
+                    cur = {**blk}
+                    continue
                 x0 = min(cur["pdfX"], blk["pdfX"])
                 x1 = max(cur["pdfX"] + cur["pdfWidth"], blk["pdfX"] + blk["pdfWidth"])
                 y0 = min(cur["pdfY"], blk["pdfY"])
@@ -369,7 +372,7 @@ def _merge_marker_with_next(blocks: list[dict[str, Any]]) -> list[dict[str, Any]
             marker = LIST_MARKER_RE.match(text) or BULLET_MARKER_RE.match(text)
             y_close = abs(cur["pdfY"] - nxt["pdfY"]) <= max(cur["pdfHeight"], nxt["pdfHeight"]) * 1.6
 
-            if same_page and marker and y_close:
+            if same_page and marker and y_close and not _is_narrow_sidebar(cur):
                 x0 = min(cur["pdfX"], nxt["pdfX"])
                 y0 = min(cur["pdfY"], nxt["pdfY"])
                 x1 = max(cur["pdfX"] + cur["pdfWidth"], nxt["pdfX"] + nxt["pdfWidth"])
@@ -451,6 +454,82 @@ def _merge_list_items(blocks: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return out
 
 
+def _is_narrow_sidebar(block: dict[str, Any]) -> bool:
+    """Dải hẹp lề trái — chữ dọc pdfplumber parse thành từng ký tự."""
+    return float(block.get("pdfX", 0)) < 35 and float(block.get("pdfWidth", 0)) < 22
+
+
+def _leading_junk_word_count(text: str) -> int:
+    """Đếm token rác đầu dòng từ chữ dọc lề trái (P, 9, c, co, /8...)."""
+    count = 0
+    for word in text.split():
+        if LIST_START_RE.match(word):
+            break
+        if len(word) <= 2 or (len(word) <= 3 and word[0].isdigit()):
+            count += 1
+            continue
+        break
+    return count
+
+
+def _strip_margin_prefix(text: str) -> str:
+    words = text.split()
+    if not words:
+        return text
+    cut = _leading_junk_word_count(text)
+    if cut <= 0 or cut >= len(words):
+        return text
+    return " ".join(words[cut:])
+
+
+def _is_sidebar_noise(block: dict[str, Any]) -> bool:
+    """Block rác lề trái — không wipe/vẽ (tránh che watermark + cột ký tự)."""
+    if block.get("label") == "vertical":
+        return True
+    text = (block.get("text") or "").strip()
+    if _is_narrow_sidebar(block):
+        words = text.split()
+        if len(text) <= 4 or (len(text) <= 8 and " " not in text):
+            return True
+        if words and len(words) <= 5 and all(len(w) <= 3 for w in words):
+            return True
+        return False
+    # Dòng bảng chỉ còn 1–2 ký tự rác + nhãn ngắn
+    if float(block.get("pdfX", 0)) < 40 and float(block.get("pdfWidth", 0)) < 100:
+        stripped = _strip_margin_prefix(text)
+        return len(stripped) <= 3
+    return False
+
+
+def _trim_wipe_rect(block: dict[str, Any]) -> tuple[float, float, float, float]:
+    """Cắt phần wipe lề trái — không phủ watermark / logo."""
+    x = float(block["pdfX"])
+    y = float(block["pdfY"])
+    w = float(block["pdfWidth"])
+    h = float(block["pdfHeight"])
+    text = (block.get("text") or "").strip()
+    if x < 48 and (w > 80 or _leading_junk_word_count(text) > 0):
+        trim = 32.0 if w > 200 else 26.0
+        x += trim
+        w -= trim
+    return x, y, max(4.0, w), h
+
+
+def _adjust_block_for_render(block: dict[str, Any]) -> dict[str, Any]:
+    """Chỉnh bbox + text trước khi vẽ — bỏ phần chữ dọc lề trái."""
+    b = {**block}
+    raw = (b.get("text") or "").strip()
+    text = _strip_margin_prefix(raw)
+    b["text"] = text
+    x = float(b["pdfX"])
+    w = float(b["pdfWidth"])
+    if x < 48 and (_leading_junk_word_count(raw) > 0 or w > 80):
+        bump = 32.0 if w > 200 else 26.0
+        b["pdfX"] = round(x + bump, 2)
+        b["pdfWidth"] = round(max(4.0, w - bump), 2)
+    return b
+
+
 MAX_MERGE_LINES = 20
 
 
@@ -505,6 +584,13 @@ def _merge_nearby_blocks(
             cur_lines = 1
             continue
 
+        # Lề trái chữ dọc — không gộp với bảng/đoạn ngang
+        if _is_narrow_sidebar(cur) != _is_narrow_sidebar(blk):
+            merged.append(cur)
+            cur = {**blk}
+            cur_lines = 1
+            continue
+
         if 0 <= gap < max_gap and aligned and cur_lines < MAX_MERGE_LINES and not new_list_item:
             new_x = min(cur["pdfX"], blk["pdfX"])
             new_y = min(cur["pdfY"], blk["pdfY"])
@@ -529,13 +615,13 @@ def _merge_nearby_blocks(
     return merged
 
 
-def _rect_overlap_area(a: fitz.Rect, b: fitz.Rect) -> float:
+def _rect_overlap_area(a: PdfRect, b: PdfRect) -> float:
     ix = max(0.0, min(a.x1, b.x1) - max(a.x0, b.x0))
     iy = max(0.0, min(a.y1, b.y1) - max(a.y0, b.y0))
     return ix * iy
 
 
-def _widget_in_cell(widget: Any, cell_rect: fitz.Rect) -> bool:
+def _widget_in_cell(widget: Any, cell_rect: PdfRect) -> bool:
     wr = widget.rect
     if wr.is_empty:
         return False
@@ -547,9 +633,9 @@ def _widget_in_cell(widget: Any, cell_rect: fitz.Rect) -> bool:
     return cell_rect.x0 <= wx <= cell_rect.x1 and cell_rect.y0 <= wy <= cell_rect.y1
 
 
-def _cell_value_from_page(page: fitz.Page, cell_rect: fitz.Rect) -> tuple[str, list[dict]]:
+def _cell_value_from_page(page: PdfPlumberPage, cell_rect: PdfRect) -> tuple[str, list[dict]]:
     """Trích text trong ô — spans, plain text, rồi form widget."""
-    text_dict = page.get_text("dict", clip=cell_rect, flags=fitz.TEXT_PRESERVE_WHITESPACE)
+    text_dict = page.get_text("dict", clip=cell_rect)
     # Gom theo dòng + dùng _join_spans (gap-aware) để KHÔNG chèn space giữa từng
     # glyph — PDF tiếng Việt hay tách mỗi ký tự có dấu thành 1 span.
     line_texts: list[str] = []
@@ -592,8 +678,8 @@ def _cell_value_from_page(page: fitz.Page, cell_rect: fitz.Rect) -> tuple[str, l
 
 
 def _collect_table_blocks(
-    page_index: int, page: fitz.Page
-) -> tuple[list[dict[str, Any]], list[fitz.Rect], list[fitz.Rect]]:
+    page_index: int, page: PdfPlumberPage
+) -> tuple[list[dict[str, Any]], list[PdfRect], list[PdfRect]]:
     """Detect tables via find_tables().
 
     Returns (cell_blocks, table_rects, cell_filter_rects).
@@ -602,18 +688,21 @@ def _collect_table_blocks(
     page_no = page_index + 1
     page_h = float(page.rect.height)
     blocks: list[dict[str, Any]] = []
-    table_rects: list[fitz.Rect] = []
-    cell_filter_rects: list[fitz.Rect] = []
+    table_rects: list[PdfRect] = []
+    cell_filter_rects: list[PdfRect] = []
 
     def _valid(tab: Any) -> bool:
         valid_cells = [c for c in tab.cells if c is not None]
-        if tab.col_count < 2 or len(valid_cells) < tab.col_count:
+        col_count = len(tab.columns) if hasattr(tab, "columns") and tab.columns else 0
+        if not col_count and tab.rows:
+            col_count = len(tab.rows[0])
+        row_count = len(tab.rows) if hasattr(tab, "rows") else 0
+        if col_count < 2 or len(valid_cells) < col_count:
             return False
-        # Bảng 1 hàng header (Phần|Câu|Nội dung|Điểm) hoặc header đề 2 cột
         return (
-            tab.row_count >= 2
-            or (tab.row_count >= 1 and tab.col_count >= 3)
-            or (tab.row_count >= 1 and tab.col_count >= 2 and len(valid_cells) >= 2)
+            row_count >= 2
+            or (row_count >= 1 and col_count >= 3)
+            or (row_count >= 1 and col_count >= 2 and len(valid_cells) >= 2)
         )
 
     # Chỉ dùng strategy theo ĐƯỜNG KẺ (viền thật). KHÔNG dùng "text" vì nó cắt
@@ -633,7 +722,7 @@ def _collect_table_blocks(
         if not _valid(tab):
             continue
         b = tab.bbox
-        table_rects.append(fitz.Rect(b[0], b[1], b[2], b[3]))
+        table_rects.append(PdfRect(b[0], b[1], b[2], b[3]))
 
         for cell_bbox in tab.cells:
             if cell_bbox is None:
@@ -642,7 +731,7 @@ def _collect_table_blocks(
             if cx0 is None or cx1 <= cx0 or cy1 <= cy0:
                 continue
 
-            cell_rect = fitz.Rect(cx0, cy0, cx1, cy1)
+            cell_rect = PdfRect(cx0, cy0, cx1, cy1)
             cell_text, spans = _cell_value_from_page(page, cell_rect)
 
             if not cell_text:
@@ -668,7 +757,7 @@ def _collect_table_blocks(
     return blocks, table_rects, cell_filter_rects
 
 
-def _span_in_table(bbox: list, cell_rects: list[fitz.Rect]) -> bool:
+def _span_in_table(bbox: list, cell_rects: list[PdfRect]) -> bool:
     """True nếu span nằm trong ô bảng (tâm hoặc overlap >=25%)."""
     if not cell_rects:
         return False
@@ -687,7 +776,7 @@ def _span_in_table(bbox: list, cell_rects: list[fitz.Rect]) -> bool:
 
 
 def _collect_page_lines(
-    page_index: int, page: fitz.Page, cell_filter_rects: list[fitz.Rect] | None = None
+    page_index: int, page: PdfPlumberPage, cell_filter_rects: list[PdfRect] | None = None
 ) -> list[dict[str, Any]]:
     page_no = page_index + 1
     page_h = float(page.rect.height)
@@ -695,7 +784,7 @@ def _collect_page_lines(
     tr = cell_filter_rects or []
 
     # Regular text blocks — chữ dọc qua dir_vec; table spans lọc riêng
-    for block in page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE).get("blocks", []):
+    for block in page.get_text("dict").get("blocks", []):
         if block.get("type") != 0:
             continue
         for line in block.get("lines", []):
@@ -746,15 +835,15 @@ def _collect_page_lines(
     return page_lines
 
 
-def extract_fitz_wipe_lines(pdf_path: Path) -> list[dict[str, Any]]:
+def extract_pdf_wipe_lines(pdf_path: Path) -> list[dict[str, Any]]:
     """Raw text bboxes — NO filtering. Wipe ALL original text before rendering."""
     lines: list[dict[str, Any]] = []
-    doc = fitz.open(pdf_path)
+    doc = open_pdf(pdf_path)
     try:
         for page_index, page in enumerate(doc):
             page_no = page_index + 1
             page_h = float(page.rect.height)
-            for block in page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE).get("blocks", []):
+            for block in page.get_text("dict").get("blocks", []):
                 if block.get("type") != 0:
                     continue
                 for line in block.get("lines", []):
@@ -860,20 +949,24 @@ def _dedup_blocks(blocks: list[dict[str, Any]], iou_thresh: float = 0.4) -> list
     return kept
 
 
-def extract_fitz_line_blocks(pdf_path: Path) -> list[dict[str, Any]]:
+def extract_pdf_line_blocks(pdf_path: Path) -> list[dict[str, Any]]:
     blocks: list[dict[str, Any]] = []
-    doc = fitz.open(pdf_path)
+    doc = open_pdf(pdf_path)
     try:
         for page_index, page in enumerate(doc):
             table_blocks, _, cell_filter_rects = _collect_table_blocks(page_index, page)
             raw_lines = _collect_page_lines(page_index, page, cell_filter_rects)
             vertical_lines = [b for b in raw_lines if b.get("label") == "vertical"]
             horizontal_lines = [b for b in raw_lines if b.get("label") != "vertical"]
+            # Filter sidebar char fragments BEFORE merge — rotated text parsed as
+            # individual horizontal chars (P, 9, 2, c...) otherwise leaks into content.
+            horizontal_lines = [b for b in horizontal_lines if not _is_sidebar_noise(b)]
             page_lines = _merge_same_line(horizontal_lines)
             merged = _merge_list_items(_merge_marker_with_next(page_lines))
             merged = _merge_nearby_blocks(merged, gap_factor=0.55)
             merged.extend(vertical_lines)
             page_blocks = _dedup_blocks(table_blocks + merged)
+            page_blocks = [b for b in page_blocks if not _is_sidebar_noise(b)]
             page_blocks.sort(
                 key=lambda b: (b["pageNumber"], -(b["pdfY"] + b["pdfHeight"]), b["pdfX"])
             )
@@ -882,3 +975,7 @@ def extract_fitz_line_blocks(pdf_path: Path) -> list[dict[str, Any]]:
         doc.close()
 
     return blocks
+
+
+extract_fitz_line_blocks = extract_pdf_line_blocks
+extract_fitz_wipe_lines = extract_pdf_wipe_lines

@@ -12,13 +12,17 @@ import type {
   ProgressCallback,
 } from '@/types/pdf';
 import { PDFErrorCode } from '@/types/pdf';
+import {
+  PRODUCT_TESSERACT_LANGS,
+  type ProductTesseractLang,
+} from '@/lib/pdf/product-tesseract-langs';
 import { BasePDFProcessor, createPDFError } from '../processor';
 import { loadPdfjs, loadPdfLib } from '../loader';
 
 /**
- * Supported OCR languages
+ * Supported OCR languages (26 product Tesseract packs)
  */
-export type OCRLanguage = 'eng' | 'chi_sim' | 'chi_tra' | 'jpn' | 'kor' | 'spa' | 'fra' | 'deu' | 'por' | 'ara' | 'vie' | 'ita' | 'ind' | 'ron';
+export type OCRLanguage = ProductTesseractLang;
 
 /**
  * OCR options
@@ -52,19 +56,31 @@ const DEFAULT_OPTIONS: OCROptions = {
  */
 export const OCR_LANGUAGE_NAMES: Record<OCRLanguage, string> = {
   eng: 'English',
-  chi_sim: 'Chinese (Simplified)',
-  chi_tra: 'Chinese (Traditional)',
-  jpn: 'Japanese',
-  kor: 'Korean',
   spa: 'Spanish',
   fra: 'French',
   deu: 'German',
-  por: 'Portuguese',
-  ara: 'Arabic',
-  vie: 'Vietnamese',
   ita: 'Italian',
+  por: 'Portuguese',
+  jpn: 'Japanese',
+  rus: 'Russian',
+  kor: 'Korean',
+  chi_sim: 'Chinese (Simplified)',
+  chi_tra: 'Chinese (Traditional)',
+  ara: 'Arabic',
+  bul: 'Bulgarian',
+  cat: 'Catalan',
+  nld: 'Dutch',
+  ell: 'Greek',
+  hin: 'Hindi',
   ind: 'Indonesian',
-  ron: 'Romanian',
+  msa: 'Malay',
+  pol: 'Polish',
+  swe: 'Swedish',
+  tha: 'Thai',
+  tur: 'Turkish',
+  ukr: 'Ukrainian',
+  vie: 'Vietnamese',
+  swa: 'Swahili',
 };
 
 // Tesseract worker type
@@ -341,10 +357,12 @@ export async function ocrPDF(
 export type SmartOcrOutputFormat = 'pdf' | 'text';
 
 export function parseOcrLanguageCodes(languages: string): OCRLanguage[] {
-  return languages
+  const allowed = new Set<string>(PRODUCT_TESSERACT_LANGS);
+  const codes = languages
     .split('+')
     .map((code) => code.trim())
-    .filter(Boolean) as OCRLanguage[];
+    .filter((code): code is ProductTesseractLang => allowed.has(code));
+  return (codes.length ? codes : ['eng']).slice(0, 2);
 }
 
 export interface ServerOCROptions {
@@ -373,8 +391,8 @@ const DEFAULT_SERVER_OPTIONS: ServerOCROptions = {
   /** 0 = nhanh hơn (bỏ nén lại); 1–2 = file nhỏ hơn nhưng chậm hơn */
   optimize: 0,
   outputFormat: 'pdf',
-  /** 300 DPI cân bằng tốc độ/chất lượng; tăng lên 400–450 nếu chữ nhỏ */
-  oversample: 300,
+  /** 200 DPI đủ cho OCR thường; server tăng tới 300 khi cần */
+  oversample: 200,
   /** 1 = LSTM neural net (tessdata_best) */
   tesseractOem: 1,
   /** 3 = văn bản thường; 11 = poster/ảnh rải rác (chậm, dễ timeout) */

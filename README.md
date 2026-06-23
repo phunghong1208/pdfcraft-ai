@@ -195,7 +195,6 @@ Navigate to `/workflow` or click on "Workflow Editor" in the navigation menu.
 - **PDF Processing**:
   - [PDF.js](https://github.com/mozilla/pdf.js)
   - [pdf-lib](https://github.com/Hopding/pdf-lib)
-  - [PyMuPDF (WASM)](https://pymupdf.readthedocs.io/)
 - **State Management**: [Zustand](https://github.com/pmndrs/zustand)
 
 ## 🚀 Getting Started
@@ -389,9 +388,13 @@ This project is licensed under the AGPL-3.0 License - see the [LICENSE](LICENSE)
   Built with ❤️ by the PDFCraft Team
 </div>
 
+### PDF service (Docker)
 
-docker system prune -a --volumes
-Hoặc nhẹ hơn:
+```bash
+docker compose up pdf --build -d
+docker compose logs -f  
+```
 
-docker image prune -a
-docker builder prune -a
+- **OCR đầu vào:** 26 Tesseract pack (`tesseract-ocr-eng`, `tesseract-ocr-vie`, …) — không dùng `tesseract-ocr-all`. Mỗi request tối đa **2** ngôn ngữ (`vie+eng`).
+- **Dịch đầu ra:** font `fonts-noto-core` + `fonts-noto-cjk` + `fonts-noto-extra` (render PDF/DOCX).
+- RapidOCR rasterize **từng trang** @ 200 DPI (tối đa 300 qua `oversample`).

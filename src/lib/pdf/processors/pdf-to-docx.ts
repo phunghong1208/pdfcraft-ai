@@ -1,6 +1,6 @@
 /**
- * PDF to DOCX — pdf2docx giữ layout.
- * Ưu tiên server Python (chất lượng cao), fallback WASM browser + kiểm tra kích thước.
+ * PDF to DOCX — server: pdfplumber + python-docx (MIT/BSD).
+ * Fallback browser WASM vẫn dùng pdf2docx (chưa migrate).
  */
 
 import type {
@@ -12,14 +12,24 @@ import { PDFErrorCode } from '@/types/pdf';
 import { BasePDFProcessor } from '../processor';
 
 export interface PDFToDocxOptions {
-  /** Reserved for future options */
+  /** auto | editable | fixed_layout | preserve_layout (ảnh — chỉ khi cần snapshot) */
+  mode?: 'auto' | 'editable' | 'fixed_layout' | 'preserve_layout';
+  /** DPI raster cho preserve_layout (150–250) */
+  dpi?: number;
 }
 
 const PDF_TO_DOCX_API = '/api/pdf-to-docx';
 
-async function convertViaServer(file: File): Promise<Blob> {
+async function convertViaServer(
+  file: File,
+  options?: PDFToDocxOptions,
+): Promise<{ blob: Blob; engine?: string; mode?: string }> {
   const form = new FormData();
   form.append('file', file);
+  form.append('mode', options?.mode ?? 'auto');
+  if (options?.dpi) {
+    form.append('dpi', String(options.dpi));
+  }
   const res = await fetch(PDF_TO_DOCX_API, { method: 'POST', body: form });
   if (!res.ok) {
     let detail = `Server convert lỗi (${res.status})`;
@@ -31,7 +41,11 @@ async function convertViaServer(file: File): Promise<Blob> {
     }
     throw new Error(detail);
   }
-  return res.blob();
+  return {
+    blob: await res.blob(),
+    engine: res.headers.get('X-Engine') ?? undefined,
+    mode: res.headers.get('X-Docx-Mode') ?? undefined,
+  };
 }
 
 let sharedWorker: Worker | null = null;
@@ -161,7 +175,7 @@ export class PDFToDocxProcessor extends BasePDFProcessor {
     this.reset();
     this.onProgress = onProgress;
 
-    const { files } = input;
+    const { files, options } = input;
 
     if (files.length !== 1) {
       return this.createErrorOutput(
@@ -183,14 +197,22 @@ export class PDFToDocxProcessor extends BasePDFProcessor {
 
     try {
       let docxBlob: Blob;
-      let engineUsed = 'pdf2docx-server';
+      let engineUsed = 'pdfplumber-docx';
+      const docxOptions = (options || {}) as PDFToDocxOptions;
 
-      this.updateProgress(10, 'Converting with pdf2docx (server)...');
+      this.updateProgress(10, 'Converting on server (auto mode)...');
       try {
-        docxBlob = await convertViaServer(file);
+        const server = await convertViaServer(file, docxOptions);
+        docxBlob = server.blob;
+        engineUsed = server.engine ?? engineUsed;
+        if (server.mode === 'fixed_layout') {
+          this.updateProgress(90, 'Used fixed-layout (positioned text)');
+        } else if (server.mode === 'preserve_layout') {
+          this.updateProgress(90, 'Used preserve-layout (page images)');
+        }
       } catch (serverErr) {
         console.warn('[PDF→DOCX] Server failed, trying browser WASM:', serverErr);
-        this.updateProgress(12, 'Server offline — loading browser pdf2docx...');
+        this.updateProgress(12, 'Server offline — loading browser fallback...');
 
         const worker = await ensureWorker((message) => {
           if (!this.checkCancelled()) {
@@ -205,7 +227,7 @@ export class PDFToDocxProcessor extends BasePDFProcessor {
           );
         }
 
-        this.updateProgress(25, 'Converting with pdf2docx (browser)...');
+        this.updateProgress(25, 'Converting in browser (legacy fallback)...');
         docxBlob = await this.convertWithWorker(worker, file);
         engineUsed = 'pdf2docx-wasm';
       }
@@ -223,6 +245,7 @@ export class PDFToDocxProcessor extends BasePDFProcessor {
       return this.createSuccessOutput(docxBlob, `${baseName}.docx`, {
         format: 'docx',
         engine: engineUsed,
+        docxMode: docxOptions.mode ?? 'auto',
       });
     } catch (error) {
       console.error('Conversion error:', error);

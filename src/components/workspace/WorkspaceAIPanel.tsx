@@ -24,6 +24,7 @@ import { WorkspaceAiMarkdown } from '@/components/workspace/WorkspaceAiMarkdown'
 import { markdownToPDF } from '@/lib/pdf/processors/markdown-to-pdf';
 import { WorkspaceAIIcon } from '@/components/workspace/WorkspaceAIIcon';
 import { WorkspaceAIPanelCollapseButton } from '@/components/workspace/WorkspaceAIPanelCollapseButton';
+import { TranslateTargetLanguageSelect } from '@/components/translate/TranslateTargetLanguageSelect';
 import { WorkspaceAiLanguageSelect } from '@/components/workspace/WorkspaceAiLanguageSelect';
 import { useLocale, useTranslations } from 'next-intl';
 import {
@@ -61,10 +62,7 @@ import {
   type WorkspaceAiChatMessage,
 } from '@/lib/workspace-ai-persistence';
 import { resolveAutoSummaryTier } from '@/lib/workspace-ai-auto-tier';
-import {
-  getDefaultTranslateLanguagePair,
-  TRANSLATE_LANGUAGE_OPTIONS,
-} from '@/services/translateDocsApi';
+import { getDefaultTranslateLanguagePair } from '@/services/translateDocsApi';
 import { isTranslatePassthroughClient } from '@/lib/translate/passthrough';
 import {
   runWorkspaceTranslatePipeline,
@@ -240,10 +238,6 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef,
   // Nguồn auto-detect (LLM tự nhận) — UI chỉ chọn ngôn ngữ đích.
   const [sourceLang] = useState('auto');
   const [targetLang, setTargetLang] = useState(defaultLangPair.target);
-  const translateLangItems = useMemo(
-    () => TRANSLATE_LANGUAGE_OPTIONS.map((l) => ({ apiName: l.code, nativeName: l.nativeName })),
-    [],
-  );
   const [isTranslating, setIsTranslating] = useState(false);
   const [translateProgress, setTranslateProgress] = useState<TranslatePipelineProgress | null>(null);
   const [translatedText, setTranslatedText] = useState<string | null>(null);
@@ -1051,13 +1045,12 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef,
         {aiTab === 'translate' && (
           <div className="flex-1 min-h-0 flex flex-col gap-2.5">
             <div className={`shrink-0 rounded-2xl border px-4 py-4 space-y-3 ${panelCardTone}`}>
-              <WorkspaceAiLanguageSelect
+              <TranslateTargetLanguageSelect
                 variant={isDarkTheme ? 'dark' : 'light'}
                 label={t('aiTranslatePage.targetLanguageLabel')}
                 value={targetLang}
                 onChange={setTargetLang}
                 disabled={isTranslating}
-                items={translateLangItems}
               />
               <TranslatePipelineTiles
                 progress={translateProgress}
