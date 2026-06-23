@@ -291,7 +291,7 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
   const defaultTranslatePair = getDefaultTranslateLanguagePair(locale);
   const sourceLang = 'auto';
   const [targetLang, setTargetLang] = useState(defaultTranslatePair.target);
-  const [translateOutputType, setTranslateOutputType] = useState<TranslateOutputType>('keep_layout');
+  const translateOutputType: TranslateOutputType = 'keep_layout';
   const [translatedBlob, setTranslatedBlob] = useState<Blob | null>(null);
   const [translatedFileName, setTranslatedFileName] = useState<string | null>(null);
   const [translatedText, setTranslatedText] = useState<string | null>(null);
@@ -1622,52 +1622,9 @@ export default function AIToolPageClient({ title, description, actionLabel, acti
                     disabled={loading}
                   />
 
-                  <div>
-                    <p className="text-[11px] font-medium text-[hsl(var(--color-foreground))] mb-2">
-                      {t('aiTranslatePage.outputTitle')}
-                    </p>
-                    <div className="space-y-2">
-                      {(
-                        [
-                          {
-                            id: 'keep_layout' as const,
-                            title: t('aiTranslatePage.keepLayoutTitle'),
-                            desc: t('aiTranslatePage.keepLayoutDesc'),
-                          },
-                          {
-                            id: 'text_only' as const,
-                            title: t('aiTranslatePage.textOnlyTitle'),
-                            desc: t('aiTranslatePage.textOnlyDesc'),
-                          },
-                        ] as const
-                      ).map((opt) => (
-                        <label
-                          key={opt.id}
-                          className={`ai-choice-card${
-                            translateOutputType === opt.id ? ' ai-choice-card--selected' : ''
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="translate-output-type"
-                            className="ai-choice-card__input"
-                            checked={translateOutputType === opt.id}
-                            disabled={loading}
-                            onChange={() => setTranslateOutputType(opt.id)}
-                          />
-                          <span className="ai-choice-card__indicator" aria-hidden />
-                          <span className="min-w-0">
-                            <span className="block text-[12px] font-medium text-[hsl(var(--color-foreground))]">
-                              {opt.title}
-                            </span>
-                            <span className="mt-0.5 block text-[11px] leading-snug text-[hsl(var(--color-muted-foreground))]">
-                              {opt.desc}
-                            </span>
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
+                  <p className="text-[11px] text-[hsl(var(--color-muted-foreground))] leading-snug">
+                    {t('aiTranslatePage.keepLayoutDesc')}
+                  </p>
 
                 </div>
 

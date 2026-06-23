@@ -66,7 +66,6 @@ import { getDefaultTranslateLanguagePair } from '@/services/translateDocsApi';
 import { isTranslatePassthroughClient } from '@/lib/translate/passthrough';
 import {
   runWorkspaceTranslatePipeline,
-  runWorkspaceTranslateDocxPipeline,
   type TranslatePipelineProgress,
 } from '@/services/workspaceTranslatePipeline';
 
@@ -168,7 +167,8 @@ function TranslatePipelineTiles({
   const activeIdx = activeTranslateTileIndex(progress, isTranslating);
 
   return (
-    <div className="flex items-center gap-0.5 min-w-0" aria-label={t('aiPanel.translate.run')}>
+    <div className="w-full" aria-label={t('aiPanel.translate.run')}>
+      <div className="grid grid-cols-5 gap-1">
       {TRANSLATE_PIPELINE_TILES.map((tile, index) => {
         const Icon = tile.icon;
         const isDone = hasResult || (activeIdx >= 0 && index < activeIdx);
@@ -176,9 +176,9 @@ function TranslatePipelineTiles({
         const isIdle = !isDone && !isActive;
 
         return (
-          <div key={tile.id} className="flex items-center gap-0.5 min-w-0 flex-1">
+          <div key={tile.id} className="relative min-w-0">
             <div
-              className={`flex flex-col items-center justify-center gap-1 rounded-lg border px-1 py-2 min-w-0 flex-1 transition-all ${
+              className={`flex h-full flex-col items-center justify-center gap-1 rounded-lg border px-1 py-2 min-w-0 transition-all ${
                 isActive
                   ? isDarkTheme
                     ? 'border-[#EF4444] bg-[rgba(239,68,68,0.15)] text-white'
@@ -198,19 +198,22 @@ function TranslatePipelineTiles({
                   <Check className="absolute -bottom-1 -right-1.5 h-2.5 w-2.5 text-emerald-500" aria-hidden />
                 )}
               </div>
-              <span className="text-[8px] font-medium leading-tight text-center truncate w-full px-0.5">
+              <span className="text-[8px] font-medium leading-tight text-center w-full px-0.5 whitespace-nowrap">
                 {t(`aiPanel.translate.tiles.${tile.id}`)}
               </span>
             </div>
             {index < TRANSLATE_PIPELINE_TILES.length - 1 && (
               <ChevronRight
-                className={`h-3 w-3 shrink-0 ${isDarkTheme ? 'text-[#475569]' : 'text-[#CBD5E1]'}`}
+                className={`absolute -right-[7px] top-1/2 -translate-y-1/2 h-3 w-3 z-10 ${
+                  isDarkTheme ? 'text-[#475569]' : 'text-[#CBD5E1]'
+                }`}
                 aria-hidden
               />
             )}
           </div>
         );
       })}
+      </div>
     </div>
   );
 }
@@ -245,7 +248,6 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef,
   const [translatedPdfBlob, setTranslatedPdfBlob] = useState<Blob | null>(null);
   const [translatedPdfName, setTranslatedPdfName] = useState<string | null>(null);
   const [translateCopyDone, setTranslateCopyDone] = useState(false);
-  const [translateOutputFormat, setTranslateOutputFormat] = useState<'pdf' | 'docx'>('pdf');
   const [isDarkTheme, setIsDarkTheme] = useState(() => {
     if (typeof document === 'undefined' || typeof window === 'undefined') return true;
     try {
@@ -741,9 +743,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef,
         onProgress: setTranslateProgress,
         passthroughTranslation,
       };
-      const result = translateOutputFormat === 'docx'
-        ? await runWorkspaceTranslateDocxPipeline(pipelineOpts)
-        : await runWorkspaceTranslatePipeline(pipelineOpts);
+      const result = await runWorkspaceTranslatePipeline(pipelineOpts);
       setTranslatedText(result.translatedText);
       setTranslatedPdfBlob(result.pdfBlob);
       setTranslatedPdfName(result.pdfFileName);
@@ -756,7 +756,7 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef,
       setIsTranslating(false);
       setTranslateProgress(null);
     }
-  }, [file, sourceLang, targetLang, translateOutputFormat, t]);
+  }, [file, sourceLang, targetLang, t]);
 
   const handleCopyTranslated = useCallback(async () => {
     if (!translatedText?.trim()) return;
@@ -1057,32 +1057,6 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef,
                 onChange={setTargetLang}
                 disabled={isTranslating}
               />
-              <div className="flex gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setTranslateOutputFormat('pdf')}
-                  disabled={isTranslating}
-                  className={`flex-1 py-1.5 text-[10px] font-medium rounded-lg border transition-all ${
-                    translateOutputFormat === 'pdf'
-                      ? 'border-[hsl(var(--color-primary))] bg-[hsl(var(--color-primary)/0.1)] text-[hsl(var(--color-primary))]'
-                      : `${inputTone} opacity-60`
-                  }`}
-                >
-                  PDF
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTranslateOutputFormat('docx')}
-                  disabled={isTranslating}
-                  className={`flex-1 py-1.5 text-[10px] font-medium rounded-lg border transition-all ${
-                    translateOutputFormat === 'docx'
-                      ? 'border-[hsl(var(--color-primary))] bg-[hsl(var(--color-primary)/0.1)] text-[hsl(var(--color-primary))]'
-                      : `${inputTone} opacity-60`
-                  }`}
-                >
-                  DOCX
-                </button>
-              </div>
               <TranslatePipelineTiles
                 progress={translateProgress}
                 isTranslating={isTranslating}
@@ -1164,9 +1138,9 @@ export function WorkspaceAIPanel({ file, pageCount, onClose, pdfViewerIframeRef,
                         className={`flex-1 min-w-[88px] inline-flex items-center justify-center gap-1.5 rounded-lg border py-2 text-[11px] font-medium hover:border-[hsl(var(--color-primary)/0.35)] transition-all disabled:opacity-50 ${inputTone}`}
                       >
                         <FileDown className="h-3.5 w-3.5" />
-                        {translatedPdfName?.endsWith('.docx') ? 'Export DOCX' : t('aiTranslatePage.exportPdf')}
+                        {t('aiTranslatePage.exportPdf')}
                       </button>
-                      {onTranslatedFile && !translatedPdfName?.endsWith('.docx') && (
+                      {onTranslatedFile && (
                         <button
                           type="button"
                           onClick={handleApplyTranslatedToWorkspace}
