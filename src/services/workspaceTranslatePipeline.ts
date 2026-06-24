@@ -297,7 +297,7 @@ export async function runWorkspaceTranslateDocxPipeline(
 
   const { docx_id, texts } = (await extractRes.json()) as {
     docx_id: string;
-    texts: { id: number; text: string }[];
+    texts: { id: number; text: string; translatable?: boolean }[];
   };
 
   emit(onProgress, 'blocks', 40, `Trích xong ${texts.length} đoạn từ DOCX.`);
@@ -306,11 +306,14 @@ export async function runWorkspaceTranslateDocxPipeline(
     throw new Error('Không trích được text từ DOCX.');
   }
 
+  const translatableFlags = texts.map((t) => t.translatable !== false);
+  const translatableCount = translatableFlags.filter(Boolean).length;
+
   let translatedTexts: string[];
   if (passthroughTranslation) {
     translatedTexts = texts.map((t) => t.text);
   } else {
-    emit(onProgress, 'translate', 45, `Đang dịch ${texts.length} đoạn…`);
+    emit(onProgress, 'translate', 45, `Đang dịch ${translatableCount} đoạn…`);
     translatedTexts = await translateBlockTexts(
       texts.map((t) => t.text),
       sourceLang,
@@ -319,6 +322,7 @@ export async function runWorkspaceTranslateDocxPipeline(
         const pct = 45 + Math.round((done / total) * 40);
         emit(onProgress, 'translate', pct, `Đang dịch ${done}/${total}…`);
       },
+      translatableFlags,
     );
   }
 

@@ -33,7 +33,7 @@ async function translateChunk(
     throw new Error('API dịch không trả mảng translations.');
   }
 
-  return segments.map((_seg, j) => translations[j]?.trim() || '');
+  return segments.map((_seg, j) => translations[j]?.trim() || segments[j]);
 }
 
 export async function translateBlockTexts(
@@ -41,31 +41,38 @@ export async function translateBlockTexts(
   sourceLang: string,
   targetLang: string,
   onProgress?: (done: number, total: number) => void,
+  translatable?: boolean[],
 ): Promise<string[]> {
   if (!texts.length) return [];
 
-  const results = new Array<string>(texts.length).fill('');
-  const httpChunks: { offset: number; segments: string[] }[] = [];
+  const flags = translatable ?? texts.map(() => true);
+  const results = [...texts];
+  const pending: { index: number; text: string }[] = [];
+  for (let i = 0; i < texts.length; i += 1) {
+    if (flags[i]) pending.push({ index: i, text: texts[i] });
+  }
 
-  for (let i = 0; i < texts.length; i += SEGMENTS_PER_HTTP) {
-    httpChunks.push({
-      offset: i,
-      segments: texts.slice(i, i + SEGMENTS_PER_HTTP),
-    });
+  const httpChunks: { items: { index: number; text: string }[] }[] = [];
+  for (let i = 0; i < pending.length; i += SEGMENTS_PER_HTTP) {
+    httpChunks.push({ items: pending.slice(i, i + SEGMENTS_PER_HTTP) });
   }
 
   let doneCount = 0;
   for (const chunk of httpChunks) {
+    const segments = chunk.items.map((item) => item.text);
     try {
-      const translations = await translateChunk(chunk.segments, sourceLang, targetLang);
-      for (let j = 0; j < chunk.segments.length; j += 1) {
-        results[chunk.offset + j] = translations[j];
+      const translations = await translateChunk(segments, sourceLang, targetLang);
+      for (let j = 0; j < chunk.items.length; j += 1) {
+        results[chunk.items[j].index] = translations[j];
       }
     } catch (err) {
-      console.error('[translateBlockTexts] chunk failed, leaving empty:', err);
+      console.error('[translateBlockTexts] chunk failed, keeping originals:', err);
+      for (const item of chunk.items) {
+        results[item.index] = item.text;
+      }
     }
-    doneCount += chunk.segments.length;
-    onProgress?.(doneCount, texts.length);
+    doneCount += chunk.items.length;
+    onProgress?.(doneCount, pending.length);
   }
 
   return results;

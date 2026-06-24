@@ -16,6 +16,7 @@ import pikepdf
 import pdfplumber
 from docx import Document
 from docx.enum.section import WD_SECTION
+from docx.enum.table import WD_ALIGN_VERTICAL
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
@@ -35,6 +36,14 @@ PRESERVE_LAYOUT_DPI_MAX = 250
 
 # Tiêu đề mục La Mã — không nên nằm trong ô bảng
 _ROMAN_HEADING_RE = re.compile(r"^\s*[IVXLCDM]{1,8}[.)]\s+\S")
+
+# Ô bảng không gửi dịch (mã phần, điểm số, gạch đầu dòng rời)
+_SKIP_TRANSLATE_RE = (
+    re.compile(r"^[\d.,]+$"),
+    re.compile(r"^[IVXLC]{1,4}$", re.I),
+    re.compile(r"^-+\s*HS$", re.I),
+    re.compile(r"^(Phần|Câu|Nội dung|Điểm)$", re.I),
+)
 
 # Giữ tương thích import cũ
 ENGINE_NAME = ENGINE_EDITABLE
@@ -301,6 +310,163 @@ def _split_table_rows(
             pass
 
     return kept, overflow, bbox
+
+
+def _is_translatable_segment(text: str) -> bool:
+    t = text.strip()
+    if not t or len(t) <= 2:
+        return False
+    for pat in _SKIP_TRANSLATE_RE:
+        if pat.match(t):
+            return False
+    if t in {"-", "–", "—"}:
+        return False
+    return True
+
+
+def _is_exam_header_table(table: Any, rows: list[list[str]], page: Any) -> bool:
+    if len(rows) != 1:
+        return False
+    cols = max((len(r) for r in rows), default=0)
+    if cols != 2:
+        return False
+    filled = sum(1 for c in rows[0] if c and str(c).strip())
+    if filled < 2:
+        return False
+    bbox = table.bbox
+    if float(bbox[1]) > 180:
+        return False
+    page_w = float(getattr(page, "width", None) or 612)
+    w = float(bbox[2]) - float(bbox[0])
+    return w > page_w * 0.55
+
+
+def _exam_header_to_text_blocks(
+    rows: list[list[str]], top: float, page_w: float
+) -> list["TextBlock"]:
+    if not rows or not rows[0]:
+        return []
+    left = (rows[0][0] if rows[0] else "").strip()
+    right = (rows[0][1] if len(rows[0]) > 1 else "").strip()
+    blocks: list[TextBlock] = []
+    if left:
+        blocks.append(
+            TextBlock(
+                runs=[StyledRun(text=left, size=11, bold=True)],
+                top=top,
+                x0=54.0,
+                x1=page_w / 2,
+                bottom=top + 66.0,
+                align=WD_ALIGN_PARAGRAPH.CENTER,
+            )
+        )
+    if right:
+        blocks.append(
+            TextBlock(
+                runs=[StyledRun(text=right, size=11, bold=True)],
+                top=top,
+                x0=page_w / 2,
+                x1=page_w - 54.0,
+                bottom=top + 66.0,
+                align=WD_ALIGN_PARAGRAPH.CENTER,
+            )
+        )
+    return blocks
+
+
+def _merge_dash_bullet_cells(rows: list[list[str]]) -> list[list[str]]:
+    """Gộp ô '-' với ô kế tiếp (rubric chấm điểm)."""
+    merged: list[list[str]] = []
+    for row in rows:
+        new_row = list(row)
+        j = 0
+        while j < len(new_row) - 1:
+            if new_row[j].strip() == "-" and new_row[j + 1].strip():
+                new_row[j] = f"- {new_row[j + 1].strip()}"
+                new_row[j + 1] = ""
+                j += 2
+            else:
+                j += 1
+        merged.append(new_row)
+    return merged
+
+
+def _overflow_to_text_blocks(lines: list[str], top: float) -> list["TextBlock"]:
+    blocks: list[TextBlock] = []
+    y = top
+    for line in lines:
+        if not line.strip():
+            continue
+        blocks.append(
+            TextBlock(
+                runs=[StyledRun(text=line.strip(), size=11, bold=True)],
+                top=y,
+                bottom=y + 14.0,
+            )
+        )
+        y += 16.0
+    return blocks
+
+
+def _rubric_column_widths(cols: int) -> list[float] | None:
+    if cols == 5:
+        return [0.06, 0.06, 0.62, 0.18, 0.08]
+    if cols == 4:
+        return [0.08, 0.08, 0.68, 0.16]
+    return None
+
+
+def _enable_cell_word_wrap(cell) -> None:
+    tc_pr = cell._element.get_or_add_tcPr()
+    for el in tc_pr.findall(qn("w:noWrap")):
+        tc_pr.remove(el)
+
+
+def _set_cell_text_multiline(cell, text: str) -> None:
+    _enable_cell_word_wrap(cell)
+    cell.text = ""
+    lines = text.split("\n")
+    for li, line in enumerate(lines):
+        para = cell.paragraphs[0] if li == 0 else cell.add_paragraph()
+        para.paragraph_format.space_before = Pt(1)
+        para.paragraph_format.space_after = Pt(1)
+        para.paragraph_format.line_spacing = 1.0
+        if line:
+            run = para.add_run(line)
+            run.font.size = Pt(9)
+    cell.vertical_alignment = WD_ALIGN_VERTICAL.TOP
+
+
+def _apply_table_column_widths(table, cols: int, page_width_in: float = 6.5) -> None:
+    props = _rubric_column_widths(cols)
+    if not props or not table.rows:
+        return
+    table.autofit = False
+    for j, frac in enumerate(props):
+        if j >= len(table.rows[0].cells):
+            break
+        width = Inches(page_width_in * frac)
+        for row in table.rows:
+            if j < len(row.cells):
+                row.cells[j].width = width
+
+
+def _merge_sparse_header_cells(table_row, row_data: list[str]) -> None:
+    """Hợp nhất ô trống giữa hai cụm text (header đáp án 2 cột)."""
+    parts = [(c or "").strip() for c in row_data]
+    indices = [i for i, p in enumerate(parts) if p]
+    if len(indices) < 2:
+        return
+    left_i, right_i = indices[0], indices[-1]
+    cells = table_row.cells
+    if right_i >= len(cells) or left_i >= len(cells):
+        return
+    if right_i - left_i > 1:
+        for j in range(left_i + 1, right_i):
+            cells[left_i].merge(cells[j])
+    _set_cell_text_multiline(cells[left_i], parts[left_i])
+    if right_i != left_i:
+        _set_cell_text_multiline(cells[right_i], parts[right_i])
 
 
 @dataclass
@@ -798,14 +964,26 @@ def _extract_page(page: pdfplumber.page.Page, pdf_path: Path, image_map: dict[in
 
     table_rects: list[tuple[float, float, float, float]] = []
     table_blocks: list[TableBlock] = []
+    header_text_blocks: list[TextBlock] = []
+    overflow_text_blocks: list[TextBlock] = []
     try:
         for table in _find_visible_tables(page):
             cleaned, overflow, bbox = _split_table_rows(table)
-            _ = overflow
             if not cleaned or not any(any(cell for cell in row) for row in cleaned):
                 continue
-            # Dùng bbox đã trim để text hàng tiêu đề (I./II.) vẫn giữ đúng vị trí ngoài bảng.
-            table_rects.append(bbox)
+            full_bbox = tuple(float(x) for x in table.bbox)
+            if _is_exam_header_table(table, cleaned, page):
+                header_text_blocks.extend(
+                    _exam_header_to_text_blocks(cleaned, float(bbox[1]), page_w)
+                )
+                table_rects.append(full_bbox)
+                continue
+            cleaned = _merge_dash_bullet_cells(cleaned)
+            if overflow:
+                overflow_text_blocks.extend(
+                    _overflow_to_text_blocks(overflow, float(bbox[1]) - len(overflow) * 16)
+                )
+            table_rects.append(full_bbox)
             table_blocks.append(TableBlock(rows=cleaned, top=float(bbox[1])))
     except Exception as exc:
         logger.warning("table extract failed page %d: %s", page_idx + 1, exc)
@@ -849,6 +1027,8 @@ def _extract_page(page: pdfplumber.page.Page, pdf_path: Path, image_map: dict[in
         ]
 
     text_blocks = _merge_lines_to_paragraphs(text_blocks, page_w)
+    text_blocks.extend(header_text_blocks)
+    text_blocks.extend(overflow_text_blocks)
 
     ordered: list[TextBlock | TableBlock | ImageBlock | HLineBlock] = []
     ordered.extend(text_blocks)
@@ -964,17 +1144,26 @@ def _add_table_block(doc: Document, block: TableBlock) -> None:
     table = doc.add_table(rows=len(compact_rows), cols=cols)
     table.style = "Table Grid"
     _set_table_borders(table)
+    _apply_table_column_widths(table, cols)
+
     for i, row in enumerate(compact_rows):
+        parts = [(row[j] if j < len(row) else "").strip() for j in range(cols)]
+        non_empty_idx = [j for j, p in enumerate(parts) if p]
+        if (
+            len(non_empty_idx) == 2
+            and cols >= 3
+            and non_empty_idx[1] - non_empty_idx[0] > 1
+        ):
+            _merge_sparse_header_cells(table.rows[i], row)
+            continue
         for j in range(cols):
             cell_text = row[j] if j < len(row) else ""
             cell = table.rows[i].cells[j]
-            cell.text = cell_text
-            for para in cell.paragraphs:
-                para.paragraph_format.space_before = Pt(1)
-                para.paragraph_format.space_after = Pt(1)
-                para.paragraph_format.line_spacing = 1.0
-                for run in para.runs:
-                    run.font.size = Pt(9)
+            if cell_text.strip():
+                _set_cell_text_multiline(cell, cell_text)
+            else:
+                cell.text = ""
+                cell.vertical_alignment = WD_ALIGN_VERTICAL.TOP
 
 
 def _add_image_block(doc: Document, block: ImageBlock, page_width_pt: float) -> None:
@@ -1756,15 +1945,28 @@ def extract_docx_texts(docx_path: Path) -> list[dict[str, Any]]:
     for para in doc.paragraphs:
         text = para.text.strip()
         if text:
-            entries.append({"id": idx, "text": text})
+            entries.append({
+                "id": idx,
+                "text": text,
+                "translatable": _is_translatable_segment(text),
+            })
             idx += 1
 
+    seen_tc: set[int] = set()
     for table in doc.tables:
         for row in table.rows:
             for cell in row.cells:
+                tc_id = id(cell._tc)
+                if tc_id in seen_tc:
+                    continue
+                seen_tc.add(tc_id)
                 text = cell.text.strip()
                 if text:
-                    entries.append({"id": idx, "text": text})
+                    entries.append({
+                        "id": idx,
+                        "text": text,
+                        "translatable": _is_translatable_segment(text),
+                    })
                     idx += 1
 
     return entries
@@ -1784,7 +1986,7 @@ def apply_docx_translations(
         if not text:
             continue
         translated = translations.get(idx)
-        if translated:
+        if translated and translated.strip() and translated.strip() != text:
             for run in para.runs:
                 run.text = ""
             if para.runs:
@@ -1793,22 +1995,20 @@ def apply_docx_translations(
                 para.add_run(translated)
         idx += 1
 
+    seen_tc: set[int] = set()
     for table in doc.tables:
         for row in table.rows:
             for cell in row.cells:
+                tc_id = id(cell._tc)
+                if tc_id in seen_tc:
+                    continue
+                seen_tc.add(tc_id)
                 text = cell.text.strip()
                 if not text:
                     continue
                 translated = translations.get(idx)
-                if translated:
-                    for p in cell.paragraphs:
-                        for r in p.runs:
-                            r.text = ""
-                    first_p = cell.paragraphs[0]
-                    if first_p.runs:
-                        first_p.runs[0].text = translated
-                    else:
-                        first_p.add_run(translated)
+                if translated and translated.strip() and translated.strip() != text:
+                    _set_cell_text_multiline(cell, translated)
                 idx += 1
 
     doc.save(str(output_path))

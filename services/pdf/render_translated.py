@@ -25,6 +25,11 @@ from pdf_layout import _adjust_block_for_render, _is_sidebar_noise, _leading_jun
 
 _BIDI_MARK_RE = re.compile(r"[\u200e\u200f\u202a-\u202e\u2066-\u2069\ufeff]")
 _EXOTIC_SPACE_RE = re.compile(r"[\u00a0\u202f\u2007\u2060\u2009\u200a\u3000]+")
+_SHORT_CELL_RE = (
+    re.compile(r"^[\d.,]+$"),
+    re.compile(r"^[IVXLC]{1,4}$", re.I),
+    re.compile(r"^-+\s*HS$", re.I),
+)
 
 logger = logging.getLogger("pdfcraft.pdf.render")
 
@@ -312,6 +317,71 @@ def _find_ceiling(base: PdfRect, following: list[PdfRect], page_h: float) -> flo
             continue
         return max(base.y0 + 4, nxt.y0 - 2)
     return default
+
+
+def _horizontal_overlap_ratio(a: PdfRect, b: PdfRect) -> float:
+    overlap = max(0.0, min(a.x1, b.x1) - max(a.x0, b.x0))
+    return overlap / max(1.0, min(a.width, b.width))
+
+
+def _find_cell_ceiling(base: PdfRect, siblings: list[PdfRect], page_h: float) -> float:
+    """Trần dọc cho ô bảng — tới hàng kế tiếp cùng cột hoặc mở rộng vừa phải."""
+    below = [
+        o for o in siblings
+        if o.y0 >= base.y0 + 2 and _horizontal_overlap_ratio(base, o) >= 0.35
+    ]
+    if below:
+        nearest = min(below, key=lambda o: o.y0)
+        return max(base.y0 + base.height * 0.6, nearest.y0 - 1.5)
+    return min(base.y1 + base.height * 5, page_h - 12)
+
+
+def _is_short_cell_text(text: str) -> bool:
+    t = text.strip()
+    if not t or len(t) <= 12:
+        return True
+    for pat in _SHORT_CELL_RE:
+        if pat.match(t):
+            return True
+    return False
+
+
+def _cell_fits_one_line(text: str, fontfile: str, width: float, size: float) -> bool:
+    if width < 4:
+        return False
+    return string_width(fontfile, text, size) <= width - 4
+
+
+def _fit_cell_draw_rect(
+    rect: PdfRect,
+    block: dict[str, Any],
+    max_y1: float | None,
+) -> PdfRect:
+    block_h = max(float(block.get("pdfHeight", rect.height)), rect.height)
+    draw_h = max(rect.height, block_h - 3.2)
+    if max_y1 is not None:
+        draw_h = min(draw_h, max(max_y1 - rect.y0, rect.height))
+    return PdfRect(rect.x0, rect.y0, rect.x1, rect.y0 + draw_h)
+
+
+def _draw_cell_single_line(
+    c: canvas.Canvas,
+    rect: PdfRect,
+    text: str,
+    page_h: float,
+    fontfile: str,
+    size: float,
+    min_size: float,
+    target_lang: str,
+) -> None:
+    while size >= min_size:
+        if _cell_fits_one_line(text, fontfile, rect.width, size):
+            break
+        size -= 0.4
+    shaped = _prepare_script_line(text, target_lang, fontfile) if target_lang in RTL_LANGS else text
+    center_tl = (rect.y0 + rect.y1) * 0.5
+    y_bl = page_h - center_tl - size * 0.35
+    draw_string_bl(c, rect.x0 + 2, y_bl, shaped, fontfile, size)
 
 
 def _fit_prose_rect(
@@ -636,14 +706,22 @@ def _insert_text(
         rect = _clear_of_left_margin(rect)
 
     if is_cell and fontfile and "\n" not in text.strip():
-        while size >= min_size:
-            if string_width(fontfile, text, size) <= rect.width - 4:
-                break
-            size -= 0.4
-        shaped = _prepare_script_line(text, target_lang, fontfile) if target_lang in RTL_LANGS else text
-        center_tl = (rect.y0 + rect.y1) * 0.5
-        y_bl = page_h - center_tl - size * 0.35
-        draw_string_bl(c, rect.x0 + 2, y_bl, shaped, fontfile, size)
+        short = _is_short_cell_text(text)
+        fits = _cell_fits_one_line(text, fontfile, rect.width, size)
+        if short or fits:
+            _draw_cell_single_line(
+                c, rect, text, page_h, fontfile, size, min_size, target_lang,
+            )
+            return
+        draw_rect = _fit_cell_draw_rect(rect, block, max_y1)
+        if _draw_textbox(
+            c, draw_rect, text, target_lang, fontfile, size, min_size, page_h,
+            bold=bold, italic=italic,
+        ):
+            return
+        _draw_cell_single_line(
+            c, rect, text, page_h, fontfile, min_size, min_size, target_lang,
+        )
         return
 
     if not _draw_textbox(
@@ -763,14 +841,27 @@ def render_translated_pdf(
                     _wipe_block(c, block)
 
                 prose_sorted: list[tuple[int, PdfRect]] = []
+                cell_sorted: list[tuple[int, PdfRect]] = []
                 for i, block, translated in page_blocks:
-                    if translated and block.get("label") not in ("table_cell", "vertical"):
-                        prose_sorted.append((i, _block_rect(block, page_h)))
+                    if not translated:
+                        continue
+                    rect = _block_rect(block, page_h)
+                    label = block.get("label")
+                    if label == "vertical":
+                        continue
+                    if label == "table_cell":
+                        cell_sorted.append((i, rect))
+                    else:
+                        prose_sorted.append((i, rect))
                 prose_sorted.sort(key=lambda x: x[1].y0)
+                cell_sorted.sort(key=lambda x: x[1].y0)
                 ceilings: dict[int, float] = {}
                 for idx, (i, rect) in enumerate(prose_sorted):
                     following = [r for _, r in prose_sorted[idx + 1:]]
                     ceilings[i] = _find_ceiling(rect, following, page_h)
+                cell_rects = [r for _, r in cell_sorted]
+                for i, rect in cell_sorted:
+                    ceilings[i] = _find_cell_ceiling(rect, cell_rects, page_h)
 
                 # Right limits — giới hạn mở rộng width theo block bên phải cùng hàng
                 rect_by_i = {i: _block_rect(b, page_h) for i, b, t in page_blocks if t}
