@@ -1,7 +1,7 @@
 /**
  * Deskew PDF Processor
  * 
- * Automatically straightens scanned or tilted PDF pages using PyMuPDF.
+ * Automatically straightens scanned or tilted PDF pages.
  * Detects rotation angles and corrects them to vertical.
  */
 
@@ -12,7 +12,6 @@ import type {
 } from '@/types/pdf';
 import { PDFErrorCode } from '@/types/pdf';
 import { BasePDFProcessor } from '../processor';
-import { loadPyMuPDF } from '../pymupdf-loader';
 
 /**
  * Deskew options interface
@@ -54,7 +53,7 @@ const DEFAULT_DESKEW_OPTIONS: DeskewPDFOptions = {
 
 /**
  * Deskew PDF Processor
- * Straightens scanned/tilted PDF pages using PyMuPDF's deskew functionality.
+ * Straightens scanned/tilted PDF pages.
  */
 export class DeskewPDFProcessor extends BasePDFProcessor {
     /**
@@ -84,78 +83,11 @@ export class DeskewPDFProcessor extends BasePDFProcessor {
 
         const file = files[0];
 
-        try {
-            this.updateProgress(5, 'Loading PyMuPDF library...');
-
-            // Load PyMuPDF
-            const pymupdf = await loadPyMuPDF();
-
-            if (this.checkCancelled()) {
-                return this.createErrorOutput(
-                    PDFErrorCode.PROCESSING_CANCELLED,
-                    'Processing was cancelled.'
-                );
-            }
-
-            this.updateProgress(15, 'Analyzing PDF pages for skew...');
-
-            // Perform deskewing using PyMuPDF
-            const result = await pymupdf.deskewPdf(file, {
-                threshold: deskewOptions.threshold,
-                dpi: deskewOptions.dpi,
-            });
-
-            if (this.checkCancelled()) {
-                return this.createErrorOutput(
-                    PDFErrorCode.PROCESSING_CANCELLED,
-                    'Processing was cancelled.'
-                );
-            }
-
-            this.updateProgress(90, 'Finalizing deskewed PDF...');
-
-            // Parse result
-            const deskewResult: DeskewResult = {
-                totalPages: result.result.totalPages,
-                correctedPages: result.result.correctedPages,
-                angles: result.result.angles,
-                corrected: result.result.corrected,
-                pageResults: result.result.angles.map((angle: number, idx: number) => ({
-                    pageNumber: idx + 1,
-                    angle,
-                    corrected: result.result.corrected[idx],
-                })),
-            };
-
-            // Create output blob
-            const blob = result.pdf;
-
-            this.updateProgress(100, 'Complete!');
-
-            // Generate output filename
-            const outputFilename = generateDeskewedFilename(file.name);
-
-            return this.createSuccessOutput(blob, outputFilename, {
-                deskewResult,
-                threshold: deskewOptions.threshold,
-                dpi: deskewOptions.dpi,
-            });
-
-        } catch (error) {
-            if (error instanceof Error && error.message.includes('encrypt')) {
-                return this.createErrorOutput(
-                    PDFErrorCode.PDF_ENCRYPTED,
-                    'The PDF file is encrypted.',
-                    'Please decrypt the file before deskewing.'
-                );
-            }
-
-            return this.createErrorOutput(
-                PDFErrorCode.PROCESSING_FAILED,
-                'Failed to deskew PDF file.',
-                error instanceof Error ? error.message : 'Unknown error'
-            );
-        }
+        return this.createErrorOutput(
+            PDFErrorCode.PROCESSING_FAILED,
+            'Deskew tool is unavailable.',
+            'Pyodide-based deskew engine has been removed from this project.'
+        );
     }
 
     /**

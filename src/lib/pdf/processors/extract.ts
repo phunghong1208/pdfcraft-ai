@@ -129,32 +129,8 @@ export class ExtractPagesPDFProcessor extends BasePDFProcessor {
 
       this.updateProgress(30, 'Creating new document...');
 
-      // Try to use PyMuPDF for high-fidelity extraction
-      try {
-        const { loadPyMuPDF } = await import('../pymupdf-loader');
-        const pymupdf = await loadPyMuPDF();
-        
-        if (pymupdf && typeof pymupdf.extractPages === 'function') {
-          this.updateProgress(40, 'Using high-fidelity engine for extraction...');
-          const blob = await pymupdf.extractPages(file, uniquePages);
-          
-          this.updateProgress(100, 'Complete!');
-          const outputFilename = generateExtractedFilename(file.name, uniquePages);
-          
-          return this.createSuccessOutput(blob, outputFilename, {
-            extractedPageCount: uniquePages.length,
-            originalPageCount: totalPages,
-            extractedPages: uniquePages,
-          });
-        } else {
-          throw new Error('PyMuPDF extract not available');
-        }
-      } catch (pymupdfErr) {
-        console.warn('PyMuPDF extract failed or not available, falling back to pdf-lib:', pymupdfErr);
-        
-        // Fallback to pdf-lib (original logic)
-        // Create a new PDF document
-        const newPdf = await pdfLib.PDFDocument.create();
+      // Create a new PDF document
+      const newPdf = await pdfLib.PDFDocument.create();
 
         // Copy pages
         const progressPerPage = 60 / uniquePages.length;
@@ -190,12 +166,11 @@ export class ExtractPagesPDFProcessor extends BasePDFProcessor {
         // Generate output filename
         const outputFilename = generateExtractedFilename(file.name, uniquePages);
 
-        return this.createSuccessOutput(blob, outputFilename, {
-          extractedPageCount: uniquePages.length,
-          originalPageCount: totalPages,
-          extractedPages: uniquePages,
-        });
-      }
+      return this.createSuccessOutput(blob, outputFilename, {
+        extractedPageCount: uniquePages.length,
+        originalPageCount: totalPages,
+        extractedPages: uniquePages,
+      });
     } catch (error) {
       return this.createErrorOutput(
         PDFErrorCode.PROCESSING_FAILED,

@@ -125,32 +125,8 @@ export class OrganizePDFProcessor extends BasePDFProcessor {
 
       this.updateProgress(30, 'Creating new document...');
 
-      // Try to use PyMuPDF for high-fidelity organizing
-      try {
-        const { loadPyMuPDF } = await import('../pymupdf-loader');
-        const pymupdf = await loadPyMuPDF();
-        
-        if (pymupdf && typeof pymupdf.extractPages === 'function') {
-          this.updateProgress(40, 'Using high-fidelity engine for organizing...');
-          // extractPages can be used for organizing too by passing the new page order
-          const blob = await pymupdf.extractPages(file, organizeOptions.pageOrder);
-          
-          this.updateProgress(100, 'Complete!');
-          const outputFilename = generateOrganizedFilename(file.name);
-          
-          return this.createSuccessOutput(blob, outputFilename, {
-            pageCount: organizeOptions.pageOrder.length,
-            originalPageCount: totalPages,
-          });
-        } else {
-          throw new Error('PyMuPDF extract/organize not available');
-        }
-      } catch (pymupdfErr) {
-        console.warn('PyMuPDF organize failed or not available, falling back to pdf-lib:', pymupdfErr);
-        
-        // Fallback to pdf-lib (original logic)
-        // Create a new PDF document
-        const newPdf = await pdfLib.PDFDocument.create();
+      // Create a new PDF document
+      const newPdf = await pdfLib.PDFDocument.create();
 
         // Copy pages in the new order
         const progressPerPage = 60 / organizeOptions.pageOrder.length;
@@ -186,11 +162,10 @@ export class OrganizePDFProcessor extends BasePDFProcessor {
         // Generate output filename
         const outputFilename = generateOrganizedFilename(file.name);
 
-        return this.createSuccessOutput(blob, outputFilename, {
-          pageCount: organizeOptions.pageOrder.length,
-          originalPageCount: totalPages,
-        });
-      }
+      return this.createSuccessOutput(blob, outputFilename, {
+        pageCount: organizeOptions.pageOrder.length,
+        originalPageCount: totalPages,
+      });
     } catch (error) {
       return this.createErrorOutput(
         PDFErrorCode.PROCESSING_FAILED,

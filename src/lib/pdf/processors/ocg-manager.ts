@@ -12,7 +12,6 @@ import type {
 } from '@/types/pdf';
 import { PDFErrorCode } from '@/types/pdf';
 import { BasePDFProcessor } from '../processor';
-import { loadPyMuPDF } from '../pymupdf-loader';
 
 /**
  * OCG Layer information
@@ -88,71 +87,23 @@ export class OCGManagerProcessor extends BasePDFProcessor {
 
         const file = files[0];
 
-        try {
-            this.updateProgress(10, 'Loading PyMuPDF...');
-
-            const pymupdf = await loadPyMuPDF();
-
-            if (this.checkCancelled()) {
-                return this.createErrorOutput(
-                    PDFErrorCode.PROCESSING_CANCELLED,
-                    'Processing was cancelled.'
-                );
-            }
-
-            this.updateProgress(30, 'Analyzing PDF layers...');
-
-            // Perform the requested action
-            let result: ProcessOutput;
-
-            switch (ocgOptions.action) {
-                case 'list':
-                    result = await this.listLayers(file, pymupdf);
-                    break;
-                case 'toggle':
-                    result = await this.toggleLayer(file, pymupdf, ocgOptions);
-                    break;
-                case 'add':
-                    result = await this.addLayer(file, pymupdf, ocgOptions);
-                    break;
-                case 'delete':
-                    result = await this.deleteLayer(file, pymupdf, ocgOptions);
-                    break;
-                case 'rename':
-                    result = await this.renameLayer(file, pymupdf, ocgOptions);
-                    break;
-                default:
-                    result = await this.listLayers(file, pymupdf);
-            }
-
-            this.updateProgress(100, 'Complete!');
-            return result;
-
-        } catch (error) {
-            if (error instanceof Error && error.message.includes('encrypt')) {
-                return this.createErrorOutput(
-                    PDFErrorCode.PDF_ENCRYPTED,
-                    'The PDF file is encrypted.',
-                    'Please decrypt the file first.'
-                );
-            }
-
-            return this.createErrorOutput(
-                PDFErrorCode.PROCESSING_FAILED,
-                'Failed to process PDF layers.',
-                error instanceof Error ? error.message : 'Unknown error'
-            );
-        }
+        void file;
+        void ocgOptions;
+        return this.createErrorOutput(
+            PDFErrorCode.PROCESSING_FAILED,
+            'Layer manager is unavailable.',
+            'Layer editing engine has been removed from this project.'
+        );
     }
 
     /**
      * List all OCG layers in the PDF
      */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private async listLayers(file: File, pymupdf: any): Promise<ProcessOutput> {
+    private async listLayers(file: File, layerEngine: any): Promise<ProcessOutput> {
         this.updateProgress(50, 'Reading layer information...');
 
-        const layers = await pymupdf.getOCGLayers(file);
+        const layers = await layerEngine.getOCGLayers(file);
 
         this.updateProgress(90, 'Processing complete...');
 
@@ -171,7 +122,7 @@ export class OCGManagerProcessor extends BasePDFProcessor {
      * Toggle layer visibility
      */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private async toggleLayer(file: File, pymupdf: any, options: OCGManagerOptions): Promise<ProcessOutput> {
+    private async toggleLayer(file: File, layerEngine: any, options: OCGManagerOptions): Promise<ProcessOutput> {
         if (!options.layerId) {
             return this.createErrorOutput(
                 PDFErrorCode.INVALID_OPTIONS,
@@ -181,7 +132,7 @@ export class OCGManagerProcessor extends BasePDFProcessor {
 
         this.updateProgress(50, 'Toggling layer visibility...');
 
-        const result = await pymupdf.toggleOCGLayer(file, {
+        const result = await layerEngine.toggleOCGLayer(file, {
             layerId: options.layerId,
             visible: options.visible !== undefined ? options.visible : undefined,
         });
@@ -201,7 +152,7 @@ export class OCGManagerProcessor extends BasePDFProcessor {
      * Add a new layer
      */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private async addLayer(file: File, pymupdf: any, options: OCGManagerOptions): Promise<ProcessOutput> {
+    private async addLayer(file: File, layerEngine: any, options: OCGManagerOptions): Promise<ProcessOutput> {
         if (!options.layerName) {
             return this.createErrorOutput(
                 PDFErrorCode.INVALID_OPTIONS,
@@ -211,7 +162,7 @@ export class OCGManagerProcessor extends BasePDFProcessor {
 
         this.updateProgress(50, 'Adding new layer...');
 
-        const result = await pymupdf.addOCGLayer(file, {
+        const result = await layerEngine.addOCGLayer(file, {
             name: options.layerName,
         });
 
@@ -229,7 +180,7 @@ export class OCGManagerProcessor extends BasePDFProcessor {
      * Delete a layer
      */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private async deleteLayer(file: File, pymupdf: any, options: OCGManagerOptions): Promise<ProcessOutput> {
+    private async deleteLayer(file: File, layerEngine: any, options: OCGManagerOptions): Promise<ProcessOutput> {
         if (!options.layerId) {
             return this.createErrorOutput(
                 PDFErrorCode.INVALID_OPTIONS,
@@ -239,7 +190,7 @@ export class OCGManagerProcessor extends BasePDFProcessor {
 
         this.updateProgress(50, 'Deleting layer...');
 
-        const result = await pymupdf.deleteOCGLayer(file, {
+        const result = await layerEngine.deleteOCGLayer(file, {
             layerId: options.layerId,
         });
 
@@ -257,7 +208,7 @@ export class OCGManagerProcessor extends BasePDFProcessor {
      * Rename a layer
      */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private async renameLayer(file: File, pymupdf: any, options: OCGManagerOptions): Promise<ProcessOutput> {
+    private async renameLayer(file: File, layerEngine: any, options: OCGManagerOptions): Promise<ProcessOutput> {
         if (!options.layerId || !options.layerName) {
             return this.createErrorOutput(
                 PDFErrorCode.INVALID_OPTIONS,
@@ -267,7 +218,7 @@ export class OCGManagerProcessor extends BasePDFProcessor {
 
         this.updateProgress(50, 'Renaming layer...');
 
-        const result = await pymupdf.renameOCGLayer(file, {
+        const result = await layerEngine.renameOCGLayer(file, {
             layerId: options.layerId,
             newName: options.layerName,
         });

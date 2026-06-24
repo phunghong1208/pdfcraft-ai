@@ -1,4 +1,4 @@
-"""Vẽ overlay PDF bằng reportlab — thay PyMuPDF redact/insert_text."""
+"""Vẽ overlay PDF bằng reportlab — xử lý redact/insert_text."""
 
 from __future__ import annotations
 

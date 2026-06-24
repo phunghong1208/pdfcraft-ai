@@ -1,6 +1,6 @@
 /**
  * PDF Table of Contents Processor
- * Uses PyMuPDF worker to generate clickable TOC from PDF bookmarks
+ * Uses a browser worker to generate clickable TOC from PDF bookmarks
  * Supports CJK (Chinese, Japanese, Korean) and other non-ASCII characters
  * Requirements: 5.1
  */

@@ -16,7 +16,6 @@ import type {
 } from '@/types/pdf';
 import { PDFErrorCode } from '@/types/pdf';
 import { BasePDFProcessor } from '../processor';
-import { loadPyMuPDF } from '../pymupdf-loader';
 
 /**
  * Font to Outline options
@@ -75,66 +74,11 @@ export class FontToOutlineProcessor extends BasePDFProcessor {
 
         const file = files[0];
 
-        try {
-            this.updateProgress(5, 'Loading PyMuPDF library...');
-
-            // Load PyMuPDF
-            const pymupdf = await loadPyMuPDF();
-
-            if (this.checkCancelled()) {
-                return this.createErrorOutput(
-                    PDFErrorCode.PROCESSING_CANCELLED,
-                    'Processing was cancelled.'
-                );
-            }
-
-            this.updateProgress(15, 'Analyzing fonts in PDF...');
-
-            // Convert fonts to outlines using PyMuPDF
-            const result = await pymupdf.fontToOutline(file, {
-                dpi: outlineOptions.dpi,
-                preserveSelectableText: outlineOptions.preserveSelectableText,
-                pageRange: outlineOptions.pageRange,
-            });
-
-            if (this.checkCancelled()) {
-                return this.createErrorOutput(
-                    PDFErrorCode.PROCESSING_CANCELLED,
-                    'Processing was cancelled.'
-                );
-            }
-
-            this.updateProgress(90, 'Finalizing document...');
-
-            // Get result blob
-            const blob = result.pdf || result;
-
-            this.updateProgress(100, 'Complete!');
-
-            // Generate output filename
-            const outputFilename = generateOutlineFilename(file.name);
-
-            return this.createSuccessOutput(blob, outputFilename, {
-                dpi: outlineOptions.dpi,
-                preserveSelectableText: outlineOptions.preserveSelectableText,
-                fontsConverted: result.fontsConverted || 'unknown',
-            });
-
-        } catch (error) {
-            if (error instanceof Error && error.message.includes('encrypt')) {
-                return this.createErrorOutput(
-                    PDFErrorCode.PDF_ENCRYPTED,
-                    'The PDF file is encrypted.',
-                    'Please decrypt the file first.'
-                );
-            }
-
-            return this.createErrorOutput(
-                PDFErrorCode.PROCESSING_FAILED,
-                'Failed to convert fonts to outlines.',
-                error instanceof Error ? error.message : 'Unknown error'
-            );
-        }
+        return this.createErrorOutput(
+            PDFErrorCode.PROCESSING_FAILED,
+            'Font to Outline tool is unavailable.',
+            'Pyodide-based outline engine has been removed from this project.'
+        );
     }
 
     /**

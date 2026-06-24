@@ -2,7 +2,7 @@
  * XPS to PDF Processor
  * 
  * Converts XPS files to PDF documents.
- * Uses Pyodide via a Web Worker with PyMuPDF's native XPS support.
+ * Uses Pyodide via a Web Worker.
  */
 
 import type {

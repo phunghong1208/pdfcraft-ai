@@ -12,7 +12,6 @@ import type {
 } from '@/types/pdf';
 import { PDFErrorCode } from '@/types/pdf';
 import { BasePDFProcessor } from '../processor';
-import { loadPyMuPDF } from '../pymupdf-loader';
 
 /**
  * PDF/A conformance levels
@@ -92,66 +91,13 @@ export class PdfToPdfAProcessor extends BasePDFProcessor {
 
         const file = files[0];
 
-        try {
-            this.updateProgress(5, 'Loading PyMuPDF library...');
-
-            // Load PyMuPDF
-            const pymupdf = await loadPyMuPDF();
-
-            if (this.checkCancelled()) {
-                return this.createErrorOutput(
-                    PDFErrorCode.PROCESSING_CANCELLED,
-                    'Processing was cancelled.'
-                );
-            }
-
-            this.updateProgress(20, 'Analyzing PDF structure...');
-
-            // Convert to PDF/A using PyMuPDF
-            const result = await pymupdf.pdfToPdfa(file, {
-                level: pdfaOptions.level,
-                embedFonts: pdfaOptions.embedFonts,
-                flattenTransparency: pdfaOptions.flattenTransparency,
-            });
-
-            if (this.checkCancelled()) {
-                return this.createErrorOutput(
-                    PDFErrorCode.PROCESSING_CANCELLED,
-                    'Processing was cancelled.'
-                );
-            }
-
-            this.updateProgress(90, 'Finalizing PDF/A document...');
-
-            // Get result blob
-            const blob = result.pdf || result;
-
-            this.updateProgress(100, 'Complete!');
-
-            // Generate output filename
-            const outputFilename = generatePdfAFilename(file.name, pdfaOptions.level);
-
-            return this.createSuccessOutput(blob, outputFilename, {
-                conformanceLevel: `PDF/A-${pdfaOptions.level}`,
-                embedFonts: pdfaOptions.embedFonts,
-                flattenTransparency: pdfaOptions.flattenTransparency,
-            });
-
-        } catch (error) {
-            if (error instanceof Error && error.message.includes('encrypt')) {
-                return this.createErrorOutput(
-                    PDFErrorCode.PDF_ENCRYPTED,
-                    'The PDF file is encrypted.',
-                    'Please decrypt the file before converting to PDF/A.'
-                );
-            }
-
-            return this.createErrorOutput(
-                PDFErrorCode.PROCESSING_FAILED,
-                'Failed to convert to PDF/A.',
-                error instanceof Error ? error.message : 'Unknown error'
-            );
-        }
+        void file;
+        void pdfaOptions;
+        return this.createErrorOutput(
+            PDFErrorCode.PROCESSING_FAILED,
+            'PDF/A conversion tool is unavailable.',
+            'PDF/A conversion engine has been removed from this project.'
+        );
     }
 
     /**

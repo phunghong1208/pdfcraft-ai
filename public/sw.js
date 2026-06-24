@@ -4,17 +4,6 @@
 
 const CACHE_NAME = 'pdfcraft-cache-v2';
 
-// Large assets to cache (Pyodide WASM and Python wheels)
-const PYODIDE_ASSETS = [
-    '/pymupdf-wasm/pyodide.js',
-    '/pymupdf-wasm/pyodide.asm.js',
-    '/pymupdf-wasm/pyodide.asm.wasm',
-    '/pymupdf-wasm/pyodide_py.tar',
-    '/pymupdf-wasm/numpy-2.2.5-cp313-cp313-pyodide_2025_0_wasm32.whl',
-    '/pymupdf-wasm/lxml-5.4.0-cp313-cp313-pyodide_2025_0_wasm32.whl',
-    '/pymupdf-wasm/pymupdf-1.26.3-cp313-none-pyodide_2025_0_wasm32.whl',
-];
-
 self.addEventListener('install', (event) => {
     self.skipWaiting();
 });
@@ -34,13 +23,6 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
-    // Cache Pyodide assets (WASM, wheels) with cache-first strategy
-    const isPyodideAsset = url.pathname.startsWith('/pymupdf-wasm/') &&
-        (url.pathname.endsWith('.wasm') ||
-            url.pathname.endsWith('.whl') ||
-            url.pathname.endsWith('.tar') ||
-            url.pathname.endsWith('.js'));
-
     // Cache LibreOffice WASM assets
     const isLibreOfficeAsset = url.pathname.startsWith('/libreoffice-wasm/') &&
         (url.pathname.endsWith('.wasm') ||
@@ -55,7 +37,7 @@ self.addEventListener('fetch', (event) => {
             url.pathname.endsWith('.otf') ||
             url.pathname.endsWith('.woff2'));
 
-    if (isPyodideAsset || isLibreOfficeAsset || isFontAsset) {
+    if (isLibreOfficeAsset || isFontAsset) {
         event.respondWith(
             caches.open(CACHE_NAME).then((cache) => {
                 return cache.match(event.request).then((cachedResponse) => {

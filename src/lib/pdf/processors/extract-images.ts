@@ -2,7 +2,7 @@
  * Extract Images from PDF Processor
  * Requirements: 5.1
  * 
- * Extracts all embedded images from PDF files using PyMuPDF (WASM).
+ * Extracts all embedded images from PDF files using a browser worker.
  * Supports filtering small images and batch downloads as ZIP.
  */
 

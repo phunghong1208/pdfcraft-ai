@@ -1,5 +1,5 @@
 /**
- * Word to PDF via Pyodide worker (python-docx + PyMuPDF).
+ * Word to PDF via Pyodide worker.
  * Used when Cross-Origin Isolation is unavailable (no SharedArrayBuffer / LibreOffice WASM).
  * Supports .docx only.
  */

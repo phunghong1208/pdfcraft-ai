@@ -2,7 +2,7 @@
  * FB2 to PDF Processor
  * 
  * Converts FictionBook (FB2) e-book files to PDF documents.
- * Uses PyMuPDF's native convert_to_pdf() for optimal file size and text preservation.
+ * Uses a browser worker for conversion.
  * 
  * Benefits of native conversion:
  * - Much smaller file sizes (text is vector, not images)

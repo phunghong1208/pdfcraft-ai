@@ -2,7 +2,7 @@
  * EPUB to PDF Processor
  * 
  * Converts EPUB files to PDF documents.
- * Uses PyMuPDF's native convert_to_pdf() for optimal file size and text preservation.
+ * Uses a browser worker for conversion.
  * 
  * Benefits:
  * - Much smaller file sizes (text is vector, not images)

@@ -171,6 +171,7 @@ export const tools: Tool[] = [
   {
     id: 'table-of-contents',
     slug: 'table-of-contents',
+    disabled: true,
     icon: 'list',
     category: 'edit-annotate',
     acceptedFormats: ['.pdf'],
@@ -475,6 +476,7 @@ export const tools: Tool[] = [
   {
     id: 'xps-to-pdf',
     slug: 'xps-to-pdf',
+    disabled: true,
     icon: 'file-box',
     category: 'convert-to-pdf',
     acceptedFormats: ['.xps'],
@@ -499,6 +501,7 @@ export const tools: Tool[] = [
   {
     id: 'epub-to-pdf',
     slug: 'epub-to-pdf',
+    disabled: true,
     icon: 'book-open',
     category: 'convert-to-pdf',
     acceptedFormats: ['.epub'],
@@ -511,6 +514,7 @@ export const tools: Tool[] = [
   {
     id: 'mobi-to-pdf',
     slug: 'mobi-to-pdf',
+    disabled: true,
     icon: 'book-marked',
     category: 'convert-to-pdf',
     acceptedFormats: ['.mobi', '.azw', '.azw3'],
@@ -535,6 +539,7 @@ export const tools: Tool[] = [
   {
     id: 'fb2-to-pdf',
     slug: 'fb2-to-pdf',
+    disabled: true,
     icon: 'book-text',
     category: 'convert-to-pdf',
     acceptedFormats: ['.fb2', '.fb2.zip'],
@@ -670,6 +675,7 @@ export const tools: Tool[] = [
   {
     id: 'pdf-to-pptx',
     slug: 'pdf-to-pptx',
+    disabled: true,
     icon: 'presentation',
     category: 'convert-from-pdf',
     acceptedFormats: ['.pdf'],
@@ -682,6 +688,7 @@ export const tools: Tool[] = [
   {
     id: 'pdf-to-excel',
     slug: 'pdf-to-excel',
+    disabled: true,
     icon: 'table',
     category: 'convert-from-pdf',
     acceptedFormats: ['.pdf'],
@@ -757,6 +764,7 @@ export const tools: Tool[] = [
   {
     id: 'extract-images',
     slug: 'extract-images',
+    disabled: true,
     icon: 'image-down',
     category: 'convert-from-pdf',
     acceptedFormats: ['.pdf'],
@@ -1148,6 +1156,7 @@ export const tools: Tool[] = [
   {
     id: 'deskew-pdf',
     slug: 'deskew-pdf',
+    disabled: true,
     icon: 'scan-line',
     category: 'optimize-repair',
     acceptedFormats: ['.pdf'],
@@ -1196,6 +1205,7 @@ export const tools: Tool[] = [
   {
     id: 'email-to-pdf',
     slug: 'email-to-pdf',
+    disabled: true,
     icon: 'mail',
     category: 'convert-to-pdf',
     acceptedFormats: ['.eml', '.msg'],
@@ -1220,6 +1230,7 @@ export const tools: Tool[] = [
   {
     id: 'pdf-to-pdfa',
     slug: 'pdf-to-pdfa',
+    disabled: true,
     icon: 'archive',
     category: 'optimize-repair',
     acceptedFormats: ['.pdf'],
@@ -1232,6 +1243,7 @@ export const tools: Tool[] = [
   {
     id: 'font-to-outline',
     slug: 'font-to-outline',
+    disabled: true,
     icon: 'type',
     category: 'optimize-repair',
     acceptedFormats: ['.pdf'],
@@ -1256,6 +1268,7 @@ export const tools: Tool[] = [
   {
     id: 'ocg-manager',
     slug: 'ocg-manager',
+    disabled: true,
     icon: 'layers',
     category: 'optimize-repair',
     acceptedFormats: ['.pdf'],

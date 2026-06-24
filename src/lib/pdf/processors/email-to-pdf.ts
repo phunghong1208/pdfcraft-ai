@@ -12,7 +12,6 @@ import type {
 } from '@/types/pdf';
 import { PDFErrorCode } from '@/types/pdf';
 import { BasePDFProcessor } from '../processor';
-import { loadPyMuPDF } from '../pymupdf-loader';
 
 /**
  * Page size options
@@ -664,40 +663,13 @@ export class EmailToPDFProcessor extends BasePDFProcessor {
             // Render to HTML
             const htmlContent = renderEmailToHtml(email, emailOptions);
 
-            this.updateProgress(50, 'Loading PDF engine...');
-
-            // Load PyMuPDF
-            const pymupdf = await loadPyMuPDF();
-
-            this.updateProgress(70, 'Converting to PDF...');
-
-            // Prepare attachments for embedding (only non-inline attachments)
-            const attachmentsToEmbed = email.attachments
-                .filter(att => !att.isInline && att.content)
-                .map(att => ({
-                    filename: att.filename,
-                    contentType: att.contentType,
-                    content: att.content,
-                }));
-
-            // Convert HTML to PDF with embedded attachments
-            const pdfBlob = await pymupdf.htmlToPdf(htmlContent, {
-                pageSize: emailOptions.pageSize,
-                margins: { top: 50, right: 50, bottom: 50, left: 50 },
-                attachments: emailOptions.includeAttachments ? attachmentsToEmbed : [],
-            });
-
-            this.updateProgress(100, 'Complete!');
-
-            // Generate output filename
-            const baseName = file.name.replace(/\.[^.]+$/, '');
-            const outputFilename = `${baseName}.pdf`;
-
-            return this.createSuccessOutput(pdfBlob, outputFilename, {
-                subject: email.subject,
-                from: email.from,
-                attachmentsCount: email.attachments.length,
-            });
+            void htmlContent;
+            void emailOptions;
+            return this.createErrorOutput(
+                PDFErrorCode.PROCESSING_FAILED,
+                'Email to PDF tool is unavailable.',
+                'Pyodide-based HTML to PDF engine has been removed from this project.'
+            );
 
         } catch (error) {
             return this.createErrorOutput(
