@@ -196,7 +196,7 @@
       "featureOcr": "OCR",
       "featureProtect": "Schützen",
       "featuresNav": "Arbeitsbereichsfunktionen",
-      "copyrightShort": "© {Jahr} PDF",
+      "copyrightShort": "© {year} PDF",
       "compliance": "Compliance",
       "gdprCompliant": "DSGVO-konform",
       "clientSideProcessing": "Clientseitige Verarbeitung",

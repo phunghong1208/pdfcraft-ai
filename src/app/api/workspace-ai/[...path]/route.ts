@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const UPSTREAM = (process.env.AI_SERVER_UPSTREAM || 'http://192.168.1.90:8338').replace(/\/$/, '');
+const UPSTREAM = (process.env.AI_SERVER_UPSTREAM || '').replace(/\/$/, '');
 const PROXY_TIMEOUT_MS = Number(process.env.AI_PROXY_TIMEOUT_MS || '600000');
 
 type RouteContext = { params: Promise<{ path: string[] }> };
 
 async function proxyRequest(req: NextRequest, context: RouteContext): Promise<NextResponse> {
+  if (!UPSTREAM) {
+    return NextResponse.json(
+      { detail: 'AI_SERVER_UPSTREAM chưa được cấu hình trong biến môi trường.' },
+      { status: 503 },
+    );
+  }
   const { path } = await context.params;
   // Bỏ segment rỗng từ trailingSlash — upstream FastAPI: /summary (không /summary/)
   const upstreamPath = path.filter(Boolean).join('/');

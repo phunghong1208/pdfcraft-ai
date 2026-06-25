@@ -398,3 +398,12 @@ docker compose logs -f
 - **OCR đầu vào:** 26 Tesseract pack (`tesseract-ocr-eng`, `tesseract-ocr-vie`, …) — không dùng `tesseract-ocr-all`. Mỗi request tối đa **2** ngôn ngữ (`vie+eng`).
 - **Dịch đầu ra:** font `fonts-noto-core` + `fonts-noto-cjk` + `fonts-noto-extra` (render PDF/DOCX).
 - RapidOCR rasterize **từng trang** @ 200 DPI (tối đa 300 qua `oversample`).
+
+# Xóa toàn bộ — images, containers, volumes, build cache
+docker system prune -a --volumes
+
+# Hoặc từng phần:
+docker builder prune -a      # build cache
+docker image prune -a         # images không dùng
+docker volume prune -a        # volumes
+docker container prune        # stopped containers

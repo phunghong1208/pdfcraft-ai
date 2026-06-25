@@ -196,7 +196,7 @@
       "featureOcr": "光学字符识别",
       "featureProtect": "保护",
       "featuresNav": "工作区功能",
-      "copyrightShort": "© {年} PDF",
+      "copyrightShort": "© {year} PDF",
       "compliance": "合规",
       "gdprCompliant": "符合 GDPR",
       "clientSideProcessing": "客户端处理",

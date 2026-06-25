@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { marked } from 'marked';
+import { sanitizeHtml } from '@/lib/utils/html-sanitizer';
 
 marked.setOptions({ gfm: true, breaks: true });
 
@@ -60,9 +61,9 @@ export function WorkspaceAiMarkdown({
     const trimmed = content.trim();
     if (!trimmed) return '';
     try {
-      return marked.parse(trimmed, { async: false }) as string;
+      return sanitizeHtml(marked.parse(trimmed, { async: false }) as string);
     } catch {
-      return marked.parse(`\`\`\`\n${trimmed}\n\`\`\``, { async: false }) as string;
+      return sanitizeHtml(marked.parse(`\`\`\`\n${trimmed}\n\`\`\``, { async: false }) as string);
     }
   }, [content]);
 
