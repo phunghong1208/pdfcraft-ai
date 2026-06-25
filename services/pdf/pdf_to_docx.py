@@ -14,6 +14,7 @@ from typing import Any, Literal
 
 import pikepdf
 import pdfplumber
+import pypdfium2 as pdfium
 from docx import Document
 from docx.enum.section import WD_SECTION
 from docx.enum.table import WD_ALIGN_VERTICAL
@@ -21,7 +22,6 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Emu, Inches, Pt, RGBColor
-from pdf2image import convert_from_path
 from pypdf import PdfReader, PdfWriter
 
 logger = logging.getLogger("pdfcraft.pdf.pdf_to_docx")
@@ -1848,21 +1848,16 @@ def _build_preserve_layout_docx(
             section.page_height = Emu(_pt_to_emu(page_h))
             _zero_section_margins(section)
 
-            page_no = page_idx + 1
-            paths = convert_from_path(
-                str(pdf_path),
-                dpi=dpi,
-                first_page=page_no,
-                last_page=page_no,
-                fmt="png",
-                output_folder=str(scratch),
-                paths_only=True,
-                thread_count=1,
-            )
-            if not paths:
-                raise RuntimeError(f"pdf2image failed for page {page_no}")
+            pdf_doc = pdfium.PdfDocument(str(pdf_path))
+            try:
+                pdfium_page = pdf_doc[page_idx]
+                bitmap = pdfium_page.render(scale=dpi / 72)
+                img = bitmap.to_pil().convert("RGB")
+                img_path = scratch / f"page_{page_idx}.png"
+                img.save(str(img_path))
+            finally:
+                pdf_doc.close()
 
-            img_path = Path(paths[0])
             try:
                 para = doc.add_paragraph()
                 para.paragraph_format.space_before = Pt(0)

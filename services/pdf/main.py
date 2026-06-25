@@ -1,4 +1,4 @@
-"""PDF microservice — OCR (RapidOCR), layout (pdfplumber), render (reportlab), pdf-to-docx."""
+"""PDF microservice — OCR (RapidOCR/Tesseract), layout (pdfplumber), render (reportlab), pdf-to-docx."""
 
 from __future__ import annotations
 
@@ -14,9 +14,9 @@ from typing import Any
 import numpy as np
 import pdfplumber
 import pikepdf
+import pypdfium2 as pdfium
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
-from pdf2image import convert_from_path
 from pypdf import PdfReader
 
 from pdf_layout import extract_pdf_line_blocks, extract_pdf_wipe_lines
@@ -77,21 +77,6 @@ def _page_count(pdf_path: Path) -> int:
 
 
 def _extract_text_from_pdf(pdf_path: Path) -> str:
-    best = ""
-    for args in (
-        ["pdftotext", "-layout", "-enc", "UTF-8", str(pdf_path), "-"],
-        ["pdftotext", "-enc", "UTF-8", str(pdf_path), "-"],
-    ):
-        try:
-            result = subprocess.run(args, capture_output=True, text=True, timeout=120)
-            if result.returncode == 0 and len(result.stdout.strip()) > len(best.strip()):
-                best = result.stdout
-        except (FileNotFoundError, subprocess.TimeoutExpired):
-            continue
-
-    if best.strip():
-        return best
-
     parts: list[str] = []
     with pdfplumber.open(pdf_path) as pdf:
         for i, page in enumerate(pdf.pages, 1):
@@ -132,32 +117,16 @@ def _page_sizes(pdf_path: Path) -> list[tuple[float, float]]:
 
 
 def _rasterize_page(pdf_path: Path, page_idx: int, dpi: int, scratch_dir: Path) -> np.ndarray:
-    """Rasterize một trang — ghi JPEG ra disk, không giữ toàn bộ PDF trong RAM."""
-    from PIL import Image
-
+    """Rasterize một trang via PDFium — không cần Poppler."""
     dpi = _clamp_raster_dpi(dpi)
-    page_no = page_idx + 1
-    paths = convert_from_path(
-        str(pdf_path),
-        dpi=dpi,
-        first_page=page_no,
-        last_page=page_no,
-        fmt="jpeg",
-        jpegopt={"quality": 90},
-        output_folder=str(scratch_dir),
-        paths_only=True,
-        thread_count=1,
-    )
-    if not paths:
-        raise RuntimeError(f"pdf2image failed for page {page_no}")
+    pdf_doc = pdfium.PdfDocument(str(pdf_path))
     try:
-        with Image.open(paths[0]) as im:
-            return np.asarray(im.convert("RGB"), dtype=np.uint8)
+        page = pdf_doc[page_idx]
+        bitmap = page.render(scale=dpi / 72)
+        img = bitmap.to_pil().convert("RGB")
+        return np.asarray(img, dtype=np.uint8)
     finally:
-        try:
-            Path(paths[0]).unlink(missing_ok=True)
-        except OSError:
-            pass
+        pdf_doc.close()
 
 
 # ── RapidOCR ──────────────────────────────────────────────────
@@ -239,34 +208,108 @@ def _run_rapid_ocr(
 _RAPID_OCR_LANGS = RAPID_OCR_LANGS
 
 
+def _parse_tesseract_tsv(tsv_output: str, img_h: int) -> list[tuple[list, str, float]]:
+    """Parse Tesseract TSV → list of (box_polygon, text, confidence) matching RapidOCR format."""
+    results: list[tuple[list, str, float]] = []
+    for line in tsv_output.strip().split("\n")[1:]:
+        parts = line.split("\t")
+        if len(parts) < 12:
+            continue
+        conf_str, text = parts[10], parts[11]
+        if not text or not text.strip():
+            continue
+        try:
+            conf = float(conf_str) / 100.0
+        except ValueError:
+            continue
+        if conf < 0:
+            continue
+        left, top, w, h = int(parts[6]), int(parts[7]), int(parts[8]), int(parts[9])
+        box = [[left, top], [left + w, top], [left + w, top + h], [left, top + h]]
+        results.append((box, text.strip(), conf))
+    return results
+
+
 def _run_tesseract_ocr(
     pdf_path: Path,
     output_path: Path,
     langs: list[str],
     output_format: str,
 ) -> tuple[str, str]:
-    """Run ocrmypdf (Tesseract) for multilingual support. Returns (text, method)."""
-    import ocrmypdf
-
+    """Run Tesseract directly on pypdfium2-rasterized pages (no Ghostscript)."""
     tess_lang = "+".join(langs) if langs else "eng"
-    jobs = min(4, os.cpu_count() or 2)
+    page_sizes = _page_sizes(pdf_path)
+    page_count = len(page_sizes)
+    all_text: list[str] = []
+    raster_dpi = OCR_RASTER_DPI_DEFAULT
 
-    ocrmypdf.ocr(
-        str(pdf_path),
-        str(output_path),
-        language=tess_lang,
-        deskew=False,
-        skip_text=True,
-        output_type="pdf",
-        progress_bar=False,
-        jobs=jobs,
-        optimize=0,
-    )
+    scratch = Path(tempfile.mkdtemp(prefix="pdfcraft-tess-"))
+    try:
+        if output_format == "pdf":
+            with pikepdf.open(pdf_path) as pdf:
+                for page_idx in range(page_count):
+                    page_w, page_h = page_sizes[page_idx]
+                    img = _rasterize_page(pdf_path, page_idx, raster_dpi, scratch)
+                    img_path = scratch / f"page_{page_idx}.png"
+                    from PIL import Image
+                    Image.fromarray(img).save(str(img_path))
 
-    if output_format == "text":
-        return _extract_text_from_pdf(output_path if output_path.exists() else pdf_path), "tesseract"
+                    result = subprocess.run(
+                        ["tesseract", str(img_path), "stdout", "-l", tess_lang, "tsv"],
+                        capture_output=True, text=True, timeout=120,
+                    )
+                    results = _parse_tesseract_tsv(result.stdout, img.shape[0]) if result.returncode == 0 else []
+                    page_lines = [txt for _box, txt, _conf in results]
 
-    return "", "tesseract"
+                    scale_x = page_w / img.shape[1]
+                    scale_y = page_h / img.shape[0]
+                    del img
+
+                    def _draw_ocr(
+                        c, w, h,
+                        _results=results,
+                        _scale_x=scale_x,
+                        _scale_y=scale_y,
+                        _page_h=page_h,
+                    ):
+                        for box, txt, _conf in _results:
+                            x0 = min(p[0] for p in box) * _scale_x
+                            y1 = max(p[1] for p in box) * _scale_y
+                            fs = max(
+                                6,
+                                min(
+                                    72,
+                                    (max(p[1] for p in box) - min(p[1] for p in box)) * _scale_y * 0.7,
+                                ),
+                            )
+                            y_bl = _page_h - y1
+                            draw_invisible_string_bl(c, x0, y_bl, txt, "", fs)
+
+                    overlay_buf = make_overlay(page_w, page_h, _draw_ocr)
+                    with pikepdf.open(overlay_buf) as overlay_pdf:
+                        pdf.pages[page_idx].add_overlay(overlay_pdf.pages[0])
+                    all_text.append(f"--- Page {page_idx + 1} ---\n" + "\n".join(page_lines))
+                    img_path.unlink(missing_ok=True)
+                pdf.save(str(output_path))
+        else:
+            for page_idx in range(page_count):
+                img = _rasterize_page(pdf_path, page_idx, raster_dpi, scratch)
+                img_path = scratch / f"page_{page_idx}.png"
+                from PIL import Image
+                Image.fromarray(img).save(str(img_path))
+
+                result = subprocess.run(
+                    ["tesseract", str(img_path), "stdout", "-l", tess_lang],
+                    capture_output=True, text=True, timeout=120,
+                )
+                text = result.stdout if result.returncode == 0 else ""
+                all_text.append(f"--- Page {page_idx + 1} ---\n{text}")
+                del img
+                img_path.unlink(missing_ok=True)
+    finally:
+        shutil.rmtree(scratch, ignore_errors=True)
+
+    return "\n\n".join(all_text), "tesseract"
 
 
 def _run_ocr(

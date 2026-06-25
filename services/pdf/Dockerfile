@@ -34,8 +34,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     NUMEXPR_NUM_THREADS=1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    poppler-utils \
-    ghostscript \
     qpdf \
     libgomp1 \
     fontconfig \
