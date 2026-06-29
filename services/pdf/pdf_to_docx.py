@@ -831,7 +831,7 @@ def _extract_hlines(
 ) -> list[HLineBlock]:
     """Extract horizontal separator lines from PDF page."""
     page_w = float(page.width or 612)
-    min_span = page_w * 0.35
+    min_span = page_w * 0.20  # 20% page width — bắt cả đường kẻ ngắn kiểu resume
     blocks: list[HLineBlock] = []
 
     for line in page.lines or []:
@@ -1009,11 +1009,7 @@ def _extract_page(page: pdfplumber.page.Page, pdf_path: Path, image_map: dict[in
             continue
         filtered.append(word)
 
-    text_blocks: list[TextBlock] = []
-    for group in _group_words_to_lines(filtered):
-        block = _line_to_text_block(group, page_w)
-        if block:
-            text_blocks.append(block)
+    text_blocks = _build_text_blocks_from_words(filtered, page_w)
 
     if not text_blocks and not table_blocks:
         text_blocks = _pypdf_page_fallback(pdf_path, page_idx)
@@ -1030,19 +1026,24 @@ def _extract_page(page: pdfplumber.page.Page, pdf_path: Path, image_map: dict[in
     text_blocks.extend(header_text_blocks)
     text_blocks.extend(overflow_text_blocks)
 
+    hline_blocks = _extract_hlines(page, table_rects)
+
     ordered: list[TextBlock | TableBlock | ImageBlock | HLineBlock] = []
     ordered.extend(text_blocks)
     ordered.extend(table_blocks)
     ordered.extend(img_blocks)
+    ordered.extend(hline_blocks)
     def _block_priority(block: TextBlock | TableBlock | ImageBlock | HLineBlock) -> int:
         # Khi cùng top, text (đặc biệt I./II.) phải đứng trước table.
         if isinstance(block, TextBlock):
             return 0
-        if isinstance(block, TableBlock):
+        if isinstance(block, HLineBlock):
             return 1
-        if isinstance(block, ImageBlock):
+        if isinstance(block, TableBlock):
             return 2
-        return 3
+        if isinstance(block, ImageBlock):
+            return 3
+        return 4
 
     ordered.sort(key=lambda b: (b.top, _block_priority(b)))
     content.blocks = ordered
@@ -1099,6 +1100,24 @@ def _add_text_block(
             continue
         run = para.add_run(run_data.text)
         _apply_run_style(run, run_data)
+
+
+def _add_hline_block(doc: Document, block: HLineBlock) -> None:
+    """Thêm đường kẻ ngang phân cách vào DOCX."""
+    para = doc.add_paragraph()
+    para.paragraph_format.space_before = Pt(2)
+    para.paragraph_format.space_after = Pt(2)
+    # Dùng bottom border của paragraph thay vì horizontal rule
+    p_pr = para._element.get_or_add_pPr()
+    p_bdr = OxmlElement("w:pBdr")
+    bottom = OxmlElement("w:bottom")
+    bottom.set(qn("w:val"), "single")
+    sz = max(4, min(24, int(block.linewidth * 8)))
+    bottom.set(qn("w:sz"), str(sz))
+    bottom.set(qn("w:space"), "1")
+    bottom.set(qn("w:color"), "808080")
+    p_bdr.append(bottom)
+    p_pr.append(p_bdr)
 
 
 def _set_table_borders(table, sz: int = 4, color: str = "000000") -> None:
@@ -1228,6 +1247,10 @@ def _build_docx(pages: list[PageContent], output_path: Path) -> None:
                 _add_table_block(doc, block)
                 prev_bottom = block.top + 20
                 prev_kind = "table"
+            elif isinstance(block, HLineBlock):
+                _add_hline_block(doc, block)
+                prev_bottom = block.top + 2
+                prev_kind = "hline"
             elif isinstance(block, ImageBlock):
                 _add_image_block(doc, block, page.width)
                 prev_bottom = block.bottom
@@ -1354,11 +1377,116 @@ def _clamp_preserve_dpi(dpi: int) -> int:
     return max(PRESERVE_LAYOUT_DPI_MIN, min(PRESERVE_LAYOUT_DPI_MAX, dpi))
 
 
+def _find_column_split_x(
+    words: list[dict[str, Any]],
+    page_w: float,
+    *,
+    min_gap: float = 20.0,
+    min_words_per_col: int = 8,
+) -> float | None:
+    """Tìm ranh giới cột dựa trên gap lớn nhất giữa các từ theo trục X.
+
+    Dùng edge-to-edge gap (x1 của từ trước → x0 của từ sau) thay vì
+    center-to-center gap để tránh false positive khi từ dài liền kề.
+
+    Trả về x split point (midpoint của gap), hoặc None nếu không tìm thấy 2 cột.
+    """
+    # Gom từ theo x0 để tìm gap thực giữa các từ
+    valid_words: list[tuple[float, float]] = []  # (x0, x1)
+    for w in words:
+        text = (w.get("text") or "").strip()
+        if len(text) <= 1:
+            continue
+        x0 = float(w.get("x0", 0))
+        x1 = float(w.get("x1", x0))
+        if x1 - x0 < 3:
+            continue
+        valid_words.append((x0, x1))
+
+    if len(valid_words) < min_words_per_col * 2:
+        return None
+
+    # Sắp xếp theo x0
+    valid_words.sort(key=lambda w: w[0])
+
+    # Tìm gap edge-to-edge lớn nhất (x1 của từ trước → x0 của từ sau)
+    # Giới hạn search trong khoảng 5%-95% để tránh edge case ở rìa trang.
+    n = len(valid_words)
+    lo = max(1, int(n * 0.05))
+    hi = min(n - 1, int(n * 0.95))
+
+    best_gap = 0.0
+    best_mid = None
+
+    for i in range(lo, hi):
+        prev_x1 = valid_words[i - 1][1]
+        curr_x0 = valid_words[i][0]
+        gap = curr_x0 - prev_x1
+        if gap > best_gap and gap >= min_gap:
+            left_count = i
+            right_count = n - i
+            if left_count >= min_words_per_col and right_count >= min_words_per_col:
+                best_gap = gap
+                best_mid = (prev_x1 + curr_x0) / 2
+
+    return best_mid
+
+
+def _split_words_by_column(
+    words: list[dict[str, Any]],
+    split_x: float,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Tách từ thành 2 cột dựa trên split_x (dùng x0 của từ)."""
+    left: list[dict[str, Any]] = []
+    right: list[dict[str, Any]] = []
+    for w in words:
+        x0 = float(w.get("x0", 0))
+        if x0 < split_x:
+            left.append(w)
+        else:
+            right.append(w)
+    return left, right
+
+
+def _build_text_blocks_from_words(
+    filtered: list[dict[str, Any]],
+    page_w: float,
+) -> list[TextBlock]:
+    """Từ nhóm từ → line → TextBlock, có nhận biết cột nếu phát hiện."""
+    split_x = _find_column_split_x(filtered, page_w)
+    if split_x is not None:
+        left_words, right_words = _split_words_by_column(filtered, split_x)
+        blocks: list[TextBlock] = []
+        for col_words in (left_words, right_words):
+            for group in _group_words_to_lines(col_words):
+                block = _line_to_text_block(group, page_w)
+                if block:
+                    blocks.append(block)
+        # Sắp xếp: top trước, nếu cùng top thì cột trái trước
+        blocks.sort(key=lambda b: (b.top, b.x0))
+        return blocks
+
+    # Single column — dùng logic cũ
+    blocks: list[TextBlock] = []
+    for group in _group_words_to_lines(filtered):
+        block = _line_to_text_block(group, page_w)
+        if block:
+            blocks.append(block)
+    return blocks
+
+
 def _estimate_column_count(page: pdfplumber.page.Page) -> int:
     words = page.extract_words() or []
     if len(words) < 12:
         return 1
     page_w = float(page.width or 612)
+
+    # Dùng chung hàm _find_column_split_x để detect cột
+    split_x = _find_column_split_x(words, page_w, min_gap=15.0, min_words_per_col=5)
+    if split_x is not None:
+        return 2
+
+    # Fallback: kiểm tra thêm bằng left/right word count truyền thống
     left_words = 0
     right_words = 0
     center_words = 0
@@ -1374,7 +1502,6 @@ def _estimate_column_count(page: pdfplumber.page.Page) -> int:
         if ww < 4:
             continue
         valid_words += 1
-        # Chạm dải giữa trang => text một cột hoặc tiêu đề toàn trang
         if x0 < page_w * 0.52 and x1 > page_w * 0.48:
             center_words += 1
             continue
@@ -1388,7 +1515,6 @@ def _estimate_column_count(page: pdfplumber.page.Page) -> int:
     if valid_words < 60:
         return 1
 
-    # Hai cột thật: cả hai bên đều dày chữ và phần giữa ít.
     if (
         left_words >= 80
         and right_words >= 80
@@ -1538,10 +1664,7 @@ def _extract_positioned_page_blocks(
             continue
         filtered.append(word)
 
-    for group in _group_words_to_lines(filtered):
-        block = _line_to_text_block(group, page_w)
-        if block:
-            blocks.append(block)
+    blocks = _build_text_blocks_from_words(filtered, page_w)
 
     if not blocks and not table_rects:
         blocks = _pypdf_page_fallback(pdf_path, page_idx)
