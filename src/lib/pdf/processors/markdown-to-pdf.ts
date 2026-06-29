@@ -321,8 +321,14 @@ export class MarkdownToPDFProcessor extends BasePDFProcessor {
 
             this.updateProgress(20, 'Converting Markdown to HTML...');
 
-            // Convert markdown to HTML
-            const htmlContent = await simpleMarkdownToHtml(markdownContent, mdOptions.gfm, mdOptions.syntaxHighlight);
+            // Convert markdown to HTML — prefer marked (proper parser), fall back to simple
+            let htmlContent: string;
+            try {
+                const { marked } = await import('marked');
+                htmlContent = await marked(markdownContent, { gfm: mdOptions.gfm, breaks: true });
+            } catch {
+                htmlContent = await simpleMarkdownToHtml(markdownContent, mdOptions.gfm, mdOptions.syntaxHighlight);
+            }
 
             if (this.checkCancelled()) {
                 return this.createErrorOutput(
@@ -471,26 +477,32 @@ export class MarkdownToPDFProcessor extends BasePDFProcessor {
                     format: [width, height],
                 });
 
-                // Calculate image dimensions
-                const imgData = canvas.toDataURL('image/jpeg', 0.95);
                 const imgWidth = width;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                // Per-page margins (mm) — give text room to breathe at page edges
+                const marginTopMm = 15;
+                const marginBottomMm = 15;
+                const usableHeightMm = height - marginTopMm - marginBottomMm;
+                // canvas px per mm
+                const pxPerMm = canvas.width / imgWidth;
+                const usableHeightPx = Math.round(usableHeightMm * pxPerMm);
 
-                // Handle multi-page PDFs
-                const pageHeight = height;
-                let heightLeft = imgHeight;
-                let position = 0;
-
-                // Add first page
-                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-
-                // Add additional pages if needed
-                while (heightLeft > 0) {
-                    position = position - pageHeight;
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
+                let offsetPx = 0;
+                let firstPage = true;
+                while (offsetPx < canvas.height) {
+                    if (!firstPage) pdf.addPage();
+                    firstPage = false;
+                    const sliceHeightPx = Math.min(usableHeightPx, canvas.height - offsetPx);
+                    const pageCanvas = document.createElement('canvas');
+                    pageCanvas.width = canvas.width;
+                    pageCanvas.height = sliceHeightPx;
+                    const ctx = pageCanvas.getContext('2d');
+                    if (ctx) {
+                        ctx.drawImage(canvas, 0, offsetPx, canvas.width, sliceHeightPx, 0, 0, canvas.width, sliceHeightPx);
+                    }
+                    const sliceData = pageCanvas.toDataURL('image/jpeg', 0.95);
+                    const sliceHeightMm = sliceHeightPx / pxPerMm;
+                    pdf.addImage(sliceData, 'JPEG', 0, marginTopMm, imgWidth, sliceHeightMm);
+                    offsetPx += usableHeightPx;
                 }
 
                 // Get PDF as blob

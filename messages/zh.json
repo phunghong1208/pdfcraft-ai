@@ -2999,7 +2999,6 @@
       "refreshSummary": "Update summary",
       "regenerateSummary": "Update summary",
       "summaryPlaceholder": "运行摘要以查看 AI 为此 PDF 生成的要点。",
-      "summaryDone": "摘要已就绪。打开摘要标签阅读。",
       "documentId": "文档 ID：{id}",
       "previewPdf": "PDF 预览",
       "title": "AI 助手",

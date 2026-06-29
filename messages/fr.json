@@ -3217,7 +3217,6 @@
       "refreshSummary": "Update summary",
       "regenerateSummary": "Update summary",
       "summaryPlaceholder": "Lancez le résumé pour voir les points clés générés par l’IA.",
-      "summaryDone": "Le résumé est prêt. Ouvrez l'onglet Résumé pour le lire.",
       "documentId": "ID du document : {id}",
       "previewPdf": "Aperçu PDF",
       "title": "Assistant IA",

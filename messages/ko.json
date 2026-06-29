@@ -3217,7 +3217,6 @@
       "refreshSummary": "Update summary",
       "regenerateSummary": "Update summary",
       "summaryPlaceholder": "요약을 실행하여 이 PDF의 AI 하이라이트를 확인하세요.",
-      "summaryDone": "요약이 준비되었습니다. 요약 탭을 열어서 읽어보세요.",
       "documentId": "문서 ID: {id}",
       "previewPdf": "PDF 미리보기",
       "title": "AI 도우미",

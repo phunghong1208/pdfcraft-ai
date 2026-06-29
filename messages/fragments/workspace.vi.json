@@ -240,7 +240,6 @@
     "refreshSummary": "Cập nhật tóm tắt",
     "regenerateSummary": "Cập nhật tóm tắt",
     "summaryPlaceholder": "Chạy tóm tắt để xem nội dung chính do AI tạo cho PDF này.",
-    "summaryDone": "Đã tóm tắt xong. Mở tab Tóm tắt để đọc.",
     "documentId": "Mã tài liệu (chat): {id}",
     "previewPdf": "Xem PDF",
     "title": "Trợ lý AI",

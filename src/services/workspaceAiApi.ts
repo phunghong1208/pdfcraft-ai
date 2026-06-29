@@ -1,11 +1,11 @@
 import { defaultLocale, localeConfig, locales, type Locale } from '@/lib/i18n/config';
+import { extractTextFromPdfFile } from '@/lib/pdf/extract-pdf-text';
+import { runSmartOcr } from '@/lib/pdf/processors/ocr';
 import {
   loadPersistedSuggestedQuestions,
   savePersistedSuggestedQuestions,
 } from '@/lib/workspace-ai-persistence';
 import {
-  buildSuggestedQuestionsPrompt,
-  parseSuggestedQuestionsFromResponse,
   peekSuggestedQuestions,
   rememberSuggestedQuestions,
   suggestedQuestionsCacheKey,
@@ -307,7 +307,7 @@ export async function chatWithWorkspaceDocument(opts: {
         document_id: opts.documentId,
         top_k: opts.topK ?? DEFAULT_TOP_K,
         user_key: opts.userKey ?? DEFAULT_USER_KEY,
-        language: opts.language ?? WORKSPACE_DEFAULT_AI_LANGUAGE,
+        lang: opts.language ?? WORKSPACE_DEFAULT_AI_LANGUAGE,
       }),
     });
   } catch (err) {
@@ -327,23 +327,36 @@ export async function chatWithWorkspaceDocument(opts: {
 
 const suggestedQuestionsInflight = new Map<string, Promise<string[]>>();
 
-/** Gợi ý câu hỏi — một lần POST /chat, chỉ document_id + prompt ngắn. */
+/** Gợi ý câu hỏi — POST /suggest-questions với document_id. */
 export async function generateWorkspaceSuggestedQuestions(opts: {
   documentId: number;
   language?: string;
   userKey?: string;
-  topK?: number;
+  detail?: number;
 }): Promise<string[]> {
   const language = opts.language ?? WORKSPACE_DEFAULT_AI_LANGUAGE;
-  const answer = await chatWithWorkspaceDocument({
-    question: buildSuggestedQuestionsPrompt(language),
-    documentId: opts.documentId,
-    topK: opts.topK ?? 3,
-    userKey: opts.userKey ?? DEFAULT_USER_KEY,
-    language,
-  });
+  let res: Response;
+  try {
+    res = await fetch(buildApiUrl('suggest-questions'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        document_id: opts.documentId,
+        lang: language,
+        user_key: opts.userKey ?? DEFAULT_USER_KEY,
+        detail: opts.detail ?? 0.2,
+      }),
+    });
+  } catch (err) {
+    throw wrapNetworkError(err);
+  }
 
-  return parseSuggestedQuestionsFromResponse(answer).slice(0, 3);
+  if (!res.ok) {
+    throw new Error(await parseErrorMessage(res));
+  }
+
+  const data = (await res.json()) as { suggested_questions?: string[] };
+  return (data.suggested_questions ?? []).slice(0, 3);
 }
 
 /** Lấy câu hỏi gợi ý — ưu tiên cache (memory + session), tránh gọi API trùng. */
@@ -352,7 +365,7 @@ export async function resolveWorkspaceSuggestedQuestions(opts: {
   language?: string;
   file?: File | null;
   userKey?: string;
-  topK?: number;
+  detail?: number;
 }): Promise<string[]> {
   const language = opts.language ?? WORKSPACE_DEFAULT_AI_LANGUAGE;
   const cacheKey = suggestedQuestionsCacheKey(opts.documentId, language);
@@ -375,7 +388,7 @@ export async function resolveWorkspaceSuggestedQuestions(opts: {
     documentId: opts.documentId,
     language,
     userKey: opts.userKey,
-    topK: opts.topK,
+    detail: opts.detail,
   })
     .then((questions) => {
       rememberSuggestedQuestions(cacheKey, questions);
@@ -392,32 +405,56 @@ export async function resolveWorkspaceSuggestedQuestions(opts: {
   return request;
 }
 
+/** Trích nội dung text từ PDF: pdf.js trước, OCR server fallback nếu rỗng. */
+async function extractTextForSummary(file: File): Promise<string> {
+  try {
+    const text = await extractTextFromPdfFile(file);
+    if (text && text.trim().length > 100) return text.trim();
+  } catch {
+    // fall through to OCR
+  }
+
+  const ocrResult = await runSmartOcr(file, { outputFormat: 'text' });
+  if (ocrResult.success && ocrResult.metadata?.textPreview) {
+    return String(ocrResult.metadata.textPreview).trim();
+  }
+  return '';
+}
+
 /**
- * Tóm tắt PDF — khớp Postman:
+ * Tóm tắt PDF — trích text client-side, gửi JSON lên Go server:
  * POST {BASE}/summary
- * Headers: Accept: application/json
- * Body (form-data): file, detail=0.2, language=Vietnamese, user_key=user_001
+ * Body JSON: { text, lang, filename, detail, user_key }
  */
 export async function summarizeWorkspaceDocument(
   file: File,
-  opts?: { detail?: number | string; userKey?: string; language?: string },
+  opts?: { detail?: number | string; userKey?: string; language?: string; onStage?: (stage: 'extract' | 'ai') => void; pageCount?: number },
 ): Promise<{ text: string; documentId: number | null }> {
   const detail = String(opts?.detail ?? DEFAULT_SUMMARY_DETAIL);
   const userKey = opts?.userKey ?? DEFAULT_USER_KEY;
   const language = opts?.language ?? WORKSPACE_DEFAULT_AI_LANGUAGE;
 
-  const form = new FormData();
-  form.append('file', file, file.name);
-  form.append('detail', detail);
-  form.append('language', language);
-  form.append('user_key', userKey);
+  opts?.onStage?.('extract');
+  const docText = await extractTextForSummary(file);
+  if (!docText) {
+    throw new Error('Không trích được nội dung PDF. Thử dùng OCR thông minh trước.');
+  }
 
+  opts?.onStage?.('ai');
   let res: Response;
   try {
     res = await fetch(buildApiUrl('summary'), {
       method: 'POST',
-      headers: { Accept: 'application/json' },
-      body: form,
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        text: docText,
+        lang: language,
+        filename: file.name,
+        detail: parseFloat(detail),
+        user_key: userKey,
+        file_size_bytes: file.size,
+        ...(opts?.pageCount != null ? { page_count: opts.pageCount } : {}),
+      }),
     });
   } catch (err) {
     throw wrapNetworkError(err);
@@ -439,14 +476,7 @@ export async function summarizeWorkspaceDocument(
     if (process.env.NODE_ENV === 'development') {
       console.warn('[summary] Empty body keys:', Object.keys(data), data);
     }
-    const pageCount = data.page_count ?? data.pageCount;
-    const hint =
-      pageCount != null
-        ? ` PDF có ${pageCount} trang — nếu là bản scan, hãy chạy OCR trước.`
-        : ' Nếu PDF là bản scan/ảnh, hãy dùng OCR thông minh trước.';
-    throw new Error(
-      `Server trả 200 nhưng không có nội dung tóm tắt.${hint}`,
-    );
+    throw new Error('Server trả 200 nhưng không có nội dung tóm tắt.');
   }
 
   const documentId = pickDocumentId(data as Record<string, unknown>);

@@ -3031,7 +3031,6 @@
       "refreshSummary": "Update summary",
       "regenerateSummary": "Update summary",
       "summaryPlaceholder": "Jalankan ringkasan untuk melihat sorotan AI untuk PDF ini.",
-      "summaryDone": "Ringkasan sudah siap. Buka tab Ringkasan untuk membacanya.",
       "documentId": "ID Dokumen: {id}",
       "previewPdf": "Pratinjau PDF",
       "title": "Asisten AI",

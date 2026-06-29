@@ -3217,7 +3217,6 @@
       "refreshSummary": "Update summary",
       "regenerateSummary": "Update summary",
       "summaryPlaceholder": "要約を実行して、この PDF の AI ハイライトを表示します。",
-      "summaryDone": "概要が準備できました。 [概要] タブを開いて読んでください。",
       "documentId": "ドキュメント ID: {id}",
       "previewPdf": "PDF プレビュー",
       "title": "AIアシスタント",

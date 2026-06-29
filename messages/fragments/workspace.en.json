@@ -240,7 +240,6 @@
     "refreshSummary": "Update summary",
     "regenerateSummary": "Update summary",
     "summaryPlaceholder": "Run summary to see AI-generated highlights for this PDF.",
-    "summaryDone": "Summary is ready. Open the Summary tab to read it.",
     "documentId": "Document ID: {id}",
     "previewPdf": "PDF preview",
     "title": "AI Assistant",

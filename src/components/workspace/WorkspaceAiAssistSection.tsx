@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Check,
+  ChevronDown,
+  ChevronRight,
   Copy,
   FileDown,
   Loader2,
@@ -22,6 +24,7 @@ import { loadPersistedSuggestedQuestions } from '@/lib/workspace-ai-persistence'
 import {
   resolveWorkspaceSuggestedQuestions,
   WORKSPACE_SUMMARY_DETAIL_PRESETS,
+  getWorkspaceSummaryDetailPreset,
   type WorkspacePresetTierId,
 } from '@/services/workspaceAiApi';
 
@@ -70,6 +73,7 @@ export type WorkspaceAiAssistSectionProps = {
   inputTone: string;
   /** combined = workspace panel; controls = sidebar; conversation = summary + chat only */
   layout?: 'combined' | 'controls' | 'conversation';
+  summaryStage?: 'extract' | 'ai' | null;
 };
 
 function SectionTitle({
@@ -116,6 +120,7 @@ export function WorkspaceAiAssistSection({
   panelTextMuted,
   inputTone,
   layout = 'combined',
+  summaryStage = null,
 }: WorkspaceAiAssistSectionProps) {
   const t = useTranslations('workspace');
   const hasSummary = Boolean(summaryText?.trim());
@@ -124,6 +129,11 @@ export function WorkspaceAiAssistSection({
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>(initialCachedQuestions);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [suggestionsReady, setSuggestionsReady] = useState(initialCachedQuestions.length > 0);
+  const [controlsOpen, setControlsOpen] = useState(!hasSummary);
+  // Auto-collapse when summarizing starts, re-open only if no summary yet after done
+  useEffect(() => {
+    if (isSummarizing) setControlsOpen(false);
+  }, [isSummarizing]);
   const fetchedSuggestionsKeyRef = useRef<string | null>(
     initialCachedQuestions.length > 0 && documentId != null
       ? suggestedQuestionsCacheKey(documentId, answerLanguage)
@@ -174,6 +184,7 @@ export function WorkspaceAiAssistSection({
       documentId,
       language: answerLanguage,
       file,
+      detail: parseFloat(getWorkspaceSummaryDetailPreset(sessionTierId).detail),
     })
       .then((questions) => {
         if (cancelled) return;
@@ -208,57 +219,81 @@ export function WorkspaceAiAssistSection({
   };
 
   const controlsPanel = (
-    <div className={`shrink-0 rounded-2xl border px-4 py-4 space-y-3 ${panelCardTone}`}>
-      <WorkspaceAiLanguageSelect
-        compact
-        variant={isDarkTheme ? 'dark' : 'light'}
-        label={t('aiPanel.answerLanguage.label')}
-        value={answerLanguage}
-        onChange={onAnswerLanguageChange}
-        disabled={isSummarizing || isAiThinking}
-      />
-      {file ? (
-        <div>
-          <p className="text-[11px] font-medium text-[hsl(var(--color-foreground))] mb-1.5">
-            {t('aiPanel.sessionTier.label')}
-          </p>
-          <div className="flex gap-1" role="radiogroup" aria-label={t('aiPanel.sessionTier.label')}>
-            {WORKSPACE_SUMMARY_DETAIL_PRESETS.map((preset) => (
-              <button
-                key={preset.id}
-                type="button"
-                disabled={!file || isSummarizing || isAiThinking}
-                onClick={() => onSessionTierIdChange(preset.id)}
-                aria-pressed={sessionTierId === preset.id}
-                className={`flex-1 rounded-lg py-1.5 text-[11px] font-medium border transition-all disabled:opacity-40 ${
-                  sessionTierId === preset.id
-                    ? isDarkTheme
-                      ? 'bg-[rgba(239,68,68,0.15)] border-[#EF4444]/40 text-[#FF5A5F]'
-                      : 'bg-[hsl(var(--color-primary)/0.15)] border-[hsl(var(--color-primary)/0.4)] text-[hsl(var(--color-primary))]'
-                    : isDarkTheme
-                      ? 'border-[#2F3A4A] text-[#8B949E] hover:bg-[#1A2332]'
-                      : 'border-[hsl(var(--color-border))] text-[hsl(var(--color-muted-foreground))] hover:bg-[hsl(var(--color-muted))]/50'
-                }`}
-              >
-                {t(`aiPanel.summaryDetail.${preset.id}.title`)}
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : null}
+    <div className={`shrink-0 rounded-2xl border ${panelCardTone}`}>
+      {/* Header row — always visible, click to toggle */}
       <button
         type="button"
-        onClick={onRunSummary}
-        disabled={!file || isSummarizing}
-        className="w-full h-10 inline-flex items-center justify-center gap-2 rounded-xl text-[12px] font-semibold text-white bg-gradient-to-br from-[#EF4444] to-[#DC2626] hover:from-[#DC2626] hover:to-[#B91C1C] border border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        onClick={() => setControlsOpen((v) => !v)}
+        disabled={isSummarizing}
+        className="w-full flex items-center justify-between gap-2 px-4 py-3 text-left"
       >
-        {isSummarizing ? (
-          <Loader2 className={`h-4 w-4 animate-spin shrink-0 ${AI_UI.spinner}`} aria-hidden />
-        ) : (
-          <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
-        )}
-        <span>{hasSummary ? t('aiPanel.refreshSummary') : t('aiPanel.generateSummary')}</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <Sparkles className={`h-3.5 w-3.5 shrink-0 ${isDarkTheme ? 'text-[#FF5A5F]' : 'text-[hsl(var(--color-primary))]'}`} aria-hidden />
+          <span className={`text-[12px] font-semibold truncate ${isDarkTheme ? 'text-[#FF5A5F]' : 'text-[hsl(var(--color-primary))]'}`}>
+            {t('aiPanel.generateSummary')}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isDarkTheme ? 'text-[#8B949E]' : 'text-[hsl(var(--color-muted-foreground))]'} ${controlsOpen ? 'rotate-180' : ''}`} aria-hidden />
+        </div>
       </button>
+
+      {controlsOpen && (
+        <div className="px-4 pb-4 space-y-3 border-t border-[hsl(var(--color-border)/0.5)]">
+          <div className="pt-3">
+            <WorkspaceAiLanguageSelect
+              compact
+              variant={isDarkTheme ? 'dark' : 'light'}
+              label={t('aiPanel.answerLanguage.label')}
+              value={answerLanguage}
+              onChange={onAnswerLanguageChange}
+              disabled={isSummarizing || isAiThinking}
+            />
+          </div>
+          {file ? (
+            <div>
+              <p className="text-[11px] font-medium text-[hsl(var(--color-foreground))] mb-1.5">
+                {t('aiPanel.sessionTier.label')}
+              </p>
+              <div className="flex gap-1" role="radiogroup" aria-label={t('aiPanel.sessionTier.label')}>
+                {WORKSPACE_SUMMARY_DETAIL_PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    disabled={!file || isSummarizing || isAiThinking}
+                    onClick={() => onSessionTierIdChange(preset.id)}
+                    aria-pressed={sessionTierId === preset.id}
+                    className={`flex-1 rounded-lg py-1.5 text-[11px] font-medium border transition-all disabled:opacity-40 ${
+                      sessionTierId === preset.id
+                        ? isDarkTheme
+                          ? 'bg-[rgba(239,68,68,0.15)] border-[#EF4444]/40 text-[#FF5A5F]'
+                          : 'bg-[hsl(var(--color-primary)/0.15)] border-[hsl(var(--color-primary)/0.4)] text-[hsl(var(--color-primary))]'
+                        : isDarkTheme
+                          ? 'border-[#2F3A4A] text-[#8B949E] hover:bg-[#1A2332]'
+                          : 'border-[hsl(var(--color-border))] text-[hsl(var(--color-muted-foreground))] hover:bg-[hsl(var(--color-muted))]/50'
+                    }`}
+                  >
+                    {t(`aiPanel.summaryDetail.${preset.id}.title`)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => { onRunSummary(); setControlsOpen(false); }}
+            disabled={!file || isSummarizing}
+            className="w-full h-10 inline-flex items-center justify-center gap-2 rounded-xl text-[12px] font-semibold text-white bg-gradient-to-br from-[#EF4444] to-[#DC2626] hover:from-[#DC2626] hover:to-[#B91C1C] border border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSummarizing ? (
+              <Loader2 className={`h-4 w-4 animate-spin shrink-0 ${AI_UI.spinner}`} aria-hidden />
+            ) : (
+              <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            )}
+            <span>{hasSummary ? t('aiPanel.refreshSummary') : t('aiPanel.generateSummary')}</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 
@@ -371,29 +406,27 @@ export function WorkspaceAiAssistSection({
           </>
         )}
 
-        {chatReady && messages.length === 0 && (isLoadingSuggestions || suggestedQuestions.length > 0) && (
-          <div className={`rounded-xl border p-3 space-y-2.5 ${panelSoftTone}`}>
-            <p className={`text-[11px] font-medium ${panelTextMuted}`}>
+        {chatReady && !isSummarizing && messages.length === 0 && !isLoadingSuggestions && suggestedQuestions.length > 0 && (
+          <div className="space-y-1.5">
+            <p className={`text-[10px] font-medium uppercase tracking-wide px-0.5 ${panelTextMuted}`}>
               {t('aiPanel.suggestedQuestions')}
             </p>
-            {isLoadingSuggestions ? (
-              <div className="flex items-center justify-center py-6">
-                <Loader2 className={`h-5 w-5 animate-spin ${AI_UI.spinner}`} aria-hidden />
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {suggestedQuestions.map((question) => (
-                  <button
-                    key={question}
-                    type="button"
-                    onClick={() => handleSuggestedClick(question)}
-                    className={`w-full text-left rounded-lg border px-3 py-2.5 text-[12px] leading-snug transition-all hover:border-[hsl(var(--color-primary)/0.4)] hover:bg-[hsl(var(--color-primary)/0.06)] line-clamp-2 ${inputTone}`}
-                  >
-                    {question}
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="flex flex-col gap-1.5">
+              {suggestedQuestions.map((question, i) => (
+                <button
+                  key={question}
+                  type="button"
+                  onClick={() => handleSuggestedClick(question)}
+                  className={`group w-full text-left rounded-xl border px-3 py-2.5 text-[12px] leading-snug transition-all hover:border-[hsl(var(--color-primary)/0.5)] hover:bg-[hsl(var(--color-primary)/0.06)] flex items-center gap-2.5 ${inputTone}`}
+                >
+                  <span className={`shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${isDarkTheme ? 'bg-[rgba(239,68,68,0.2)] text-[#FF5A5F]' : 'bg-[hsl(var(--color-primary)/0.1)] text-[hsl(var(--color-primary))]'}`}>
+                    {i + 1}
+                  </span>
+                  <span className="flex-1 truncate">{question}</span>
+                  <ChevronRight className={`h-3 w-3 shrink-0 opacity-0 group-hover:opacity-60 transition-opacity ${isDarkTheme ? 'text-[#8B949E]' : 'text-[hsl(var(--color-muted-foreground))]'}`} aria-hidden />
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>

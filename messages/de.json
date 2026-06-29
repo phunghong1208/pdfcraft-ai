@@ -2999,7 +2999,6 @@
       "refreshSummary": "Update summary",
       "regenerateSummary": "Update summary",
       "summaryPlaceholder": "Zusammenfassung ausführen, um KI-Highlights für dieses PDF zu sehen.",
-      "summaryDone": "Zusammenfassung ist fertig. Öffnen Sie die Registerkarte „Zusammenfassung“, um sie zu lesen.",
       "documentId": "Dokument-ID: {id}",
       "previewPdf": "PDF-Vorschau",
       "title": "KI-Assistent",

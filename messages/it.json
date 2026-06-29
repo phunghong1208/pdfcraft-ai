@@ -3008,7 +3008,6 @@
       "refreshSummary": "Update summary",
       "regenerateSummary": "Update summary",
       "summaryPlaceholder": "Esegui il riepilogo per vedere i punti chiave generati dall’IA.",
-      "summaryDone": "Il riepilogo è pronto. Apri la scheda Riepilogo per leggerlo.",
       "documentId": "ID documento: {id}",
       "previewPdf": "Anteprima PDF",
       "title": "Assistente AI",
